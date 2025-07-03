@@ -57,11 +57,19 @@ retry() {                       # retry <count> <cmd …>
   }; done
 }
 
-# Warm the .import cache – no error grepping; if Godot exits 0 we’re happy
+# Warm the .import cache – NEW: doesn’t fail if no Godot project present
 godot_import_pass() {
-  [[ "$INSTALL_GODOT" == 0 ]] && return              # nothing to do
+  [[ "$INSTALL_GODOT" == 0 ]] && return            # nothing to do
+  # --- NEW -------------------------------------------------------------------
+  if [[ ! -f project.godot && ! -f engine.cfg ]]; then
+    (( VERBOSE_IMPORT )) && echo '⚠️  No Godot project found – skipping cache warm-up.'
+    return 0
+  fi
+  # ---------------------------------------------------------------------------
   (( VERBOSE_IMPORT )) && echo '🔄  Warming Godot import cache (headless)…'
-  retry 3 godot --headless --editor --import --quiet --quit --path .
+  if ! retry 3 godot --headless --editor --import --quiet --quit --path .; then
+    echo '⚠️  Godot import failed; continuing anyway.' >&2
+  fi
   (( VERBOSE_IMPORT )) && echo '   …done.'
 }
 
@@ -79,7 +87,6 @@ retry 5 apt-get install -y --no-install-recommends "${BASIC_PACKAGES[@]}"
 ################################################################################
 if [[ "$INSTALL_GODOT" == 1 ]]; then
   echo '📦  Ensuring Godot runtime libraries …'
-  # RUNTIME_LIBS may contain an empty string if pick_* failed – filter it out
   retry 5 apt-get install -y --no-install-recommends \
         $(printf '%s\n' "${RUNTIME_LIBS[@]}" | grep -v '^$')
 fi
@@ -156,5 +163,5 @@ set -x
 [[ "$INSTALL_DOTNET" == 1 ]] && echo " • .NET SDK:    $(command -v dotnet)"
 echo " • Docs:        ${ONLINE_DOCS_URL} (offline fetch disabled)"
 
-godot_import_pass   # no-op when INSTALL_GODOT=0
+godot_import_pass   # no-op when INSTALL_GODOT=0 or no project found
 echo '✅  Done.'
