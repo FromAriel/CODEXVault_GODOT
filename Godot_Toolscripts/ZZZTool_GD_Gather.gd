@@ -2,7 +2,7 @@
 extends EditorScript
 
 # ==================================================
-#  File: GatherGDScripts.gd
+#  File: Godot_Toolscripts/ZZZTool_GD_Gather.gd
 #  Description:
 #   - Recursively gathers all .gd files under res://
 #   - Excludes scripts beginning with "X_TOOL_"
