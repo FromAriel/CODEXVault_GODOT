@@ -131,5 +131,3 @@ If it breaks, it tells you why. If it runs, it runs **everywhere**.
 
 That’s the **CODEXVault** promise. 🧠🔐
 ```
-
-Would you like me to embed this directly into your current Codex workspace as `FAQ.md`, or format it for inclusion inside your main `README.md`? I can also generate a TOC or linkable anchors if you want it more navigable.
