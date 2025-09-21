@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ASCII/Unicode Grid Studio — Single-File (Pipes Edition)</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #12161c;
+    --ink: #e6edf3;
+    --muted: #9aa7b3;
+    --accent: #7c3aed;
+    --accent-2: #3b82f6;
+    --danger: #ef4444;
+    --ok: #10b981;
+    --grid: #1f2937;
+    --grid-strong: #334155;
+    --chip: #1a2230;
+    --chip-sel: #283247;
+    --kbd-bg: #0f172a;
+    --kbd-border: #334155;
+    --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  header {
+    grid-column: 1 / span 2;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid #1f2530;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: var(--shadow);
+    flex-wrap: wrap;
+  }
+  header .brand {
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+  header .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: center;
+  }
+  .field {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    background: #0e131a;
+    border: 1px solid #1c2230;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+  .field label {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .field input[type="number"], .field input[type="text"], .field select {
+    width: 80px;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    outline: none;
+    font-size: 13px;
+  }
+  .field input[type="text"].wide { width: 180px; }
+  .btn {
+    background: linear-gradient(180deg,#1d2431,#171c27);
+    border: 1px solid #2a3446;
+    color: var(--ink);
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+  }
+  .btn:hover { border-color: #3b4a64; }
+  .btn.primary { border-color: #4c2bd9; background: linear-gradient(180deg,#5b34ff,#3f2aa8); }
+  .btn.ghost { background: transparent; border-color: #2a3446; }
+  .btn.danger { border-color: #7f1d1d; background: linear-gradient(180deg,#991b1b,#7f1d1d); }
+  .chipbar { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    background: var(--chip);
+    border: 1px solid #263045;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip:hover { border-color: #3a4868; }
+  .chip.sel { background: var(--chip-sel); border-color: #4b5b7e; }
+
+  /* Left panel */
+  .left {
+    background: var(--panel);
+    border: 1px solid #1f2530;
+    border-radius: 12px;
+    padding: 10px;
+    overflow: auto;
+    box-shadow: var(--shadow);
+    min-height: 0;
+  }
+  .left .search {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .left input[type="search"] {
+    width: 100%;
+    background: #0e131a;
+    border: 1px solid #1c2230;
+    color: #fff;
+    outline: none;
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+  details {
+    background: #0d1117;
+    border: 1px solid #1b2332;
+    border-radius: 10px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+  details[open] { border-color: #25314a; }
+  summary {
+    cursor: pointer;
+    padding: 10px 12px;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: #0f1622;
+  }
+  .glyph-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 6px;
+    padding: 10px;
+  }
+  .glyph {
+    display: grid;
+    place-items: center;
+    height: 32px;
+    border: 1px solid #263045;
+    border-radius: 8px;
+    background: #0a0f16;
+    cursor: pointer;
+    font-family: ui-monospace, "Cascadia Code", "Fira Code", "Consolas", "DejaVu Sans Mono", "Noto Sans Mono", "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", monospace;
+    font-size: 20px;
+    user-select: none;
+  }
+  .glyph:hover { border-color: #3b4a64; }
+  .glyph.sel { outline: 2px solid var(--accent-2); }
+
+  /* Right main area */
+  .right {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+    min-height: 0;
+  }
+  .toolbar {
+    background: var(--panel);
+    border: 1px solid #1f2530;
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .canvas-wrap {
+    background: #0d1117;
+    border: 1px solid #1f2530;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: auto;
+  }
+  canvas {
+    display: block;
+    background: #0b1017;
+  }
+  .statusbar {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid #273144;
+    color: #cbd5e1;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    backdrop-filter: blur(3px);
+  }
+  .kbd {
+    display: inline-block;
+    border: 1px solid var(--kbd-border);
+    background: var(--kbd-bg);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+    font-size: 12px;
+    margin: 0 2px;
+    color: #cbd5e1;
+  }
+  input[type="file"] { display: none; }
+  .toolgroup {
+    display: flex; gap: 6px; align-items: center;
+    padding: 4px; border-radius: 10px; background: #0e1420; border: 1px solid #1d2534;
+  }
+  .tool-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid #2a3446; background: #0e1320; cursor:pointer; color: var(--ink); }
+  .tool-btn.sel { outline: 2px solid var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">ASCII/Unicode Grid Studio</div>
+    <div class="controls">
+      <div class="field">
+        <label>Preset</label>
+        <div class="chipbar" id="presets">
+          <div class="chip" data-w="80" data-h="50">80×50</div>
+          <div class="chip" data-w="120" data-h="36">120×36</div>
+          <div class="chip" data-w="132" data-h="43">132×43</div>
+          <div class="chip" data-w="160" data-h="100">160×100</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>W×H</label>
+        <input id="gridW" type="number" min="1" value="80" />
+        <span>×</span>
+        <input id="gridH" type="number" min="1" value="50" />
+        <button class="btn" id="applySize">Apply</button>
+      </div>
+      <div class="field">
+        <label>Cell (px)</label>
+        <input id="cellW" type="number" min="6" value="14" />
+        <span>×</span>
+        <input id="cellH" type="number" min="8" value="16" />
+        <button class="btn" id="applyCell">Apply</button>
+      </div>
+      <div class="field">
+        <label>Font px</label>
+        <input id="fontSize" type="number" min="8" value="14" />
+        <button class="btn" id="applyFont">Apply</button>
+      </div>
+      <div class="field">
+        <label>Font family</label>
+        <input id="fontFamily" class="wide" type="text" value='ui-monospace, "Cascadia Code", "Fira Code", "Consolas", "DejaVu Sans Mono", "Noto Sans Mono", "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", monospace' />
+        <button class="btn" id="applyFamily">Apply</button>
+      </div>
+      <button class="btn" id="toggleFit">Auto-Fit Font: Off</button>
+      <button class="btn" id="toggleBlend">Blend Draw: On</button>
+      <button class="btn ghost" id="toggleGridlines">Gridlines: On</button>
+      <button class="btn" id="clearGrid">Clear</button>
+      <button class="btn" id="undoBtn">Undo</button>
+      <button class="btn" id="redoBtn">Redo</button>
+      <button class="btn primary" id="saveJSON">Save JSON</button>
+      <button class="btn" id="loadJSON">Load JSON</button>
+      <button class="btn" id="exportTXT">Export TXT</button>
+      <button class="btn" id="importTXT">Load TXT</button>
+      <button class="btn" id="exportPNG">Export PNG</button>
+      <input id="fileJSON" type="file" accept=".json,application/json" />
+      <input id="fileTXT" type="file" accept=".txt,text/plain" />
+    </div>
+  </header>
+
+  <aside class="left">
+    <div class="search">
+      <input id="searchGlyphs" type="search" placeholder="Search glyphs (name or char)…" />
+    </div>
+    <div id="palette"></div>
+  </aside>
+
+  <main class="right">
+    <div class="toolbar">
+      <div class="toolgroup" id="toolGroup">
+        <button class="tool-btn sel" data-tool="pencil" title="Paint (click/drag) [P]">✏️ Pencil</button>
+        <button class="tool-btn" data-tool="eraser" title="Erase (space) [E]">🧽 Eraser</button>
+        <button class="tool-btn" data-tool="eyedrop" title="Pick glyph [I]">🎯 Eyedrop</button>
+        <button class="tool-btn" data-tool="type" title="Type mode (keyboard) [T]">⌨️ Type</button>
+      </div>
+      <div class="field">
+        <label>Selected</label>
+        <div id="selectedGlyph" class="glyph" style="width:40px;height:40px;">█</div>
+        <input id="customGlyph" type="text" maxlength="4" placeholder="Add glyph" style="width:90px;" />
+        <button class="btn" id="useCustomGlyph">Use</button>
+      </div>
+      <div class="field">
+        <label>Help</label>
+        <span class="kbd">LMB</span> paint / pick •
+        <span class="kbd">RMB</span> erase •
+        <span class="kbd">Ctrl/⌘ + Wheel</span> zoom •
+        <span class="kbd">P/E/I/T</span> tools •
+        <span class="kbd">Arrows</span> move •
+        <span class="kbd">Ctrl+Z/Y</span> undo/redo
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="gridCanvas" width="1120" height="800"></canvas>
+      <div class="statusbar" id="status">80×50 • cell 14×16 • font 14px • zoom 100% • centered</div>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  // ---------- Utilities ----------
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+  const download = (name, dataUrlOrBlob, mime) => {
+    if (!(name && (dataUrlOrBlob !== undefined && dataUrlOrBlob !== null))) {
+      console.error('download() called with invalid args', {name, dataUrlOrBlob, mime});
+      return;
+    }
+    const a = document.createElement('a');
+    if (dataUrlOrBlob instanceof Blob) {
+      a.href = URL.createObjectURL(dataUrlOrBlob);
+    } else if (typeof dataUrlOrBlob === 'string' && dataUrlOrBlob.startsWith('data:')) {
+      a.href = dataUrlOrBlob;
+    } else if (typeof dataUrlOrBlob === 'string' || dataUrlOrBlob instanceof ArrayBuffer || ArrayBuffer.isView(dataUrlOrBlob)) {
+      const blob = new Blob([dataUrlOrBlob], {type: mime || 'application/octet-stream'});
+      a.href = URL.createObjectURL(blob);
+    } else {
+      const blob = new Blob([String(dataUrlOrBlob)], {type: mime || 'application/octet-stream'});
+      a.href = URL.createObjectURL(blob);
+    }
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  };
+  const measureDPR = () => window.devicePixelRatio || 1;
+
+  // ---------- Model ----------
+  class GridModel {
+    constructor(w, h) {
+      this.w = w|0; this.h = h|0;
+      this.cells = new Array(this.w*this.h).fill(' ');
+    }
+    resize(newW, newH) {
+      const nw = newW|0, nh = newH|0;
+      const next = new Array(nw*nh).fill(' ');
+      const minW = Math.min(this.w, nw);
+      const minH = Math.min(this.h, nh);
+      for (let y=0; y<minH; y++) {
+        for (let x=0; x<minW; x++) {
+          next[y*nw + x] = this.get(x,y);
+        }
+      }
+      this.w = nw; this.h = nh; this.cells = next;
+    }
+    idx(x,y){ return y*this.w + x; }
+    get(x,y){ return this.cells[this.idx(x,y)]; }
+    set(x,y,ch){ this.cells[this.idx(x,y)] = ch; }
+    fill(ch=' '){ this.cells.fill(ch); }
+    toRows(){ const rows=[]; for(let y=0;y<this.h;y++){ rows.push(this.cells.slice(y*this.w,(y+1)*this.w).join('')); } return rows; }
+    fromRows(rows) {
+      const h = Math.min(this.h, rows.length);
+      for (let y=0; y<h; y++) {
+        const row = rows[y] ?? '';
+        for (let x=0; x<this.w; x++) {
+          this.set(x,y, row[x] ?? ' ');
+        }
+      }
+    }
+    snapshot(){ return { w:this.w, h:this.h, cells:[...this.cells] }; }
+    restore(snap){ this.w = snap.w; this.h = snap.h; this.cells = [...snap.cells]; }
+  }
+
+  // ---------- Renderer ----------
+  class GridRenderer {
+    constructor(canvas, model) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.model = model;
+      this.cellW = 14;
+      this.cellH = 16;
+      this.fontSize = 14;
+      this.fontFamily = 'ui-monospace, "Cascadia Code", "Fira Code", "Consolas", "DejaVu Sans Mono", "Noto Sans Mono", "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", monospace';
+      this.gridlines = true;
+      this.bg = '#0b1017';
+      this.fg = '#e6edf3';
+      this.gridColor = '#1f2937';
+      this.gridStrong = '#334155';
+      this.autoFitFont = false; // per request: do not try to predict glyph size
+      this.zoom = 1; // CSS/display zoom
+      this.blendDraw = true; // allow overlap across cells
+      this.vAscent = 0; this.vDescent = 0; this.vHeight = 0; // reference vertical metrics
+      this._setup();
+    }
+    _setup() {
+      this.ctx.textAlign = 'left';
+      this.ctx.textBaseline = 'alphabetic';
+      this.updateCanvasSize();
+    }
+    updateCanvasSize() {
+      const dpr = measureDPR();
+      const pxW = this.model.w * this.cellW;
+      const pxH = this.model.h * this.cellH;
+      // style (layout) size respects zoom for scrollable area
+      this.canvas.style.width = (pxW * this.zoom) + 'px';
+      this.canvas.style.height = (pxH * this.zoom) + 'px';
+      // internal resolution tracks dpr * zoom to stay crisp
+      this.canvas.width = Math.floor(pxW * dpr * this.zoom);
+      this.canvas.height = Math.floor(pxH * dpr * this.zoom);
+      this.ctx.setTransform(dpr * this.zoom, 0, 0, dpr * this.zoom, 0, 0);
+      this._applyFont(true);
+      this.fullRedraw();
+    }
+    _applyFont(maybeFit=false) {
+      if (this.autoFitFont && maybeFit) {
+        this.fitFontToCell();
+      } else {
+        this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+        this.ctx.fillStyle = this.fg;
+      }
+      // compute reference vertical metrics using a representative string (cap + descender)
+      const mRef = this.ctx.measureText('Mg');
+      const a = (mRef.actualBoundingBoxAscent || this.fontSize * 0.8);
+      const d = (mRef.actualBoundingBoxDescent || this.fontSize * 0.2);
+      this.vAscent = a; this.vDescent = d; this.vHeight = a + d;
+    }
+    setCellSize(w,h){ this.cellW = w|0; this.cellH = h|0; this.updateCanvasSize(); }
+    setFontSize(px){ this.fontSize = px|0; this._applyFont(); this.fullRedraw(); }
+    setFontFamily(f){ this.fontFamily = f; this._applyFont(true); this.fullRedraw(); }
+    setGridlines(on){ this.gridlines = !!on; this.fullRedraw(); }
+    setZoom(z){ this.zoom = clamp(z, 0.25, 6); this.updateCanvasSize(); }
+
+    fitFontToCell() {
+      const pad = 2;
+      const maxPx = Math.max(6, this.cellH * 2);
+      let lo = 6, hi = maxPx, best = 12;
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        this.ctx.font = `${mid}px ${this.fontFamily}`;
+        const m = this.ctx.measureText('M');
+        const width = m.width;
+        const ascent = (m.actualBoundingBoxAscent || mid * 0.8);
+        const descent = (m.actualBoundingBoxDescent || mid * 0.2);
+        const height = ascent + descent;
+        if (width <= this.cellW - pad && height <= this.cellH - pad) {
+          best = mid; lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      this.fontSize = best;
+      this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+      this.ctx.fillStyle = this.fg;
+    }
+
+    // Draw a glyph centered horizontally and vertically by reference baseline
+    drawGlyphAt(x, y, ch, colorOverride=null) {
+      if (!ch || ch === ' ') return;
+      const { ctx } = this;
+      const width = ctx.measureText(ch).width;
+      const drawX = x*this.cellW + Math.round((this.cellW - width)/2);
+      const baseY = y*this.cellH + Math.round((this.cellH - this.vHeight)/2 + this.vAscent);
+      const prev = ctx.fillStyle;
+      ctx.fillStyle = colorOverride ?? this.fg;
+      ctx.fillText(ch, drawX, baseY);
+      ctx.fillStyle = prev;
+    }
+
+    fullRedraw() {
+      const {ctx} = this;
+      const W = this.model.w, H = this.model.h;
+      ctx.fillStyle = this.bg;
+      ctx.fillRect(0,0, this.model.w*this.cellW, this.model.h*this.cellH);
+      // grid (optional)
+      if (this.gridlines) {
+        ctx.strokeStyle = this.gridColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x=0; x<=W; x++) {
+          const px = x*this.cellW + 0.5;
+          ctx.moveTo(px, 0); ctx.lineTo(px, H*this.cellH);
+        }
+        for (let y=0; y<=H; y++) {
+          const py = y*this.cellH + 0.5;
+          ctx.moveTo(0, py); ctx.lineTo(W*this.cellW, py);
+        }
+        ctx.stroke();
+        // strong 10x10
+        ctx.strokeStyle = this.gridStrong;
+        ctx.beginPath();
+        for (let x=0; x<=W; x+=10) {
+          const px = x*this.cellW + 0.5;
+          ctx.moveTo(px, 0); ctx.lineTo(px, H*this.cellH);
+        }
+        for (let y=0; y<=H; y+=10) {
+          const py = y*this.cellH + 0.5;
+          ctx.moveTo(0, py); ctx.lineTo(W*this.cellW, py);
+        }
+        ctx.stroke();
+      }
+      // glyphs — always drawn at exact cell centers
+      ctx.fillStyle = this.fg;
+      const cx = this.cellW/2, cy = this.cellH/2;
+      for (let y=0; y<H; y++) {
+        for (let x=0; x<W; x++) {
+          const ch = this.model.get(x,y);
+          this.drawGlyphAt(x, y, ch);
+        }
+      }
+    }
+
+    // Region redraw helper for blend mode (to handle overlap cleanly)
+    redrawRegion(x0,y0,x1,y1){
+      const {ctx} = this;
+      const W = this.model.w, H = this.model.h;
+      x0 = clamp(x0,0,W-1); y0 = clamp(y0,0,H-1);
+      x1 = clamp(x1,0,W-1); y1 = clamp(y1,0,H-1);
+      const px = x0*this.cellW, py = y0*this.cellH;
+      const pw = (x1-x0+1)*this.cellW, ph = (y1-y0+1)*this.cellH;
+      // clear region
+      ctx.fillStyle = this.bg; ctx.fillRect(px, py, pw, ph);
+      // local grid
+      if (this.gridlines) {
+        ctx.strokeStyle = this.gridColor; ctx.lineWidth = 1; ctx.beginPath();
+        for (let x=x0; x<=x1+1; x++) { const gx = x*this.cellW + 0.5; ctx.moveTo(gx, py); ctx.lineTo(gx, py+ph); }
+        for (let y=y0; y<=y1+1; y++) { const gy = y*this.cellH + 0.5; ctx.moveTo(px, gy); ctx.lineTo(px+pw, gy); }
+        ctx.stroke();
+        ctx.strokeStyle = this.gridStrong; ctx.beginPath();
+        for (let x=Math.ceil(x0/10)*10; x<=x1; x+=10) { const gx = x*this.cellW + 0.5; ctx.moveTo(gx, py); ctx.lineTo(gx, py+ph); }
+        for (let y=Math.ceil(y0/10)*10; y<=y1; y+=10) { const gy = y*this.cellH + 0.5; ctx.moveTo(px, gy); ctx.lineTo(px+pw, gy); }
+        ctx.stroke();
+      }
+      // draw glyphs in region
+      for (let y=y0; y<=y1; y++) {
+        for (let x=x0; x<=x1; x++) {
+          const ch = this.model.get(x,y);
+          this.drawGlyphAt(x, y, ch);
+        }
+      }
+    }
+
+    drawCell(x,y) {
+      if (this.blendDraw) {
+        // redraw 3×3 neighborhood to keep overlaps consistent
+        this.redrawRegion(x-1,y-1,x+1,y+1);
+        return;
+      }
+      const {ctx} = this;
+      const px = x*this.cellW, py = y*this.cellH;
+      ctx.fillStyle = this.bg; ctx.fillRect(px, py, this.cellW, this.cellH);
+      if (this.gridlines) { ctx.strokeStyle = this.gridColor; ctx.lineWidth = 1; ctx.strokeRect(px+0.5, py+0.5, this.cellW-1, this.cellH-1); }
+      const ch = this.model.get(x,y);
+      this.drawGlyphAt(x, y, ch);
+    }
+
+    cellFromClient(clientX, clientY) {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = Math.floor((clientX - rect.left) / (this.cellW * this.zoom));
+      const y = Math.floor((clientY - rect.top) / (this.cellH * this.zoom));
+      if (x<0 || y<0 || x>=this.model.w || y>=this.model.h) return null;
+      return {x,y};
+    }
+  }
+
+  // ---------- History (undo/redo) ----------
+  class History {
+    constructor(limit=100) {
+      this.limit = limit;
+      this.stack = [];
+      this.index = -1;
+    }
+    push(snapshot) {
+      this.stack = this.stack.slice(0, this.index+1);
+      this.stack.push(JSON.stringify(snapshot));
+      if (this.stack.length > this.limit) { this.stack.shift(); }
+      this.index = this.stack.length - 1;
+    }
+    canUndo(){ return this.index > 0; }
+    canRedo(){ return this.index < this.stack.length - 1; }
+    undo(){ if (!this.canUndo()) return null; this.index--; return JSON.parse(this.stack[this.index]); }
+    redo(){ if (!this.canRedo()) return null; this.index++; return JSON.parse(this.stack[this.index]); }
+    peek(){ if (this.index<0) return null; return JSON.parse(this.stack[this.index]); }
+  }
+
+  // ---------- Palette Data ----------
+  const range = (startCode, endCode) => {
+    const arr = [];
+    for (let cp = startCode; cp <= endCode; cp++) arr.push(String.fromCodePoint(cp));
+    return arr;
+  };
+  const asciiPrintable = range(0x20, 0x7E);
+  const asciiLetters = [...range(0x41,0x5A), ...range(0x61,0x7A)];
+  const asciiDigits = range(0x30,0x39);
+  const asciiPunctChars = "~`!@#$%^&*()-_=+[]{}\\|;:'\",.<>/?"; // literal string; backslashes escaped
+  const asciiPunct = Array.from(asciiPunctChars);
+
+  const boxLight = ['─','│','┌','┐','└','┘','├','┤','┬','┴','┼'];
+  const boxHeavy = ['━','┃','┏','┓','┗','┛','┣','┫','┳','┻','╋'];
+  const boxDouble= ['═','║','╔','╗','╚','╝','╠','╣','╦','╩','╬'];
+  const boxDiag  = ['╱','╲','╳','╴','╵','╶','╷','╼','╽','╾','╿','╭','╮','╯','╰','┍','┑','┕','┙'];
+
+  const blocks = ['░','▒','▓','█','▀','▁','▂','▃','▄','▅','▆','▇','▉','▊','▋','▌','▍','▎','▏','▐'];
+
+  const geom = ['■','□','▢','▣','▪','▫','◾','◽','◼','◻','◆','◇','◈','○','●','◯','◎','◍','◐','◑','◒','◓','◔','◕','◖','◗','△','▽','▲','▼','◀','▶','▸','▹','◂','◃','◤','◥','◣','◢','⬤','⬛','⬜'];
+
+  const arrows = ['←','→','↑','↓','↔','↕','↖','↗','↘','↙','⇐','⇒','⇑','⇓','⇔','⟵','⟶','⟷','⟸','⟹','⟺','↩','↪','↶','↷','⤴','⤵'];
+
+  const dashes = ['-','–','—','―','‒','⎯','¯','·','•','∙','⋅'];
+
+  const math = ['±','×','÷','≈','≠','≤','≥','∞','√','∫','∑','∏','°','µ','π','Ω','λ','θ','∂','∇','∴','∵'];
+
+  const greek = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','ς','τ','υ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ','Φ','Ψ','Ω'];
+
+  // Braille 0x2800–0x28FF (256 glyphs)
+  const braille = range(0x2800, 0x28FF);
+
+  // Pipe & Curves kits
+  const pipeAscii = ['-','|','/','\\','+']; // include backslash safely
+  const pipeRounded = ['╭','╮','╯','╰','◜','◝','◞','◟','◠','◡','○','●','◯','◎'];
+  const pipeWave = ['~','≈','∽','∿','≋','⌇','〰','～','﹏'];
+  const quadrants = ['▘','▝','▖','▗'];
+  const dotLeaders = ['⋯','⋮','⋰','⋱','·','•','∙'];
+
+  const categories = [
+    { name: 'Selected / Common', items: ['█','▓','▒','░','■','□','◆','◇','●','○','◯','▲','▼','◀','▶','╱','╲','─','│','┌','┐','└','┘','┼','╋','╬','╳'] },
+    { name: 'Pipe Kit — ASCII Minimal', items: pipeAscii },
+    { name: 'Pipe Kit — Box (Light)', items: boxLight },
+    { name: 'Pipe Kit — Box (Heavy)', items: boxHeavy },
+    { name: 'Pipe Kit — Box (Double)', items: boxDouble },
+    { name: 'Pipe Kit — Rounded/Curvy', items: pipeRounded },
+    { name: 'Pipe Kit — Waves & Flow', items: pipeWave },
+    { name: 'Box Drawing — Diagonals & Extras', items: boxDiag },
+    { name: 'Quadrant Blocks (micro-curves)', items: quadrants },
+    { name: 'Dotted Leaders & Ellipses', items: dotLeaders },
+    { name: 'Block Elements & Shades', items: blocks },
+    { name: 'Geometric Shapes', items: geom },
+    { name: 'Arrows', items: arrows },
+    { name: 'Dashes • Lines • Dots', items: dashes },
+    { name: 'Math & Symbols', items: math },
+    { name: 'Greek Letters', items: greek },
+    { name: 'ASCII Letters', items: asciiLetters },
+    { name: 'ASCII Digits', items: asciiDigits },
+    { name: 'ASCII Punctuation', items: asciiPunct },
+    { name: 'ASCII (All Printable)', items: asciiPrintable },
+    { name: 'Braille (U+2800–U+28FF)', items: braille },
+  ];
+
+  // ---------- Controller / App ----------
+  const canvas = document.getElementById('gridCanvas');
+  const canvasWrap = document.getElementById('canvasWrap');
+  const statusEl = document.getElementById('status');
+  const presetsEl = document.getElementById('presets');
+  const gridWEl = document.getElementById('gridW');
+  const gridHEl = document.getElementById('gridH');
+  const cellWEl = document.getElementById('cellW');
+  const cellHEl = document.getElementById('cellH');
+  const fontSizeEl = document.getElementById('fontSize');
+  const fontFamilyEl = document.getElementById('fontFamily');
+  const applySizeBtn = document.getElementById('applySize');
+  const applyCellBtn = document.getElementById('applyCell');
+  const applyFontBtn = document.getElementById('applyFont');
+  const applyFamilyBtn = document.getElementById('applyFamily');
+  const fitToggleBtn = document.getElementById('toggleFit');
+  const blendToggleBtn = document.getElementById('toggleBlend');
+  const gridToggleBtn = document.getElementById('toggleGridlines');
+  const clearBtn = document.getElementById('clearGrid');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+
+  const saveJSONBtn = document.getElementById('saveJSON');
+  const loadJSONBtn = document.getElementById('loadJSON');
+  const exportTXTBtn = document.getElementById('exportTXT');
+  const importTXTBtn = document.getElementById('importTXT');
+  const exportPNGBtn = document.getElementById('exportPNG');
+  const fileJSON = document.getElementById('fileJSON');
+  const fileTXT = document.getElementById('fileTXT');
+
+  const selectedGlyphBox = document.getElementById('selectedGlyph');
+  const customGlyphInput = document.getElementById('customGlyph');
+  const useCustomGlyphBtn = document.getElementById('useCustomGlyph');
+
+  const paletteEl = document.getElementById('palette');
+  const searchEl = document.getElementById('searchGlyphs');
+
+  const toolGroup = document.getElementById('toolGroup');
+  let currentTool = 'pencil'; // 'pencil' | 'eraser' | 'eyedrop' | 'type'
+  let selectedGlyph = '█';
+
+let model = new GridModel(80,50);
+let renderer = new GridRenderer(canvas, model);
+const history = new History(200);
+
+  // Overlay hook so selection/preview draws after base content
+  const _origFullRedraw = renderer.fullRedraw.bind(renderer);
+  renderer.fullRedraw = function(){
+    _origFullRedraw();
+    if (typeof drawSelectionOverlay === 'function') drawSelectionOverlay();
+  };
+
+  const updateStatus = () => {
+    const z = Math.round(renderer.zoom*100);
+    statusEl.textContent = `${model.w}×${model.h} • cell ${renderer.cellW}×${renderer.cellH} • font ${renderer.fontSize}px • zoom ${z}% • centered${renderer.blendDraw?' • blend':''}`;
+  };
+
+  // Initialize history with starting state
+  const pushSnapshot = () => history.push(model.snapshot());
+  pushSnapshot();
+
+  // ----- Palette UI -----
+  const makeGlyphButton = (ch) => {
+    const div = document.createElement('div');
+    div.className = 'glyph';
+    div.textContent = ch;
+    const cp = ch.codePointAt(0);
+    div.title = cp ? `U+${cp.toString(16).toUpperCase().padStart(4,'0')}` : '';
+    div.addEventListener('click', () => {
+      setSelectedGlyph(ch);
+    });
+    return div;
+  };
+
+  const renderPalette = (filter = '') => {
+    paletteEl.innerHTML = '';
+    const term = filter.trim().toLowerCase();
+    categories.forEach(cat => {
+      const det = document.createElement('details');
+      det.open = ['Selected / Common','Pipe Kit — Box (Light)','Pipe Kit — Rounded/Curvy','Block Elements & Shades','Braille (U+2800–U+28FF)'].includes(cat.name);
+      const sum = document.createElement('summary');
+      sum.textContent = cat.name;
+      det.appendChild(sum);
+
+      const grid = document.createElement('div');
+      grid.className = 'glyph-grid';
+
+      let items = cat.items;
+      if (term) {
+        items = items.filter(ch => ch.toLowerCase().includes(term) || cat.name.toLowerCase().includes(term) || sum.textContent.toLowerCase().includes(term));
+        if (term.startsWith('u+')) {
+          const want = parseInt(term.slice(2), 16);
+          items = cat.items.filter(ch => ch.codePointAt(0) === want);
+        }
+      }
+      for (const ch of items) grid.appendChild(makeGlyphButton(ch));
+
+      det.appendChild(grid);
+      paletteEl.appendChild(det);
+    });
+  };
+
+  const setSelectedGlyph = (ch) => {
+    selectedGlyph = ch;
+    selectedGlyphBox.textContent = ch;
+    document.querySelectorAll('.glyph.sel').forEach(n => n.classList.remove('sel'));
+  };
+
+  renderPalette();
+  setSelectedGlyph(selectedGlyph);
+
+  searchEl.addEventListener('input', () => renderPalette(searchEl.value));
+
+  useCustomGlyphBtn.addEventListener('click', () => {
+    const raw = customGlyphInput.value;
+    if (!raw) return;
+    const cp = [...raw][0];
+    setSelectedGlyph(cp);
+  });
+
+  // ----- Box/Line Tools UI (dynamic) -----
+  let boxTLEl, boxTREl, boxBLEl, boxBREl, boxTopEl, boxSideEl, linePatEl;
+  (function addShapeUI(){
+    const toolGroup = document.getElementById('toolGroup');
+    const mkBtn = (tool, label, title) => {
+      const b = document.createElement('button');
+      b.className = 'tool-btn';
+      b.dataset.tool = tool;
+      b.title = title;
+      b.textContent = label;
+      return b;
+    };
+    toolGroup.appendChild(mkBtn('select','Select','Select/Move [S]'));
+    toolGroup.appendChild(mkBtn('box','Box','Draw box (drag) [B]'));
+    toolGroup.appendChild(mkBtn('line','Line','Draw line (drag) [L]'));
+
+    const toolbarEl = document.querySelector('.toolbar');
+    const sg = document.createElement('div');
+    sg.className = 'toolgroup';
+    sg.id = 'shapeParams';
+    const labelSpan = (text) => { const s=document.createElement('span'); s.className='kbd'; s.textContent=text; return s; };
+    const addInput = (id,val,w) => { const i=document.createElement('input'); i.type='text'; i.id=id; i.value=val; i.style.width=w; return i; };
+    const cap = document.createElement('span'); cap.style.color='#9aa7b3'; cap.style.fontSize='12px'; cap.textContent='Box'; sg.appendChild(cap);
+    sg.appendChild(labelSpan('TL')); sg.appendChild(addInput('boxTL','+', '28px'));
+    sg.appendChild(labelSpan('TR')); sg.appendChild(addInput('boxTR','+', '28px'));
+    sg.appendChild(labelSpan('BL')); sg.appendChild(addInput('boxBL','+', '28px'));
+    sg.appendChild(labelSpan('BR')); sg.appendChild(addInput('boxBR','+', '28px'));
+    sg.appendChild(labelSpan('Top')); sg.appendChild(addInput('boxTop','-', '56px'));
+    sg.appendChild(labelSpan('Side')); sg.appendChild(addInput('boxSide','|', '56px'));
+    const sp = document.createElement('span'); sp.style.marginLeft='8px'; sp.style.color='#9aa7b3'; sp.style.fontSize='12px'; sp.textContent='Line'; sg.appendChild(sp);
+    sg.appendChild(labelSpan('Pat')); sg.appendChild(addInput('linePat','-', '64px'));
+    const firstField = toolbarEl.querySelector('.field');
+    toolbarEl.insertBefore(sg, firstField);
+    boxTLEl = sg.querySelector('#boxTL'); boxTREl = sg.querySelector('#boxTR');
+    boxBLEl = sg.querySelector('#boxBL'); boxBREl = sg.querySelector('#boxBR');
+    boxTopEl = sg.querySelector('#boxTop'); boxSideEl = sg.querySelector('#boxSide');
+    linePatEl = sg.querySelector('#linePat');
+  })();
+
+  // ----- Presets / Config -----
+  presetsEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    const w = parseInt(chip.dataset.w,10);
+    const h = parseInt(chip.dataset.h,10);
+    gridWEl.value = w; gridHEl.value = h;
+    applySize();
+    presetsEl.querySelectorAll('.chip').forEach(n => n.classList.remove('sel'));
+    chip.classList.add('sel');
+  });
+
+  const applySize = () => {
+    const w = clamp(parseInt(gridWEl.value,10)||80, 1, 500);
+    const h = clamp(parseInt(gridHEl.value,10)||50, 1, 300);
+    pushSnapshot();
+    model.resize(w,h);
+    renderer.updateCanvasSize();
+    renderer.fullRedraw();
+    updateStatus();
+  };
+  applySizeBtn.addEventListener('click', applySize);
+
+  const applyCell = () => {
+    const cw = clamp(parseInt(cellWEl.value,10)||14, 6, 64);
+    const ch = clamp(parseInt(cellHEl.value,10)||16, 6, 64);
+    renderer.setCellSize(cw,ch);
+    updateStatus();
+  };
+  applyCellBtn.addEventListener('click', applyCell);
+
+  const applyFont = () => {
+    const fs = clamp(parseInt(fontSizeEl.value,10)||14, 6, 96);
+    renderer.setFontSize(fs);
+    fitToggleBtn.textContent = 'Auto-Fit Font: Off';
+    updateStatus();
+  };
+  applyFontBtn.addEventListener('click', applyFont);
+
+  const applyFamily = () => {
+    const fam = fontFamilyEl.value || 'monospace';
+    renderer.setFontFamily(fam);
+    updateStatus();
+  };
+  applyFamilyBtn.addEventListener('click', applyFamily);
+
+  fitToggleBtn.addEventListener('click', () => {
+    renderer.autoFitFont = !renderer.autoFitFont;
+    if (renderer.autoFitFont) {
+      renderer.fitFontToCell();
+    }
+    fitToggleBtn.textContent = `Auto-Fit Font: ${renderer.autoFitFont ? 'On' : 'Off'}`;
+    renderer.fullRedraw();
+    updateStatus();
+  });
+
+  blendToggleBtn.addEventListener('click', () => {
+    renderer.blendDraw = !renderer.blendDraw;
+    blendToggleBtn.textContent = `Blend Draw: ${renderer.blendDraw ? 'On' : 'Off'}`;
+    renderer.fullRedraw();
+    updateStatus();
+  });
+
+  gridToggleBtn.addEventListener('click', () => {
+    renderer.setGridlines(!renderer.gridlines);
+    gridToggleBtn.textContent = `Gridlines: ${renderer.gridlines ? 'On' : 'Off'}`;
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('Clear the entire grid?')) return;
+    pushSnapshot();
+    model.fill(' ');
+    renderer.fullRedraw();
+  });
+
+  undoBtn.addEventListener('click', () => {
+    const snap = history.undo();
+    if (snap) { model.restore(snap); renderer.updateCanvasSize(); renderer.fullRedraw(); updateStatus(); }
+  });
+  redoBtn.addEventListener('click', () => {
+    const snap = history.redo();
+    if (snap) { model.restore(snap); renderer.updateCanvasSize(); renderer.fullRedraw(); updateStatus(); }
+  });
+
+  // ----- Tools & Interaction -----
+  const setTool = (tool) => {
+    currentTool = tool;
+    toolGroup.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.toggle('sel', btn.dataset.tool === tool);
+    });
+    // Clear selection overlay when leaving Select tool
+    if (tool !== 'select') {
+      selectStart = null; selectionMoving = false; selectionRect = null; selectionData = null; previewEnd = null;
+      renderer.fullRedraw();
+    }
+  };
+  toolGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tool-btn');
+    if (!btn) return;
+    setTool(btn.dataset.tool);
+  });
+
+let isPointerDown = false;
+let typeCursor = {x:0, y:0};
+let dragStart = null; // for box/line tools
+let previewEnd = null; // last preview end cell to avoid redundant redraws
+// Selection state
+let selectStart = null; // rubber-band start
+let selectionRect = null; // {x0,y0,x1,y1}
+let selectionData = null; // {w,h,chars,mask, origin:{x,y}}
+let selectionMoving = false;
+let moveOffset = {dx:0, dy:0};
+let clipboard = null; // {w,h,chars,mask}
+let lastHoverCell = null;
+
+  const paintAt = (x,y,ch) => {
+    const before = model.get(x,y);
+    if (before === ch) return false;
+    model.set(x,y,ch);
+    renderer.drawCell(x,y);
+    return true;
+  };
+
+  canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    const cell = renderer.cellFromClient(e.clientX, e.clientY);
+    if (!cell) return;
+    isPointerDown = true;
+    if (currentTool === 'eyedrop') {
+      setSelectedGlyph(model.get(cell.x, cell.y));
+      return;
+    }
+    if (currentTool === 'select') {
+      if (selectionRect && pointInRect(cell.x, cell.y, normRect(selectionRect))) {
+        // Begin move
+        selectionMoving = true;
+        moveOffset = { dx: cell.x - selectionRect.x0, dy: cell.y - selectionRect.y0 };
+      } else {
+        // Begin selection
+        selectStart = {x:cell.x, y:cell.y};
+        selectionRect = {x0:cell.x, y0:cell.y, x1:cell.x, y1:cell.y};
+        selectionData = null;
+        renderer.fullRedraw();
+      }
+      return;
+    }
+    if (currentTool === 'box' || currentTool === 'line') {
+      dragStart = {x:cell.x, y:cell.y};
+      return;
+    }
+    const ch = (currentTool === 'eraser' || e.button===2) ? ' ' : selectedGlyph;
+    pushSnapshot();
+    paintAt(cell.x, cell.y, ch);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    const cell = renderer.cellFromClient(e.clientX, e.clientY);
+    if (cell) lastHoverCell = {x:cell.x, y:cell.y};
+    if (!cell) return;
+    if (!isPointerDown) return;
+    if (currentTool === 'pencil' || currentTool === 'eraser') {
+      const ch = (currentTool === 'eraser') ? ' ' : selectedGlyph;
+      paintAt(cell.x, cell.y, ch);
+      return;
+    }
+    if (currentTool === 'select') {
+      if (selectStart) {
+        selectionRect = {x0:selectStart.x, y0:selectStart.y, x1:cell.x, y1:cell.y};
+        renderer.fullRedraw();
+        drawSelectionOverlay();
+        return;
+      }
+      if (selectionMoving && selectionData) {
+        const tl = { x: cell.x - moveOffset.dx, y: cell.y - moveOffset.dy };
+        renderer.fullRedraw();
+        drawPreviewSelection(tl.x, tl.y);
+        return;
+      }
+    }
+    if (currentTool === 'box' && dragStart) {
+      if (previewEnd && previewEnd.x===cell.x && previewEnd.y===cell.y && previewEnd.tool==='box') return;
+      previewEnd = {x:cell.x, y:cell.y, tool:'box'};
+      renderer.fullRedraw();
+      const params = getBoxParams();
+      drawPreviewBox(dragStart.x, dragStart.y, cell.x, cell.y, params);
+      return;
+    }
+    if (currentTool === 'line' && dragStart) {
+      if (previewEnd && previewEnd.x===cell.x && previewEnd.y===cell.y && previewEnd.tool==='line') return;
+      previewEnd = {x:cell.x, y:cell.y, tool:'line'};
+      renderer.fullRedraw();
+      const pat = getLinePattern();
+      drawPreviewLine(dragStart.x, dragStart.y, cell.x, cell.y, pat);
+      return;
+    }
+  });
+  canvas.addEventListener('pointerup', (e) => {
+    const cell = renderer.cellFromClient(e.clientX, e.clientY);
+    if (dragStart && cell) {
+      pushSnapshot();
+      if (currentTool === 'box') {
+        const params = getBoxParams();
+        drawBox(dragStart.x, dragStart.y, cell.x, cell.y, params);
+      } else if (currentTool === 'line') {
+        const pat = getLinePattern();
+        drawLine(dragStart.x, dragStart.y, cell.x, cell.y, pat);
+      }
+      dragStart = null;
+      previewEnd = null;
+      renderer.fullRedraw();
+    }
+    if (currentTool === 'select' && cell) {
+      if (selectStart) {
+        selectionRect = normRect({x0:selectStart.x, y0:selectStart.y, x1:cell.x, y1:cell.y});
+        selectionData = captureSelection(selectionRect);
+        selectStart = null;
+        renderer.fullRedraw();
+      } else if (selectionMoving && selectionData) {
+        const tl = { x: cell.x - moveOffset.dx, y: cell.y - moveOffset.dy };
+        commitMoveSelection(tl.x, tl.y);
+        selectionMoving = false;
+        renderer.fullRedraw();
+      }
+    }
+    isPointerDown = false;
+  });
+
+  // Zoom: Ctrl/⌘ + mouse wheel (with pointer-anchored scrolling)
+  const zoomAt = (deltaY, clientX, clientY) => {
+    const before = renderer.zoom;
+    const factor = Math.exp(-deltaY / 300); // smooth zoom
+    const next = clamp(before * factor, 0.25, 6);
+    if (next === before) return;
+
+    // Anchor to cursor position
+    const wrapRect = canvasWrap.getBoundingClientRect();
+    const viewX = clientX - wrapRect.left;
+    const viewY = clientY - wrapRect.top;
+    const contentX = (canvasWrap.scrollLeft + viewX) / before;
+    const contentY = (canvasWrap.scrollTop + viewY) / before;
+
+    renderer.setZoom(next);
+
+    // Recompute scroll so the same content point stays under the cursor
+    canvasWrap.scrollLeft = contentX * next - viewX;
+    canvasWrap.scrollTop  = contentY * next - viewY;
+
+    updateStatus();
+  };
+
+  canvasWrap.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      zoomAt(e.deltaY/8, e.clientX, e.clientY);
+    }
+  }, { passive: false });
+
+  // Keyboard: tools, undo/redo, type mode cursor & typing
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key.toLowerCase() === 'z') {
+        e.preventDefault(); undoBtn.click(); return;
+      }
+      if (e.key.toLowerCase() === 'y') {
+        e.preventDefault(); redoBtn.click(); return;
+      }
+      if (e.key.toLowerCase() === 'c') { // copy selection
+        if (selectionRect) { copySelection(); e.preventDefault(); }
+        return;
+      }
+      if (e.key.toLowerCase() === 'x') { // cut selection
+        if (selectionRect) { cutSelection(); e.preventDefault(); }
+        return;
+      }
+      if (e.key.toLowerCase() === 'v') { // paste at cursor/last hover
+        if (clipboard) {
+          const anchor = lastHoverCell || typeCursor || {x:0,y:0};
+          pasteClipboardAt(anchor.x, anchor.y);
+          e.preventDefault();
+        }
+        return;
+      }
+      if (e.key === '+' || e.key === '=') { // zoom in (fine)
+        e.preventDefault(); zoomAt(-15, window.innerWidth/2, window.innerHeight/2); return;
+      }
+      if (e.key === '-') { // zoom out (fine)
+        e.preventDefault(); zoomAt(15, window.innerWidth/2, window.innerHeight/2); return;
+      }
+      if (e.key === '0') { // reset zoom
+        e.preventDefault(); renderer.setZoom(1); updateStatus(); return;
+      }
+    }
+    if (['p','e','i','t','b','l','s'].includes(e.key.toLowerCase())) {
+      const map = {p:'pencil', e:'eraser', i:'eyedrop', t:'type', b:'box', l:'line', s:'select'};
+      setTool(map[e.key.toLowerCase()]);
+      return;
+    }
+    if (currentTool === 'type') {
+      if (e.key === 'ArrowLeft') { typeCursor.x = clamp(typeCursor.x-1,0,model.w-1); e.preventDefault(); return; }
+      if (e.key === 'ArrowRight'){ typeCursor.x = clamp(typeCursor.x+1,0,model.w-1); e.preventDefault(); return; }
+      if (e.key === 'ArrowUp')   { typeCursor.y = clamp(typeCursor.y-1,0,model.h-1); e.preventDefault(); return; }
+      if (e.key === 'ArrowDown') { typeCursor.y = clamp(typeCursor.y+1,0,model.h-1); e.preventDefault(); return; }
+      if (e.key === 'Backspace'){ pushSnapshot(); paintAt(typeCursor.x, typeCursor.y, ' '); typeCursor.x = clamp(typeCursor.x-1,0,model.w-1); e.preventDefault(); return; }
+      if (e.key.length === 1) {
+        pushSnapshot();
+        const ch = e.key;
+        paintAt(typeCursor.x, typeCursor.y, ch);
+        typeCursor.x = clamp(typeCursor.x+1,0,model.w-1);
+        e.preventDefault();
+        return;
+      }
+    }
+  });
+
+  // Click to move type cursor
+  canvas.addEventListener('click', (e) => {
+    const cell = renderer.cellFromClient(e.clientX, e.clientY);
+    if (!cell) return;
+    typeCursor = {x:cell.x, y:cell.y};
+  });
+
+  // ----- Box & Line helpers -----
+  const firstChar = (s, fallback=' ') => {
+    if (!s || !s.length) return fallback;
+    return [...s][0];
+  };
+  const patternAt = (s, i, fallback=' ') => {
+    const arr = [...(s||'')];
+    if (arr.length === 0) return fallback;
+    return arr[i % arr.length];
+  };
+  const getBoxParams = () => ({
+    tl: firstChar(typeof boxTLEl!== 'undefined' && boxTLEl ? boxTLEl.value : '+', '+'),
+    tr: firstChar(typeof boxTREl!== 'undefined' && boxTREl ? boxTREl.value : '+', '+'),
+    bl: firstChar(typeof boxBLEl!== 'undefined' && boxBLEl ? boxBLEl.value : '+', '+'),
+    br: firstChar(typeof boxBREl!== 'undefined' && boxBREl ? boxBREl.value : '+', '+'),
+    top: (typeof boxTopEl!== 'undefined' && boxTopEl ? boxTopEl.value : '-') || '-',
+    side: (typeof boxSideEl!== 'undefined' && boxSideEl ? boxSideEl.value : '|') || '|',
+  });
+  const getLinePattern = () => ((typeof linePatEl!== 'undefined' && linePatEl ? linePatEl.value : '-') || '-');
+
+  const drawBox = (x0,y0,x1,y1, p) => {
+    let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
+    let minY = Math.min(y0,y1), maxY = Math.max(y0,y1);
+    minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
+    minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
+    const w = maxX-minX+1, h = maxY-minY+1;
+    if (w<=0 || h<=0) return;
+    if (w===1 && h===1) { model.set(minX,minY,p.tl); return; }
+    if (h===1) { for (let i=0;i<w;i++) model.set(minX+i, minY, patternAt(p.top,i,'-')); return; }
+    if (w===1) { for (let j=0;j<h;j++) model.set(minX, minY+j, patternAt(p.side,j,'|')); return; }
+    // corners
+    model.set(minX, minY, p.tl);
+    model.set(maxX, minY, p.tr);
+    model.set(minX, maxY, p.bl);
+    model.set(maxX, maxY, p.br);
+    // top/bottom edges
+    for (let x=minX+1, i=0; x<=maxX-1; x++, i++) {
+      model.set(x, minY, patternAt(p.top, i, '-'));
+      model.set(x, maxY, patternAt(p.top, i, '-'));
+    }
+    // sides
+    for (let y=minY+1, j=0; y<=maxY-1; y++, j++) {
+      model.set(minX, y, patternAt(p.side, j, '|'));
+      model.set(maxX, y, patternAt(p.side, j, '|'));
+    }
+  };
+
+  const drawLine = (x0,y0,x1,y1, pat) => {
+    // Bresenham line
+    let dx = Math.abs(x1-x0), sx = x0<x1?1:-1;
+    let dy = -Math.abs(y1-y0), sy = y0<y1?1:-1;
+    let err = dx+dy;
+    let i = 0;
+    while (true) {
+      model.set(x0, y0, patternAt(pat, i, '-'));
+      if (x0===x1 && y0===y1) break;
+      const e2 = 2*err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+      i++;
+    }
+  };
+
+  // ----- Live Preview (non-destructive) -----
+  const PREVIEW_COLOR = '#3b82f6';
+  const drawPreviewGlyph = (x,y,ch) => {
+    renderer.drawGlyphAt(x, y, ch, PREVIEW_COLOR);
+  };
+  const drawPreviewBox = (x0,y0,x1,y1, p) => {
+    let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
+    let minY = Math.min(y0,y1), maxY = Math.max(y0,y1);
+    minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
+    minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
+    const w = maxX-minX+1, h = maxY-minY+1;
+    if (w<=0 || h<=0) return;
+    if (w===1 && h===1) { drawPreviewGlyph(minX,minY,p.tl); return; }
+    if (h===1) { for (let i=0;i<w;i++) drawPreviewGlyph(minX+i, minY, patternAt(p.top,i,'-')); return; }
+    if (w===1) { for (let j=0;j<h;j++) drawPreviewGlyph(minX, minY+j, patternAt(p.side,j,'|')); return; }
+    // corners
+    drawPreviewGlyph(minX, minY, p.tl);
+    drawPreviewGlyph(maxX, minY, p.tr);
+    drawPreviewGlyph(minX, maxY, p.bl);
+    drawPreviewGlyph(maxX, maxY, p.br);
+    // top/bottom edges
+    for (let x=minX+1, i=0; x<=maxX-1; x++, i++) {
+      drawPreviewGlyph(x, minY, patternAt(p.top, i, '-'));
+      drawPreviewGlyph(x, maxY, patternAt(p.top, i, '-'));
+    }
+    // sides
+    for (let y=minY+1, j=0; y<=maxY-1; y++, j++) {
+      drawPreviewGlyph(minX, y, patternAt(p.side, j, '|'));
+      drawPreviewGlyph(maxX, y, patternAt(p.side, j, '|'));
+    }
+  };
+  const drawPreviewLine = (x0,y0,x1,y1, pat) => {
+    let dx = Math.abs(x1-x0), sx = x0<x1?1:-1;
+    let dy = -Math.abs(y1-y0), sy = y0<y1?1:-1;
+    let err = dx+dy;
+    let i = 0;
+    while (true) {
+      drawPreviewGlyph(x0, y0, patternAt(pat, i, '-'));
+      if (x0===x1 && y0===y1) break;
+      const e2 = 2*err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+      i++;
+    }
+  };
+
+  // ----- Selection: capture, overlay, move -----
+  const normRect = (r) => ({
+    x0: Math.min(r.x0, r.x1), y0: Math.min(r.y0, r.y1),
+    x1: Math.max(r.x0, r.x1), y1: Math.max(r.y0, r.y1),
+  });
+  const pointInRect = (x,y,r) => (x>=r.x0 && x<=r.x1 && y>=r.y0 && y<=r.y1);
+  const NBSP = '\u00A0';
+  const isSolid = (ch) => (ch !== ' ' && ch !== NBSP);
+
+  const drawSelectionRect = (r) => {
+    if (!r) return;
+    r = normRect(r);
+    const { ctx } = renderer;
+    const x = r.x0*renderer.cellW + 0.5;
+    const y = r.y0*renderer.cellH + 0.5;
+    const w = (r.x1 - r.x0 + 1)*renderer.cellW - 1;
+    const h = (r.y1 - r.y0 + 1)*renderer.cellH - 1;
+    ctx.save();
+    ctx.strokeStyle = '#7c3aed'; // accent
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
+  };
+  const drawSelectionOverlay = () => {
+    if (selectionRect) drawSelectionRect(selectionRect);
+  };
+
+  const captureSelection = (r) => {
+    r = normRect(r);
+    const w = r.x1 - r.x0 + 1;
+    const h = r.y1 - r.y0 + 1;
+    const chars = [];
+    const mask = [];
+    for (let y=0; y<h; y++) {
+      const rowC = [], rowM = [];
+      for (let x=0; x<w; x++) {
+        const ch = model.get(r.x0 + x, r.y0 + y);
+        rowC.push(ch);
+        rowM.push(isSolid(ch));
+      }
+      chars.push(rowC); mask.push(rowM);
+    }
+    return { w, h, chars, mask, origin:{x:r.x0, y:r.y0} };
+  };
+  const drawPreviewSelection = (tx, ty) => {
+    if (!selectionData) return;
+    for (let y=0; y<selectionData.h; y++) {
+      for (let x=0; x<selectionData.w; x++) {
+        if (!selectionData.mask[y][x]) continue;
+        const ch = selectionData.chars[y][x];
+        const gx = tx + x, gy = ty + y;
+        if (gx<0 || gy<0 || gx>=model.w || gy>=model.h) continue;
+        drawPreviewGlyph(gx, gy, ch);
+      }
+    }
+    drawSelectionRect({x0:tx, y0:ty, x1:tx+selectionData.w-1, y1:ty+selectionData.h-1});
+  };
+  const commitMoveSelection = (tx, ty) => {
+    if (!selectionData) return;
+    pushSnapshot();
+    // write to target only where mask is solid
+    for (let y=0; y<selectionData.h; y++) {
+      for (let x=0; x<selectionData.w; x++) {
+        if (!selectionData.mask[y][x]) continue;
+        const sx = selectionData.origin.x + x;
+        const sy = selectionData.origin.y + y;
+        const dx = tx + x;
+        const dy = ty + y;
+        if (dx>=0 && dy>=0 && dx<model.w && dy<model.h) {
+          model.set(dx, dy, selectionData.chars[y][x]);
+        }
+        // clear source
+        if (sx>=0 && sy>=0 && sx<model.w && sy<model.h) {
+          model.set(sx, sy, ' ');
+        }
+      }
+    }
+    selectionRect = { x0: tx, y0: ty, x1: tx + selectionData.w - 1, y1: ty + selectionData.h - 1 };
+    selectionData.origin = { x: tx, y: ty };
+  };
+
+  // ----- Clipboard operations -----
+  const deepCloneGrid = (data) => ({
+    w: data.w,
+    h: data.h,
+    chars: data.chars.map(row => row.slice()),
+    mask: data.mask.map(row => row.slice()),
+  });
+  const copySelection = () => {
+    if (!selectionRect) return;
+    const data = captureSelection(selectionRect);
+    clipboard = deepCloneGrid(data);
+  };
+  const cutSelection = () => {
+    if (!selectionRect) return;
+    const data = captureSelection(selectionRect);
+    clipboard = deepCloneGrid(data);
+    // clear source only where mask true
+    pushSnapshot();
+    for (let y=0; y<data.h; y++) {
+      for (let x=0; x<data.w; x++) {
+        if (!data.mask[y][x]) continue;
+        model.set(selectionRect.x0 + x, selectionRect.y0 + y, ' ');
+      }
+    }
+    selectionData = null; selectionRect = null; selectionMoving = false; selectStart = null;
+    renderer.fullRedraw();
+  };
+  const pasteClipboardAt = (tx, ty) => {
+    if (!clipboard) return;
+    pushSnapshot();
+    const w = clipboard.w, h = clipboard.h;
+    for (let y=0; y<h; y++) {
+      for (let x=0; x<w; x++) {
+        if (!clipboard.mask[y][x]) continue;
+        const dx = tx + x, dy = ty + y;
+        if (dx<0 || dy<0 || dx>=model.w || dy>=model.h) continue;
+        model.set(dx, dy, clipboard.chars[y][x]);
+      }
+    }
+    // Set selection to pasted region for easy move
+    selectionRect = { x0: tx, y0: ty, x1: tx + w - 1, y1: ty + h - 1 };
+    selectionData = { w, h, chars: clipboard.chars.map(r=>r.slice()), mask: clipboard.mask.map(r=>r.slice()), origin:{x:tx,y:ty} };
+    renderer.fullRedraw();
+  };
+
+  // ----- Import/Export -----
+  saveJSONBtn.addEventListener('click', () => {
+    const payload = {
+      meta: {
+        app: 'ASCII/Unicode Grid Studio',
+        ts: new Date().toISOString(),
+      },
+      grid: {
+        w: model.w,
+        h: model.h,
+        cell: { w: renderer.cellW, h: renderer.cellH },
+        font: { size: renderer.fontSize, family: renderer.fontFamily },
+        gridlines: renderer.gridlines
+      },
+      rows: model.toRows()
+    };
+    download(`ascii_grid_${model.w}x${model.h}.json`, JSON.stringify(payload, null, 2), 'application/json');
+  });
+
+  loadJSONBtn.addEventListener('click', () => fileJSON.click());
+  fileJSON.addEventListener('change', async () => {
+    const file = fileJSON.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data || !data.rows || !data.grid) throw new Error('Invalid JSON format');
+      pushSnapshot();
+      gridWEl.value = data.grid.w; gridHEl.value = data.grid.h;
+      model.resize(data.grid.w, data.grid.h);
+      if (data.grid.cell) {
+        cellWEl.value = data.grid.cell.w; cellHEl.value = data.grid.cell.h;
+        renderer.setCellSize(data.grid.cell.w, data.grid.cell.h);
+      }
+      if (data.grid.font) {
+        fontSizeEl.value = data.grid.font.size;
+        fontFamilyEl.value = data.grid.font.family;
+        renderer.setFontFamily(data.grid.font.family);
+        if (renderer.autoFitFont) renderer.fitFontToCell(); else renderer.setFontSize(data.grid.font.size);
+      }
+      if (typeof data.grid.gridlines === 'boolean') {
+        renderer.setGridlines(data.grid.gridlines);
+        gridToggleBtn.textContent = `Gridlines: ${renderer.gridlines ? 'On' : 'Off'}`;
+      }
+      model.fromRows(data.rows);
+      renderer.fullRedraw();
+      updateStatus();
+      fileJSON.value = '';
+    } catch (err) {
+      alert('Failed to load JSON: ' + err.message);
+    }
+  });
+
+  exportTXTBtn.addEventListener('click', () => {
+    const txt = model.toRows().join('\n');
+    download(`ascii_grid_${model.w}x${model.h}.txt`, txt, 'text/plain');
+  });
+
+  importTXTBtn.addEventListener('click', () => fileTXT.click());
+  fileTXT.addEventListener('change', async () => {
+    const file = fileTXT.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const rows = normalized.split('\n');
+      pushSnapshot();
+      model.fromRows(rows);
+      renderer.fullRedraw();
+      updateStatus();
+      fileTXT.value = '';
+    } catch (err) {
+      alert('Failed to load TXT: ' + err.message);
+    }
+  });
+
+  exportPNGBtn.addEventListener('click', () => {
+    const dataURL = canvas.toDataURL('image/png');
+    download(`ascii_grid_${model.w}x${model.h}.png`, dataURL, 'image/png');
+  });
+
+  // Initial status
+  updateStatus();
+
+  // ---------- Self Tests (non-blocking, console only) ----------
+  (function runSelfTests(){
+    try {
+      // newline normalize
+      const t1 = ['A','B'].join('\n');
+      const t2 = t1.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+      console.assert(t2.length === 2 && t2[0]==='A' && t2[1]==='B', 'newline normalize failed');
+
+      // pipeAscii includes backslash
+      console.assert(pipeAscii.includes('\\'), 'pipeAscii missing \\');
+
+      // asciiPunct coverage
+      console.assert(asciiPunct.includes('`') && asciiPunct.includes('\\'), 'asciiPunct missing ` or \\');
+
+      // GridModel resize retains data
+      const gm = new GridModel(2,2); gm.set(1,1,'X'); gm.resize(3,3);
+      console.assert(gm.get(1,1)==='X', 'GridModel resize lost cell');
+
+      // History round-trip
+      const h = new History(5); const s0 = {a:1}; h.push(s0); const s1 = {a:2}; h.push(s1);
+      console.assert(h.canUndo() && !h.canRedo(), 'History flags wrong after push');
+      const u = h.undo(); console.assert(u.a===1 && h.canRedo(), 'History undo/redo wrong');
+
+      // Blend toggle default
+      console.assert(new GridRenderer(document.createElement('canvas'), new GridModel(1,1)).blendDraw === true, 'blendDraw should default true');
+
+      console.log('%cSelf-tests passed','color:#10b981');
+    } catch (e) {
+      console.warn('Self-tests encountered an issue:', e);
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
