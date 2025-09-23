@@ -312,10 +312,12 @@
         <span class="kbd">LMB</span> paint / pick •
         <span class="kbd">RMB</span> erase •
         <span class="kbd">Ctrl/⌘ + Wheel</span> zoom •
-        <span class="kbd">P/E/I/T</span> tools •
+        <span class="kbd">P/E/I/T/R/W</span> tools •
         <span class="kbd">Arrows</span> move •
         <span class="kbd">Ctrl+Z/Y</span> undo/redo
         <span class="kbd">O</span> circle tool
+        <span class="kbd">Shift</span> lock circle
+        <span class="kbd">Ctrl</span> center-drag
         <span class="kbd">Ctrl+Shift+V</span> paste-over
         <span class="kbd">Del</span> clear selection
         <span class="kbd">Esc</span> cancel/exit type
@@ -795,7 +797,8 @@ const history = new History(200);
   });
 
   // ----- Box/Line Tools UI (dynamic) -----
-  let boxTLEl, boxTREl, boxBLEl, boxBREl, boxTopEl, boxSideEl, linePatEl, circleCharsEl;
+  let boxTLEl, boxTREl, boxBLEl, boxBREl, boxTopEl, boxSideEl, linePatEl, circleCharsEl, circleThkEl, circleThkModeEl;
+  let brailleDotsEl, brailleStepEl, wormsRoundedEl, wormsDiagEl, wormsCapsEl;
   (function addShapeUI(){
     const toolGroup = document.getElementById('toolGroup');
     const mkBtn = (tool, label, title) => {
@@ -809,7 +812,9 @@ const history = new History(200);
     toolGroup.appendChild(mkBtn('select','Select','Select/Move [S]'));
     toolGroup.appendChild(mkBtn('box','Box','Draw box (drag) [B]'));
     toolGroup.appendChild(mkBtn('line','Line','Draw line (drag) [L]'));
-    toolGroup.appendChild(mkBtn('circle','Circle','Draw circle/ellipse (drag) [O]'));
+    toolGroup.appendChild(mkBtn('circle','Circle','Draw circle/ellipse (drag). Shift=lock circle, Ctrl=center [O]'));
+    toolGroup.appendChild(mkBtn('braille','Braille','Braille brush (drag)'));
+    toolGroup.appendChild(mkBtn('worms','Worms','Worms brush (drag)'));
 
     const toolbarEl = document.querySelector('.toolbar');
     const sg = document.createElement('div');
@@ -828,6 +833,18 @@ const history = new History(200);
     sg.appendChild(labelSpan('Pat')); sg.appendChild(addInput('linePat','-', '64px'));
     const sc = document.createElement('span'); sc.style.marginLeft='8px'; sc.style.color='#9aa7b3'; sc.style.fontSize='12px'; sc.textContent='Circle'; sg.appendChild(sc);
     sg.appendChild(labelSpan('Chars')); sg.appendChild(addInput('circleChars','.,-oO@', '80px'));
+    sg.appendChild(labelSpan('Thk'));
+    const thkSel = document.createElement('select'); thkSel.id = 'circleThkMode'; thkSel.style.width = '84px';
+    [{k:'thin',n:'Thin'},{k:'med',n:'Med'},{k:'thick',n:'Thick'},{k:'custom',n:'Custom'}].forEach(({k,n})=>{ const o=document.createElement('option'); o.value=k; o.textContent=n; thkSel.appendChild(o); });
+    thkSel.value = 'med';
+    sg.appendChild(thkSel);
+    const thkInput = document.createElement('input'); thkInput.type='number'; thkInput.id='circleThk'; thkInput.min='0.05'; thkInput.max='3'; thkInput.step='0.05'; thkInput.value='0.45'; thkInput.style.width='64px'; thkInput.title='Circle thickness (smaller = thinner)';
+    sg.appendChild(thkInput);
+    thkSel.addEventListener('change', () => {
+      const map = { thin: 0.25, med: 0.45, thick: 0.9 };
+      if (thkSel.value in map) { thkInput.value = map[thkSel.value]; }
+    });
+    thkInput.addEventListener('change', () => { thkSel.value = 'custom'; });
     const firstField = toolbarEl.querySelector('.field');
     toolbarEl.insertBefore(sg, firstField);
     boxTLEl = sg.querySelector('#boxTL'); boxTREl = sg.querySelector('#boxTR');
@@ -835,6 +852,58 @@ const history = new History(200);
     boxTopEl = sg.querySelector('#boxTop'); boxSideEl = sg.querySelector('#boxSide');
     linePatEl = sg.querySelector('#linePat');
     circleCharsEl = sg.querySelector('#circleChars');
+    circleThkEl = sg.querySelector('#circleThk');
+    circleThkModeEl = sg.querySelector('#circleThkMode');
+  })();
+
+  // ----- Brush (Pencil/Eraser) UI -----
+  let brushSize = 1; // 1=1x1, 2=radius 1, etc.
+  let brushShape = 'square'; // 'square' | 'diamond'
+  let brushSizeEl, brushShapeBtn;
+  (function addBrushUI(){
+    const toolbarEl = document.querySelector('.toolbar');
+    const bg = document.createElement('div');
+    bg.className = 'toolgroup';
+    bg.id = 'brushParams';
+    const label = document.createElement('span'); label.className='kbd'; label.textContent='Brush'; bg.appendChild(label);
+    const minus = document.createElement('button'); minus.className='btn ghost'; minus.textContent='-'; minus.title='Smaller'; minus.style.padding='2px 8px'; minus.style.marginLeft='8px';
+    const plus = document.createElement('button'); plus.className='btn ghost'; plus.textContent='+'; plus.title='Larger'; plus.style.padding='2px 8px'; plus.style.marginLeft='4px';
+    const sizeLbl = document.createElement('span'); sizeLbl.className='kbd'; sizeLbl.style.marginLeft='6px'; sizeLbl.textContent=String(brushSize);
+    const shapeBtn = document.createElement('button'); shapeBtn.className='btn ghost'; shapeBtn.title='Toggle brush shape'; shapeBtn.style.marginLeft='8px';
+    const updateUI = () => { sizeLbl.textContent = String(brushSize); shapeBtn.textContent = (brushShape==='square' ? '?' : '?'); };
+    minus.addEventListener('click', () => { brushSize = clamp(brushSize-1, 1, 20); updateUI(); });
+    plus.addEventListener('click', () => { brushSize = clamp(brushSize+1, 1, 20); updateUI(); });
+    shapeBtn.addEventListener('click', () => { brushShape = (brushShape==='square' ? 'diamond' : 'square'); updateUI(); });
+    updateUI();
+    bg.appendChild(minus); bg.appendChild(plus); bg.appendChild(sizeLbl); bg.appendChild(shapeBtn);
+    const firstField = toolbarEl.querySelector('.field');
+    toolbarEl.insertBefore(bg, firstField);
+    brushSizeEl = sizeLbl; brushShapeBtn = shapeBtn;
+  })();
+
+  // ----- Braille + Worms Params UI -----
+  (function addAdvancedBrushUI(){
+    const toolbarEl = document.querySelector('.toolbar');
+    const sg = document.createElement('div');
+    sg.className = 'toolgroup';
+    sg.id = 'advBrushParams';
+    const labelSpan = (text) => { const s=document.createElement('span'); s.className='kbd'; s.textContent=text; return s; };
+    const addNum = (id, val, min, max, step, width, title) => { const i=document.createElement('input'); i.type='number'; i.id=id; i.value=val; if(min!=null)i.min=String(min); if(max!=null)i.max=String(max); if(step!=null)i.step=String(step); if(width)i.style.width=width; if(title)i.title=title; return i; };
+    const addChk = (id, checked, title) => { const i=document.createElement('input'); i.type='checkbox'; i.id=id; i.checked=!!checked; if(title) i.title=title; return i; };
+    const capB = document.createElement('span'); capB.style.marginLeft='8px'; capB.style.color='#9aa7b3'; capB.style.fontSize='12px'; capB.textContent='Braille'; sg.appendChild(capB);
+    sg.appendChild(labelSpan('Dots')); sg.appendChild(addNum('brailleDots','1',1,4,1,'44px','Number of sub-dots per stamp'));
+    sg.appendChild(labelSpan('Step')); sg.appendChild(addNum('brailleStep','0.35',0.05,1,0.05,'56px','Sampling step (~cells)'));
+    const capW = document.createElement('span'); capW.style.marginLeft='8px'; capW.style.color='#9aa7b3'; capW.style.fontSize='12px'; capW.textContent='Worms'; sg.appendChild(capW);
+    sg.appendChild(labelSpan('Rounded')); sg.appendChild(addChk('wormsRounded', true, 'Use rounded corners (╭╮╯╰)'));
+    sg.appendChild(labelSpan('Diag')); sg.appendChild(addChk('wormsDiag', true, 'Use diagonal slashes (╱╲)'));
+    sg.appendChild(labelSpan('Caps')); sg.appendChild(addChk('wormsCaps', true, 'Use end caps (╴╶╵╷) for endpoints'));
+    const firstField = toolbarEl.querySelector('.field');
+    toolbarEl.insertBefore(sg, firstField);
+    brailleDotsEl = sg.querySelector('#brailleDots');
+    brailleStepEl = sg.querySelector('#brailleStep');
+    wormsRoundedEl = sg.querySelector('#wormsRounded');
+    wormsDiagEl = sg.querySelector('#wormsDiag');
+    wormsCapsEl = sg.querySelector('#wormsCaps');
   })();
 
   // ----- Presets / Config -----
@@ -867,6 +936,18 @@ const history = new History(200);
     updateStatus();
   };
   applyCellBtn.addEventListener('click', applyCell);
+  // Quick-set buttons for Cell size: Current and 8x16
+  (function addCellQuickSet(){
+    const cellField = applyCellBtn.closest('.field');
+    if (!cellField) return;
+    const mkBtn = (label, title) => { const b=document.createElement('button'); b.className='btn ghost'; b.textContent=label; b.title=title; b.style.marginLeft='6px'; return b; };
+    const btnCurr = mkBtn('Current','Set inputs to current cell size and apply');
+    const btn816 = mkBtn('8×16','Set to 8×16 and apply');
+    btnCurr.addEventListener('click', () => { cellWEl.value = renderer.cellW; cellHEl.value = renderer.cellH; applyCell(); });
+    btn816.addEventListener('click', () => { cellWEl.value = 8; cellHEl.value = 16; applyCell(); });
+    cellField.appendChild(btnCurr);
+    cellField.appendChild(btn816);
+  })();
 
   const applyFont = () => {
     const fs = clamp(parseInt(fontSizeEl.value,10)||14, 6, 96);
@@ -949,6 +1030,10 @@ let isPointerDown = false;
 let typeCursor = {x:0, y:0};
 let dragStart = null; // for box/line tools
 let previewEnd = null; // last preview end cell to avoid redundant redraws
+// Brush-advanced state
+let braillePrevPt = null; // {cx, cy} in client coords
+let wormsPrevCell = null; // {x,y}
+let wormsTrail = []; // recent cells for smoothing
 // Selection state
 let selectStart = null; // rubber-band start
 let selectionRect = null; // {x0,y0,x1,y1}
@@ -1008,6 +1093,21 @@ const startCaretBlink = () => {
     return true;
   };
 
+  const paintBrush = (cx, cy, ch, size, shape) => {
+    const r = Math.max(0, (size|0) - 1);
+    if (r === 0) { paintAt(cx, cy, ch); return; }
+    const minX = Math.max(0, cx - r), maxX = Math.min(model.w - 1, cx + r);
+    const minY = Math.max(0, cy - r), maxY = Math.min(model.h - 1, cy + r);
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const dx = Math.abs(x - cx), dy = Math.abs(y - cy);
+        const ok = shape === 'diamond' ? (dx + dy <= r) : (Math.max(dx, dy) <= r);
+        if (!ok) continue;
+        paintAt(x, y, ch);
+      }
+    }
+  };
+
   canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
@@ -1032,13 +1132,26 @@ const startCaretBlink = () => {
       }
       return;
     }
+    if (currentTool === 'braille') {
+      pushSnapshot();
+      braillePrevPt = { cx: e.clientX, cy: e.clientY };
+      // Stamp initial point
+      brailleStroke(braillePrevPt.cx, braillePrevPt.cy, e.clientX, e.clientY, (e.buttons & 2) !== 0);
+      return;
+    }
+    if (currentTool === 'worms') {
+      pushSnapshot();
+      wormsPrevCell = { x: cell.x, y: cell.y };
+      wormsTrail = [{ x: cell.x, y: cell.y }];
+      return;
+    }
     if (currentTool === 'box' || currentTool === 'line' || currentTool === 'circle') {
       dragStart = {x:cell.x, y:cell.y};
       return;
     }
     const ch = (currentTool === 'eraser' || e.button===2) ? ' ' : selectedGlyph;
     pushSnapshot();
-    paintAt(cell.x, cell.y, ch);
+    paintBrush(cell.x, cell.y, ch, brushSize, brushShape);
   });
   canvas.addEventListener('pointermove', (e) => {
     const cell = renderer.cellFromClient(e.clientX, e.clientY);
@@ -1047,7 +1160,19 @@ const startCaretBlink = () => {
     if (!isPointerDown) return;
     if (currentTool === 'pencil' || currentTool === 'eraser') {
       const ch = (currentTool === 'eraser') ? ' ' : selectedGlyph;
-      paintAt(cell.x, cell.y, ch);
+      paintBrush(cell.x, cell.y, ch, brushSize, brushShape);
+      return;
+    }
+    if (currentTool === 'braille') {
+      if (!braillePrevPt) { braillePrevPt = { cx:e.clientX, cy:e.clientY }; }
+      brailleStroke(braillePrevPt.cx, braillePrevPt.cy, e.clientX, e.clientY, (e.buttons & 2) !== 0);
+      braillePrevPt = { cx:e.clientX, cy:e.clientY };
+      return;
+    }
+    if (currentTool === 'worms') {
+      if (!wormsPrevCell) { wormsPrevCell = { x: cell.x, y: cell.y }; }
+      wormsPath(wormsPrevCell.x, wormsPrevCell.y, cell.x, cell.y, (e.buttons & 2) !== 0);
+      wormsPrevCell = { x: cell.x, y: cell.y };
       return;
     }
     if (currentTool === 'select') {
@@ -1084,7 +1209,7 @@ const startCaretBlink = () => {
       if (previewEnd && previewEnd.x===cell.x && previewEnd.y===cell.y && previewEnd.tool==='circle') return;
       previewEnd = {x:cell.x, y:cell.y, tool:'circle'};
       renderer.fullRedraw();
-      const params = getCircleParams();
+      const params = getCircleParams(e);
       drawPreviewCircle(dragStart.x, dragStart.y, cell.x, cell.y, params);
       return;
     }
@@ -1100,13 +1225,20 @@ const startCaretBlink = () => {
         const pat = getLinePattern();
         drawLine(dragStart.x, dragStart.y, cell.x, cell.y, pat);
       } else if (currentTool === 'circle') {
-        const params = getCircleParams();
+        const params = getCircleParams(e);
         drawCircle(dragStart.x, dragStart.y, cell.x, cell.y, params);
       }
       dragStart = null;
       previewEnd = null;
       renderer.fullRedraw();
       if (currentTool === 'type') drawCaretOverlay();
+    }
+    if (currentTool === 'braille') {
+      braillePrevPt = null;
+    }
+    if (currentTool === 'worms') {
+      wormsPrevCell = null;
+      wormsTrail = [];
     }
     if (currentTool === 'select' && cell) {
       if (selectStart) {
@@ -1221,8 +1353,8 @@ const startCaretBlink = () => {
       }
     }
     // Tool hotkeys (inactive during type mode to allow typing letters)
-    if (currentTool !== 'type' && ['p','e','i','t','b','l','s','o'].includes(e.key.toLowerCase())) {
-      const map = {p:'pencil', e:'eraser', i:'eyedrop', t:'type', b:'box', l:'line', s:'select', o:'circle'};
+    if (currentTool !== 'type' && ['p','e','i','t','b','l','s','o','r','w'].includes(e.key.toLowerCase())) {
+      const map = {p:'pencil', e:'eraser', i:'eyedrop', t:'type', b:'box', l:'line', s:'select', o:'circle', r:'braille', w:'worms'};
       setTool(map[e.key.toLowerCase()]);
       return;
     }
@@ -1271,9 +1403,249 @@ const startCaretBlink = () => {
     side: (typeof boxSideEl!== 'undefined' && boxSideEl ? boxSideEl.value : '|') || '|',
   });
   const getLinePattern = () => ((typeof linePatEl!== 'undefined' && linePatEl ? linePatEl.value : '-') || '-');
-  const getCircleParams = () => ({
-    chars: ((typeof circleCharsEl!== 'undefined' && circleCharsEl ? circleCharsEl.value : '.,-oO@') || '.,-oO@')
+  const getCircleParams = (evt) => ({
+    chars: ((typeof circleCharsEl!== 'undefined' && circleCharsEl ? circleCharsEl.value : '.,-oO@') || '.,-oO@'),
+    thickness: (() => {
+      if (typeof circleThkEl!== 'undefined' && circleThkEl) {
+        const t = parseFloat(circleThkEl.value);
+        if (!isNaN(t)) return clamp(t, 0.05, 3);
+      }
+      if (typeof circleThkModeEl!== 'undefined' && circleThkModeEl) {
+        const map = { thin: 0.25, med: 0.45, thick: 0.9 };
+        if (circleThkModeEl.value in map) return map[circleThkModeEl.value];
+      }
+      return 0.7;
+    })(),
+    lockAspect: !!(evt && evt.shiftKey),
+    fromCenter: !!(evt && evt.ctrlKey)
   });
+
+  // ----- Braille brush helpers -----
+  const isBrailleChar = (ch) => {
+    if (!ch) return false;
+    const cp = ch.codePointAt(0);
+    return (cp >= 0x2800 && cp <= 0x28FF);
+  };
+  const brailleMaskFromChar = (ch) => isBrailleChar(ch) ? (ch.codePointAt(0) - 0x2800) : 0;
+  const brailleCharFromMask = (mask) => String.fromCodePoint(0x2800 + (mask & 0xFF));
+  const clientToGridPx = (clientX, clientY) => {
+    const rect = canvas.getBoundingClientRect();
+    const gx = (clientX - rect.left) / renderer.zoom;
+    const gy = (clientY - rect.top) / renderer.zoom;
+    return { gx, gy };
+  };
+  const brailleStampAt = (clientX, clientY, dots, erase=false) => {
+    const { gx, gy } = clientToGridPx(clientX, clientY);
+    const cw = renderer.cellW, ch = renderer.cellH;
+    const cx = Math.floor(gx / cw), cy = Math.floor(gy / ch);
+    if (cx<0 || cy<0 || cx>=model.w || cy>=model.h) return;
+    const u = (gx - cx*cw) / cw; // 0..1
+    const v = (gy - cy*ch) / ch; // 0..1
+    // Dot centers (2x4 grid)
+    const xC = [0.25, 0.75];
+    const yC = [0.125, 0.375, 0.625, 0.875];
+    const dotNum = (col,row) => (col===0 ? [1,2,3,7][row] : [4,5,6,8][row]);
+    const centers = [];
+    for (let row=0; row<4; row++) for (let col=0; col<2; col++) {
+      const dn = dotNum(col,row);
+      const dx = u - xC[col];
+      const dy = v - yC[row];
+      centers.push({ dn, d2: dx*dx + dy*dy });
+    }
+    centers.sort((a,b)=>a.d2-b.d2);
+    const k = Math.max(1, Math.min(4, (parseInt(dots,10) || 1)));
+    // Distance threshold grows mildly with k to improve continuity, especially on diagonals
+    const r2Table = { 1: 0.020, 2: 0.035, 3: 0.055, 4: 0.080 };
+    const r2 = r2Table[k] || 0.035;
+    let stampMask = 0;
+    // Always stamp at least k nearest
+    for (let i=0; i<k; i++) { stampMask |= (1 << (centers[i].dn - 1)); }
+    // Also include any within the radius to fill gaps on fast/diagonal strokes
+    for (let i=0; i<centers.length; i++) {
+      if (centers[i].d2 <= r2) { stampMask |= (1 << (centers[i].dn - 1)); }
+    }
+    const before = model.get(cx,cy);
+    let mask = brailleMaskFromChar(before);
+    if (erase) {
+      mask &= (~stampMask) & 0xFF;
+    } else {
+      mask |= stampMask;
+    }
+    const next = mask ? brailleCharFromMask(mask) : ' ';
+    paintAt(cx, cy, next);
+  };
+  const brailleStroke = (cxa, cya, cxb, cyb, erase=false) => {
+    const stepScale = Math.max(0.05, Math.min(1, parseFloat(brailleStepEl ? brailleStepEl.value : '0.35') || 0.35));
+    const cmin = Math.max(1, Math.min(renderer.cellW, renderer.cellH));
+    const stepPx = Math.max(1, cmin * stepScale);
+    const dx = cxb - cxa, dy = cyb - cya;
+    const dist = Math.hypot(dx,dy) || 1;
+    const n = Math.max(1, Math.ceil(dist / stepPx));
+    const dots = brailleDotsEl ? brailleDotsEl.value : 1;
+    for (let i=0; i<=n; i++) {
+      const t = i / n;
+      const sx = cxa + dx * t;
+      const sy = cya + dy * t;
+      brailleStampAt(sx, sy, dots, erase);
+    }
+  };
+
+  // ----- Worms brush helpers -----
+  const DIR_N = 1, DIR_E = 2, DIR_S = 4, DIR_W = 8;
+  const oppDir = (d) => (d===DIR_N?DIR_S : d===DIR_S?DIR_N : d===DIR_E?DIR_W : d===DIR_W?DIR_E : 0);
+  const maskFromGlyph = (ch) => {
+    switch (ch) {
+      case '─': return DIR_E|DIR_W;
+      case '│': return DIR_N|DIR_S;
+      case '╭': case '┌': case '◜': return DIR_E|DIR_S; // top-left corner
+      case '╮': case '┐': case '◝': return DIR_W|DIR_S; // top-right corner
+      case '╯': case '┘': case '◞': return DIR_W|DIR_N; // bottom-right corner
+      case '╰': case '└': case '◟': return DIR_E|DIR_N; // bottom-left corner
+      case '├': return DIR_E|DIR_N|DIR_S;
+      case '┤': return DIR_W|DIR_N|DIR_S;
+      case '┬': return DIR_E|DIR_W|DIR_S;
+      case '┴': return DIR_E|DIR_W|DIR_N;
+      case '┼': return DIR_E|DIR_W|DIR_N|DIR_S;
+      case '╴': return DIR_E; case '╶': return DIR_W; case '╵': return DIR_S; case '╷': return DIR_N;
+      default: return 0;
+    }
+  };
+  const glyphFromMask = (mask, opts) => {
+    const rounded = !!(opts && opts.rounded);
+    const caps = !!(opts && opts.caps);
+    switch (mask) {
+      case 0: return ' ';
+      case DIR_E: return caps ? '╴' : ' ';
+      case DIR_W: return caps ? '╶' : ' ';
+      case DIR_N: return caps ? '╷' : ' ';
+      case DIR_S: return caps ? '╵' : ' ';
+      case DIR_E|DIR_W: return '─';
+      case DIR_N|DIR_S: return '│';
+      case DIR_E|DIR_S: return rounded ? '╭' : '┌';
+      case DIR_W|DIR_S: return rounded ? '╮' : '┐';
+      case DIR_W|DIR_N: return rounded ? '╯' : '┘';
+      case DIR_E|DIR_N: return rounded ? '╰' : '└';
+      case DIR_E|DIR_N|DIR_S: return '├';
+      case DIR_W|DIR_N|DIR_S: return '┤';
+      case DIR_E|DIR_W|DIR_S: return '┬';
+      case DIR_E|DIR_W|DIR_N: return '┴';
+      default: return '┼';
+    }
+  };
+  const wormsApplyCardinalStep = (x0,y0,x1,y1, erase, opts) => {
+    // Update prev cell
+    const idxPrev = model.get(x0,y0);
+    let mPrev = maskFromGlyph(idxPrev);
+    let dir = 0;
+    if (x1 > x0) dir = DIR_E; else if (x1 < x0) dir = DIR_W; else if (y1 > y0) dir = DIR_S; else if (y1 < y0) dir = DIR_N;
+    if (dir) {
+      if (erase) mPrev &= ~dir; else mPrev |= dir;
+      const chPrev = glyphFromMask(mPrev, opts);
+      paintAt(x0,y0,chPrev);
+      // Update curr cell
+      const idxCurr = model.get(x1,y1);
+      let mCurr = maskFromGlyph(idxCurr);
+      const od = oppDir(dir);
+      if (erase) mCurr &= ~od; else mCurr |= od;
+      const chCurr = glyphFromMask(mCurr, opts);
+      paintAt(x1,y1,chCurr);
+    }
+  };
+  const wormsApplyStep = (x0,y0,x1,y1, erase, opts) => {
+    let dir = 0;
+    if (x1 > x0 && y1 === y0) dir = DIR_E;
+    else if (x1 < x0 && y1 === y0) dir = DIR_W;
+    else if (y1 > y0 && x1 === x0) dir = DIR_S;
+    else if (y1 < y0 && x1 === x0) dir = DIR_N;
+    else {
+      // Diagonal
+      if (opts && opts.diag) {
+        if (opts.rounded) {
+          // Bridge with two cardinal steps through mid cell (horizontal-first)
+          const midX = x0 + (x1>x0?1:-1);
+          const midY = y0;
+          if (midX>=0 && midY>=0 && midX<model.w && midY<model.h) {
+            wormsApplyCardinalStep(x0,y0, midX,midY, erase, opts);
+          }
+          if (x1>=0 && y1>=0 && x1<model.w && y1<model.h) {
+            wormsApplyCardinalStep(midX,midY, x1,y1, erase, opts);
+          }
+        } else {
+          const slash = (x1-x0)*(y1-y0) > 0 ? '╲' : '╱';
+          paintAt(x1, y1, erase ? ' ' : slash);
+        }
+      }
+      return; // ignore diagonal for connectivity
+    }
+    wormsApplyCardinalStep(x0,y0,x1,y1, erase, opts);
+  };
+  const wormsPath = (x0,y0,x1,y1, erase=false) => {
+    const opts = { rounded: !wormsRoundedEl || !!wormsRoundedEl.checked, diag: !wormsDiagEl || !!wormsDiagEl.checked, caps: !wormsCapsEl || !!wormsCapsEl.checked };
+    // Bresenham 8-connected stepping: we walk cell-to-cell
+    let dx = Math.abs(x1-x0), sx = x0<x1?1:-1;
+    let dy = -Math.abs(y1-y0), sy = y0<y1?1:-1;
+    let err = dx+dy;
+    let cx = x0, cy = y0;
+    while (true) {
+      if (cx===x1 && cy===y1) break;
+      const e2 = 2*err;
+      let nx = cx, ny = cy;
+      if (e2 >= dy) { err += dy; nx += sx; }
+      if (e2 <= dx) { err += dx; ny += sy; }
+      if (nx===cx && ny===cy) break;
+      if (nx>=0 && ny>=0 && nx<model.w && ny<model.h) {
+        wormsApplyStep(cx, cy, nx, ny, erase, opts);
+        if (!erase) { wormsTrail.push({x:nx,y:ny}); if (wormsTrail.length>64) wormsTrail.shift(); }
+      }
+      cx = nx; cy = ny;
+    }
+    if (!erase && opts.diag) wormsSmoothDiag(5, opts);
+  };
+
+  const wormsSmoothDiag = (back=5, opts) => {
+    // Only smooth when diagonals allowed and rounded slashes are desired (rounded off)
+    if (!(opts && opts.diag)) return;
+    if (opts.rounded) return; // keep rounded-corner behavior
+    const n = wormsTrail.length;
+    if (n < 3) return;
+    const count = Math.min(Math.max(3, back+1), n);
+    const start = n - count;
+    const A = wormsTrail[start], B = wormsTrail[n-1];
+    const dxSum = B.x - A.x, dySum = B.y - A.y;
+    const ax = Math.abs(dxSum), ay = Math.abs(dySum);
+    if (ax < 2 || ay < 2) return; // need meaningful diagonal span
+    const ratio = Math.max(ax,ay) / Math.max(1, Math.min(ax,ay));
+    if (ratio > 1.75) return; // too steep vs shallow to be diagonal
+    const slash = (dxSum*dySum > 0) ? '╲' : '╱';
+
+    // Build a thin target path between A and B using linear interpolation rounding
+    const steps = Math.max(ax, ay);
+    if (steps <= 1) return;
+    const pathSet = new Set();
+    let fx = A.x, fy = A.y;
+    const sx = dxSum / steps, sy = dySum / steps;
+    for (let i=1; i<steps; i++) { // interior only
+      fx += sx; fy += sy;
+      const xi = Math.round(fx), yi = Math.round(fy);
+      if (xi>=0 && yi>=0 && xi<model.w && yi<model.h) pathSet.add(xi+","+yi);
+    }
+
+    // Thinning: enforce only target path cells contain slashes of this orientation
+    for (let i=start+1; i<n-1; i++) {
+      const p = wormsTrail[i];
+      const key = p.x+","+p.y;
+      const ch = model.get(p.x, p.y);
+      const isSlash = (ch === '╲' || ch === '╱');
+      const m = maskFromGlyph(ch);
+      const bits = (m & DIR_N?1:0) + (m & DIR_E?1:0) + (m & DIR_S?1:0) + (m & DIR_W?1:0);
+      if (pathSet.has(key)) {
+        if (bits < 3) paintAt(p.x, p.y, slash);
+      } else if (isSlash && bits < 2) {
+        // Remove off-path extra slashes to prevent double-thick diagonals
+        paintAt(p.x, p.y, ' ');
+      }
+    }
+  };
 
   const drawBox = (x0,y0,x1,y1, p) => {
     let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
@@ -1319,24 +1691,45 @@ const startCaretBlink = () => {
   };
 
   const drawCircle = (x0, y0, x1, y1, params) => {
-    let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
-    let minY = Math.min(y0,y1), maxY = Math.max(y0,y1);
+    let minX, maxX, minY, maxY;
+    if (params && params.fromCenter) {
+      const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+      minX = x0 - dx; maxX = x0 + dx;
+      minY = y0 - dy; maxY = y0 + dy;
+    } else {
+      minX = Math.min(x0,x1); maxX = Math.max(x0,x1);
+      minY = Math.min(y0,y1); maxY = Math.max(y0,y1);
+    }
     minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
     minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    const rx = Math.max(0.5, (maxX - minX + 1) / 2);
-    const ry = Math.max(0.5, (maxY - minY + 1) / 2);
+    let rx = Math.max(0.5, (maxX - minX + 1) / 2);
+    let ry = Math.max(0.5, (maxY - minY + 1) / 2);
+    if (params && params.lockAspect) {
+      const r = Math.min(rx, ry); rx = r; ry = r;
+    }
     const chars = [...((params && params.chars) ? params.chars : '.,-oO@')];
     const N = chars.length || 1;
-    const thickness = 0.7;
-    for (let y=minY-1; y<=maxY+1; y++) {
-      for (let x=minX-1; x<=maxX+1; x++) {
+    const thickness = (params && typeof params.thickness === 'number') ? params.thickness : 0.7;
+    const cw = renderer.cellW || 1, ch = renderer.cellH || 1, cmin = Math.max(1, Math.min(cw, ch));
+    // Iterate with small padding; expand by ~thickness in cell units
+    const pad = Math.ceil(thickness * (Math.max(cw, ch) / cmin)) + 1;
+    for (let y=minY-pad; y<=maxY+pad; y++) {
+      for (let x=minX-pad; x<=maxX+pad; x++) {
+        if (x<0 || y<0 || x>=model.w || y>=model.h) continue;
         const dx = (x + 0.5) - cx;
         const dy = (y + 0.5) - cy;
-        const v = (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry);
-        const err = Math.abs(v - 1.0);
-        const t = err / thickness;
+        // Work in pixel space for isotropy
+        const dxp = dx * cw, dyp = dy * ch;
+        const rxp = rx * cw, ryp = ry * ch;
+        const f = (dxp*dxp)/(rxp*rxp) + (dyp*dyp)/(ryp*ryp) - 1.0;
+        const gx = (2 * dxp) / (rxp*rxp);
+        const gy = (2 * dyp) / (ryp*ryp);
+        const g = Math.hypot(gx, gy) || 1e-6;
+        const dpx = Math.abs(f) / g; // approximate signed distance in pixels
+        const dnorm = dpx / cmin;    // normalize to ~cells
+        const t = dnorm / thickness;
         if (t <= 1.0) {
           const idx = Math.min(N-1, Math.max(0, N-1 - Math.floor(t * (N-1))));
           model.set(x, y, chars[idx]);
@@ -1378,24 +1771,43 @@ const startCaretBlink = () => {
   };
 
   const drawPreviewCircle = (x0, y0, x1, y1, params) => {
-    let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
-    let minY = Math.min(y0,y1), maxY = Math.max(y0,y1);
+    let minX, maxX, minY, maxY;
+    if (params && params.fromCenter) {
+      const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+      minX = x0 - dx; maxX = x0 + dx;
+      minY = y0 - dy; maxY = y0 + dy;
+    } else {
+      minX = Math.min(x0,x1); maxX = Math.max(x0,x1);
+      minY = Math.min(y0,y1); maxY = Math.max(y0,y1);
+    }
     minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
     minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    const rx = Math.max(0.5, (maxX - minX + 1) / 2);
-    const ry = Math.max(0.5, (maxY - minY + 1) / 2);
+    let rx = Math.max(0.5, (maxX - minX + 1) / 2);
+    let ry = Math.max(0.5, (maxY - minY + 1) / 2);
+    if (params && params.lockAspect) {
+      const r = Math.min(rx, ry); rx = r; ry = r;
+    }
     const chars = [...((params && params.chars) ? params.chars : '.,-oO@')];
     const N = chars.length || 1;
-    const thickness = 0.7; // tolerance around boundary in cell units
-    for (let y=minY-1; y<=maxY+1; y++) {
-      for (let x=minX-1; x<=maxX+1; x++) {
+    const thickness = (params && typeof params.thickness === 'number') ? params.thickness : 0.7; // thickness in ~cells
+    const cw = renderer.cellW || 1, ch = renderer.cellH || 1, cmin = Math.max(1, Math.min(cw, ch));
+    const pad = Math.ceil(thickness * (Math.max(cw, ch) / cmin)) + 1;
+    for (let y=minY-pad; y<=maxY+pad; y++) {
+      for (let x=minX-pad; x<=maxX+pad; x++) {
+        if (x<0 || y<0 || x>=model.w || y>=model.h) continue;
         const dx = (x + 0.5) - cx;
         const dy = (y + 0.5) - cy;
-        const v = (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry);
-        const err = Math.abs(v - 1.0);
-        const t = err / thickness;
+        const dxp = dx * cw, dyp = dy * ch;
+        const rxp = rx * cw, ryp = ry * ch;
+        const f = (dxp*dxp)/(rxp*rxp) + (dyp*dyp)/(ryp*ryp) - 1.0;
+        const gx = (2 * dxp) / (rxp*rxp);
+        const gy = (2 * dyp) / (ryp*ryp);
+        const g = Math.hypot(gx, gy) || 1e-6;
+        const dpx = Math.abs(f) / g;
+        const dnorm = dpx / cmin;
+        const t = dnorm / thickness;
         if (t <= 1.0) {
           const idx = Math.min(N-1, Math.max(0, N-1 - Math.floor(t * (N-1))));
           drawPreviewGlyph(x, y, chars[idx]);
@@ -1692,3 +2104,5 @@ const startCaretBlink = () => {
 </script>
 </body>
 </html>
+
+
