@@ -332,21 +332,37 @@
         <input id="customGlyph" type="text" maxlength="4" placeholder="Add glyph" style="width:90px;" />
         <button class="btn" id="useCustomGlyph">Use</button>
       </div>
-      <div class="field">
-        <label>Help</label>
-        <span class="kbd">LMB</span> paint / pick •
-        <span class="kbd">RMB</span> erase •
-        <span class="kbd">Ctrl/⌘ + Wheel</span> zoom •
-        <span class="kbd">P/E/I/T/R/W</span> tools •
-        <span class="kbd">Arrows</span> move •
-        <span class="kbd">Ctrl+Z/Y</span> undo/redo
-        <span class="kbd">O</span> circle tool
-        <span class="kbd">Shift</span> lock circle
-        <span class="kbd">Ctrl</span> center-drag
-        <span class="kbd">Ctrl+Shift+V</span> paste-over
-        <span class="kbd">Del</span> clear selection
-        <span class="kbd">Esc</span> cancel/exit type
-      </div>
+            <details id="optsHelp">
+        <summary>Options &amp; Help</summary>
+        <div id="optsHelpBody" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        <div id="helpBody" style="margin-top:8px;padding:8px;border:1px solid #1d2534;border-radius:10px;background:#0e1420">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#9aa7b3">
+            <div>
+              <div style="color:#cbd5e1;margin-bottom:4px">Navigation</div>
+              <div><span class="kbd">Ctrl/Wheel</span> zoom</div>
+              <div><span class="kbd">Arrows</span> move cursor</div>
+              <div><span class="kbd">Ctrl+0/+/-</span> zoom presets</div>
+            </div>
+            <div>
+              <div style="color:#cbd5e1;margin-bottom:4px">Tools</div>
+              <div><span class="kbd">P/E/I/T/R/W</span> select tool</div>
+              <div><span class="kbd">O</span> circle · <span class="kbd">Shift</span> lock · <span class="kbd">Ctrl</span> center</div>
+              <div><span class="kbd">RMB</span> erase · <span class="kbd">Esc</span> cancel</div>
+            </div>
+            <div>
+              <div style="color:#cbd5e1;margin-bottom:4px">Selection</div>
+              <div><span class="kbd">S</span> select/move</div>
+              <div><span class="kbd">Ctrl+C/X/V</span> copy/cut/paste</div>
+              <div><span class="kbd">Ctrl+Shift+V</span> paste over</div>
+            </div>
+            <div>
+              <div style="color:#cbd5e1;margin-bottom:4px">Export</div>
+              <div>PNG/TXT/JSON buttons top right</div>
+              <div>Copy selection writes plain text</div>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="canvas-wrap" id="canvasWrap">
@@ -971,6 +987,8 @@ const history = new History(200);
   // ----- Box/Line Tools UI (dynamic) -----
   let boxTLEl, boxTREl, boxBLEl, boxBREl, boxTopEl, boxSideEl, linePatEl, circleCharsEl, circleThkEl, circleThkModeEl;
   let brailleDotsEl, brailleStepEl, wormsRoundedEl, wormsDiagEl, wormsCapsEl;
+  // Extra box edge glyphs (optional). When set, bottom/right edges use these.
+  let boxBottomExtra = null, boxRightExtra = null;
   (function addShapeUI(){
     const toolGroup = document.getElementById('toolGroup');
     const mkBtn = (tool, label, title) => {
@@ -1018,7 +1036,7 @@ const history = new History(200);
     });
     thkInput.addEventListener('change', () => { thkSel.value = 'custom'; });
     const firstField = toolbarEl.querySelector('.field');
-    toolbarEl.insertBefore(sg, firstField);
+    (document.getElementById('optsHelpBody') || toolbarEl).appendChild(sg);
     boxTLEl = sg.querySelector('#boxTL'); boxTREl = sg.querySelector('#boxTR');
     boxBLEl = sg.querySelector('#boxBL'); boxBREl = sg.querySelector('#boxBR');
     boxTopEl = sg.querySelector('#boxTop'); boxSideEl = sg.querySelector('#boxSide');
@@ -1026,6 +1044,19 @@ const history = new History(200);
     circleCharsEl = sg.querySelector('#circleChars');
     circleThkEl = sg.querySelector('#circleThk');
     circleThkModeEl = sg.querySelector('#circleThkMode');
+    // Apply preset safely using code points (robust to encoding)
+    // Box drawing preset dropdown
+    const boxPresetSel = document.createElement('select'); boxPresetSel.id = 'boxPreset'; boxPresetSel.style.marginLeft = '6px';
+    [['ascii','ASCII'],['single','Thin'],['thick','Thick'],['double','Double'],['3d','3D']].forEach(function(p){ var o=document.createElement('option'); o.value=p[0]; o.textContent=p[1]; boxPresetSel.appendChild(o); });
+    sg.insertBefore(boxPresetSel, sg.children[1] || null);
+    const applyBoxPreset = (mode) => { const C = String.fromCodePoint; const set = (tl,tr,bl,br,top,side) => { boxTLEl.value=tl; boxTREl.value=tr; boxBLEl.value=bl; boxBREl.value=br; boxTopEl.value=top; boxSideEl.value=side; };
+      if (mode==='ascii') { boxBottomExtra=null; boxRightExtra=null; set('+','+','+','+','-','|'); }
+      else if (mode==='single') { boxBottomExtra=null; boxRightExtra=null; set(C(0x250C), C(0x2510), C(0x2514), C(0x2518), C(0x2500), C(0x2502)); }
+      else if (mode==='thick') { boxBottomExtra=null; boxRightExtra=null; set(C(0x250F), C(0x2513), C(0x2517), C(0x251B), C(0x2501), C(0x2503)); }
+      else if (mode==='double') { boxBottomExtra=null; boxRightExtra=null; set(C(0x2554), C(0x2557), C(0x255A), C(0x255D), C(0x2550), C(0x2551)); }
+      else if (mode==='3d') { boxBottomExtra=C(0x2550); boxRightExtra=C(0x2551); set(C(0x250C), C(0x2556), C(0x2558), C(0x255D), C(0x2500), C(0x2502)); }
+    };
+    boxPresetSel.addEventListener('change', function(){ applyBoxPreset(boxPresetSel.value); });
   })();
 
   // ----- Quick glyph popover for inputs -----
@@ -1123,7 +1154,7 @@ const history = new History(200);
     updateUI();
     bg.appendChild(minus); bg.appendChild(plus); bg.appendChild(sizeLbl); bg.appendChild(shapeBtn);
     const firstField = toolbarEl.querySelector('.field');
-    toolbarEl.insertBefore(bg, firstField);
+    (document.getElementById('optsHelpBody') || toolbarEl).appendChild(bg);
     brushSizeEl = sizeLbl; brushShapeBtn = shapeBtn;
   })();
 
@@ -1144,7 +1175,7 @@ const history = new History(200);
     sg.appendChild(labelSpan('Diag')); sg.appendChild(addChk('wormsDiag', true, 'Use diagonal slashes (╱╲)'));
     sg.appendChild(labelSpan('Caps')); sg.appendChild(addChk('wormsCaps', true, 'Use end caps (╴╶╵╷) for endpoints'));
     const firstField = toolbarEl.querySelector('.field');
-    toolbarEl.insertBefore(sg, firstField);
+    (document.getElementById('optsHelpBody') || toolbarEl).appendChild(sg);
     brailleDotsEl = sg.querySelector('#brailleDots');
     brailleStepEl = sg.querySelector('#brailleStep');
     wormsRoundedEl = sg.querySelector('#wormsRounded');
@@ -1656,6 +1687,8 @@ const startCaretBlink = () => {
     br: firstChar(typeof boxBREl!== 'undefined' && boxBREl ? boxBREl.value : '+', '+'),
     top: (typeof boxTopEl!== 'undefined' && boxTopEl ? boxTopEl.value : '-') || '-',
     side: (typeof boxSideEl!== 'undefined' && boxSideEl ? boxSideEl.value : '|') || '|',
+    bottom: (boxBottomExtra || ((typeof boxTopEl!== 'undefined' && boxTopEl ? boxTopEl.value : '-') || '-')),
+    right: (boxRightExtra || ((typeof boxSideEl!== 'undefined' && boxSideEl ? boxSideEl.value : '|') || '|')),
   });
   const getLinePattern = () => ((typeof linePatEl!== 'undefined' && linePatEl ? linePatEl.value : '-') || '-');
   const getCircleParams = (evt) => ({
@@ -1920,12 +1953,12 @@ const startCaretBlink = () => {
     // top/bottom edges
     for (let x=minX+1, i=0; x<=maxX-1; x++, i++) {
       model.set(x, minY, patternAt(p.top, i, '-'));
-      model.set(x, maxY, patternAt(p.top, i, '-'));
+      model.set(x, maxY, patternAt(p.bottom || p.top, i, '-'));
     }
     // sides
     for (let y=minY+1, j=0; y<=maxY-1; y++, j++) {
       model.set(minX, y, patternAt(p.side, j, '|'));
-      model.set(maxX, y, patternAt(p.side, j, '|'));
+      model.set(maxX, y, patternAt(p.right || p.side, j, '|'));
     }
   };
 
@@ -2016,12 +2049,12 @@ const startCaretBlink = () => {
     // top/bottom edges
     for (let x=minX+1, i=0; x<=maxX-1; x++, i++) {
       drawPreviewGlyph(x, minY, patternAt(p.top, i, '-'));
-      drawPreviewGlyph(x, maxY, patternAt(p.top, i, '-'));
+      drawPreviewGlyph(x, maxY, patternAt(p.bottom || p.top, i, '-'));
     }
     // sides
     for (let y=minY+1, j=0; y<=maxY-1; y++, j++) {
       drawPreviewGlyph(minX, y, patternAt(p.side, j, '|'));
-      drawPreviewGlyph(maxX, y, patternAt(p.side, j, '|'));
+      drawPreviewGlyph(maxX, y, patternAt(p.right || p.side, j, '|'));
     }
   };
 
