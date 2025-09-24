@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ASCII/Unicode Grid Studio — Single-File (©2025 Ariel Williams CC-NC)</title>
+<title>ASCII/Unicode Grid Studio</title>
 <style>
   :root {
     --bg: #0b0d10;
@@ -55,6 +55,15 @@
     letter-spacing: 0.3px;
     margin-right: 8px;
     white-space: nowrap;
+  }
+  header .license {
+    margin-left: auto;
+    color: var(--muted);
+    white-space: nowrap;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   header .controls {
     display: flex;
@@ -233,9 +242,15 @@
 </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <div class="brand">ASCII/Unicode Grid Studio</div>
+<div class="app"> <header> <div class="brand">ASCII/Unicode Grid Studio</div>
+
+    <div class="license">
+      <span>Single-File Creative Commons License</span>
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" title="CC BY-NC 4.0">
+        <img alt="Creative Commons License" style="border-width:0;height:16px;" src="https://i.creativecommons.org/l/by-nc/4.0/80x15.png" />
+      </a>
+      <span>&copy;2025 Ariel Williams CC-NC</span>
+    </div>
     <div class="controls">
       <div class="field">
         <label>Preset</label>
