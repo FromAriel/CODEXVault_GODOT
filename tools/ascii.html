@@ -239,6 +239,50 @@
   }
   .tool-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid #2a3446; background: #0e1320; cursor:pointer; color: var(--ink); }
   .tool-btn.sel { outline: 2px solid var(--accent); }
+  .color-hud {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 200px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid #26354a;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: var(--shadow);
+    color: var(--ink);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 5;
+  }
+  .color-hud.disabled { opacity: 0.6; }
+  .color-mode-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .color-current { display: flex; align-items: center; gap: 8px; }
+
+  .color-sliders { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .color-slider-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #94a3b8; }
+
+  .color-slider-row label { width: 44px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .color-slider-row input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 4px; background: linear-gradient(to right, #000, #fff); outline: none; }
+
+  .color-slider-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #e6edf3; border: 2px solid #1f2530; cursor: pointer; box-shadow: 0 0 4px rgba(0,0,0,0.5); }
+
+  .color-slider-row input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #e6edf3; border: 2px solid #1f2530; cursor: pointer; box-shadow: 0 0 4px rgba(0,0,0,0.5); }
+  .color-swatch { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #2f3d55; background: #e6edf3; cursor: pointer; padding: 0; }
+  .color-current input[type="text"] { flex: 1; min-width: 0; background: #0d1423; border: 1px solid #28354c; border-radius: 6px; color: var(--ink); padding: 4px 6px; font-size: 12px; }
+  .color-current .picker-btn { border: 1px solid #30405c; background: #182238; color: var(--ink); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+  .recent-block { display: none; }
+  .color-hud.has-recent .recent-block { display: block; }
+  .recent-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+  .recent-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .recent-swatches button { width: 22px; height: 22px; border-radius: 6px; border: 1px solid #2f3d55; cursor: pointer; background: transparent; padding: 0; }
+  #hiddenColorPicker { position: absolute; left: -9999px; opacity: 0; width: 0; height: 0; pointer-events: none; }
+  .app.hide-palette { grid-template-columns: 1fr; }
+  .app.hide-palette .left { display: none; }
+
 </style>
 </head>
 <body>
@@ -302,6 +346,7 @@
       <button class="btn" id="exportTXT">Export TXT</button>
       <button class="btn" id="importTXT">Load TXT</button>
       <button class="btn" id="exportPNG">Export PNG</button>
+      <button class="btn" id="togglePaletteBtn">Hide Glyph Palette</button>
       <input id="fileJSON" type="file" accept=".json,application/json" />
       <input id="fileSettings" type="file" accept=".json,application/json" />
       <input id="fileTXT" type="file" accept=".txt,text/plain" />
@@ -365,6 +410,36 @@
     <div class="canvas-wrap" id="canvasWrap">
       <canvas id="gridCanvas" width="1120" height="800"></canvas>
       <div class="statusbar" id="status">80×50 • cell 14×16 • font 14px • zoom 100% • centered</div>
+      <div class="color-hud" id="colorHud">
+        <label class="color-mode-toggle">
+          <input type="checkbox" id="colorModeToggle" />
+          <span>Color mode</span>
+        </label>
+        <div class="color-current">
+          <button type="button" class="color-swatch" id="currentColorSwatch" title="Select draw color"></button>
+          <input type="text" id="currentColorInput" value="#E6EDF3" maxlength="7" />
+          <button type="button" class="picker-btn" id="colorPickerBtn">Pick</button>
+        </div>
+        <div class="color-sliders" id="colorSliders">
+          <div class="color-slider-row">
+            <label for="colorHue">Hue</label>
+            <input type="range" id="colorHue" min="0" max="360" value="0" />
+          </div>
+          <div class="color-slider-row">
+            <label for="colorSat">Sat</label>
+            <input type="range" id="colorSat" min="0" max="100" value="100" />
+          </div>
+          <div class="color-slider-row">
+            <label for="colorVal">Light</label>
+            <input type="range" id="colorVal" min="0" max="100" value="100" />
+          </div>
+        </div>
+        <div class="recent-block" id="recentColorsBlock">
+          <div class="recent-label">Recent</div>
+          <div class="recent-swatches" id="recentColors"></div>
+        </div>
+      </div>
+      <input type="color" id="hiddenColorPicker" value="#E6EDF3" />
     </div>
   </main>
 </div>
@@ -407,28 +482,95 @@
   // ---------- Model ----------
   class GridModel {
     constructor(w, h) {
-      this.w = w|0; this.h = h|0;
-      this.cells = new Array(this.w*this.h).fill(' ');
+      this.w = w|0;
+      this.h = h|0;
+      const size = this.w * this.h;
+      this.cells = new Array(size).fill(' ');
+      this.fg = new Array(size).fill(null);
+    }
+    ensureColorArray() {
+      if (!this.fg || this.fg.length !== this.cells.length) {
+        this.fg = new Array(this.cells.length).fill(null);
+      }
     }
     resize(newW, newH) {
       const nw = newW|0, nh = newH|0;
-      const next = new Array(nw*nh).fill(' ');
+      const nextCells = new Array(nw*nh).fill(' ');
+      const nextFg = new Array(nw*nh).fill(null);
       const minW = Math.min(this.w, nw);
       const minH = Math.min(this.h, nh);
       for (let y=0; y<minH; y++) {
         for (let x=0; x<minW; x++) {
-          next[y*nw + x] = this.get(x,y);
+          const prev = y*this.w + x;
+          const next = y*nw + x;
+          nextCells[next] = this.cells[prev];
+          nextFg[next] = this.fg[prev];
         }
       }
-      this.w = nw; this.h = nh; this.cells = next;
+      this.w = nw;
+      this.h = nh;
+      this.cells = nextCells;
+      this.fg = nextFg;
     }
     idx(x,y){ return y*this.w + x; }
     get(x,y){ return this.cells[this.idx(x,y)]; }
-    set(x,y,ch){ this.cells[this.idx(x,y)] = ch; }
-    fill(ch=' '){ this.cells.fill(ch); }
-    toRows(){ const rows=[]; for(let y=0;y<this.h;y++){ rows.push(this.cells.slice(y*this.w,(y+1)*this.w).join('')); } return rows; }
+    getColor(x,y){
+      if (!this.fg) return null;
+      const value = this.fg[this.idx(x,y)];
+      return value === undefined ? null : value;
+    }
+    set(x,y,ch,color=undefined){
+      const index = this.idx(x,y);
+      this.cells[index] = ch;
+      if (color !== undefined) {
+        this.ensureColorArray();
+        this.fg[index] = (color === null || ch === ' ') ? null : String(color);
+      } else if (ch === ' ') {
+        this.ensureColorArray();
+        this.fg[index] = null;
+      }
+    }
+    setColor(x,y,color){
+      this.ensureColorArray();
+      this.fg[this.idx(x,y)] = color === null ? null : String(color);
+    }
+    clearColor(x,y){
+      if (!this.fg) return;
+      this.fg[this.idx(x,y)] = null;
+    }
+    clearColors(){
+      this.ensureColorArray();
+      this.fg.fill(null);
+    }
+    fill(ch=' ', color=null){
+      this.cells.fill(ch);
+      this.ensureColorArray();
+      const fillColor = (ch === ' ' || color == null) ? null : String(color);
+      this.fg.fill(fillColor);
+    }
+    toRows(){
+      const rows = [];
+      for (let y=0; y<this.h; y++) {
+        rows.push(this.cells.slice(y*this.w,(y+1)*this.w).join(''));
+      }
+      return rows;
+    }
+    colorsToRows(){
+      this.ensureColorArray();
+      const rows = [];
+      for (let y=0; y<this.h; y++) {
+        rows.push(this.fg.slice(y*this.w,(y+1)*this.w));
+      }
+      return rows;
+    }
+    hasAnyColor(){
+      this.ensureColorArray();
+      return this.fg.some(v => v !== null && v !== undefined);
+    }
     fromRows(rows) {
       const h = Math.min(this.h, rows.length);
+      this.ensureColorArray();
+      this.fg.fill(null);
       for (let y=0; y<h; y++) {
         const row = rows[y] ?? '';
         for (let x=0; x<this.w; x++) {
@@ -436,8 +578,37 @@
         }
       }
     }
-    snapshot(){ return { w:this.w, h:this.h, cells:[...this.cells] }; }
-    restore(snap){ this.w = snap.w; this.h = snap.h; this.cells = [...snap.cells]; }
+    applyColorRows(colorRows){
+      if (!Array.isArray(colorRows)) return;
+      this.ensureColorArray();
+      const h = Math.min(this.h, colorRows.length);
+      for (let y=0; y<h; y++) {
+        const row = Array.isArray(colorRows[y]) ? colorRows[y] : null;
+        for (let x=0; x<this.w; x++) {
+          const value = row ? row[x] : null;
+          this.fg[this.idx(x,y)] = (value == null) ? null : String(value);
+        }
+      }
+    }
+    snapshot(){
+      this.ensureColorArray();
+      return {
+        w:this.w,
+        h:this.h,
+        cells:[...this.cells],
+        fg:[...this.fg]
+      };
+    }
+    restore(snap){
+      this.w = snap.w;
+      this.h = snap.h;
+      this.cells = [...snap.cells];
+      if (Array.isArray(snap.fg) && snap.fg.length === this.cells.length) {
+        this.fg = [...snap.fg];
+      } else {
+        this.fg = new Array(this.cells.length).fill(null);
+      }
+    }
   }
 
   // ---------- Renderer ----------
@@ -539,7 +710,8 @@
       const dx = -Math.round(width/2);
       const dy = Math.round(this.vAscent - this.vHeight/2);
       ctx.save();
-      ctx.fillStyle = colorOverride ?? this.fg;
+      const storedColor = colorOverride ?? this.model.getColor(x,y);
+      ctx.fillStyle = storedColor || this.fg;
       ctx.translate(cx, cy);
       ctx.scale(this.glyphScaleX, this.glyphScaleY);
       ctx.fillText(ch, dx, dy);
@@ -762,6 +934,542 @@
   const fileSettings = document.getElementById('fileSettings');
   const fileTXT = document.getElementById('fileTXT');
 
+
+const colorHud = document.getElementById('colorHud');
+
+
+
+const colorModeToggleEl = document.getElementById('colorModeToggle');
+
+
+
+const currentColorSwatchEl = document.getElementById('currentColorSwatch');
+
+
+
+const currentColorInputEl = document.getElementById('currentColorInput');
+
+
+
+const colorPickerBtnEl = document.getElementById('colorPickerBtn');
+
+
+
+const recentColorsWrapEl = document.getElementById('recentColors');
+
+
+
+const recentColorsBlockEl = document.getElementById('recentColorsBlock');
+
+
+
+const hiddenColorPickerEl = document.getElementById('hiddenColorPicker');
+
+
+
+const appRootEl = document.querySelector('.app');
+
+
+
+const togglePaletteBtn = document.getElementById('togglePaletteBtn');
+
+
+
+const colorHueEl = document.getElementById('colorHue');
+
+
+
+const colorSatEl = document.getElementById('colorSat');
+
+
+
+const colorValEl = document.getElementById('colorVal');
+
+
+
+const MAX_RECENT_COLORS = 8;
+
+
+
+const RECENT_COLORS_KEY = 'ascii_recent_colors';
+
+
+
+const PALETTE_COLLAPSE_KEY = 'ascii_palette_collapsed';
+
+
+
+let recentColors = [];
+
+
+
+let sliderHue = 0;
+
+
+
+let sliderSat = 0;
+
+
+
+let sliderValue = 1;
+
+
+
+let sliderSyncLocked = false;
+
+
+
+try {
+
+
+
+  const stored = localStorage.getItem(RECENT_COLORS_KEY);
+
+
+
+  if (stored) {
+
+
+
+    const parsed = JSON.parse(stored);
+
+
+
+    if (Array.isArray(parsed)) {
+
+
+
+      recentColors = parsed
+
+
+
+        .filter((c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c))
+
+
+
+        .map((c) => c.toUpperCase());
+
+
+
+    }
+
+
+
+  }
+
+
+
+} catch {}
+
+
+
+const normalizeColor = (value) => {
+
+
+
+  if (typeof value !== 'string') return null;
+
+
+
+  const trimmed = value.trim();
+
+
+
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toUpperCase();
+
+
+
+  return null;
+
+
+
+};
+
+
+
+const persistRecentColors = () => {
+
+
+
+  try { localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(recentColors)); } catch {}
+
+
+
+};
+
+
+
+const renderRecentColors = () => {
+
+
+
+  if (!recentColorsWrapEl) return;
+
+
+
+  recentColorsWrapEl.innerHTML = '';
+
+
+
+  recentColors.forEach((color) => {
+
+
+
+    const btn = document.createElement('button');
+
+
+
+    btn.type = 'button';
+
+
+
+    btn.style.background = color;
+
+
+
+    btn.title = color;
+
+
+
+    btn.addEventListener('click', () => {
+
+
+
+      setSelectedColor(color);
+
+
+
+      setColorMode(true);
+
+
+
+    });
+
+
+
+    recentColorsWrapEl.appendChild(btn);
+
+
+
+  });
+
+
+
+  if (colorHud) colorHud.classList.toggle('has-recent', recentColors.length > 0);
+
+
+
+};
+
+
+
+const pushRecentColor = (color) => {
+
+
+
+  const normalized = normalizeColor(color);
+
+
+
+  if (!normalized) return;
+
+
+
+  recentColors = [normalized, ...recentColors.filter((c) => c !== normalized)].slice(0, MAX_RECENT_COLORS);
+
+
+
+  persistRecentColors();
+
+
+
+  renderRecentColors();
+
+
+
+};
+
+
+
+const hsvToRgb = (h, s, v) => {
+
+  const i = Math.floor(h * 6);
+
+  const f = h * 6 - i;
+
+  const p = v * (1 - s);
+
+  const q = v * (1 - f * s);
+
+  const t = v * (1 - (1 - f) * s);
+
+  let r, g, b;
+
+  switch (i % 6) {
+
+    case 0: r = v; g = t; b = p; break;
+
+    case 1: r = q; g = v; b = p; break;
+
+    case 2: r = p; g = v; b = t; break;
+
+    case 3: r = p; g = q; b = v; break;
+
+    case 4: r = t; g = p; b = v; break;
+
+    default: r = v; g = p; b = q; break;
+
+  }
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+
+};
+
+
+
+const rgbToHex = (r, g, b) => {
+
+  const toHex = (n) => n.toString(16).padStart(2, '0');
+
+  return ('#' + toHex(r) + toHex(g) + toHex(b)).toUpperCase();
+
+};
+
+
+
+const hexToHsv = (hex) => {
+
+  if (typeof hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+
+  const r = parseInt(hex.slice(1,3), 16) / 255;
+
+  const g = parseInt(hex.slice(3,5), 16) / 255;
+
+  const b = parseInt(hex.slice(5,7), 16) / 255;
+
+  const max = Math.max(r,g,b);
+
+  const min = Math.min(r,g,b);
+
+  const delta = max - min;
+
+  let h = 0;
+
+  if (delta !== 0) {
+
+    if (max === r) { h = ((g - b) / delta + (g < b ? 6 : 0)) / 6; }
+
+    else if (max === g) { h = ((b - r) / delta + 2) / 6; }
+
+    else { h = ((r - g) / delta + 4) / 6; }
+
+  }
+
+  const s = max === 0 ? 0 : delta / max;
+
+  const v = max;
+
+  return { h, s, v };
+
+};
+
+
+
+const updateSliderBackgrounds = () => {
+
+  if (!colorHueEl || !colorSatEl || !colorValEl) return;
+
+  colorHueEl.style.background = 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
+
+  const satRgb = hsvToRgb(sliderHue, 1, sliderValue);
+  const satHex = rgbToHex(satRgb[0], satRgb[1], satRgb[2]);
+
+  const satNeutralRgb = hsvToRgb(sliderHue, 0, sliderValue);
+  const satNeutral = rgbToHex(satNeutralRgb[0], satNeutralRgb[1], satNeutralRgb[2]);
+
+  colorSatEl.style.background = `linear-gradient(to right, ${satNeutral} 0%, ${satHex} 100%)`;
+
+  const valRgb = hsvToRgb(sliderHue, sliderSat, 1);
+  const valColor = rgbToHex(valRgb[0], valRgb[1], valRgb[2]);
+
+  colorValEl.style.background = `linear-gradient(to right, #000000 0%, ${valColor} 100%)`;
+
+};
+
+
+
+const syncSlidersFromColor = (hex) => {
+
+  if (!colorHueEl || !colorSatEl || !colorValEl) return;
+
+  const hsv = hexToHsv(hex);
+
+  if (!hsv) return;
+
+  sliderHue = hsv.h;
+
+  sliderSat = hsv.s;
+
+  sliderValue = hsv.v;
+
+  sliderSyncLocked = true;
+
+  colorHueEl.value = Math.round(sliderHue * 360);
+
+  colorSatEl.value = Math.round(sliderSat * 100);
+
+  colorValEl.value = Math.round(sliderValue * 100);
+
+  sliderSyncLocked = false;
+
+  updateSliderBackgrounds();
+
+};
+
+
+
+const handleSliderInput = () => {
+  if (!colorHueEl || !colorSatEl || !colorValEl || sliderSyncLocked) return;
+  sliderHue = Number(colorHueEl.value) / 360;
+  sliderSat = Number(colorSatEl.value) / 100;
+  sliderValue = Number(colorValEl.value) / 100;
+  updateSliderBackgrounds();
+  const rgb = hsvToRgb(sliderHue, sliderSat, sliderValue);
+  const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
+  setSelectedColor(hex, { fromSlider: true, pushRecent: false });
+  setColorMode(true);
+};
+
+
+
+const setSelectedColor = (color, opts = {}) => {
+
+  const normalized = normalizeColor(color);
+
+  const finalColor = normalized || DEFAULT_COLOR;
+
+  selectedColor = finalColor;
+
+  if (currentColorInputEl) currentColorInputEl.value = finalColor;
+
+  if (currentColorSwatchEl) currentColorSwatchEl.style.background = finalColor;
+
+  if (hiddenColorPickerEl) hiddenColorPickerEl.value = finalColor;
+
+  if (!opts.fromSlider && !sliderSyncLocked) syncSlidersFromColor(finalColor);
+
+  if (opts.pushRecent !== false && normalized) pushRecentColor(finalColor);
+
+  if (opts.updateStatus !== false && typeof updateStatus === 'function') updateStatus();
+
+  return !!normalized;
+
+};
+
+
+
+const resolveDrawColor = (colorOverride=undefined) => {
+
+  if (colorOverride !== undefined) return colorOverride;
+
+  return colorModeEnabled ? selectedColor : null;
+
+};
+
+
+
+const setColorMode = (next) => {
+
+  const enabled = !!next;
+
+  colorModeEnabled = enabled;
+
+  if (colorModeToggleEl) colorModeToggleEl.checked = enabled;
+
+  if (colorHud) colorHud.classList.toggle('disabled', !enabled);
+
+  if (typeof updateStatus === 'function') updateStatus();
+
+};  const applyPaletteCollapsed = (collapsed) => {
+
+    if (!appRootEl || !togglePaletteBtn) return;
+
+    appRootEl.classList.toggle('hide-palette', collapsed);
+
+    togglePaletteBtn.textContent = collapsed ? 'Show Glyph Palette' : 'Hide Glyph Palette';
+
+  };
+
+
+
+  const initPaletteToggle = () => {
+
+    if (!appRootEl || !togglePaletteBtn) return;
+
+    let initial = false;
+
+    try { initial = localStorage.getItem(PALETTE_COLLAPSE_KEY) === '1'; } catch {}
+
+    applyPaletteCollapsed(initial);
+
+    togglePaletteBtn.addEventListener('click', () => {
+
+      const next = !appRootEl.classList.contains('hide-palette');
+
+      applyPaletteCollapsed(next);
+
+      try { localStorage.setItem(PALETTE_COLLAPSE_KEY, next ? '1' : '0'); } catch {}
+
+    });
+
+  };
+
+
+
+  const initColorHud = () => {
+    renderRecentColors();
+    syncSlidersFromColor(selectedColor);
+    updateSliderBackgrounds();
+    setSelectedColor(selectedColor, { pushRecent: false, updateStatus: false });
+    setColorMode(colorModeEnabled);
+    if (colorModeToggleEl) {
+      colorModeToggleEl.addEventListener('change', (e) => setColorMode(e.target.checked));
+    }
+    if (currentColorInputEl) {
+      currentColorInputEl.addEventListener('blur', () => {
+        if (!setSelectedColor(currentColorInputEl.value)) {
+          currentColorInputEl.value = selectedColor;
+        } else {
+          setColorMode(true);
+        }
+      });
+      currentColorInputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          currentColorInputEl.blur();
+        }
+      });
+    }
+    const openPicker = () => { if (hiddenColorPickerEl) hiddenColorPickerEl.click(); };
+    if (currentColorSwatchEl) currentColorSwatchEl.addEventListener('click', openPicker);
+    if (colorPickerBtnEl) colorPickerBtnEl.addEventListener('click', openPicker);
+    if (hiddenColorPickerEl) {
+      hiddenColorPickerEl.addEventListener('input', () => {
+        setSelectedColor(hiddenColorPickerEl.value);
+        setColorMode(true);
+      });
+    }
+    if (colorHueEl && colorSatEl && colorValEl) {
+      [colorHueEl, colorSatEl, colorValEl].forEach((el) => {
+        el.addEventListener('input', handleSliderInput);
+        el.addEventListener('change', () => pushRecentColor(selectedColor));
+      });
+    }
+  };
+
+
+
+
   const selectedGlyphBox = document.getElementById('selectedGlyph');
   const customGlyphInput = document.getElementById('customGlyph');
   const useCustomGlyphBtn = document.getElementById('useCustomGlyph');
@@ -772,6 +1480,10 @@
   const toolGroup = document.getElementById('toolGroup');
   let currentTool = 'pencil'; // 'pencil' | 'eraser' | 'eyedrop' | 'type'
   let selectedGlyph = '█';
+const DEFAULT_COLOR = "#E6EDF3";
+let selectedColor = DEFAULT_COLOR;
+let colorModeEnabled = false;
+
 
 let model = new GridModel(80,50);
 let renderer = new GridRenderer(canvas, model);
@@ -792,6 +1504,8 @@ const history = new History(200);
   // Initialize history with starting state
   const pushSnapshot = () => history.push(model.snapshot());
   pushSnapshot();
+  initColorHud();
+  initPaletteToggle();
 
   // ----- Palette UI -----
   const makeGlyphButton = (ch) => {
@@ -1368,10 +2082,14 @@ const startCaretBlink = () => {
   caretTimer = setInterval(() => { caretVisible = !caretVisible; drawCaretOverlay(); }, 500);
 };
 
-  const paintAt = (x,y,ch) => {
-    const before = model.get(x,y);
-    if (before === ch) return false;
-    model.set(x,y,ch);
+  const colorsEqual = (a, b) => (a === b) || (a == null && b == null);
+
+  const paintAt = (x,y,ch,colorOverride=undefined) => {
+    const beforeChar = model.get(x,y);
+    const beforeColor = model.getColor(x,y);
+    const applyColor = resolveDrawColor(colorOverride);
+    if (beforeChar === ch && colorsEqual(beforeColor, applyColor)) return false;
+    model.set(x,y,ch, applyColor);
     renderer.drawCell(x,y);
     return true;
   };
@@ -2509,7 +3227,6 @@ const startCaretBlink = () => {
 </script>
 </body>
 </html>
-
 
 
 
