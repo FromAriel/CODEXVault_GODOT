@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BulletML Viewer — Single‑File (Auto‑Trigger + $rand)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #131923;
+    --accent: #6ae3ff;
+    --text: #e9eef5;
+    --muted: #9bb0c2;
+    --danger: #ff6a6a;
+  }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+  #app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100%;
+  }
+  #toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+    padding: .75rem 1rem; background: var(--panel); border-bottom: 1px solid #1e2733;
+  }
+  #toolbar .group { display:flex; align-items:center; gap:.5rem; }
+  #toolbar label { font-size: .85rem; color: var(--muted); }
+  #toolbar input[type="range"] { width: 120px; }
+  #toolbar input[type="number"] { width: 90px; background:#0e141c; border:1px solid #233045; color:var(--text); padding:.25rem .5rem; border-radius:6px; }
+  #toolbar button, .file-btn {
+    padding: .45rem .75rem; border-radius: 8px; background: #1a2330; color: var(--text);
+    border: 1px solid #273245; cursor: pointer; font-weight: 600; letter-spacing:.2px;
+  }
+  #toolbar button:hover, .file-btn:hover { background: #1d2938; }
+  #toolbar button.active { outline:2px solid var(--accent); }
+  #toolbar .danger { border-color:#5b2020; background:#251215; color:#ffdcdc; }
+  #toolbar .danger:hover { background:#2b1517; }
+  #canvasWrap { position: relative; }
+  #c { width: 100%; height: 100%; display:block; background: radial-gradient(1200px 900px at center, #101826, #0b0f14 65%); }
+  #stats {
+    position: absolute; top: .75rem; left: .75rem; min-width: 230px;
+    background: rgba(10,14,20,.72); backdrop-filter: blur(4px);
+    padding: .5rem .75rem; border-radius: 8px; border:1px solid #1c2432; font-size:.85rem; line-height:1.35;
+  }
+  #log {
+    position: absolute; bottom: .75rem; left:.75rem; right:.75rem; max-height: 28%;
+    overflow: auto; background: rgba(10,14,20,.6); border:1px solid #1c2432;
+    padding: .5rem .75rem; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.8rem;
+  }
+  #dropHint {
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    color:#b0e7f5; background:rgba(106,227,255,.08); border:2px dashed rgba(106,227,255,.45);
+    font-weight:700; letter-spacing:.3px; border-radius:14px; pointer-events:none;
+  }
+  .kbd { padding:.05rem .35rem; border:1px solid #334356; border-radius:5px; background:#0e1620; color:#b8c7d8; font-size:.8em; }
+  a.link { color: var(--accent); text-decoration: none; border-bottom:1px dashed rgba(106,227,255,.4); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div class="group">
+      <input id="file" type="file" accept=".xml,.bulletml" style="display:none" />
+      <label for="file" class="file-btn">Load BulletML</label>
+      <button id="demoBtn" title="Load built-in demo pattern">Demo</button>
+      <button id="playBtn" title="Play/Pause (Space)">Play</button>
+      <button id="triggerBtn" title="Trigger root action now (T)">Trigger</button>
+      <button id="resetBtn" title="Reset to tick 0 (R)">Reset</button>
+      <button id="clearBtn" class="danger" title="Clear bullets (C)">Clear</button>
+    </div>
+    <div class="group">
+      <label>Speed</label><input id="speed" type="range" min="0.1" max="4" step="0.1" value="1" />
+      <label>Scale</label><input id="scale" type="range" min="0.5" max="2.0" step="0.1" value="1" />
+      <label>Bullet Size</label><input id="bsize" type="range" min="1" max="5" step="0.5" value="2" />
+    </div>
+    <div class="group">
+      <label>Seed</label><input id="seed" type="number" value="1337" />
+      <label>Rank</label><input id="rank" type="range" min="0" max="1" step="0.01" value="0.5" />
+      <label>Target</label>
+      <button id="aimCursorBtn" class="active">Cursor</button>
+      <button id="aimCenterBtn">Center</button>
+    </div>
+    <div class="group">
+      <label><input id="autoLoop" type="checkbox" checked /> Auto Loop</label>
+      <label>Loop Delay</label><input id="loopDelay" type="number" value="0" min="0" step="1" />
+    </div>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="c"></canvas>
+    <div id="dropHint">Drop your <span class="kbd" style="margin:0 .35rem">.xml</span> / <span class="kbd">.bulletml</span> file here</div>
+    <div id="stats"></div>
+    <div id="log" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------
+  // Small utilities
+  // ------------------------------
+  const TAU = Math.PI * 2;
+  const DEG2RAD = Math.PI/180, RAD2DEG = 180/Math.PI;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const lerp = (a,b,t) => a + (b-a)*t;
+  const shortestAngleDiff = (a, b) => {
+    let d = (b - a + Math.PI) % TAU - Math.PI;
+    return d < -Math.PI ? d + TAU : d;
+  };
+  const now = () => performance.now();
+
+  // Seeded PRNG (Mulberry32)
+  function makePRNG(seed) {
+    let s = (seed >>> 0) || 1;
+    return function() {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+  }
+
+  // ------------------------------
+  // Expression evaluator (+ $rand)
+  // ------------------------------
+  class Expr {
+    constructor(getRand) { this.getRand = getRand || (() => Math.random()); }
+    tokenize(str) {
+      const s = String(str).trim(); const out = [];
+      let i = 0, lastType = 'start';
+      while (i < s.length) {
+        const ch = s[i];
+        if (/\s/.test(ch)) { i++; continue; }
+        if (ch === '$') { // variables like $1, $rand
+          i++; let name = '';
+          while (i < s.length && /[A-Za-z0-9_]/.test(s[i])) name += s[i++];
+          out.push({type:'var', value:name}); lastType = 'var'; continue;
+        }
+        if (ch === '.' || /[0-9]/.test(ch)) {
+          let num = ch; i++;
+          while (i < s.length && /[0-9.]/.test(s[i])) num += s[i++];
+          out.push({type:'num', value:parseFloat(num)}); lastType = 'num'; continue;
+        }
+        if (/[A-Za-z_]/.test(ch)) {
+          let id = ch; i++;
+          while (i < s.length && /[A-Za-z0-9_]/.test(s[i])) id += s[i++];
+          out.push({type:'id', value:id}); lastType = 'id'; continue;
+        }
+        if ('+-*/^(),'.includes(ch)) {
+          if (ch === '-' && (lastType === 'start' || lastType === 'op' || lastType === '(' || lastType === ',')) {
+            out.push({type:'op', value:'u-'}); // unary minus
+          } else {
+            out.push({type: ch === ',' ? ',' : 'op', value: ch});
+          }
+          lastType = ch === ',' ? ',' : 'op'; i++; continue;
+        }
+        i++; // skip unknown char
+      }
+      return out;
+    }
+    toRPN(tokens) {
+      const out = [], ops = [];
+      const prec = { '^':4, '*':3, '/':3, '+':2, '-':2, 'u-':5 };
+      const rightAssoc = { '^':true, 'u-':true };
+      for (let i=0;i<tokens.length;i++) {
+        const t = tokens[i];
+        if (t.type === 'num' || t.type === 'var') out.push(t);
+        else if (t.type === 'id') {
+          const next = tokens[i+1];
+          if (next && next.type === 'op' && next.value === '(') ops.push({type:'func', value:t.value});
+          else out.push(t);
+        }
+        else if (t.type === 'op' && t.value === '(') ops.push({type:'op', value:'('});
+        else if (t.type === 'op' && t.value === ')') {
+          while (ops.length && ops[ops.length-1].value !== '(') out.push(ops.pop());
+          if (!ops.length) throw new Error("Mismatched parentheses");
+          ops.pop();
+          if (ops.length && ops[ops.length-1].type === 'func') out.push(ops.pop());
+        }
+        else if (t.type === ',') {
+          while (ops.length && ops[ops.length-1].value !== '(') out.push(ops.pop());
+          if (!ops.length) throw new Error("Misplaced comma");
+        }
+        else if (t.type === 'op') {
+          while (ops.length) {
+            const top = ops[ops.length-1];
+            if (top.type !== 'op' || top.value === '(') break;
+            const p1 = prec[t.value] || 0, p2 = prec[top.value] || 0;
+            if ((rightAssoc[t.value] && p1 < p2) || (!rightAssoc[t.value] && p1 <= p2)) out.push(ops.pop()); else break;
+          }
+          ops.push(t);
+        }
+      }
+      while (ops.length) {
+        const x = ops.pop();
+        if (x.value === '(') throw new Error("Mismatched parentheses");
+        out.push(x);
+      }
+      return out;
+    }
+    evalRPN(rpn, ctx) {
+      const st = [], num = v => (typeof v === 'number' ? v : 0);
+      for (const t of rpn) {
+        if (t.type === 'num') st.push(t.value);
+        else if (t.type === 'var') {
+          if (/^\d+$/.test(t.value)) {
+            const idx = parseInt(t.value,10)-1;
+            st.push(num((ctx.params && ctx.params[idx] != null) ? ctx.params[idx] : 0));
+          } else {
+            const v = t.value.toLowerCase();
+            if (v === 'rank') st.push(num(ctx.rank ?? 0));
+            else if (v === 't') st.push(num(ctx.t ?? 0));
+            else if (v === 'rand' || v === 'random') st.push(this.getRand());  // NEW: $rand support
+            else st.push(0);
+          }
+        } else if (t.type === 'id') {
+          const k = t.value.toLowerCase();
+          if (k === 'pi') st.push(Math.PI); else st.push(0);
+        } else if (t.type === 'func') {
+          const f = t.value.toLowerCase(), pop = () => num(st.pop());
+          if (f === 'sin') st.push(Math.sin(pop() * DEG2RAD));
+          else if (f === 'cos') st.push(Math.cos(pop() * DEG2RAD));
+          else if (f === 'tan') st.push(Math.tan(pop() * DEG2RAD));
+          else if (f === 'abs') st.push(Math.abs(pop()));
+          else if (f === 'sqrt') st.push(Math.sqrt(pop()));
+          else if (f === 'min') { const b=pop(), a=pop(); st.push(Math.min(a,b)); }
+          else if (f === 'max') { const b=pop(), a=pop(); st.push(Math.max(a,b)); }
+          else if (f === 'rand' || f === 'random') { const b=pop(), a=pop(); st.push(a + (b - a) * this.getRand()); }
+          else st.push(0);
+        } else if (t.type === 'op') {
+          const op = t.value, b = num(st.pop()), a = num(st.pop());
+          if (op === 'u-') { st.push(-b); continue; }
+          if (op === '+') st.push(a+b);
+          else if (op === '-') st.push(a-b);
+          else if (op === '*') st.push(a*b);
+          else if (op === '/') st.push(a/b);
+          else if (op === '^') st.push(Math.pow(a,b));
+        }
+      }
+      return num(st.pop() || 0);
+    }
+    eval(str, ctx) { return this.evalRPN(this.toRPN(this.tokenize(str)), ctx || {}); }
+  }
+
+  // ------------------------------
+  // BulletML parsing → Internal IR
+  // ------------------------------
+  function childEls(el) { return Array.from(el.children || []); }
+  function nameOf(el) { return (el.localName || el.tagName || '').toLowerCase(); }
+  function firstChild(el, name) { return childEls(el).find(c => nameOf(c) === name); }
+  function children(el, name) { return childEls(el).filter(c => nameOf(c) === name); }
+  function text(el) { return (el.textContent || '').trim(); }
+  function getType(el, def) { return (el.getAttribute && el.getAttribute('type')) || def || 'absolute'; }
+  function getLabel(el) { return el.getAttribute && (el.getAttribute('label') || el.getAttribute('id') || null); }
+
+  const DIR = (expr, type) => ({ expr:String(expr), kind:(type||'absolute') });
+  const SPD = (expr, type) => ({ expr:String(expr), kind:(type||'absolute') });
+
+  function parseBulletML(xmlString, logFn) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlString, "application/xml");
+    const parseErr = doc.querySelector("parsererror");
+    if (parseErr) throw new Error(parseErr.textContent || "XML parse error");
+
+    const root = doc.documentElement;
+    const aMap = new Map(), bMap = new Map(), fMap = new Map();
+
+    function parseDirection(el) { return el ? DIR(text(el) || '0', getType(el, 'absolute')) : null; }
+    function parseSpeed(el) { return el ? SPD(text(el) || '1', getType(el, 'absolute')) : null; }
+
+    function parseAction(el) {
+      const cmds = [];
+      for (const ch of childEls(el)) {
+        const n = nameOf(ch);
+        if (n === 'wait') cmds.push({ op:'WAIT', expr:text(ch) || '0' });
+        else if (n === 'fire') cmds.push({ op:'FIRE', fire: parseFire(ch) });
+        else if (n === 'fireref') cmds.push({ op:'FIRE_REF', label: getLabel(ch), params: children(ch, 'param').map(p => text(p) || '0') });
+        else if (n === 'actionref') cmds.push({ op:'ACTION_REF', label: getLabel(ch), params: children(ch,'param').map(p => text(p) || '0') });
+        else if (n === 'repeat') {
+          const timesEl = firstChild(ch, 'times');
+          const bodyAct = firstChild(ch, 'action');
+          const bodyActRef = firstChild(ch, 'actionref');
+          if (!timesEl) { cmds.push({op:'NOP'}); continue; }
+          if (bodyAct) cmds.push({ op:'REPEAT', times:text(timesEl)||'0', body: parseAction(bodyAct) });
+          else if (bodyActRef) cmds.push({ op:'REPEAT_REF', times:text(timesEl)||'0', label:getLabel(bodyActRef), params:children(bodyActRef,'param').map(p=>text(p)||'0') });
+        } else if (n === 'changedirection') {
+          const d = firstChild(ch, 'direction'); const term = firstChild(ch, 'term');
+          if (d && term) cmds.push({ op:'CHG_DIR', dir:parseDirection(d), term:text(term)||'0' });
+        } else if (n === 'changespeed') {
+          const s = firstChild(ch, 'speed'); const term = firstChild(ch, 'term');
+          if (s && term) cmds.push({ op:'CHG_SPD', spd:parseSpeed(s), term:text(term)||'0' });
+        } else if (n === 'accel') {
+          const h = firstChild(ch, 'horizontal'); const v = firstChild(ch, 'vertical'); const term = firstChild(ch, 'term');
+          cmds.push({ op:'ACCEL', h: h ? text(h) : null, v: v ? text(v) : null, term: term ? text(term) : '0' });
+        } else if (n === 'vanish') {
+          cmds.push({ op:'VANISH' });
+        }
+      }
+      return cmds;
+    }
+    function parseBullet(el) {
+      const dir = parseDirection(firstChild(el, 'direction'));
+      const spd = parseSpeed(firstChild(el, 'speed'));
+      const actionEl = firstChild(el, 'action');
+      const actionRefEl = firstChild(el, 'actionref');
+      let actions = null, aRef = null;
+      if (actionEl) actions = parseAction(actionEl);
+      if (actionRefEl) aRef = { label:getLabel(actionRefEl), params: children(actionRefEl,'param').map(p => text(p)||'0') };
+      return { type:'inline', dir, spd, actions, aRef };
+    }
+    function parseFire(el) {
+      const dir = parseDirection(firstChild(el, 'direction'));
+      const spd = parseSpeed(firstChild(el, 'speed'));
+      const b = firstChild(el, 'bullet');
+      const bRef = firstChild(el, 'bulletref');
+      let bullet = null, bulletRef = null;
+      if (b) bullet = parseBullet(b);
+      if (bRef) bulletRef = { label:getLabel(bRef), params: children(bRef,'param').map(p => text(p)||'0') };
+      return { dir, spd, bullet, bulletRef };
+    }
+
+    for (const el of childEls(root)) {
+      const n = nameOf(el), label = getLabel(el);
+      if (n === 'action' && label) aMap.set(label, parseAction(el));
+      else if (n === 'bullet' && label) bMap.set(label, parseBullet(el));
+      else if (n === 'fire' && label) fMap.set(label, parseFire(el));
+    }
+
+    // Root selection
+    let rootKind = 'action', rootLabel = null;
+    if (aMap.has('top')) { rootKind = 'action'; rootLabel = 'top'; }
+    else if (bMap.has('top')) { rootKind = 'bullet'; rootLabel = 'top'; }
+    else if (aMap.size) { rootKind = 'action'; rootLabel = aMap.keys().next().value; }
+    else if (bMap.size) { rootKind = 'bullet'; rootLabel = bMap.keys().next().value; }
+    if (!rootLabel) throw new Error("Could not determine a starting action/bullet (no labels). Add action label=\"top\".");
+
+    logFn && logFn(`Parsed: actions=${aMap.size}, bullets=${bMap.size}, fires=${fMap.size}. Root ${rootKind}="${rootLabel}".`);
+    return { actions:aMap, bullets:bMap, fires:fMap, root:{ kind:rootKind, label:rootLabel }, xml:doc };
+  }
+
+  // ------------------------------
+  // Runtime & Renderer
+  // ------------------------------
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('canvasWrap');
+  const dropHint = document.getElementById('dropHint');
+  const statsEl = document.getElementById('stats');
+  const logEl = document.getElementById('log');
+
+  const ui = {
+    file: document.getElementById('file'),
+    demoBtn: document.getElementById('demoBtn'),
+    playBtn: document.getElementById('playBtn'),
+    triggerBtn: document.getElementById('triggerBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    speed: document.getElementById('speed'),
+    scale: document.getElementById('scale'),
+    bsize: document.getElementById('bsize'),
+    seed: document.getElementById('seed'),
+    rank: document.getElementById('rank'),
+    aimCursorBtn: document.getElementById('aimCursorBtn'),
+    aimCenterBtn: document.getElementById('aimCenterBtn'),
+    autoLoop: document.getElementById('autoLoop'),
+    loopDelay: document.getElementById('loopDelay'),
+  };
+
+  function resize() {
+    canvas.width = wrap.clientWidth;
+    canvas.height = wrap.clientHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function log(msg, kind='info') {
+    const time = new Date().toLocaleTimeString();
+    const color = kind === 'error' ? 'var(--danger)' : (kind==='warn' ? '#ffd166' : 'var(--accent)');
+    const line = document.createElement('div');
+    line.innerHTML = `<span style="color:${color}">[${time}]</span> ${msg}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // Engine State
+  let def = null;
+  let bullets = [];
+  let emitter = null;
+  let running = false;
+  let timeScale = 1.0;
+  let viewScale = 1.0;
+  let bulletSize = 2.0;
+  let logicHz = 60;
+  let accumulator = 0;
+  let lastTime = now();
+  let tick = 0;
+  let rng = makePRNG(1337);
+  let exprEval = new Expr(() => rng());
+  let aimMode = 'cursor';
+  let cursor = { x: canvas.width/2, y: canvas.height/2 };
+  let seqGlobal = 0;
+
+  // NEW: auto-loop & manual trigger
+  let autoLoopEnabled = true;
+  let loopDelayTicks = 0;
+  let loopCountdown = 0;
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    cursor.x = e.clientX - rect.left;
+    cursor.y = e.clientY - rect.top;
+  });
+
+  ;['dragenter','dragover'].forEach(ev => {
+    canvas.addEventListener(ev, (e) => { e.preventDefault(); dropHint.style.display = 'flex'; });
+  });
+  ;['dragleave','drop'].forEach(ev => {
+    canvas.addEventListener(ev, (e) => { e.preventDefault(); dropHint.style.display = 'none'; });
+  });
+  canvas.addEventListener('drop', async (e) => {
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) { const text = await file.text(); loadDefinition(text); }
+  });
+
+  // ------------------------------
+  // Bullet & Interpreter
+  // ------------------------------
+  function makeBullet(x, y) {
+    return {
+      x, y, dir: 0, spd: 0, vx: 0, vy: 0,
+      alive: true, age: 0,
+      seqDir: 0, seqSpd: 0,
+      wait: 0,
+      stack: [],
+      chgDir: null, chgSpd: null,
+      accel: null,
+      color: 0,
+    };
+  }
+  function setKinematics(b, dirDeg, spd) {
+    b.dir = dirDeg * DEG2RAD; b.spd = spd;
+    b.vx = Math.cos(b.dir) * b.spd; b.vy = Math.sin(b.dir) * b.spd;
+  }
+  function aimAngleFrom(b, target) { return Math.atan2((target.y - b.y), (target.x - b.x)); }
+  function activeTarget() { return (aimMode === 'cursor') ? cursor : { x: canvas.width/2, y: canvas.height/2 }; }
+
+  function pushActionFrame(b, label, params) {
+    const cmds = def.actions.get(label);
+    if (!cmds) { log(`Unknown action label "${label}"`, 'warn'); return; }
+    b.stack.push({ type:'action', cmds, ip:0, params: (params||[]).slice() });
+  }
+
+  function triggerRoot() {
+    if (!def) return;
+    // Do not clear bullets; just schedule another run of the root
+    if (def.root.kind === 'action') {
+      pushActionFrame(emitter, def.root.label, []);
+    } else {
+      const bd = def.bullets.get(def.root.label);
+      if (bd && bd.actions) emitter.stack.push({type:'action', cmds:bd.actions, ip:0, params:[]});
+      else if (bd && bd.aRef) pushActionFrame(emitter, bd.aRef.label, bd.aRef.params || []);
+    }
+    log('Root action triggered.');
+  }
+
+  function fireOne(fromBullet, fireSpec, paramsCtx) {
+    let dirDeg = 0, spd = 1;
+    const ctx = (extra={}) => ({ params: (paramsCtx && paramsCtx.slice()) || [], rank: getRank(), t: fromBullet.age, ...extra });
+
+    if (fireSpec.dir) {
+      const v = exprEval.eval(fireSpec.dir.expr, ctx());
+      const kind = fireSpec.dir.kind;
+      if (kind === 'aim') dirDeg = aimAngleFrom(fromBullet, activeTarget()) * RAD2DEG + v;
+      else if (kind === 'absolute') dirDeg = v;
+      else if (kind === 'relative') dirDeg = fromBullet.dir * RAD2DEG + v;
+      else if (kind === 'sequence') { seqGlobal = (seqGlobal || 0) + v; dirDeg = seqGlobal; }
+      else dirDeg = v;
+    } else {
+      dirDeg = aimAngleFrom(fromBullet, activeTarget()) * RAD2DEG;
+    }
+
+    if (fireSpec.spd) {
+      const v = exprEval.eval(fireSpec.spd.expr, ctx());
+      const kind = fireSpec.spd.kind;
+      if (kind === 'absolute') spd = v;
+      else if (kind === 'relative') spd = fromBullet.spd + v;
+      else if (kind === 'sequence') { fromBullet.seqSpd += v; spd = fromBullet.seqSpd; }
+      else spd = v;
+    } else spd = 1;
+
+    const b = makeBullet(fromBullet.x, fromBullet.y);
+    setKinematics(b, dirDeg, spd);
+    b.color = (fromBullet.color + 1) & 7;
+    bullets.push(b);
+
+    if (fireSpec.bullet) {
+      if (fireSpec.bullet.dir) {
+        const v = exprEval.eval(fireSpec.bullet.dir.expr, ctx());
+        const kind = fireSpec.bullet.dir.kind;
+        if (kind === 'aim') setKinematics(b, aimAngleFrom(b, activeTarget())*RAD2DEG + v, b.spd);
+        else if (kind === 'absolute') setKinematics(b, v, b.spd);
+        else if (kind === 'relative') setKinematics(b, b.dir*RAD2DEG + v, b.spd);
+        else if (kind === 'sequence') { b.seqDir += v; setKinematics(b, b.seqDir, b.spd); }
+      }
+      if (fireSpec.bullet.spd) {
+        const v = exprEval.eval(fireSpec.bullet.spd.expr, ctx());
+        const kind = fireSpec.bullet.spd.kind;
+        if (kind === 'absolute') setKinematics(b, b.dir*RAD2DEG, v);
+        else if (kind === 'relative') setKinematics(b, b.dir*RAD2DEG, b.spd + v);
+        else if (kind === 'sequence') { b.seqSpd += v; setKinematics(b, b.dir*RAD2DEG, b.seqSpd); }
+      }
+      if (fireSpec.bullet.actions) {
+        b.stack.push({ type:'action', cmds:fireSpec.bullet.actions, ip:0, params: [] });
+      } else if (fireSpec.bullet.aRef) {
+        pushActionFrame(b, fireSpec.bullet.aRef.label, fireSpec.bullet.aRef.params.map(p => exprEval.eval(p, ctx())));
+      }
+    } else if (fireSpec.bulletRef) {
+      const bDef = def.bullets.get(fireSpec.bulletRef.label);
+      const pvals = fireSpec.bulletRef.params.map(p => exprEval.eval(p, ctx()));
+      if (!bDef) { log(`Unknown bulletRef "${fireSpec.bulletRef.label}"`, 'warn'); return; }
+      if (bDef.dir) {
+        const v = exprEval.eval(bDef.dir.expr, { params: pvals, rank: getRank(), t: b.age });
+        const kind = bDef.dir.kind;
+        if (kind === 'aim') setKinematics(b, aimAngleFrom(b, activeTarget())*RAD2DEG + v, b.spd);
+        else if (kind === 'absolute') setKinematics(b, v, b.spd);
+        else if (kind === 'relative') setKinematics(b, b.dir*RAD2DEG + v, b.spd);
+        else if (kind === 'sequence') { b.seqDir += v; setKinematics(b, b.seqDir, b.spd); }
+      }
+      if (bDef.spd) {
+        const v = exprEval.eval(bDef.spd.expr, { params: pvals, rank: getRank(), t: b.age });
+        const kind = bDef.spd.kind;
+        if (kind === 'absolute') setKinematics(b, b.dir*RAD2DEG, v);
+        else if (kind === 'relative') setKinematics(b, b.dir*RAD2DEG, b.spd + v);
+        else if (kind === 'sequence') { b.seqSpd += v; setKinematics(b, b.dir*RAD2DEG, b.seqSpd); }
+      }
+      if (bDef.actions) {
+        b.stack.push({ type:'action', cmds:bDef.actions, ip:0, params:pvals });
+      } else if (bDef.aRef) {
+        pushActionFrame(b, bDef.aRef.label, pvals);
+      }
+    }
+  }
+
+  function executeOneStep(b, maxSteps=128) {
+    let steps = 0;
+    while (steps++ < maxSteps) {
+      if (b.wait > 0) { b.wait--; break; }
+      if (b.stack.length === 0) break;
+
+      const top = b.stack[b.stack.length-1];
+      if (top.type === 'repeat') {
+        if (top.remaining <= 0) { b.stack.pop(); continue; }
+        b.stack.push({ type:'action', cmds: top.body, ip:0, params: top.params });
+        top.remaining--; continue;
+      }
+
+      if (top.ip >= top.cmds.length) { b.stack.pop(); continue; }
+      const cmd = top.cmds[top.ip++];
+
+      const ctx = { params: top.params || [], rank: getRank(), t: b.age };
+
+      switch (cmd.op) {
+        case 'WAIT': {
+          const t = Math.max(0, Math.floor(exprEval.eval(cmd.expr, ctx)));
+          b.wait = t; return;
+        }
+        case 'FIRE': { fireOne(b, cmd.fire, top.params); continue; }
+        case 'FIRE_REF': {
+          const fdef = def.fires.get(cmd.label);
+          if (!fdef) { log(`Unknown fireRef "${cmd.label}"`, 'warn'); continue; }
+          const pvals = cmd.params.map(p => exprEval.eval(p, ctx));
+          fireOne(b, fdef, pvals); continue;
+        }
+        case 'ACTION_REF': {
+          const pvals = cmd.params.map(p => exprEval.eval(p, ctx));
+          pushActionFrame(b, cmd.label, pvals); continue;
+        }
+        case 'REPEAT': {
+          const times = Math.max(0, Math.floor(exprEval.eval(cmd.times, ctx)));
+          b.stack.push({ type:'repeat', remaining: times, body: cmd.body, params: top.params }); continue;
+        }
+        case 'REPEAT_REF': {
+          const times = Math.max(0, Math.floor(exprEval.eval(cmd.times, ctx)));
+          const bodyCmds = def.actions.get(cmd.label);
+          if (!bodyCmds) { log(`Unknown action label in repeat: "${cmd.label}"`, 'warn'); continue; }
+          const pvals = cmd.params.map(p => exprEval.eval(p, ctx));
+          b.stack.push({ type:'repeat', remaining: times, body: bodyCmds, params: pvals }); continue;
+        }
+        case 'CHG_DIR': {
+          const kind = cmd.dir.kind; let target = 0;
+          if (kind === 'aim') target = aimAngleFrom(b, activeTarget())*RAD2DEG + exprEval.eval(cmd.dir.expr, ctx);
+          else if (kind === 'absolute') target = exprEval.eval(cmd.dir.expr, ctx);
+          else if (kind === 'relative') target = b.dir*RAD2DEG + exprEval.eval(cmd.dir.expr, ctx);
+          else if (kind === 'sequence') {
+            const delta = exprEval.eval(cmd.dir.expr, ctx);
+            const term = Math.max(1, Math.floor(exprEval.eval(cmd.term, ctx)));
+            b.chgDir = { mode:'add', add: delta/term * DEG2RAD, remaining:term }; continue;
+          }
+          const term = Math.max(1, Math.floor(exprEval.eval(cmd.term, ctx)));
+          b.chgDir = { mode:'to', start:b.dir, target: target*DEG2RAD, remaining: term, total: term }; continue;
+        }
+        case 'CHG_SPD': {
+          const kind = cmd.spd.kind; let target = 0;
+          if (kind === 'absolute') target = exprEval.eval(cmd.spd.expr, ctx);
+          else if (kind === 'relative') target = b.spd + exprEval.eval(cmd.spd.expr, ctx);
+          else if (kind === 'sequence') {
+            const delta = exprEval.eval(cmd.spd.expr, ctx);
+            const term = Math.max(1, Math.floor(exprEval.eval(cmd.term, ctx)));
+            b.chgSpd = { mode:'add', add: delta/term, remaining: term }; continue;
+          } else target = exprEval.eval(cmd.spd.expr, ctx);
+          const term = Math.max(1, Math.floor(exprEval.eval(cmd.term, ctx)));
+          b.chgSpd = { mode:'to', start:b.spd, target, remaining: term, total: term }; continue;
+        }
+        case 'ACCEL': {
+          const term = Math.max(1, Math.floor(exprEval.eval(cmd.term || '1', ctx)));
+          const h = cmd.h != null ? exprEval.eval(cmd.h, ctx) : 0;
+          const v = cmd.v != null ? exprEval.eval(cmd.v, ctx) : 0;
+          b.accel = { hx: h/term, vy: v/term, remaining: term }; continue;
+        }
+        case 'VANISH': { b.alive = false; return; }
+      }
+    }
+  }
+
+  function stepLogic(dt) {
+    const W = canvas.width, H = canvas.height;
+
+    // Run emitter
+    const beforeEmpty = emitter.stack.length === 0 && emitter.wait === 0;
+    executeOneStep(emitter);
+    const afterEmpty = emitter.stack.length === 0 && emitter.wait === 0;
+
+    // NEW: auto loop root after it finishes (no clearing)
+    if (autoLoopEnabled) {
+      if (afterEmpty) {
+        if (loopCountdown <= 0) {
+          triggerRoot();
+          loopCountdown = loopDelayTicks | 0;
+        } else {
+          loopCountdown--;
+        }
+      } else {
+        // emitter is busy, keep countdown reset so delay is measured after finish
+        loopCountdown = loopDelayTicks | 0;
+      }
+    }
+
+    // Update bullets
+    const margin = 120;
+    for (let i=0; i<bullets.length; i++) {
+      const b = bullets[i];
+      if (!b.alive) continue;
+
+      executeOneStep(b);
+
+      if (b.chgDir) {
+        if (b.chgDir.mode === 'to') {
+          const diff = shortestAngleDiff(b.chgDir.start, b.chgDir.target);
+          b.dir = b.chgDir.target - diff * (b.chgDir.remaining - 1) / b.chgDir.total;
+          b.vx = Math.cos(b.dir) * b.spd; b.vy = Math.sin(b.dir) * b.spd;
+          if (--b.chgDir.remaining <= 0) b.chgDir = null;
+        } else if (b.chgDir.mode === 'add') {
+          b.dir += b.chgDir.add;
+          b.vx = Math.cos(b.dir) * b.spd; b.vy = Math.sin(b.dir) * b.spd;
+          if (--b.chgDir.remaining <= 0) b.chgDir = null;
+        }
+      }
+      if (b.chgSpd) {
+        if (b.chgSpd.mode === 'to') {
+          const t = 1 - (b.chgSpd.remaining - 1) / b.chgSpd.total;
+          b.spd = lerp(b.chgSpd.start, b.chgSpd.target, t);
+          b.vx = Math.cos(b.dir) * b.spd; b.vy = Math.sin(b.dir) * b.spd;
+          if (--b.chgSpd.remaining <= 0) b.chgSpd = null;
+        } else if (b.chgSpd.mode === 'add') {
+          b.spd += b.chgSpd.add;
+          b.vx = Math.cos(b.dir) * b.spd; b.vy = Math.sin(b.dir) * b.spd;
+          if (--b.chgSpd.remaining <= 0) b.chgSpd = null;
+        }
+      }
+      if (b.accel) {
+        b.vx += b.accel.hx; b.vy += b.accel.vy;
+        b.spd = Math.hypot(b.vx, b.vy); b.dir = Math.atan2(b.vy, b.vx);
+        if (--b.accel.remaining <= 0) b.accel = null;
+      }
+
+      // Integrate
+      b.x += b.vx; b.y += b.vy; b.age++;
+
+      // Cull (off-screen only)
+      if (b.x < -margin || b.x > W + margin || b.y < -margin || b.y > H + margin) b.alive = false;
+    }
+
+    // Compact occasionally
+    if (tick % 30 === 0) bullets = bullets.filter(b => b.alive);
+  }
+
+  function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    ctx.save();
+    ctx.translate(W/2, H/2); ctx.scale(viewScale, viewScale); ctx.translate(-W/2, -H/2);
+
+    // Target indicator
+    const tgt = activeTarget();
+    ctx.beginPath(); ctx.arc(tgt.x, tgt.y, 5, 0, TAU);
+    ctx.strokeStyle = 'rgba(106,227,255,.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Emitter point
+    ctx.beginPath(); ctx.arc(emitter.x, emitter.y, 4, 0, TAU);
+    ctx.fillStyle = '#ffd166'; ctx.fill();
+
+    // Bullets
+    const r = bulletSize; ctx.globalAlpha = 0.92;
+    for (let i=0;i<bullets.length;i++) {
+      const b = bullets[i]; if (!b.alive) continue;
+      const hue = (b.color*40 + (b.age%360)) % 360;
+      ctx.fillStyle = `hsl(${hue} 80% 60%)`;
+      ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    statsEl.innerHTML = `
+      <div><strong>Bullets:</strong> ${bullets.length.toLocaleString()}</div>
+      <div><strong>Tick:</strong> ${tick}</div>
+      <div><strong>FPS (approx):</strong> ${fps.toFixed(1)}</div>
+      <div><strong>Root:</strong> ${def ? `${def.root.kind} "${def.root.label}"` : '-'}</div>
+      <div><strong>Aim:</strong> ${aimMode}</div>
+      <div><strong>AutoLoop:</strong> ${autoLoopEnabled ? 'ON' : 'OFF'} <span style="color:#9bb0c2">(delay ${loopDelayTicks} ticks)</span></div>
+      <div>Keys: <span class="kbd">Space</span>=Play/Pause, <span class="kbd">T</span>=Trigger, <span class="kbd">L</span>=AutoLoop, <span class="kbd">R</span>=Reset, <span class="kbd">C</span>=Clear</div>
+    `;
+  }
+
+  // ------------------------------
+  // Main loop
+  // ------------------------------
+  let fps = 0, fpsSampT=now(), frames=0;
+  function loop() {
+    const t = now(); const dt = (t - lastTime) / 1000; lastTime = t;
+    accumulator += dt * timeScale;
+
+    const step = 1/logicHz;
+    if (running) {
+      accumulator = Math.min(accumulator, 0.25);
+      while (accumulator >= step) { stepLogic(step); accumulator -= step; tick++; }
+    }
+
+    draw();
+
+    frames++;
+    if (t - fpsSampT >= 500) { fps = frames * 1000 / (t - fpsSampT); fpsSampT = t; frames = 0; }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ------------------------------
+  // Controls & wiring
+  // ------------------------------
+  function getRank(){ return parseFloat(ui.rank.value); }
+
+  function resetWorld() {
+    bullets = []; seqGlobal = 0; tick = 0; loopCountdown = 0;
+    emitter = makeBullet(canvas.width/2, canvas.height/2); setKinematics(emitter, 0, 0);
+    if (def) {
+      if (def.root.kind === 'action') pushActionFrame(emitter, def.root.label, []);
+      else if (def.root.kind === 'bullet') {
+        const bd = def.bullets.get(def.root.label);
+        if (bd && bd.actions) emitter.stack.push({type:'action', cmds:bd.actions, ip:0, params:[]});
+        else if (bd && bd.aRef) pushActionFrame(emitter, bd.aRef.label, bd.aRef.params || []);
+      }
+    }
+    log('Reset simulation.');
+  }
+
+  function loadDefinition(xmlText) {
+    try {
+      def = parseBulletML(xmlText, (m) => log(m));
+      resetWorld();
+      running = false;
+      ui.playBtn.classList.remove('active');
+      ui.playBtn.textContent = 'Play';
+      log('BulletML loaded.');
+    } catch (e) {
+      log('Parse error: ' + (e.message || e), 'error');
+    }
+  }
+
+  // Demo
+  const DEMO = `
+<bulletml xmlns="http://www.asahi-net.or.jp/~cs8k-cyu/bulletml">
+  <action label="top">
+    <repeat><times>200</times><action>
+      <fire><direction type="sequence">6</direction><speed>2.2</speed>
+        <bullet><action><wait>300</wait><vanish/></action></bullet>
+      </fire>
+      <wait>1</wait>
+    </action></repeat>
+  </action>
+  <bullet label="simple"><action><wait>60</wait><changespeed><speed type="relative">1.2</speed><term>30</term></changespeed></action></bullet>
+</bulletml>
+`.trim();
+
+  // UI events
+  ui.file.addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const text = await file.text(); loadDefinition(text); e.target.value = '';
+  });
+  ui.demoBtn.addEventListener('click', () => loadDefinition(DEMO));
+  ui.playBtn.addEventListener('click', () => {
+    running = !running; ui.playBtn.classList.toggle('active', running);
+    ui.playBtn.textContent = running ? 'Pause' : 'Play';
+  });
+  ui.triggerBtn.addEventListener('click', triggerRoot);
+  ui.resetBtn.addEventListener('click', resetWorld);
+  ui.clearBtn.addEventListener('click', () => { bullets.length = 0; log('Cleared bullets.'); });
+
+  ui.speed.addEventListener('input', (e) => { timeScale = parseFloat(e.target.value); });
+  ui.scale.addEventListener('input', (e) => { viewScale = parseFloat(e.target.value); });
+  ui.bsize.addEventListener('input', (e) => { bulletSize = parseFloat(e.target.value); });
+  ui.seed.addEventListener('change', (e) => {
+    const v = parseInt(e.target.value, 10) || 1;
+    rng = makePRNG(v); exprEval = new Expr(() => rng()); log('RNG reseeded to ' + v);
+  });
+  ui.rank.addEventListener('input', () => { /* read on demand */ });
+
+  ui.aimCursorBtn.addEventListener('click', () => {
+    aimMode = 'cursor'; ui.aimCursorBtn.classList.add('active'); ui.aimCenterBtn.classList.remove('active');
+  });
+  ui.aimCenterBtn.addEventListener('click', () => {
+    aimMode = 'center'; ui.aimCenterBtn.classList.add('active'); ui.aimCursorBtn.classList.remove('active');
+  });
+
+  // Auto loop wiring
+  autoLoopEnabled = ui.autoLoop.checked;
+  loopDelayTicks = parseInt(ui.loopDelay.value, 10) || 0;
+  loopCountdown = loopDelayTicks;
+  ui.autoLoop.addEventListener('change', () => { autoLoopEnabled = ui.autoLoop.checked; log('AutoLoop ' + (autoLoopEnabled ? 'enabled' : 'disabled')); });
+  ui.loopDelay.addEventListener('change', () => { loopDelayTicks = Math.max(0, parseInt(ui.loopDelay.value, 10) || 0); loopCountdown = loopDelayTicks; });
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (e.code === 'Space') { e.preventDefault(); ui.playBtn.click(); }
+    else if (k === 'r') ui.resetBtn.click();
+    else if (k === 'c') ui.clearBtn.click();
+    else if (k === 't') ui.triggerBtn.click();
+    else if (k === 'l') { ui.autoLoop.checked = !ui.autoLoop.checked; ui.autoLoop.dispatchEvent(new Event('change')); }
+  });
+
+  // Start paused with demo loaded
+  loadDefinition(DEMO);
+})();
+</script>
+</body>
+</html>
