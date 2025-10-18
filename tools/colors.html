@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Element Color Tuner</title>
 
     <!-- React + Babel (in-browser transpile) -->
@@ -10,14 +10,14 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Tailwind (optional, for same styling) -->
+    <!-- Tailwind (for styling) -->
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
   <body class="bg-slate-900 text-slate-100">
     <div id="root"></div>
 
-    <!-- Your JSX file transpiled by Babel -->
-    <script type="text/babel" data-type="module" src="ElementColorTuner.jsx"></script>
+    <!-- IMPORTANT: src must match the real file name exactly -->
+    <script type="text/babel" src="./element_color_tuner_single_page_webapp.jsx"></script>
   </body>
 </html>
