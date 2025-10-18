@@ -1,4 +1,7 @@
-import React, { useMemo, useState } from "react";
+/* global React, ReactDOM */
+
+// Use React globals instead of imports (UMD + Babel Standalone)
+const { useMemo, useState } = React;
 
 // --- Data helpers -----------------------------------------------------------
 const clamp255 = (n) => Math.max(0, Math.min(255, n | 0));
@@ -10,7 +13,7 @@ const hexToRgb = (hex) => {
 };
 const tuple = (arr) => `(${clamp255(arr[0])},${clamp255(arr[1])},${clamp255(arr[2])})`;
 
-// --- Default palette (updated to your latest base/rim) + accents ------------
+// --- Defaults (your latest base, rim, accent) -------------------------------
 const DEFAULT_ELEMENTS = [
   { name: "Fire", base: [153, 33, 0], rim: [255, 158, 0], accent: [120, 135, 161] },
   { name: "Water", base: [26, 82, 213], rim: [98, 194, 254], accent: [0, 255, 170] },
@@ -50,15 +53,11 @@ const DEFAULT_ELEMENTS = [
   { name: "Null", base: [127, 127, 127], rim: [184, 184, 184], accent: [31, 31, 31] },
 ];
 
-const deepCloneDefaults = () => DEFAULT_ELEMENTS.map((it) => ({
-  name: it.name,
-  base: [...it.base],
-  rim: [...it.rim],
-  accent: [...it.accent],
-}));
+const deepCloneDefaults = () =>
+  DEFAULT_ELEMENTS.map((it) => ({ name: it.name, base: [...it.base], rim: [...it.rim], accent: [...it.accent] }));
 
 // --- UI ---------------------------------------------------------------------
-export default function ElementColorTuner() {
+function ElementColorTuner() {
   const [items, setItems] = useState(deepCloneDefaults());
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -66,11 +65,16 @@ export default function ElementColorTuner() {
 
   const selected = items[selectedIndex] ?? items[0];
 
-  const exportText = useMemo(() => {
-    return items
-      .map((it, i) => `${i === 0 ? "• " : "  "}${it.name} ${tuple(it.base)}, ${tuple(it.rim)}, ${tuple(it.accent)}`)
-      .join("\n");
-  }, [items]);
+  const exportText = useMemo(
+    () =>
+      items
+        .map(
+          (it, i) =>
+            `${i === 0 ? "• " : "  "}${it.name} ${tuple(it.base)}, ${tuple(it.rim)}, ${tuple(it.accent)}`
+        )
+        .join("\n"),
+    [items]
+  );
 
   const handleColorChange = (idx, key, valueHex) => {
     const rgb = hexToRgb(valueHex);
@@ -82,7 +86,7 @@ export default function ElementColorTuner() {
       await navigator.clipboard.writeText(exportText);
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
+    } catch {
       const ta = document.createElement("textarea");
       ta.value = exportText;
       document.body.appendChild(ta);
@@ -96,30 +100,15 @@ export default function ElementColorTuner() {
 
   const resetDefaults = () => setItems(deepCloneDefaults());
 
-  // --- Self‑tests -----------------------------------------------------------
+  // --- Self-tests -----------------------------------------------------------
   const runSelfTests = () => {
     const results = [];
     const eqArr = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
-    // Test 1: rgbToHex
-    results.push({
-      name: "rgbToHex([255,0,0]) => #ff0000",
-      passed: rgbToHex([255, 0, 0]) === "#ff0000",
-    });
+    results.push({ name: "rgbToHex([255,0,0]) => #ff0000", passed: rgbToHex([255, 0, 0]) === "#ff0000" });
+    results.push({ name: "hexToRgb(#00ff00) => [0,255,0]", passed: eqArr(hexToRgb("#00ff00"), [0, 255, 0]) });
+    results.push({ name: "tuple([12,34,56]) => (12,34,56)", passed: tuple([12, 34, 56]) === "(12,34,56)" });
 
-    // Test 2: hexToRgb
-    results.push({
-      name: "hexToRgb(#00ff00) => [0,255,0]",
-      passed: eqArr(hexToRgb("#00ff00"), [0, 255, 0]),
-    });
-
-    // Test 3: tuple
-    results.push({
-      name: "tuple([12,34,56]) => (12,34,56)",
-      passed: tuple([12, 34, 56]) === "(12,34,56)",
-    });
-
-    // Test 4: export format (defaults with accent)
     const defaults = deepCloneDefaults();
     const defaultExport = defaults
       .map((it, i) => `${i === 0 ? "• " : "  "}${it.name} ${tuple(it.base)}, ${tuple(it.rim)}, ${tuple(it.accent)}`)
@@ -128,23 +117,21 @@ export default function ElementColorTuner() {
     const groups = firstLine.match(/\([^\)]+\)/g) || [];
     results.push({
       name: "exportText first line begins with bullet and Fire triples",
-      passed: firstLine.startsWith("• Fire (153,33,0), (255,158,0), (120,135,161)"), (255,158,0), (0,97,255)") && groups.length === 3,
+      passed: firstLine.startsWith("• Fire (153,33,0), (255,158,0), (120,135,161)") && groups.length === 3,
     });
-    results.push({
-      name: "exportText second line is indented two spaces",
-      passed: defaultExport.includes("\n  Water ("),
-    });
+    results.push({ name: "exportText second line is indented two spaces", passed: defaultExport.includes("\n  Water (") });
 
     setTests(results);
   };
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-slate-100 p-4 md:p-6">
-      {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Element Color Tuner</h1>
-          <p className="text-slate-400">Click an element name or color to preview. Edit with the pickers. Copy in your exact tuple format (now with accent).</p>
+          <p className="text-slate-400">
+            Click an element name or color to preview. Edit with the pickers. Copy in your exact tuple format (now with accent).
+          </p>
         </div>
         <div className="flex gap-2">
           <button
@@ -164,9 +151,7 @@ export default function ElementColorTuner() {
         </div>
       </header>
 
-      {/* Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* List / editor */}
         <section className="xl:col-span-3">
           <div className="rounded-2xl bg-slate-800/60 border border-slate-700 overflow-hidden shadow-lg">
             <div className="grid grid-cols-[1.25fr,1fr,1fr,1fr] text-sm bg-slate-800/80 px-4 py-2 font-medium text-slate-300">
@@ -193,7 +178,9 @@ export default function ElementColorTuner() {
                       <div
                         className="shrink-0 w-16 h-10 rounded-lg shadow-md border-4"
                         style={{
-                          background: `linear-gradient(135deg, transparent 45%, rgb(${it.accent.join(",")}) 50%, transparent 55%), rgb(${it.base.join(",")})`,
+                          background: `linear-gradient(135deg, transparent 45%, rgb(${it.accent.join(
+                            ","
+                          )}) 50%, transparent 55%), rgb(${it.base.join(",")})`,
                           borderColor: `rgb(${it.rim.join(",")})`,
                         }}
                         title={`${it.name} color swatch`}
@@ -262,21 +249,21 @@ export default function ElementColorTuner() {
             </ul>
           </div>
 
-          {/* Export preview */}
           <details className="mt-4 rounded-xl bg-slate-800/60 border border-slate-700 shadow-lg">
             <summary className="px-4 py-3 cursor-pointer select-none text-sm text-slate-300">Preview exported text</summary>
-            <pre className="px-4 pb-4 text-slate-200 overflow-auto whitespace-pre-wrap text-xs leading-relaxed">{exportText}</pre>
+            <pre className="px-4 pb-4 text-slate-200 overflow-auto whitespace-pre-wrap text-xs leading-relaxed">
+{exportText}
+            </pre>
           </details>
 
-          {/* Self-tests */}
           <details className="mt-4 rounded-xl bg-slate-800/60 border border-slate-700 shadow-lg">
-            <summary className="px-4 py-3 cursor-pointer select-none text-sm text-slate-300">Self‑tests</summary>
+            <summary className="px-4 py-3 cursor-pointer select-none text-sm text-slate-300">Self-tests</summary>
             <div className="px-4 pb-4">
               <button
                 onClick={runSelfTests}
                 className="mb-3 px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 active:bg-slate-800 transition"
               >
-                Run Self‑tests
+                Run Self-tests
               </button>
               {tests.length > 0 && (
                 <ul className="space-y-1 text-sm">
@@ -300,7 +287,9 @@ export default function ElementColorTuner() {
                 <div
                   className="w-72 h-44 rounded-2xl shadow-2xl shrink-0"
                   style={{
-                    background: `linear-gradient(135deg, transparent 43%, rgb(${selected.accent.join(",")}) 47%, rgb(${selected.accent.join(",")}) 53%, transparent 57%), rgb(${selected.base.join(",")})`,
+                    background: `linear-gradient(135deg, transparent 43%, rgb(${selected.accent.join(
+                      ","
+                    )}) 47%, rgb(${selected.accent.join(",")}) 53%, transparent 57%), rgb(${selected.base.join(",")})`,
                     border: `14px solid rgb(${selected.rim.join(",")})`,
                   }}
                   title={`${selected.name} preview`}
@@ -321,16 +310,10 @@ export default function ElementColorTuner() {
             <div className="rounded-2xl bg-slate-800/60 border border-slate-700 p-4 shadow-lg">
               <h3 className="text-sm font-medium text-slate-300 mb-2">Actions</h3>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={copyToClipboard}
-                  className="px-4 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 active:bg-fuchsia-700 transition shadow-md"
-                >
+                <button onClick={copyToClipboard} className="px-4 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 active:bg-fuchsia-700 transition shadow-md">
                   {copied ? "Copied!" : "Copy to Clipboard"}
                 </button>
-                <button
-                  onClick={resetDefaults}
-                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 active:bg-slate-800 transition"
-                >
+                <button onClick={resetDefaults} className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 active:bg-slate-800 transition">
                   Reset to Defaults
                 </button>
               </div>
@@ -341,3 +324,7 @@ export default function ElementColorTuner() {
     </div>
   );
 }
+
+// --- Mount the app -----------------------------------------------------------
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(ElementColorTuner));
