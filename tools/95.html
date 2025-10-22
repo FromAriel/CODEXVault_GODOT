@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Windows 95 — Single‑Page Simulation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!--
+  Windows 95 Single-Page Simulation
+  - Desktop, Taskbar, Start menu
+  - Window manager (drag, resize, minimize, maximize, close)
+  - Web Browser (reskinned; built-in about:win95; can attempt external URLs)
+  - Notepad (New/Open/Save As, Word Wrap)
+  - Calculator (basic, memory)
+  - Minesweeper (9x9 beginner)
+  - Control Panel (Display, Date/Time, Internet Options)
+  - Solitaire (Klondike lite)
+  Notes:
+  - No external images/fonts; icons are text/SVG/CSS.
+  - Some real sites disallow iframing; use "Open Externally" for those.
+  - This is a fan recreation for educational use; trademarks belong to their owners.
+-->
+<style>
+  :root{
+    --win95-bg: #008080; /* desktop teal */
+    --gray-3d: #c0c0c0;
+    --gray-light: #dfdfdf;
+    --gray-dark: #808080;
+    --gray-darker: #4d4d4d;
+    --black: #000;
+    --white: #fff;
+    --title-active-left: #000080;  /* dark navy */
+    --title-active-right: #1084d0; /* lighter blue */
+    --title-inactive: #6f6f6f;
+    --taskbar-height: 38px;
+    --z-start: 100;
+    --font-ui: "Tahoma", "Verdana", system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --shadow: 0 0 0 1px #00000055, 2px 2px 0 0 #00000055;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--win95-bg);
+    font-family: var(--font-ui);
+    user-select: none;
+    overflow: hidden;
+  }
+
+  /* Desktop */
+  #desktop {
+    position: absolute;
+    inset: 0 0 var(--taskbar-height) 0;
+    padding: 10px;
+  }
+  .desktop-icon {
+    width: 76px;
+    margin: 8px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: default;
+  }
+  .desktop-icon .glyph {
+    width: 42px; height: 42px;
+    border: 1px solid #ffffff55;
+    display: grid; place-items: center;
+    background: #ffffff22;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 20px;
+  }
+  .desktop-icon .label {
+    text-align: center;
+    line-height: 1.2;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .desktop-icon.selected .label {
+    background: #000080;
+    outline: 1px dotted #fff;
+  }
+
+  /* Taskbar */
+  #taskbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: var(--taskbar-height);
+    background: var(--gray-3d);
+    border-top: 2px solid var(--white);
+    box-shadow: inset 0 2px 0 #fff, inset 0 -2px 0 var(--gray-dark);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 6px;
+  }
+  #start-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 2px outset var(--gray-light);
+    background: var(--gray-3d);
+    font-weight: 700;
+    cursor: default;
+  }
+  #start-button:active { border: 2px inset var(--gray-light); }
+  #task-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 100%;
+  }
+  .task-button {
+    height: calc(var(--taskbar-height) - 8px);
+    min-width: 120px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    cursor: default;
+    white-space: nowrap;
+  }
+  .task-button.active {
+    border: 2px inset var(--gray-light);
+    background: var(--gray-light);
+  }
+  #clock {
+    min-width: 84px;
+    text-align: center;
+    padding: 6px 10px;
+    background: var(--gray-3d);
+    border: 2px inset var(--gray-light);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Start menu */
+  #start-menu {
+    position: absolute;
+    left: 4px; bottom: var(--taskbar-height);
+    width: 260px;
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    box-shadow: var(--shadow);
+    display: none;
+    z-index: 9999;
+  }
+  .menu-column {
+    display: flex;
+    align-items: stretch;
+  }
+  .menu-banner {
+    background: linear-gradient(#000080, #1084d0);
+    color: #fff;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 0.06em;
+    padding: 10px 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .menu-list {
+    list-style: none;
+    margin: 0; padding: 4px;
+    width: 100%;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    position: relative;
+  }
+  .menu-item:hover { background: #000080; color: #fff; }
+  .menu-item .arrow { margin-left: auto; }
+  .submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 240px;
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    box-shadow: var(--shadow);
+    z-index: 10000;
+  }
+  .menu-item:hover > .submenu { display: block; }
+
+  /* Window */
+  .win95-window {
+    position: absolute;
+    background: var(--gray-3d);
+    border: 2px solid var(--black);
+    box-shadow: var(--shadow);
+    min-width: 260px;
+    min-height: 120px;
+    resize: both;
+    overflow: hidden;
+  }
+  .titlebar {
+    height: 26px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 6px;
+    color: #fff;
+    background: linear-gradient(90deg, var(--title-active-left), var(--title-active-right));
+    cursor: move;
+  }
+  .win95-window.inactive .titlebar {
+    background: var(--title-inactive);
+  }
+  .titlebar .title {
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+    flex: 1;
+  }
+  .window-controls {
+    display: inline-flex; gap: 4px;
+  }
+  .wbtn {
+    width: 18px; height: 18px;
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    display: grid; place-items: center;
+    font-size: 12px; color: #000;
+    user-select: none;
+  }
+  .wbtn:active { border: 2px inset var(--gray-light); }
+  .menubar {
+    height: 24px;
+    background: var(--gray-3d);
+    border-top: 2px solid var(--white);
+    border-left: 2px solid var(--white);
+    border-right: 2px solid var(--gray-dark);
+    border-bottom: 2px solid var(--gray-dark);
+    display: flex; align-items: center; gap: 12px; padding: 0 8px; font-size: 12px;
+  }
+  .menubar .menu-label { padding: 2px 4px; }
+  .menubar .menu-label:hover { background: #000080; color: #fff; }
+  .window-content { background: var(--gray-light); height: calc(100% - 50px); overflow: auto; }
+
+  /* Common controls */
+  .toolbar {
+    display: flex; gap: 6px; align-items: center; padding: 6px; border-bottom: 2px solid var(--gray-dark);
+  }
+  .btn {
+    padding: 4px 8px;
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    cursor: default;
+    font-size: 12px;
+  }
+  .btn:active { border: 2px inset var(--gray-light); }
+  .input, input[type="text"], input[type="number"], select {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 3px 6px;
+    border: 2px inset var(--gray-dark);
+    background: #fff;
+    color: #000;
+  }
+  .statusbar {
+    height: 20px; font-size: 11px;
+    background: var(--gray-3d);
+    border-top: 2px solid var(--gray-dark);
+    padding: 2px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* Notepad */
+  .notepad-text {
+    width: 100%; height: calc(100% - 20px);
+    border: none; outline: none; resize: none;
+    padding: 8px;
+    background: #fff; color: #000;
+    font-family: var(--font-mono);
+    font-size: 13px; line-height: 1.4;
+    user-select: text;
+  }
+
+  /* Calculator */
+  .calc {
+    display: grid; gap: 6px; padding: 8px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .calc-display {
+    grid-column: 1 / -1;
+    height: 40px; padding: 6px; font-size: 18px;
+    text-align: right; font-family: var(--font-mono);
+    background: #ffffcc; border: 2px inset var(--gray-dark);
+  }
+  .calc button { height: 36px; }
+
+  /* Browser */
+  .browser-toolbar { gap: 6px; }
+  .browser-iframe {
+    width: 100%;
+    height: calc(100% - 92px);
+    border: 2px inset var(--gray-dark);
+    background: #fff;
+  }
+
+  /* Control Panel */
+  .cp-grid {
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .cp-item {
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    padding: 8px; cursor: default;
+  }
+  .cp-item:hover { border: 2px inset var(--gray-light); }
+  .cp-item h4 { margin: 0 0 6px; font-size: 13px; }
+
+  /* Minesweeper */
+  .ms-toolbar { gap: 10px; }
+  .ms-face {
+    width: 28px; height: 28px;
+    display: grid; place-items: center;
+    background: var(--gray-3d); border: 2px outset var(--gray-light);
+    font-size: 16px; cursor: default;
+  }
+  .ms-counters { display: flex; gap: 10px; align-items: center; }
+  .ms-counter {
+    width: 52px; height: 28px; display: grid; place-items: center;
+    font-family: var(--font-mono); background: #000; color: #f33;
+    border: 2px inset var(--gray-dark);
+  }
+  .ms-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 26px);
+    grid-auto-rows: 26px;
+    gap: 2px; padding: 8px;
+    justify-content: start; align-content: start;
+  }
+  .ms-cell {
+    width: 26px; height: 26px;
+    display: grid; place-items: center;
+    background: var(--gray-3d);
+    border: 2px outset var(--gray-light);
+    font-weight: 700; font-size: 14px;
+    cursor: default;
+  }
+  .ms-cell.revealed {
+    background: var(--gray-light);
+    border: 2px inset var(--gray-dark);
+  }
+  .ms-cell.flag::after { content: "⚑"; font-size: 14px; }
+  .ms-cell.mine.revealed::after { content: "💣"; }
+  .ms-cell[data-n="1"]{ color:#0000ff}
+  .ms-cell[data-n="2"]{ color:#008000}
+  .ms-cell[data-n="3"]{ color:#ff0000}
+  .ms-cell[data-n="4"]{ color:#000080}
+  .ms-cell[data-n="5"]{ color:#800000}
+  .ms-cell[data-n="6"]{ color:#008080}
+  .ms-cell[data-n="7"]{ color:#000}
+  .ms-cell[data-n="8"]{ color:#808080}
+
+  /* Solitaire */
+  .sol {
+    padding: 8px; height: 100%; overflow: hidden;
+    display: grid; grid-template-rows: 110px 1fr; gap: 10px;
+  }
+  .sol-row-top, .sol-row-bot{ display:flex; gap: 14px; }
+  .pile, .foundation, .stock, .waste {
+    width: 80px; height: 110px; position: relative;
+    background: #0b5b0b; /* table green */
+    border: 2px inset var(--gray-dark);
+    border-radius: 6px;
+  }
+  .pile.empty::after, .foundation.empty::after, .stock.empty::after, .waste.empty::after {
+    content: "";
+    position: absolute; inset: 4px;
+    border: 2px dashed #ffffff55; border-radius: 4px;
+  }
+  .card {
+    width: 80px; height: 110px; border-radius: 6px;
+    position: absolute; top: 0; left: 0;
+    background: #fff; border: 2px solid #000;
+    cursor: grab; user-select: none;
+    display: grid; grid-template-rows: 1fr auto; padding: 4px;
+    transition: box-shadow 0.05s;
+  }
+  .card.face-down { background: #003366; background-image: linear-gradient(45deg, #004c99 25%, transparent 25%), linear-gradient(-45deg, #004c99 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #004c99 75%), linear-gradient(-45deg, transparent 75%, #004c99 75%); background-size: 12px 12px; background-position: 0 0, 0 6px, 6px -6px, -6px 0px; }
+  .card .rank { font-weight: 900; font-size: 14px; }
+  .card .suit { font-size: 18px; align-self: end; text-align: right; padding-right: 4px; }
+  .card.red { color: #c00000; }
+  .dragging { box-shadow: 0 8px 12px rgba(0,0,0,.45); cursor: grabbing; }
+  .ghost { opacity: .001; } /* lightweight hit target */
+
+  /* Utility */
+  .hidden { display: none !important; }
+  .hr { border-top: 1px solid var(--gray-dark); margin: 4px 0; }
+  .pad { padding: 8px; }
+</style>
+</head>
+<body>
+  <div id="desktop" aria-label="Desktop"></div>
+
+  <!-- Taskbar -->
+  <div id="taskbar" role="toolbar" aria-label="Taskbar">
+    <div id="start-button" title="Start"><span>▾</span><span>Start</span></div>
+    <div id="task-buttons" aria-label="Open windows"></div>
+    <div id="clock" aria-live="polite">--:--</div>
+  </div>
+
+  <!-- Start Menu -->
+  <div id="start-menu" aria-label="Start Menu">
+    <div class="menu-column">
+      <div class="menu-banner">Windows&nbsp;95</div>
+      <ul class="menu-list">
+        <li class="menu-item has-sub">
+          📁 Programs <span class="arrow">▶</span>
+          <ul class="submenu menu-list">
+            <li class="menu-item has-sub">Accessories <span class="arrow">▶</span>
+              <ul class="submenu menu-list">
+                <li class="menu-item" data-launch="notepad">📝 Notepad</li>
+                <li class="menu-item" data-launch="calc">🧮 Calculator</li>
+                <li class="menu-item" data-launch="browser">🌐 Web Browser</li>
+              </ul>
+            </li>
+            <li class="menu-item has-sub">Games <span class="arrow">▶</span>
+              <ul class="submenu menu-list">
+                <li class="menu-item" data-launch="minesweeper">💣 Minesweeper</li>
+                <li class="menu-item" data-launch="solitaire">♠️ Solitaire</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li class="menu-item" data-launch="controlpanel">⚙️ Control Panel</li>
+        <li class="menu-item" data-launch="run">▶ Run…</li>
+        <li class="menu-item" data-launch="about">ℹ️ About Windows…</li>
+        <li class="hr"></li>
+        <li class="menu-item" data-launch="shutdown">⏻ Shut Down…</li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+(() => {
+  /* =========================
+     Core state & utilities
+  ==========================*/
+  const desktop = document.getElementById('desktop');
+  const taskButtons = document.getElementById('task-buttons');
+  const startBtn = document.getElementById('start-button');
+  const startMenu = document.getElementById('start-menu');
+  const clockEl = document.getElementById('clock');
+
+  let zTop = 100;
+  const windows = new Map();  // id -> {el, btn, appId, title, minimized, maximized, prevRect}
+  const settings = {
+    desktopColor: localStorage.getItem('w95.desktopColor') || '#008080',
+    browserHome: localStorage.getItem('w95.browserHome') || 'about:win95'
+  };
+  document.body.style.background = settings.desktopColor;
+
+  function fmtTime(d) {
+    let hh = d.getHours().toString().padStart(2,'0');
+    let mm = d.getMinutes().toString().padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+  function tickClock(){ clockEl.textContent = fmtTime(new Date()); }
+  setInterval(tickClock, 1000*20); tickClock();
+
+  // Start menu toggling
+  startBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    startMenu.style.display = (startMenu.style.display === 'block') ? 'none' : 'block';
+  });
+  document.addEventListener('click', ()=> startMenu.style.display = 'none');
+
+  function bringToFront(winEl) {
+    document.querySelectorAll('.win95-window').forEach(w => w.classList.add('inactive'));
+    winEl.classList.remove('inactive');
+    winEl.style.zIndex = ++zTop;
+    // set active task button
+    const id = winEl.dataset.winId;
+    taskButtons.querySelectorAll('.task-button').forEach(b=>b.classList.remove('active'));
+    const meta = windows.get(id);
+    if (meta) meta.btn.classList.add('active');
+  }
+
+  function createWindow({title, width=500, height=400, x=60, y=60, appId, icon='📄', contentBuilder}) {
+    const id = `w${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+    const win = document.createElement('div');
+    win.className = 'win95-window';
+    win.style.width = width+'px';
+    win.style.height = height+'px';
+    win.style.left = x+'px';
+    win.style.top = y+'px';
+    win.dataset.winId = id;
+    win.dataset.appId = appId;
+
+    win.innerHTML = `
+      <div class="titlebar">
+        <div class="icon">${icon}</div>
+        <div class="title">${title}</div>
+        <div class="window-controls">
+          <div class="wbtn btn-min" title="Minimize">—</div>
+          <div class="wbtn btn-max" title="Maximize">□</div>
+          <div class="wbtn btn-close" title="Close">✕</div>
+        </div>
+      </div>
+      <div class="menubar" role="menubar"></div>
+      <div class="window-content"></div>
+      <div class="statusbar"><span class="status-left"></span><span class="status-right"></span></div>
+    `;
+    desktop.appendChild(win);
+
+    // Draggable by titlebar
+    const titlebar = win.querySelector('.titlebar');
+    let dragOff = null;
+    titlebar.addEventListener('mousedown', (e)=>{
+      if (e.target.closest('.wbtn')) return;
+      bringToFront(win);
+      const rect = win.getBoundingClientRect();
+      dragOff = {dx: e.clientX - rect.left, dy: e.clientY - rect.top};
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', stopDrag);
+    });
+    function onDrag(e){
+      if (!dragOff) return;
+      const maxX = window.innerWidth - win.offsetWidth;
+      const maxY = window.innerHeight - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height')) - win.offsetHeight;
+      let nx = Math.min(Math.max(0, e.clientX - dragOff.dx), Math.max(0,maxX));
+      let ny = Math.min(Math.max(0, e.clientY - dragOff.dy), Math.max(0,maxY));
+      win.style.left = nx+'px';
+      win.style.top = ny+'px';
+    }
+    function stopDrag(){
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', stopDrag);
+      dragOff = null;
+    }
+
+    // Focus on click
+    win.addEventListener('mousedown', ()=> bringToFront(win));
+    bringToFront(win);
+
+    // Buttons: minimize, maximize, close
+    const btnMin = win.querySelector('.btn-min');
+    const btnMax = win.querySelector('.btn-max');
+    const btnClose = win.querySelector('.btn-close');
+
+    const taskBtn = document.createElement('div');
+    taskBtn.className = 'task-button active';
+    taskBtn.innerHTML = `<span>${icon}</span><span class="tlabel">${title}</span>`;
+    taskBtn.addEventListener('click', ()=>{
+      const meta = windows.get(id);
+      if (!meta) return;
+      if (meta.minimized) { restoreWindow(id); } else { minimizeWindow(id); }
+    });
+    taskButtons.appendChild(taskBtn);
+
+    btnMin.addEventListener('click', ()=> minimizeWindow(id));
+    btnClose.addEventListener('click', ()=> closeWindow(id));
+    btnMax.addEventListener('click', ()=> toggleMaximize(id));
+
+    // Build content
+    const menubar = win.querySelector('.menubar');
+    const content = win.querySelector('.window-content');
+    const statusL = win.querySelector('.status-left');
+    const statusR = win.querySelector('.status-right');
+    contentBuilder && contentBuilder({win, menubar, content, statusL, statusR, id});
+
+    windows.set(id, {el: win, btn: taskBtn, appId, title, minimized: false, maximized: false, prevRect: null});
+    return id;
+  }
+
+  function minimizeWindow(id){
+    const meta = windows.get(id); if (!meta) return;
+    meta.el.style.display = 'none';
+    meta.minimized = true;
+    meta.btn.classList.remove('active');
+  }
+  function restoreWindow(id){
+    const meta = windows.get(id); if (!meta) return;
+    meta.el.style.display = 'block';
+    meta.minimized = false;
+    bringToFront(meta.el);
+  }
+  function closeWindow(id){
+    const meta = windows.get(id); if (!meta) return;
+    meta.el.remove();
+    meta.btn.remove();
+    windows.delete(id);
+  }
+  function toggleMaximize(id){
+    const meta = windows.get(id); if (!meta) return;
+    const win = meta.el;
+    const tb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'));
+    if (!meta.maximized) {
+      // store
+      meta.prevRect = {left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height};
+      win.style.left = '0px';
+      win.style.top = '0px';
+      win.style.width = window.innerWidth+'px';
+      win.style.height = (window.innerHeight - tb)+'px';
+      meta.maximized = true;
+    } else {
+      const r = meta.prevRect || {};
+      win.style.left = r.left || '60px';
+      win.style.top = r.top || '60px';
+      win.style.width = r.width || '600px';
+      win.style.height = r.height || '400px';
+      meta.maximized = false;
+    }
+    bringToFront(win);
+  }
+
+  /* =========================
+     Desktop icons & Start
+  ==========================*/
+  const desktopIcons = [
+    {id:'mycomputer', label:'My Computer', icon:'🖥️', launch: ()=> alert('This demo focuses on core apps.\nOpen Control Panel for settings.')},
+    {id:'recycle', label:'Recycle Bin', icon:'🗑️', launch: ()=> alert('Recycle Bin is empty.')},
+    {id:'controlpanel', label:'Control Panel', icon:'⚙️', launch: ()=> launchApp('controlpanel')},
+    {id:'browser', label:'Web Browser', icon:'🌐', launch: ()=> launchApp('browser')},
+    {id:'notepad', label:'Notepad', icon:'📝', launch: ()=> launchApp('notepad')},
+    {id:'calc', label:'Calculator', icon:'🧮', launch: ()=> launchApp('calc')},
+    {id:'minesweeper', label:'Minesweeper', icon:'💣', launch: ()=> launchApp('minesweeper')},
+    {id:'solitaire', label:'Solitaire', icon:'♠️', launch: ()=> launchApp('solitaire')}
+  ];
+  function buildDesktop(){
+    desktop.innerHTML = '';
+    desktopIcons.forEach(d=>{
+      const el = document.createElement('div');
+      el.className = 'desktop-icon';
+      el.innerHTML = `<div class="glyph">${d.icon}</div><div class="label">${d.label}</div>`;
+      let clicks = 0;
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        desktop.querySelectorAll('.desktop-icon').forEach(i=>i.classList.remove('selected'));
+        el.classList.add('selected');
+        clicks++;
+        setTimeout(()=>{
+          if (clicks===2) { d.launch(); }
+          clicks=0;
+        }, 250);
+      });
+      desktop.appendChild(el);
+    });
+    desktop.addEventListener('click', ()=> desktop.querySelectorAll('.desktop-icon').forEach(i=>i.classList.remove('selected')));
+  }
+  buildDesktop();
+
+  // Start menu items handlers
+  startMenu.addEventListener('click', (e)=>{
+    const item = e.target.closest('.menu-item[data-launch]');
+    if (!item) return;
+    const id = item.getAttribute('data-launch');
+    startMenu.style.display = 'none';
+    if (id==='shutdown') {
+      if (confirm("Shut down Windows 95?\n\n(Just closes all windows in this demo.)")) {
+        Array.from(windows.keys()).forEach(closeWindow);
+      }
+      return;
+    }
+    if (id==='run') {
+      const cmd = prompt("Type the name of a program, folder, document, or Internet resource, and Windows will open it.", "notepad");
+      if (!cmd) return;
+      if (/^https?:\/\//i.test(cmd)) {
+        launchApp('browser', {_url: cmd});
+      } else {
+        launchApp(cmd.toLowerCase());
+      }
+      return;
+    }
+    if (id==='about') {
+      alert("Windows 95 (Web Edition)\n\nSingle-page simulation.\n© You, locally. This is a fan recreation for educational use.");
+      return;
+    }
+    launchApp(id);
+  });
+
+  /* =========================
+     App launchers
+  ==========================*/
+  function launchApp(appId, options={}) {
+    switch(appId){
+      case 'browser': return AppBrowser(options);
+      case 'notepad': return AppNotepad();
+      case 'calc': return AppCalc();
+      case 'minesweeper': return AppMinesweeper();
+      case 'controlpanel': return AppControlPanel();
+      case 'solitaire': return AppSolitaire();
+      default:
+        alert(`'${appId}' is not recognized. Try: notepad, calc, browser, minesweeper, solitaire, controlpanel.`);
+    }
+  }
+
+  /* =========================
+     NOTEPAD
+  ==========================*/
+  function AppNotepad(){
+    const id = createWindow({
+      appId: 'notepad', icon:'📝', title:'Untitled - Notepad', width: 580, height: 420, x: 120, y: 90,
+      contentBuilder: ({win, menubar, content, statusL, statusR})=>{
+        menubar.innerHTML = `
+          <div class="menu-label" data-m="file">File</div>
+          <div class="menu-label" data-m="edit">Edit</div>
+          <div class="menu-label" data-m="format">Format</div>
+          <div class="menu-label" data-m="view">View</div>
+          <div class="menu-label" data-m="help">Help</div>
+        `;
+        content.innerHTML = `<textarea class="notepad-text" spellcheck="false"></textarea>`;
+        const ta = content.querySelector('textarea');
+        let wordWrap = true;
+        ta.style.whiteSpace = 'pre-wrap';
+        statusL.textContent = 'Ln 1, Col 1';
+        statusR.textContent = 'UTF-8';
+
+        function updateCaret(){
+          const pos = ta.selectionStart;
+          const textUpto = ta.value.slice(0,pos);
+          const ln = (textUpto.match(/\n/g)||[]).length + 1;
+          const col = pos - textUpto.lastIndexOf('\n');
+          statusL.textContent = `Ln ${ln}, Col ${col}`;
+          win.querySelector('.title').textContent = `${ta.value ? 'Untitled*' : 'Untitled'} - Notepad`;
+        }
+        ta.addEventListener('keyup', updateCaret);
+        ta.addEventListener('click', updateCaret);
+        updateCaret();
+
+        // Simple menu actions
+        menubar.addEventListener('click', async (e)=>{
+          const m = e.target.closest('.menu-label'); if(!m) return;
+          const kind = m.dataset.m;
+          switch(kind){
+            case 'file':
+              // rudimentary pop menu
+              sPrompt(['New','Open...','Save As...']).then(async choice=>{
+                if (!choice) return;
+                if (choice==='New') { if(!confirm('Discard current text?'))return; ta.value=''; updateCaret(); }
+                if (choice==='Open...') {
+                  const [txt, name] = await openTextFile(); ta.value = txt; updateCaret();
+                  win.querySelector('.title').textContent = `${name} - Notepad`;
+                }
+                if (choice==='Save As...') {
+                  const name = await saveTextFile(ta.value);
+                  if (name) win.querySelector('.title').textContent = `${name} - Notepad`;
+                }
+              });
+              break;
+            case 'edit':
+              sPrompt(['Undo','Cut','Copy','Paste','Select All']).then(choice=>{
+                if (!choice) return;
+                if (choice==='Undo') document.execCommand('undo');
+                if (choice==='Cut') document.execCommand('cut');
+                if (choice==='Copy') document.execCommand('copy');
+                if (choice==='Paste') document.execCommand('paste');
+                if (choice==='Select All') ta.select();
+              });
+              break;
+            case 'format':
+              sPrompt(['Word Wrap']).then(choice=>{
+                if (choice==='Word Wrap') {
+                  wordWrap = !wordWrap;
+                  ta.style.whiteSpace = wordWrap ? 'pre-wrap' : 'pre';
+                }
+              }); break;
+            case 'view':
+              sPrompt(['Status Bar (toggle)']).then(()=> {
+                const sb = win.querySelector('.statusbar');
+                sb.classList.toggle('hidden');
+                content.style.height = sb.classList.contains('hidden') ? 'calc(100% - 26px)' : 'calc(100% - 50px)';
+              }); break;
+            case 'help':
+              alert('Notepad\n\nBasic text editor. Use File → Save As to download a .txt file.');
+              break;
+          }
+        });
+      }
+    });
+    return id;
+  }
+  async function openTextFile(){
+    return new Promise(resolve=>{
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = '.txt,.md,.csv,text/plain';
+      input.onchange = async () => {
+        const file = input.files[0]; if (!file) return resolve(['','Untitled']);
+        const text = await file.text();
+        resolve([text, file.name]);
+      };
+      input.click();
+    });
+  }
+  async function saveTextFile(text){
+    const name = prompt('Save As:', 'Document.txt');
+    if (!name) return null;
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    a.click(); URL.revokeObjectURL(a.href);
+    return name;
+  }
+  function sPrompt(options){
+    return new Promise(res=>{
+      const msg = 'Choose:\n\n' + options.map((o,i)=>`${i+1}. ${o}`).join('\n');
+      const ans = prompt(msg);
+      const idx = Number(ans)-1;
+      res(Number.isFinite(idx) && options[idx] ? options[idx] : null);
+    });
+  }
+
+  /* =========================
+     CALCULATOR
+  ==========================*/
+  function AppCalc(){
+    const id = createWindow({
+      appId:'calc', icon:'🧮', title:'Calculator', width: 280, height: 360, x: 180, y: 120,
+      contentBuilder: ({content, statusR})=>{
+        content.innerHTML = `
+          <div class="calc">
+            <input class="calc-display" id="cdsp" value="0" readonly />
+            <button class="btn" data-k="MC">MC</button>
+            <button class="btn" data-k="MR">MR</button>
+            <button class="btn" data-k="M+">M+</button>
+            <button class="btn" data-k="M-">M-</button>
+
+            <button class="btn" data-k="C">C</button>
+            <button class="btn" data-k="±">±</button>
+            <button class="btn" data-k="%">%</button>
+            <button class="btn" data-k="÷">÷</button>
+
+            <button class="btn" data-k="7">7</button>
+            <button class="btn" data-k="8">8</button>
+            <button class="btn" data-k="9">9</button>
+            <button class="btn" data-k="×">×</button>
+
+            <button class="btn" data-k="4">4</button>
+            <button class="btn" data-k="5">5</button>
+            <button class="btn" data-k="6">6</button>
+            <button class="btn" data-k="−">−</button>
+
+            <button class="btn" data-k="1">1</button>
+            <button class="btn" data-k="2">2</button>
+            <button class="btn" data-k="3">3</button>
+            <button class="btn" data-k="+">+</button>
+
+            <button class="btn" data-k="0" style="grid-column: span 2">0</button>
+            <button class="btn" data-k=".">.</button>
+            <button class="btn" data-k="=">=</button>
+          </div>
+        `;
+        statusR.textContent = 'Ready';
+
+        const dsp = content.querySelector('#cdsp');
+        const grid = content.querySelector('.calc');
+        let mem = 0;
+        let acc = 0;
+        let cur = '0';
+        let op = null;
+        let fresh = true;
+
+        function setDisplay(v){ dsp.value = v; }
+        function inputDigit(d){
+          if (fresh) { cur = (d=='.') ? '0.' : d; fresh=false; }
+          else {
+            if (d==='.' && cur.includes('.')) return;
+            cur = cur + d;
+          }
+          setDisplay(cur);
+        }
+        function applyOp(nextOp){
+          const a = acc, b = parseFloat(cur);
+          if (op) {
+            const r = compute(a, b, op);
+            acc = r; setDisplay(String(r));
+          } else {
+            acc = b;
+          }
+          op = nextOp;
+          fresh = true;
+        }
+        function compute(a,b,op){
+          switch(op){
+            case '+': return a+b;
+            case '−': return a-b;
+            case '×': return a*b;
+            case '÷': return b===0 ? (alert("Cannot divide by zero"), a) : a/b;
+            case '%': return a*b/100;
+            default: return b;
+          }
+        }
+        function equals(){
+          const b = parseFloat(cur);
+          const r = op ? compute(acc, b, op) : b;
+          setDisplay(String(r));
+          cur = String(r);
+          op = null; acc = r; fresh = true;
+        }
+        function handle(k){
+          if (/\d/.test(k) || k==='.'){ inputDigit(k); return; }
+          if (['+','−','×','÷','%'].includes(k)){ applyOp(k); return; }
+          if (k==='='){ equals(); return; }
+          if (k==='C'){ cur='0'; acc=0; op=null; setDisplay('0'); fresh=true; return; }
+          if (k==='±'){ cur = String(-parseFloat(cur||'0')); setDisplay(cur); return; }
+          if (k==='MC'){ mem=0; return; }
+          if (k==='MR'){ cur=String(mem); setDisplay(cur); fresh=true; return; }
+          if (k==='M+'){ mem += parseFloat(cur||'0'); return; }
+          if (k==='M-'){ mem -= parseFloat(cur||'0'); return; }
+        }
+        grid.addEventListener('click', (e)=>{
+          const b = e.target.closest('button'); if(!b) return;
+          handle(b.dataset.k);
+        });
+        content.addEventListener('keydown', (e)=>{
+          const map = {'/':'÷','*':'×','-':'−','+':'+','Enter':'=','=':'=','%':'%','Escape':'C'};
+          if (/\d|\./.test(e.key)) handle(e.key);
+          else if (map[e.key]) handle(map[e.key]);
+        });
+        content.tabIndex = 0; content.focus();
+      }
+    });
+    return id;
+  }
+
+  /* =========================
+     BROWSER
+  ==========================*/
+  function AppBrowser({ _url } = {}){
+    const id = createWindow({
+      appId: 'browser', icon:'🌐', title:'Internet Explorer', width: 820, height: 560, x: 120, y: 80,
+      contentBuilder: ({win, menubar, content, statusL, statusR})=>{
+        menubar.innerHTML = `
+          <div class="menu-label" data-m="file">File</div>
+          <div class="menu-label" data-m="edit">Edit</div>
+          <div class="menu-label" data-m="view">View</div>
+          <div class="menu-label" data-m="help">Help</div>
+        `;
+        content.innerHTML = `
+          <div class="toolbar browser-toolbar">
+            <button class="btn" data-act="back">◀ Back</button>
+            <button class="btn" data-act="fwd">Forward ▶</button>
+            <button class="btn" data-act="home">🏠 Home</button>
+            <input type="text" class="input" id="addr" style="flex:1" placeholder="Enter URL or about:win95" />
+            <button class="btn" data-act="go">Go</button>
+            <button class="btn" data-act="openext" title="Open in new tab">↗ Open Externally</button>
+          </div>
+          <iframe class="browser-iframe" id="view" sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe>
+        `;
+        const addr = content.querySelector('#addr');
+        const view = content.querySelector('#view');
+        const hist = []; let hIndex = -1;
+        let home = settings.browserHome;
+
+        function setTitle(url){
+          win.querySelector('.title').textContent = `${url} - Internet Explorer`;
+        }
+        function load(url, push=true){
+          if (!url) return;
+          if (url==='about:win95'){
+            const html = aboutWin95Home();
+            view.srcdoc = html;
+            setTitle('about:win95');
+            statusL.textContent = 'Loaded local home page.';
+            if (push) { hist.splice(hIndex+1); hist.push('about:win95'); hIndex++; }
+            addr.value = 'about:win95';
+            return;
+          }
+          // Attempt to load; some sites may block framing
+          view.removeAttribute('srcdoc');
+          view.src = url;
+          setTitle(url);
+          statusL.textContent = 'Navigating...';
+          addr.value = url;
+          if (push) { hist.splice(hIndex+1); hist.push(url); hIndex++; }
+        }
+        function aboutWin95Home(){
+          return `
+<!doctype html><html><head><meta charset="utf-8"><title>about:win95</title>
+<style>
+  body{font-family: ${CSS.escape(getComputedStyle(document.body).fontFamily)}; background:#fff; color:#000; margin:0}
+  header{background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:10px 12px; font-weight:700}
+  main{padding:12px; line-height:1.45}
+  .card{border:1px solid #000; padding:10px; margin:10px 0; background:#f8f8f8}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .btn{display:inline-block;padding:6px 10px;border:1px solid #000;background:#e0e0e0;text-decoration:none;color:#000}
+</style></head><body>
+<header>Windows 95 Web — Home</header>
+<main>
+  <p>Welcome to the simulated Internet Explorer. This page lives inside the app (no external network required).</p>
+  <div class="grid">
+    <div class="card"><h3>Tips</h3><p>Type <b>about:win95</b> for this page. You can try real links too, but many modern sites block iframes—use <b>Open Externally</b> in that case.</p></div>
+    <div class="card"><h3>Quick Links</h3>
+      <p><a class="btn" href="https://example.com" target="_blank">Open example.com (new tab)</a></p>
+    </div>
+    <div class="card"><h3>Settings</h3><p>Change Home via <b>Control Panel → Internet Options</b>.</p></div>
+  </div>
+</main>
+</body></html>`;
+        }
+
+        content.querySelector('.browser-toolbar').addEventListener('click', (e)=>{
+          const b = e.target.closest('button'); if(!b) return;
+          const act = b.dataset.act;
+          if (act==='go'){
+            let url = addr.value.trim();
+            if (!url) return;
+            if (!/^https?:\/\//i.test(url) && url!=='about:win95'){ url = 'https://' + url; }
+            load(url);
+          }
+          if (act==='home'){ load(home); }
+          if (act==='back'){ if (hIndex>0){ hIndex--; load(hist[hIndex], false); } }
+          if (act==='fwd'){ if (hIndex<hist.length-1){ hIndex++; load(hist[hIndex], false); } }
+          if (act==='openext'){ let u = addr.value.trim() || home; if (u==='about:win95') u='https://example.com'; window.open(u, '_blank'); }
+        });
+
+        menubar.addEventListener('click', (e)=>{
+          const m = e.target.closest('.menu-label'); if(!m) return;
+          const kind = m.dataset.m;
+          if (kind==='help') alert('Internet Explorer (simulated)\n\nUse the address bar to try URLs. If a site refuses to load in the frame, use "Open Externally".');
+          if (kind==='view') alert('View menu is decorative in this demo.');
+          if (kind==='file') alert('File menu is decorative in this demo.');
+        });
+
+        // initial
+        const initial = _url || home;
+        addr.value = initial;
+        load(initial);
+      }
+    });
+    return id;
+  }
+
+  /* =========================
+     CONTROL PANEL
+  ==========================*/
+  function AppControlPanel(){
+    const id = createWindow({
+      appId:'controlpanel', icon:'⚙️', title:'Control Panel', width:640, height:420, x:160, y:100,
+      contentBuilder: ({content})=>{
+        content.innerHTML = `
+          <div class="cp-grid">
+            <div class="cp-item" data-a="display"><h4>Display</h4><div>Change desktop color</div></div>
+            <div class="cp-item" data-a="datetime"><h4>Date/Time</h4><div>View the current time</div></div>
+            <div class="cp-item" data-a="internet"><h4>Internet Options</h4><div>Set browser Home page</div></div>
+          </div>
+        `;
+        content.querySelectorAll('.cp-item').forEach(el=>{
+          el.addEventListener('dblclick', ()=>{
+            const a = el.dataset.a;
+            if (a==='display') return CP_Display();
+            if (a==='datetime') return CP_DateTime();
+            if (a==='internet') return CP_Internet();
+          });
+        });
+      }
+    });
+    return id;
+  }
+  function CP_Display(){
+    createWindow({
+      appId:'cp-display', icon:'🖼️', title:'Display Properties', width:380, height:240, x:220, y:140,
+      contentBuilder: ({content})=>{
+        content.innerHTML = `
+          <div class="pad">
+            <label>Desktop color: <input type="color" id="cc" value="${settings.desktopColor}"></label>
+            <div style="margin-top:12px">
+              <button class="btn" id="apply">Apply</button>
+              <button class="btn" id="ok">OK</button>
+            </div>
+          </div>
+        `;
+        const cc = content.querySelector('#cc');
+        content.querySelector('#apply').onclick = ()=> {
+          settings.desktopColor = cc.value;
+          localStorage.setItem('w95.desktopColor', settings.desktopColor);
+          document.body.style.background = settings.desktopColor;
+        };
+        content.querySelector('#ok').onclick = ()=> {
+          settings.desktopColor = cc.value;
+          localStorage.setItem('w95.desktopColor', settings.desktopColor);
+          document.body.style.background = settings.desktopColor;
+          // close parent
+          closeWindow(content.closest('.win95-window').dataset.winId);
+        };
+      }
+    });
+  }
+  function CP_DateTime(){
+    createWindow({
+      appId:'cp-datetime', icon:'🕒', title:'Date/Time Properties', width:300, height:200, x:240, y:160,
+      contentBuilder: ({content})=>{
+        const upd = ()=>{
+          const d = new Date();
+          content.innerHTML = `<div class="pad"><div><b>${d.toDateString()}</b></div><div style="margin-top:8px;font-size:20px">${fmtTime(d)}:${d.getSeconds().toString().padStart(2,'0')}</div></div>`;
+        };
+        upd(); const t = setInterval(upd, 1000);
+        // clear on close
+        const id = content.closest('.win95-window').dataset.winId;
+        const obs = new MutationObserver(()=>{ if(!document.body.contains(content)){ clearInterval(t); obs.disconnect(); }});
+        obs.observe(document.body, {childList:true, subtree:true});
+      }
+    });
+  }
+  function CP_Internet(){
+    createWindow({
+      appId:'cp-internet', icon:'🌐', title:'Internet Properties', width:420, height:220, x:260, y:180,
+      contentBuilder: ({content})=>{
+        content.innerHTML = `
+          <div class="pad">
+            <label>Home page:</label>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input class="input" type="text" id="home" style="flex:1" value="${settings.browserHome}">
+              <button class="btn" id="useAbout">Use about:win95</button>
+            </div>
+            <div style="margin-top:12px">
+              <button class="btn" id="apply">Apply</button>
+              <button class="btn" id="ok">OK</button>
+            </div>
+          </div>
+        `;
+        const homeEl = content.querySelector('#home');
+        content.querySelector('#useAbout').onclick = ()=> homeEl.value = 'about:win95';
+        function commit(){
+          settings.browserHome = homeEl.value.trim() || 'about:win95';
+          localStorage.setItem('w95.browserHome', settings.browserHome);
+          alert('Home page updated.');
+        }
+        content.querySelector('#apply').onclick = commit;
+        content.querySelector('#ok').onclick = ()=> { commit(); closeWindow(content.closest('.win95-window').dataset.winId); };
+      }
+    });
+  }
+
+  /* =========================
+     MINESWEEPER
+  ==========================*/
+  function AppMinesweeper(){
+    const ROWS=9, COLS=9, MINES=10;
+    let firstClick = true, timer=null, secs=0, flags=0, revealed=0, mineField=null;
+
+    const id = createWindow({
+      appId:'minesweeper', icon:'💣', title:'Minesweeper', width: 360, height: 460, x: 120, y: 100,
+      contentBuilder: ({content, statusL, statusR, win})=>{
+        content.innerHTML = `
+          <div class="toolbar ms-toolbar">
+            <div class="ms-face" id="face">🙂</div>
+            <div class="ms-counters">
+              <div class="ms-counter" id="cntM">${String(MINES).padStart(3,'0')}</div>
+              <div class="ms-counter" id="cntT">000</div>
+            </div>
+            <div style="margin-left:auto">
+              <button class="btn" id="reset">New</button>
+            </div>
+          </div>
+          <div class="ms-grid" id="grid" style="--cols:${COLS}"></div>
+        `;
+        const gridEl = content.querySelector('#grid');
+        const face = content.querySelector('#face');
+        const cntM = content.querySelector('#cntM');
+        const cntT = content.querySelector('#cntT');
+
+        function init(){
+          gridEl.innerHTML=''; firstClick=true; secs=0; flags=0; revealed=0;
+          cntM.textContent = String(MINES).padStart(3,'0');
+          cntT.textContent = '000'; face.textContent = '🙂';
+          mineField = Array.from({length:ROWS}, ()=> Array.from({length:COLS}, ()=>({mine:false, n:0, r:false, f:false})));
+          for (let r=0;r<ROWS;r++){
+            for (let c=0;c<COLS;c++){
+              const cell = document.createElement('div');
+              cell.className='ms-cell'; cell.dataset.r=r; cell.dataset.c=c;
+              gridEl.appendChild(cell);
+            }
+          }
+          stopTimer();
+        }
+        function placeMines(exR, exC){
+          let placed=0;
+          while (placed<MINES){
+            const r = Math.floor(Math.random()*ROWS);
+            const c = Math.floor(Math.random()*COLS);
+            if (mineField[r][c].mine) continue;
+            if (Math.abs(r-exR)<=1 && Math.abs(c-exC)<=1) continue; // safe zone around first click
+            mineField[r][c].mine = true; placed++;
+          }
+          // counts
+          const dirs=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+          for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+            if (mineField[r][c].mine){ mineField[r][c].n=9; continue; }
+            let n=0; for (const [dr,dc] of dirs){
+              const rr=r+dr, cc=c+dc;
+              if (rr>=0&&rr<ROWS&&cc>=0&&cc<COLS && mineField[rr][cc].mine) n++;
+            }
+            mineField[r][c].n=n;
+          }
+        }
+        function startTimer(){ if (timer) return; timer=setInterval(()=>{ secs=Math.min(999,secs+1); cntT.textContent=String(secs).padStart(3,'0'); }, 1000); }
+        function stopTimer(){ if (timer){ clearInterval(timer); timer=null; } }
+
+        function reveal(r,c){
+          const cell = gridEl.querySelector(`.ms-cell[data-r="${r}"][data-c="${c}"]`);
+          const tile = mineField[r][c];
+          if (tile.r || tile.f) return;
+          tile.r=true; revealed++;
+          cell.classList.add('revealed');
+          if (tile.mine){
+            cell.classList.add('mine'); face.textContent='💥'; gameOver(false); return;
+          }
+          if (tile.n>0){ cell.textContent=tile.n; cell.dataset.n=tile.n; }
+          else {
+            // flood fill
+            for (const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) {
+              const rr=r+dr, cc=c+dc;
+              if (rr>=0&&rr<ROWS&&cc>=0&&cc<COLS) reveal(rr,cc);
+            }
+          }
+          checkWin();
+        }
+        function toggleFlag(r,c){
+          const tile = mineField[r][c];
+          if (tile.r) return;
+          const cell = gridEl.querySelector(`.ms-cell[data-r="${r}"][data-c="${c}"]`);
+          tile.f=!tile.f; cell.classList.toggle('flag', tile.f);
+          flags += tile.f ? 1 : -1;
+          cntM.textContent = String(MINES - flags).padStart(3,'0');
+        }
+        function gameOver(won){
+          stopTimer();
+          // reveal mines
+          if (!won){
+            for (let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+              if (mineField[r][c].mine){
+                const cell = gridEl.querySelector(`.ms-cell[data-r="${r}"][data-c="${c}"]`);
+                cell.classList.add('revealed','mine');
+              }
+            }
+          }
+          face.textContent = won ? '😎' : '💥';
+        }
+        function checkWin(){
+          const totalSafe = ROWS*COLS - MINES;
+          if (revealed >= totalSafe){
+            face.textContent='😎'; gameOver(true);
+          }
+        }
+
+        gridEl.addEventListener('contextmenu', e=> e.preventDefault());
+        gridEl.addEventListener('mousedown', (e)=>{
+          const cell = e.target.closest('.ms-cell'); if (!cell) return;
+          const r = +cell.dataset.r, c = +cell.dataset.c;
+          if (e.button===2){ toggleFlag(r,c); return; }
+          if (e.button===0){
+            if (firstClick){ placeMines(r,c); firstClick=false; startTimer(); }
+            reveal(r,c);
+          }
+        });
+        content.querySelector('#reset').onclick = init;
+        content.querySelector('#face').onclick = init;
+        init();
+
+        // On close, clear timer
+        const obs = new MutationObserver(()=>{ if(!document.body.contains(content)){ stopTimer(); obs.disconnect(); }});
+        obs.observe(document.body, {childList:true, subtree:true});
+      }
+    });
+    return id;
+  }
+
+  /* =========================
+     SOLITAIRE (Klondike lite)
+  ==========================*/
+  function AppSolitaire(){
+    const id = createWindow({
+      appId:'solitaire', icon:'♠️', title:'Solitaire', width: 980, height: 600, x: 80, y: 40,
+      contentBuilder: ({content, statusL})=>{
+        content.innerHTML = `
+          <div class="sol">
+            <div class="sol-row-top">
+              <div class="stock empty" id="stock" title="Stock (click to deal)"></div>
+              <div class="waste empty" id="waste" title="Waste"></div>
+              <div style="flex:1"></div>
+              <div class="foundation empty" id="f0" data-s="♠">♠</div>
+              <div class="foundation empty" id="f1" data-s="♥">♥</div>
+              <div class="foundation empty" id="f2" data-s="♦">♦</div>
+              <div class="foundation empty" id="f3" data-s="♣">♣</div>
+            </div>
+            <div class="sol-row-bot" id="tableau"></div>
+          </div>
+        `;
+        const suits = ['♠','♥','♦','♣'];
+        const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+        const tableau = content.querySelector('#tableau');
+        const stock = content.querySelector('#stock');
+        const waste = content.querySelector('#waste');
+        const foundations = Array.from(content.querySelectorAll('.foundation'));
+        tableau.innerHTML = ''; for(let i=0;i<7;i++){ const p = document.createElement('div'); p.className='pile empty'; p.id='p'+i; tableau.appendChild(p); }
+
+        let deck=[], dragInfo=null, z=1;
+
+        function makeDeck(){
+          const d=[]; for (const s of suits) for (const r of ranks) d.push({s,r});
+          // Fisher-Yates
+          for (let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
+          return d;
+        }
+        function cardColor(s){ return (s==='♥'||s==='♦') ? 'red' : 'black'; }
+        function rankVal(r){ return ranks.indexOf(r)+1; }
+
+        function createCardEl(card, faceUp=false){
+          const el = document.createElement('div');
+          el.className = 'card' + (faceUp?'':' face-down') + (cardColor(card.s)==='red'?' red':'');
+          el.dataset.s = card.s; el.dataset.r = card.r; el.dataset.face = faceUp?'up':'down';
+          el.innerHTML = `<div class="rank">${card.r}</div><div class="suit">${card.s}</div>`;
+          enableDrag(el);
+          return el;
+        }
+
+        function deal(){
+          deck = makeDeck();
+          // Clear piles
+          document.querySelectorAll('.pile, .waste, .stock, .foundation').forEach(p=>p.innerHTML='');
+          // Tableau
+          for (let i=0;i<7;i++){
+            const pile = document.getElementById('p'+i);
+            let y=0;
+            for (let k=0;k<=i;k++){
+              const c = deck.pop();
+              const faceUp = (k===i);
+              const el = createCardEl(c, faceUp);
+              el.style.top = y+'px'; y += faceUp ? 26 : 18;
+              pile.appendChild(el);
+            }
+            pile.classList.toggle('empty', pile.children.length===0);
+          }
+          // Stock
+          while(deck.length){ const c = deck.pop(); const el = createCardEl(c, false); stock.appendChild(el); }
+          stock.classList.toggle('empty', stock.children.length===0);
+          waste.classList.add('empty');
+          foundations.forEach(f=>f.classList.add('empty'));
+          statusL.textContent = 'Drag cards. Stock clicks deal 1 card.';
+        }
+
+        function topCard(el){ const cards = Array.from(el.querySelectorAll('.card')); return cards[cards.length-1] || null; }
+        function flipIfNeeded(pile){
+          const ts = Array.from(pile.querySelectorAll('.card')); if (!ts.length) return;
+          const top = ts[ts.length-1];
+          if (top.dataset.face==='down'){ top.classList.remove('face-down'); top.dataset.face='up'; top.style.top = ((ts.length-1)*26)+'px'; }
+        }
+        // Click stock to deal 1 card to waste
+        stock.addEventListener('click', ()=>{
+          const top = topCard(stock);
+          if (top){
+            top.classList.remove('face-down'); top.dataset.face='up';
+            top.style.left = '0px';
+            top.style.top = (waste.children.length ? 8 : 0) + 'px';
+            waste.appendChild(top);
+            waste.classList.remove('empty');
+          } else {
+            // Recycle waste back to stock face-down
+            const ws = Array.from(waste.querySelectorAll('.card'));
+            if (!ws.length) return;
+            for (let i=ws.length-1;i>=0;i--){
+              const c = ws[i];
+              c.classList.add('face-down'); c.dataset.face='down';
+              c.style.top = '0px'; c.style.left = '0px';
+              stock.appendChild(c);
+            }
+            stock.classList.remove('empty');
+            waste.classList.add('empty');
+          }
+        });
+
+        function enableDrag(card){
+          card.addEventListener('mousedown', (e)=>{
+            const face = card.dataset.face==='up';
+            if (!face) { // flip top facedown if clicking top of pile
+              const parent = card.parentElement;
+              if (card===topCard(parent)){ card.classList.remove('face-down'); card.dataset.face='up'; const idx = Array.from(parent.children).indexOf(card); card.style.top = (idx*26)+'px'; }
+              return;
+            }
+            // Only allow dragging sequences starting from a face-up card that is top or part of ordered stack
+            const parent = card.parentElement;
+            const all = Array.from(parent.querySelectorAll('.card')).filter(el=>el.dataset.face==='up');
+            const idx = all.indexOf(card);
+            const dragStack = all.slice(idx); // may be 1+ cards
+            // Validate for tableau stacks: must be descending alternating colors
+            // We'll allow free drag; validate on drop.
+            const ghost = card.cloneNode(true); ghost.classList.add('ghost'); ghost.style.pointerEvents='none';
+            document.body.appendChild(ghost);
+
+            let startX=e.clientX, startY=e.clientY;
+            const offsetX = e.clientX - card.getBoundingClientRect().left;
+            const offsetY = e.clientY - card.getBoundingClientRect().top;
+
+            dragInfo = {dragStack, sources: dragStack.map(el=>el.parentElement), originals: dragStack.map(el=>({left:el.style.left, top:el.style.top})), ghost, dx: offsetX, dy: offsetY};
+            dragStack.forEach((c,i)=>{
+              c.style.zIndex = 1000 + i; c.classList.add('dragging');
+              const r = c.getBoundingClientRect();
+              c.style.left = (r.left - c.parentElement.getBoundingClientRect().left)+'px';
+              c.style.top = (r.top - c.parentElement.getBoundingClientRect().top)+'px';
+              document.body.appendChild(c);
+            });
+            moveAt(e.pageX, e.pageY);
+            function moveAt(pageX, pageY){
+              dragStack.forEach((c,i)=>{
+                c.style.left = (pageX - dragInfo.dx) + 'px';
+                c.style.top = (pageY - dragInfo.dy + i*26) + 'px';
+              });
+              ghost.style.left = (pageX - dragInfo.dx) + 'px';
+              ghost.style.top = (pageY - dragInfo.dy) + 'px';
+            }
+            function onMove(ev){ moveAt(ev.pageX, ev.pageY); }
+            function onUp(ev){
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+              // Drop target: foundation or pile
+              const dropEl = document.elementFromPoint(ev.clientX, ev.clientY);
+              let target = dropEl && dropEl.closest('.foundation, .pile, .waste');
+              let ok=false;
+              if (target && target.classList.contains('foundation')) {
+                ok = canDropOnFoundation(dragStack, target);
+                if (ok) placeOnFoundation(dragStack, target);
+              } else if (target && target.classList.contains('pile')) {
+                ok = canDropOnPile(dragStack, target);
+                if (ok) placeOnPile(dragStack, target);
+              } else if (target && target.classList.contains('waste')) {
+                ok = dragStack.length===1; // only single can go back to waste top (no-op)
+                if (ok) placeOnWaste(dragStack, target);
+              }
+              cleanup(ok);
+            }
+            function cleanup(placed){
+              dragInfo.ghost.remove();
+              dragStack.forEach((c,i)=>{
+                c.classList.remove('dragging');
+                c.style.zIndex = '';
+                if (!placed){
+                  // back to source
+                  const src = dragInfo.sources[i];
+                  c.style.left = dragInfo.originals[i].left;
+                  c.style.top = dragInfo.originals[i].top;
+                  src.appendChild(c);
+                }
+              });
+              // After placing on tableau, flip source top if needed
+              if (placed){
+                const parents = new Set(dragInfo.sources);
+                parents.forEach(p=>{ if (p.classList.contains('pile')) { p.classList.toggle('empty', p.children.length===0); flipIfNeeded(p); }});
+                checkWin();
+              }
+              dragInfo=null;
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+        }
+
+        function canDropOnPile(stack, pile){
+          const top = topCard(pile);
+          const first = stack[0];
+          const fRank = first.dataset.r, fSuit=first.dataset.s, fCol = first.classList.contains('red')?'red':'black';
+          if (!top){
+            // Empty pile: only King can move
+            return rankVal(fRank)===13;
+          }
+          const tRank = top.dataset.r, tCol = top.classList.contains('red')?'red':'black';
+          return (tCol!==fCol) && (rankVal(tRank)===rankVal(fRank)+1);
+        }
+        function placeOnPile(stack, pile){
+          const baseY = Array.from(pile.children).length ? (Array.from(pile.children).length-1)*26+26 : 0;
+          stack.forEach((c,i)=>{
+            c.style.left='0px'; c.style.top = (baseY + i*26)+'px';
+            pile.appendChild(c);
+          });
+          pile.classList.remove('empty');
+        }
+        function canDropOnFoundation(stack, f){
+          if (stack.length!==1) return false;
+          const c = stack[0];
+          const suit = f.dataset.s;
+          if (c.dataset.s !== suit) return false;
+          const top = topCard(f);
+          if (!top) return c.dataset.r==='A';
+          return rankVal(c.dataset.r) === rankVal(top.dataset.r)+1;
+        }
+        function placeOnFoundation(stack, f){
+          const c = stack[0];
+          c.style.left='0px'; c.style.top='0px';
+          f.appendChild(c);
+          f.classList.remove('empty');
+        }
+        function placeOnWaste(stack, w){
+          const c = stack[0];
+          c.style.left='0px'; c.style.top= (w.children.length ? 8 : 0) + 'px';
+          w.appendChild(c);
+          w.classList.remove('empty');
+        }
+
+        function checkWin(){
+          const done = foundations.every(f=> f.children.length===13);
+          if (done) { alert('You win!'); }
+        }
+
+        deal();
+      }
+    });
+    return id;
+  }
+
+  /* =========================
+     Desktop boot icons (after apps defined)
+  ==========================*/
+  // Rebuild to bind current launchers (already done earlier).
+
+  /* =========================
+     Start with a friendly boot
+  ==========================*/
+  setTimeout(()=> {
+    launchApp('browser'); // open a browser to showcase
+  }, 400);
+
+})();
+</script>
+</body>
+</html>
