@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cloud Cover Noise — Sphere Mapper (Single File)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Import Map for Three.js (pin to r180 to keep OrbitControls in sync) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+      "three/examples/jsm/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #0b0f14; --panel: #111722; --accent: #6ae3ff; --text: #e9eef5; --muted:#9bb0c2;
+    }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
+    #app { position:fixed; inset:0; }
+    canvas { display:block; }
+
+    /* UI panel */
+    #ui {
+      position: absolute; top: 12px; left: 12px; width: 360px; max-height: calc(100% - 24px);
+      overflow: auto; background: rgba(17,23,34,0.96);
+      border: 1px solid #222b3b; border-radius: 14px; padding: 12px 12px 8px 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.02);
+      backdrop-filter: blur(6px);
+    }
+    h1 { margin: 0 0 10px; font-size: 16px; letter-spacing: 0.5px; color: var(--accent); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .group { margin: 10px 0 14px; padding: 10px; border: 1px solid #1c2433; border-radius: 10px; background: rgba(255,255,255,0.02); }
+    .group h2 { font-size: 13px; margin: 0 0 8px; color: #b7c5d8; letter-spacing: 0.3px; }
+    .row { display: grid; grid-template-columns: 1fr 70px; gap: 10px; align-items: center; margin: 6px 0; }
+    .row label { font-size: 12px; color: var(--muted); }
+    .row input[type="range"] { width: 100%; }
+    .row input[type="number"] {
+      width: 70px; background: #0e1420; color: var(--text); border: 1px solid #263145; border-radius: 6px;
+      padding: 4px 6px; font-size: 12px;
+    }
+    .colorrow { display:flex; align-items:center; gap:8px; margin:6px 0; }
+    .colorrow label { width:120px; font-size:12px; color: var(--muted); }
+    .colorrow input[type="color"] { width:36px; height:24px; border:1px solid #263145; border-radius:6px; background:#0e1420; }
+    .foot { font-size: 11px; color: var(--muted); margin-top: 8px; }
+    .pill {
+      display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px; color:#07202a; background:var(--accent);
+      margin-left:6px; vertical-align:top;
+    }
+    .btn {
+      font-size:12px; padding:6px 10px; border-radius:10px; border:1px solid #24465f;
+      background:#0f1a26; color:#cfe9f7; cursor:pointer;
+    }
+    .btn:hover { background:#112031; }
+    .btnrow { display:flex; gap:8px; align-items:center; }
+    .toast {
+      position: fixed; bottom: 14px; left: 14px; padding:8px 12px; border-radius:10px;
+      background:#0f1a26; border:1px solid #24465f; color:#cfe9f7; font-size:12px;
+      opacity:0; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease;
+      pointer-events:none;
+    }
+    .toast.show { opacity:1; transform: translateY(0); }
+    #credits { position:absolute; right:12px; bottom:12px; font-size:11px; color:var(--muted); background:#0e1420aa; padding:6px 8px; border-radius:8px; border:1px solid #1c2433; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="ui" role="complementary" aria-label="Noise Controls">
+    <h1>
+      <span>Cloud Cover Noise<span class="pill">Sphere</span></span>
+      <span class="btnrow">
+        <button id="copyBtn" class="btn" title="Copy current settings as JSON to clipboard">Copy Settings</button>
+      </span>
+    </h1>
+
+    <div class="group">
+      <h2>Global</h2>
+      <div class="row">
+        <label for="coverage">Coverage</label>
+        <input type="range" id="coverage" min="0" max="1" step="0.001" value="0.259" data-uniform="uCoverage">
+        <input type="number" id="coverage_n" min="0" max="1" step="0.001" value="0.259">
+      </div>
+      <div class="row">
+        <label for="brightness">Brightness</label>
+        <input type="range" id="brightness" min="0.1" max="2.0" step="0.01" value="1.0" data-uniform="uBrightness">
+        <input type="number" id="brightness_n" min="0.1" max="2.0" step="0.01" value="1.0">
+      </div>
+      <div class="row">
+        <label for="anim">Anim Speed</label>
+        <input type="range" id="anim" min="0.0" max="0.6" step="0.001" value="0.011" data-uniform="uAnimSpeed">
+        <input type="number" id="anim_n" min="0.0" max="0.6" step="0.001" value="0.011">
+      </div>
+      <div class="row">
+        <label for="rot">Spin Speed</label>
+        <input type="range" id="rot" min="-0.6" max="0.6" step="0.001" value="0.111" data-uniform="uRotateSpeed">
+        <input type="number" id="rot_n" min="-0.6" max="0.6" step="0.001" value="0.111">
+      </div>
+      <div class="colorrow">
+        <label for="sky">Sky Color</label>
+        <input type="color" id="sky" value="#244a8a" data-uniform="uSkyColor">
+      </div>
+      <div class="colorrow">
+        <label for="cloud">Cloud Color</label>
+        <input type="color" id="cloud" value="#ffffff" data-uniform="uCloudColor">
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Blend Mask — Thick / Clumpy</h2>
+      <div class="row">
+        <label for="bscale">Base Scale</label>
+        <input type="range" id="bscale" min="0.1" max="10" step="0.01" value="1.38" data-uniform="uBaseScale">
+        <input type="number" id="bscale_n" min="0.1" max="10" step="0.01" value="1.38">
+      </div>
+      <div class="row">
+        <label for="bcontrast">Contrast</label>
+        <input type="range" id="bcontrast" min="0.2" max="5" step="0.01" value="2.51" data-uniform="uBaseContrast">
+        <input type="number" id="bcontrast_n" min="0.2" max="5" step="0.01" value="2.51">
+      </div>
+      <div class="row">
+        <label for="bbias">Bias</label>
+        <input type="range" id="bbias" min="-0.6" max="0.6" step="0.001" value="0.333" data-uniform="uBaseBias">
+        <input type="number" id="bbias_n" min="-0.6" max="0.6" step="0.001" value="0.333">
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Thin — Wispy (Perlin/Simplex with Cutoff)</h2>
+      <div class="row">
+        <label for="tscale">Thin Scale</label>
+        <input type="range" id="tscale" min="0.5" max="30" step="0.01" value="19.62" data-uniform="uThinScale">
+        <input type="number" id="tscale_n" min="0.5" max="30" step="0.01" value="19.62">
+      </div>
+      <div class="row">
+        <label for="tcut">Cutoff</label>
+        <input type="range" id="tcut" min="0" max="1" step="0.001" value="0.574" data-uniform="uThinCutoff">
+        <input type="number" id="tcut_n" min="0" max="1" step="0.001" value="0.574">
+      </div>
+      <div class="row">
+        <label for="tsoft">Softness</label>
+        <input type="range" id="tsoft" min="0.001" max="0.6" step="0.001" value="0.522" data-uniform="uThinSoftness">
+        <input type="number" id="tsoft_n" min="0.001" max="0.6" step="0.001" value="0.522">
+      </div>
+      <div class="row">
+        <label for="tweight">Weight</label>
+        <input type="range" id="tweight" min="0" max="1" step="0.001" value="0.333" data-uniform="uThinWeight">
+        <input type="number" id="tweight_n" min="0" max="1" step="0.001" value="0.333">
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Puffy — fBm “Billow”</h2>
+      <div class="row">
+        <label for="pscale">Puffy Scale</label>
+        <input type="range" id="pscale" min="0.3" max="15" step="0.01" value="2.4" data-uniform="uPuffyScale">
+        <input type="number" id="pscale_n" min="0.3" max="15" step="0.01" value="2.4">
+      </div>
+      <div class="row">
+        <label for="poct">Octaves</label>
+        <input type="range" id="poct" min="1" max="8" step="1" value="4" data-uniform="uPuffyOctaves">
+        <input type="number" id="poct_n" min="1" max="8" step="1" value="4">
+      </div>
+      <div class="row">
+        <label for="pgain">Gain</label>
+        <input type="range" id="pgain" min="0.1" max="0.9" step="0.001" value="0.5" data-uniform="uPuffyGain">
+        <input type="number" id="pgain_n" min="0.1" max="0.9" step="0.001" value="0.5">
+      </div>
+      <div class="row">
+        <label for="plac">Lacunarity</label>
+        <input type="range" id="plac" min="1.5" max="3.5" step="0.001" value="2.796" data-uniform="uPuffyLacunarity">
+        <input type="number" id="plac_n" min="1.5" max="3.5" step="0.001" value="2.796">
+      </div>
+      <div class="row">
+        <label for="psharp">Sharpness</label>
+        <input type="range" id="psharp" min="0.5" max="3.0" step="0.001" value="1.0" data-uniform="uPuffySharpness">
+        <input type="number" id="psharp_n" min="0.5" max="3.0" step="0.001" value="1.0">
+      </div>
+      <div class="row">
+        <label for="pweight">Weight</label>
+        <input type="range" id="pweight" min="0" max="1" step="0.001" value="0.519" data-uniform="uPuffyWeight">
+        <input type="number" id="pweight_n" min="0" max="1" step="0.001" value="0.519">
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Light</h2>
+      <div class="row">
+        <label for="az">Azimuth (°)</label>
+        <input type="range" id="az" min="0" max="360" step="1" value="45">
+        <input type="number" id="az_n" min="0" max="360" step="1" value="45">
+      </div>
+      <div class="row">
+        <label for="el">Elevation (°)</label>
+        <input type="range" id="el" min="-10" max="85" step="1" value="35">
+        <input type="number" id="el_n" min="-10" max="85" step="1" value="35">
+      </div>
+    </div>
+
+    <div class="foot">
+      Click-drag to orbit. Mouse-wheel to zoom. Pinch on touch.  
+      Three.js via unpkg (ESM). Import-maps supported in modern browsers.  
+      See: <a class="link" href="https://unpkg.com/three/examples/jsm/controls/OrbitControls.js" target="_blank" rel="noopener">OrbitControls</a>
+    </div>
+  </div>
+
+  <div id="credits">Ariel’s Cloud Mapper</div>
+  <div id="toast" class="toast" aria-live="polite" aria-atomic="true">Copied settings to clipboard</div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    // ---------- Scene ----------
+    const app = document.getElementById('app');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    app.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 3.2);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // ---------- Geometry ----------
+    const sphere = new THREE.SphereGeometry(1, 256, 192);
+
+    // ---------- Shader (GLSL1 syntax to match default) ----------
+    const vertex = /* glsl */`
+      varying vec3 vWorldPos;
+      varying vec3 vNormal;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        vNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `;
+
+    const fragment = /* glsl */`
+      precision highp float;
+
+      varying vec3 vWorldPos;
+      varying vec3 vNormal;
+
+      uniform float uTime;
+      uniform float uAnimSpeed;
+      uniform float uRotateSpeed;
+
+      uniform float uCoverage;
+      uniform float uBrightness;
+
+      // Mask (thick/clumpy)
+      uniform float uBaseScale;
+      uniform float uBaseContrast;
+      uniform float uBaseBias;
+
+      // Thin wispy
+      uniform float uThinScale;
+      uniform float uThinCutoff;
+      uniform float uThinSoftness;
+      uniform float uThinWeight;
+
+      // Puffy fBm
+      uniform float uPuffyScale;
+      uniform float uPuffyOctaves;
+      uniform float uPuffyGain;
+      uniform float uPuffyLacunarity;
+      uniform float uPuffySharpness;
+      uniform float uPuffyWeight;
+
+      uniform vec3  uLightDir;
+      uniform vec3  uSkyColor;
+      uniform vec3  uCloudColor;
+
+      // -------- 3D simplex noise (Gustavson / Ashima) ----------
+      vec3 mod289(vec3 x){ return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x){ return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x){ return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314 * r; }
+
+      float snoise(vec3 v){
+        const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+        const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+
+        vec3 i  = floor(v + dot(v, C.yyy) );
+        vec3 x0 = v - i + dot(i, C.xxx) ;
+
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min( g.xyz, l.zxy );
+        vec3 i2 = max( g.xyz, l.zxy );
+
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+
+        i = mod289(i);
+        vec4 p = permute( permute( permute(
+                 i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+               + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
+               + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+        float n_ = 1.0/7.0;
+        vec3  ns = n_ * D.wyz - D.xzx;
+
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ *ns.x + ns.yyyy;
+        vec4 y = y_ *ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+
+        vec4 b0 = vec4( x.xy, y.xy );
+        vec4 b1 = vec4( x.zw, y.zw );
+
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+        vec3 p0 = vec3(a0.xy,h.x);
+        vec3 p1 = vec3(a0.zw,h.y);
+        vec3 p2 = vec3(a1.xy,h.z);
+        vec3 p3 = vec3(a1.zw,h.w);
+
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),
+                                      dot(p2,x2), dot(p3,x3) ) );
+      }
+
+      float fbm(vec3 p, float octaves, float lacunarity, float gain){
+        float amp = 0.5;
+        float freq = 1.0;
+        float sum = 0.0;
+        for (int i=0; i<8; ++i){
+          if(float(i) >= octaves) break;
+          sum += amp * snoise(p * freq);
+          freq *= lacunarity;
+          amp  *= gain;
+        }
+        return sum;
+      }
+
+      float remap01(float x){ return 0.5 + 0.5 * x; }
+
+      void main(){
+        vec3 npos = normalize(vWorldPos);
+
+        float t = uTime * uAnimSpeed;
+        float ang = uTime * uRotateSpeed;
+        float ca = cos(ang), sa = sin(ang);
+        mat3 R = mat3(
+          ca, 0.0, sa,
+          0.0, 1.0, 0.0,
+         -sa, 0.0, ca
+        );
+        vec3 p = R * npos + vec3(0.0, 0.0, t);
+
+        // ---- Blend Mask (thick/clumpy) ----
+        float m = fbm(p * uBaseScale, 3.5, 2.0, 0.5);
+        float mask = clamp(remap01(m) + uBaseBias, 0.0, 1.0);
+        mask = pow(mask, max(0.001, uBaseContrast));
+
+        // ---- Thin — Wispy ----
+        float nThin = remap01( snoise(p * uThinScale) );
+        float thin = smoothstep(uThinCutoff - uThinSoftness, uThinCutoff + uThinSoftness, nThin);
+
+        // ---- Puffy — fBm billow ----
+        float pff = fbm(p * uPuffyScale, uPuffyOctaves, uPuffyLacunarity, uPuffyGain);
+        float billow = 1.0 - abs(pff);
+        billow = pow(clamp(billow, 0.0, 1.0), uPuffySharpness);
+
+        // ---- Combine ----
+        float field = mix(thin * uThinWeight, billow * uPuffyWeight, clamp(mask, 0.0, 1.0));
+
+        // Coverage threshold
+        float density = smoothstep(uCoverage, 1.0, clamp(field, 0.0, 1.0));
+
+        // Simple light
+        float lambert = 0.6 + 0.4 * max(dot(normalize(vNormal), normalize(uLightDir)), 0.0);
+
+        vec3 rgb = mix(uSkyColor, uCloudColor * (uBrightness * lambert), density);
+        gl_FragColor = vec4(rgb, 1.0);
+      }
+    `;
+
+    // ---------- Uniforms (defaults from your screenshot) ----------
+    const uniforms = {
+      uTime:            { value: 0 },
+      uAnimSpeed:       { value: 0.011 },
+      uRotateSpeed:     { value: 0.111 },
+
+      uCoverage:        { value: 0.259 },
+      uBrightness:      { value: 1.0 },
+
+      uBaseScale:       { value: 1.38 },
+      uBaseContrast:    { value: 2.51 },
+      uBaseBias:        { value: 0.333 },
+
+      uThinScale:       { value: 19.62 },
+      uThinCutoff:      { value: 0.574 },
+      uThinSoftness:    { value: 0.522 },
+      uThinWeight:      { value: 0.333 },
+
+      uPuffyScale:      { value: 2.4 },
+      uPuffyOctaves:    { value: 4.0 },
+      uPuffyGain:       { value: 0.5 },
+      uPuffyLacunarity: { value: 2.796 },
+      uPuffySharpness:  { value: 1.0 },
+      uPuffyWeight:     { value: 0.519 },
+
+      uLightDir:        { value: new THREE.Vector3(0.6, 0.7, 0.5).normalize() },
+      uSkyColor:        { value: new THREE.Color(0x244a8a) },
+      uCloudColor:      { value: new THREE.Color(0xffffff) }
+    };
+
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      uniforms
+      // NOTE: no glslVersion => defaults to GLSL1, which matches the shader code
+    });
+
+    const mesh = new THREE.Mesh(sphere, mat);
+    scene.add(mesh);
+
+    // ---------- UI wiring ----------
+    function bindPair(rangeId, numberId, uName, kind = 'float') {
+      const r = document.getElementById(rangeId);
+      const n = document.getElementById(numberId);
+      n.value = r.value;
+      const set = (v) => {
+        if (kind === 'float') uniforms[uName].value = parseFloat(v);
+        else if (kind === 'int') uniforms[uName].value = parseInt(v, 10);
+      };
+      const sync = (src, dst) => () => { dst.value = src.value; set(src.value); };
+      set(r.value);
+      r.addEventListener('input', sync(r, n));
+      n.addEventListener('input', sync(n, r));
+    }
+    bindPair('coverage','coverage_n','uCoverage');
+    bindPair('brightness','brightness_n','uBrightness');
+    bindPair('anim','anim_n','uAnimSpeed');
+    bindPair('rot','rot_n','uRotateSpeed');
+
+    bindPair('bscale','bscale_n','uBaseScale');
+    bindPair('bcontrast','bcontrast_n','uBaseContrast');
+    bindPair('bbias','bbias_n','uBaseBias');
+
+    bindPair('tscale','tscale_n','uThinScale');
+    bindPair('tcut','tcut_n','uThinCutoff');
+    bindPair('tsoft','tsoft_n','uThinSoftness');
+    bindPair('tweight','tweight_n','uThinWeight');
+
+    bindPair('pscale','pscale_n','uPuffyScale');
+    bindPair('poct','poct_n','uPuffyOctaves','int');
+    bindPair('pgain','pgain_n','uPuffyGain');
+    bindPair('plac','plac_n','uPuffyLacunarity');
+    bindPair('psharp','psharp_n','uPuffySharpness');
+    bindPair('pweight','pweight_n','uPuffyWeight');
+
+    // Light azimuth/elevation → directional vector
+    function degToRad(d){ return d * Math.PI / 180; }
+    function updateLight(){
+      const az = parseFloat(document.getElementById('az').value);
+      const el = parseFloat(document.getElementById('el').value);
+      const azr = degToRad(az), elr = degToRad(el);
+      const x = Math.cos(elr) * Math.cos(azr);
+      const y = Math.sin(elr);
+      const z = Math.cos(elr) * Math.sin(azr);
+      uniforms.uLightDir.value.set(x, y, z).normalize();
+    }
+    const az = document.getElementById('az'), azn = document.getElementById('az_n');
+    const el = document.getElementById('el'), eln = document.getElementById('el_n');
+    const bindLight = (a,b) => {
+      b.value = a.value;
+      a.addEventListener('input', () => { b.value = a.value; updateLight(); });
+      b.addEventListener('input', () => { a.value = b.value; updateLight(); });
+    };
+    bindLight(az, azn); bindLight(el, eln);
+    updateLight();
+
+    // Color pickers
+    function hexToColor(hex){ return new THREE.Color(hex); }
+    const skyEl = document.getElementById('sky');
+    const cloudEl = document.getElementById('cloud');
+    uniforms.uSkyColor.value = hexToColor(skyEl.value);
+    uniforms.uCloudColor.value = hexToColor(cloudEl.value);
+    skyEl.addEventListener('input', (e)=>{ uniforms.uSkyColor.value = hexToColor(e.target.value); });
+    cloudEl.addEventListener('input', (e)=>{ uniforms.uCloudColor.value = hexToColor(e.target.value); });
+
+    // ---------- Copy Settings ----------
+    const copyBtn = document.getElementById('copyBtn');
+    const toast = document.getElementById('toast');
+
+    function getSettingsJSON(){
+      const v = id => (document.getElementById(id).value);
+      const settings = {
+        global: {
+          coverage: parseFloat(v('coverage')),
+          brightness: parseFloat(v('brightness')),
+          animSpeed: parseFloat(v('anim')),
+          spinSpeed: parseFloat(v('rot')),
+          skyColor: v('sky'),
+          cloudColor: v('cloud')
+        },
+        blendMask: {
+          baseScale: parseFloat(v('bscale')),
+          contrast: parseFloat(v('bcontrast')),
+          bias: parseFloat(v('bbias'))
+        },
+        thinWispy: {
+          thinScale: parseFloat(v('tscale')),
+          cutoff: parseFloat(v('tcut')),
+          softness: parseFloat(v('tsoft')),
+          weight: parseFloat(v('tweight'))
+        },
+        puffyBillow: {
+          puffyScale: parseFloat(v('pscale')),
+          octaves: parseInt(v('poct'), 10),
+          gain: parseFloat(v('pgain')),
+          lacunarity: parseFloat(v('plac')),
+          sharpness: parseFloat(v('psharp')),
+          weight: parseFloat(v('pweight'))
+        },
+        light: {
+          azimuthDeg: parseFloat(v('az')),
+          elevationDeg: parseFloat(v('el'))
+        }
+      };
+      return JSON.stringify(settings, null, 2);
+    }
+
+    async function copyToClipboard(text){
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy');
+          document.body.removeChild(ta);
+          return true;
+        }
+      } catch (e){
+        console.warn('Clipboard copy failed:', e);
+        return false;
+      }
+    }
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 1600);
+    }
+
+    copyBtn.addEventListener('click', async ()=>{
+      const ok = await copyToClipboard(getSettingsJSON());
+      showToast(ok ? 'Copied settings to clipboard' : 'Could not copy (check permissions)');
+    });
+
+    // ---------- Loop ----------
+    let t0 = performance.now();
+    function tick(now){
+      const dt = (now - t0) / 1000.0;
+      t0 = now;
+      uniforms.uTime.value += dt;
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // ---------- Resize ----------
+    window.addEventListener('resize', ()=>{
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
+  </script>
+</body>
+</html>
