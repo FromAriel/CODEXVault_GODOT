@@ -310,6 +310,137 @@
     background: #fff;
   }
 
+  /* Explorer / My Computer */
+  .explorer {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100%;
+  }
+  .explorer-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--gray-3d);
+    border-bottom: 2px inset var(--gray-dark);
+    font-size: 12px;
+  }
+  .explorer-toolbar .address-label { font-weight: 700; }
+  .explorer-body {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    height: 100%;
+  }
+  .tree-view {
+    background: var(--gray-light);
+    border-right: 2px inset var(--gray-dark);
+    overflow: auto;
+    padding: 4px 2px 8px;
+  }
+  .tree-group {
+    list-style: none;
+    margin: 0;
+    padding-left: 14px;
+  }
+  .tree-node { margin: 0; }
+  .tree-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
+    cursor: default;
+    border: 1px solid transparent;
+  }
+  .tree-row:hover { border-color: #00008033; }
+  .tree-row.selected {
+    background: #000080;
+    color: #fff;
+    border-color: #000080;
+  }
+  .tree-toggle {
+    width: 14px;
+    text-align: center;
+    font-weight: 700;
+  }
+  .tree-toggle.empty { visibility: hidden; }
+  .tree-label {
+    flex: 1;
+    white-space: nowrap;
+  }
+  .list-view {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+  }
+  .list-header {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) 160px 140px;
+    padding: 4px 8px;
+    background: var(--gray-light);
+    border-bottom: 2px inset var(--gray-dark);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .list-body {
+    flex: 1;
+    overflow: auto;
+  }
+  .list-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) 160px 140px;
+    align-items: center;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: default;
+  }
+  .list-row:nth-child(odd) { background: #f4f4f4; }
+  .list-row.selected {
+    background: #000080;
+    color: #fff;
+  }
+  .list-row .cell-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .list-row .cell-name span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .icon-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #000;
+    display: inline-block;
+    background: #dcdcdc;
+    position: relative;
+  }
+  .icon-box.icon-root { background: linear-gradient(#f4f4f4,#9ea7bf); }
+  .icon-box.icon-drive { background: linear-gradient(#fdfdfd,#b7b7b7); }
+  .icon-box.icon-drive-floppy { background: linear-gradient(#d0f0ff,#5aa0d6); }
+  .icon-box.icon-drive-cd { background: linear-gradient(#fefefe,#dcd2f0); }
+  .icon-box.icon-drive-network { background: linear-gradient(#d4f4d4,#6fa86f); }
+  .icon-box.icon-folder { background: linear-gradient(#ffe98c,#d7a436); border-color:#8b6d2d; }
+  .icon-box.icon-special { background: linear-gradient(#d6f0ff,#7aa5d9); }
+  .icon-box.icon-file { background: #ffffff; }
+  .icon-box.icon-file::after {
+    content: "";
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 5px; height: 6px;
+    background: #fff;
+    border-left: 1px solid #999;
+    transform: skewY(-15deg);
+  }
+  .explorer-empty {
+    padding: 16px;
+    font-size: 12px;
+    color: #555;
+  }
+
   /* Control Panel */
   .cp-grid {
     padding: 8px;
@@ -467,6 +598,122 @@
     browserHome: localStorage.getItem('w95.browserHome') || 'about:win95'
   };
   document.body.style.background = settings.desktopColor;
+  const VFS_TEMPLATE = {
+    id: 'mc-root',
+    name: 'My Computer',
+    type: 'root',
+    icon: 'root',
+    children: [
+      { id:'drive-a', name:'3½ Floppy (A:)', type:'drive', driveType:'Removable Disk', icon:'drive-floppy', size:'1.44 MB', free:'1.44 MB', modified:'7/11/1995 8:00 AM', children: [] },
+      { id:'drive-c', name:'Local Disk (C:)', type:'drive', driveType:'Local Disk', icon:'drive', size:'2.1 GB', free:'1.2 GB', modified:'8/24/1997 9:05 AM', children:[
+        { id:'c-program-files', name:'Program Files', type:'folder', icon:'folder', modified:'8/24/1997 9:32 AM', children:[
+          { id:'c-program-files-accessories', name:'Accessories', type:'folder', icon:'folder', modified:'8/24/1997 9:32 AM', children:[
+            { id:'c-program-files-accessories-paint', name:'MSPAINT.EXE', type:'file', ext:'exe', icon:'file', size:'432 KB', modified:'7/15/1995 3:12 PM' },
+            { id:'c-program-files-accessories-wordpad', name:'WORDPAD.EXE', type:'file', ext:'exe', icon:'file', size:'223 KB', modified:'7/15/1995 3:12 PM' }
+          ]}
+        ]},
+        { id:'c-windows', name:'Windows', type:'folder', icon:'folder', modified:'8/24/1997 9:05 AM', children:[
+          { id:'c-windows-system', name:'System', type:'folder', icon:'folder', modified:'8/24/1997 9:05 AM', children:[
+            { id:'c-windows-system-krnl386', name:'KRNL386.EXE', type:'file', ext:'exe', icon:'file', size:'276 KB', modified:'7/11/1995 8:31 AM' },
+            { id:'c-windows-system-gdi', name:'GDI.EXE', type:'file', ext:'exe', icon:'file', size:'238 KB', modified:'7/11/1995 8:31 AM' }
+          ]},
+          { id:'c-windows-media', name:'Media', type:'folder', icon:'folder', modified:'8/24/1997 8:45 AM', children:[
+            { id:'c-windows-media-tada', name:'tada.wav', type:'file', ext:'wav', icon:'file', size:'44 KB', modified:'7/11/1995 3:05 PM' },
+            { id:'c-windows-media-irritate', name:'irritate.wav', type:'file', ext:'wav', icon:'file', size:'67 KB', modified:'7/11/1995 3:05 PM' }
+          ]},
+          { id:'c-windows-readme', name:'README.TXT', type:'file', ext:'txt', icon:'file', size:'18 KB', modified:'7/11/1995 8:40 AM' }
+        ]},
+        { id:'c-docs', name:'My Documents', type:'folder', icon:'folder', modified:'8/24/1997 10:12 AM', children:[
+          { id:'c-docs-welcome', name:'Welcome to Windows 95.doc', type:'file', ext:'doc', icon:'file', size:'28 KB', modified:'8/24/1997 10:01 AM' }
+        ]},
+        { id:'c-games', name:'Games', type:'folder', icon:'folder', modified:'8/24/1997 9:55 AM', children:[
+          { id:'c-games-sol', name:'SOL.EXE', type:'file', ext:'exe', icon:'file', size:'289 KB', modified:'7/11/1995 8:05 AM' },
+          { id:'c-games-mines', name:'WINMINE.EXE', type:'file', ext:'exe', icon:'file', size:'161 KB', modified:'7/11/1995 8:05 AM' }
+        ]}
+      ]},
+      { id:'drive-d', name:'CD-ROM (D:)', type:'drive', driveType:'CD-ROM', icon:'drive-cd', size:'620 MB', free:'0 MB', modified:'8/18/1997 2:23 PM', children:[
+        { id:'drive-d-setup', name:'SETUP.EXE', type:'file', ext:'exe', icon:'file', size:'512 KB', modified:'8/12/1995 11:05 AM' },
+        { id:'drive-d-manual', name:'MANUAL.TXT', type:'file', ext:'txt', icon:'file', size:'21 KB', modified:'8/12/1995 11:05 AM' }
+      ]},
+      { id:'control-panel-link', name:'Control Panel', type:'special', special:'control', icon:'special', modified:'8/24/1997 9:00 AM', launch:'controlpanel' },
+      { id:'printers', name:'Printers', type:'folder', icon:'special', special:'printers', modified:'8/24/1997 9:10 AM', children:[
+        { id:'printers-hp', name:'HP DeskJet 660C', type:'file', ext:'printer', icon:'file', size:'', modified:'8/20/1997 4:12 PM' }
+      ]},
+      { id:'dialup', name:'Dial-Up Networking', type:'folder', icon:'special', special:'dialup', modified:'7/30/1997 5:26 PM', children:[] },
+      { id:'network', name:'Network Neighborhood', type:'folder', icon:'special', special:'network', modified:'8/24/1997 9:40 AM', children:[
+        { id:'network-entire', name:'Entire Network', type:'folder', icon:'folder', modified:'8/24/1997 9:40 AM', children:[
+          { id:'network-ms', name:'Microsoft Windows Network', type:'folder', icon:'folder', modified:'8/24/1997 9:40 AM', children:[] }
+        ]}
+      ]}
+    ]
+  };
+  function cloneVfs(node){
+    const copy = {...node};
+    if (node.children) {
+      copy.children = node.children.map(child => cloneVfs(child));
+    } else {
+      copy.children = [];
+    }
+    copy.collapsed = false;
+    copy.parent = null;
+    return copy;
+  }
+  function indexVfs(node, map){
+    map.set(node.id, node);
+    if (node.children) {
+      node.children.forEach(child => {
+        child.parent = node;
+        indexVfs(child, map);
+      });
+    }
+    return map;
+  }
+  function nodeTypeLabel(node){
+    if (!node) return '';
+    if (node.type === 'root') return 'System Folder';
+    if (node.type === 'drive'){
+      if (node.driveType === 'CD-ROM') return 'CD-ROM';
+      if (node.driveType === 'Removable Disk') return '3½ Floppy';
+      if (node.driveType === 'Network') return 'Network Drive';
+      return 'Local Disk';
+    }
+    if (node.special === 'control') return 'Control Panel';
+    if (node.special === 'printers') return 'Printers Folder';
+    if (node.special === 'dialup') return 'Dial-Up Folder';
+    if (node.special === 'network') return 'Network Neighborhood';
+    if (node.type === 'folder') return 'File Folder';
+    if (node.type === 'file') {
+      if (node.ext) return `${node.ext.toUpperCase()} File`;
+      return 'File';
+    }
+    if (node.type === 'special') return 'System Folder';
+    return 'Item';
+  }
+  function nodeSizeLabel(node){
+    if (!node) return '';
+    if (node.type === 'drive'){
+      if (node.size && node.free) return `${node.size} (${node.free} free)`;
+      return node.size || '';
+    }
+    if (node.type === 'file') return node.size || '';
+    return '';
+  }
+  function nodeIconClass(node){
+    if (!node) return '';
+    const classes = ['icon-box'];
+    if (node.icon) classes.push(`icon-${node.icon}`);
+    return classes.join(' ');
+  }
+  function vfsPath(node){
+    if (!node) return '';
+    const parts = [];
+    let cursor = node;
+    while (cursor){
+      parts.unshift(cursor.name);
+      cursor = cursor.parent;
+    }
+    return parts.join('\\');
+  }
   startBtn.setAttribute('aria-haspopup', 'true');
   startBtn.setAttribute('aria-controls', 'start-menu');
   startBtn.setAttribute('aria-pressed', 'false');
@@ -676,7 +923,7 @@
      Desktop icons & Start
   ==========================*/
   const desktopIcons = [
-    {id:'mycomputer', label:'My Computer', icon:'🖥️', launch: ()=> alert('This demo focuses on core apps.\nOpen Control Panel for settings.')},
+    {id:'mycomputer', label:'My Computer', icon:'🖥️', launch: ()=> launchApp('mycomputer')},
     {id:'recycle', label:'Recycle Bin', icon:'🗑️', launch: ()=> alert('Recycle Bin is empty.')},
     {id:'controlpanel', label:'Control Panel', icon:'⚙️', launch: ()=> launchApp('controlpanel')},
     {id:'browser', label:'Web Browser', icon:'🌐', launch: ()=> launchApp('browser')},
@@ -749,8 +996,9 @@
       case 'minesweeper': return AppMinesweeper();
       case 'controlpanel': return AppControlPanel();
       case 'solitaire': return AppSolitaire();
+      case 'mycomputer': return AppMyComputer();
       default:
-        alert(`'${appId}' is not recognized. Try: notepad, calc, browser, minesweeper, solitaire, controlpanel.`);
+        alert(`'${appId}' is not recognized. Try: notepad, calc, browser, minesweeper, solitaire, controlpanel, mycomputer.`);
     }
   }
 
@@ -1151,9 +1399,6 @@
     return id;
   }
 
-  /* =========================
-     CONTROL PANEL
-  ==========================*/
   function AppControlPanel(){
     const id = createWindow({
       appId:'controlpanel', icon:'⚙️', title:'Control Panel', width:640, height:420, x:160, y:100,
@@ -1628,6 +1873,198 @@
     });
     return id;
   }
+  function AppMyComputer(){
+    const id = createWindow({
+      appId:'mycomputer', icon:'dY-??,?', title:'My Computer', width: 780, height: 520, x: 110, y: 70,
+      contentBuilder: ({content, statusL, statusR, menubar})=>{
+        menubar.innerHTML =
+          '<div class="menu-label">File</div>' +
+          '<div class="menu-label">Edit</div>' +
+          '<div class="menu-label">View</div>' +
+          '<div class="menu-label">Help</div>';
+        content.innerHTML =
+          '<div class="explorer">' +
+            '<div class="explorer-toolbar">' +
+              '<span class="address-label">Address:</span>' +
+              '<span class="address-value"></span>' +
+            '</div>' +
+            '<div class="explorer-body">' +
+              '<div class="tree-view"></div>' +
+              '<div class="list-view">' +
+                '<div class="list-header">' +
+                  '<span>Name</span>' +
+                  '<span>Type</span>' +
+                  '<span>Size</span>' +
+                '</div>' +
+                '<div class="list-body"></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        const addressEl = content.querySelector('.address-value');
+        const treeEl = content.querySelector('.tree-view');
+        const listBody = content.querySelector('.list-body');
+        const root = cloneVfs(VFS_TEMPLATE);
+        const vfsMap = indexVfs(root, new Map());
+        let selectedTreeId = root.id;
+        let selectedListId = null;
+        let currentNode = root;
+        let currentChildren = [];
+        statusL.textContent = '';
+        statusR.textContent = nodeTypeLabel(root);
+
+        function ensureVisible(node){
+          let cursor = node.parent;
+          while (cursor){
+            cursor.collapsed = false;
+            cursor = cursor.parent;
+          }
+        }
+        function createTreeBranch(node){
+          const li = document.createElement('li');
+          li.className = 'tree-node';
+          li.dataset.id = node.id;
+          const row = document.createElement('div');
+          row.className = 'tree-row';
+          if (node.id === selectedTreeId) row.classList.add('selected');
+          const hasChildren = node.children && node.children.length;
+          const toggle = document.createElement('span');
+          toggle.className = 'tree-toggle' + (hasChildren ? '' : ' empty');
+          toggle.textContent = hasChildren ? (node.collapsed ? '+' : '-') : '';
+          row.appendChild(toggle);
+          const icon = document.createElement('span');
+          icon.className = nodeIconClass(node);
+          row.appendChild(icon);
+          const label = document.createElement('span');
+          label.className = 'tree-label';
+          label.textContent = node.name;
+          row.appendChild(label);
+          li.appendChild(row);
+          if (hasChildren && !node.collapsed){
+            const childUl = document.createElement('ul');
+            childUl.className = 'tree-group';
+            node.children.forEach(child => childUl.appendChild(createTreeBranch(child)));
+            li.appendChild(childUl);
+          }
+          return li;
+        }
+        function renderTree(){
+          treeEl.innerHTML = '';
+          const rootList = document.createElement('ul');
+          rootList.className = 'tree-group';
+          rootList.appendChild(createTreeBranch(root));
+          treeEl.appendChild(rootList);
+        }
+        function renderList(){
+          listBody.innerHTML = '';
+          const children = currentNode.children || [];
+          currentChildren = children;
+          if (!children.length){
+            const empty = document.createElement('div');
+            empty.className = 'explorer-empty';
+            empty.textContent = currentNode.type === 'drive' ? 'No files to display.' : 'This folder is empty.';
+            listBody.appendChild(empty);
+          } else {
+            children.forEach(child => {
+              const row = document.createElement('div');
+              row.className = 'list-row';
+              row.dataset.id = child.id;
+              if (child.id === selectedListId) row.classList.add('selected');
+
+              const nameCell = document.createElement('span');
+              nameCell.className = 'cell-name';
+              const icon = document.createElement('span');
+              icon.className = nodeIconClass(child);
+              nameCell.appendChild(icon);
+              const label = document.createElement('span');
+              label.textContent = child.name;
+              nameCell.appendChild(label);
+              row.appendChild(nameCell);
+
+              const typeCell = document.createElement('span');
+              typeCell.textContent = nodeTypeLabel(child);
+              row.appendChild(typeCell);
+
+              const sizeCell = document.createElement('span');
+              sizeCell.textContent = nodeSizeLabel(child);
+              row.appendChild(sizeCell);
+
+              listBody.appendChild(row);
+            });
+          }
+          statusL.textContent = children.length ? (children.length + ' object(s)') : 'Empty';
+          statusR.textContent = nodeTypeLabel(currentNode);
+        }
+        function updateAddress(){
+          addressEl.textContent = vfsPath(currentNode);
+        }
+        function refresh(){
+          renderTree();
+          renderList();
+          updateAddress();
+        }
+        function selectNode(node){
+          ensureVisible(node);
+          currentNode = node;
+          selectedTreeId = node.id;
+          selectedListId = null;
+          refresh();
+        }
+        function openNode(node){
+          if (!node) return;
+          if (node.launch){
+            setTimeout(()=> launchApp(node.launch), 0);
+            return;
+          }
+          if (node.type === 'file' && (!node.children || !node.children.length)){
+            const parts = [node.name, nodeTypeLabel(node)];
+            if (node.size) parts.push('Size: ' + node.size);
+            if (node.modified) parts.push('Modified: ' + node.modified);
+            alert(parts.join('\n'));
+            return;
+          }
+          selectNode(node);
+        }
+
+        treeEl.addEventListener('click', (e)=>{
+          const toggle = e.target.closest('.tree-toggle');
+          if (toggle){
+            const li = toggle.closest('.tree-node');
+            if (!li) return;
+            const node = vfsMap.get(li.dataset.id);
+            if (node && node.children.length){
+              node.collapsed = !node.collapsed;
+              renderTree();
+            }
+            return;
+          }
+          const row = e.target.closest('.tree-row');
+          if (!row) return;
+          const li = row.closest('.tree-node');
+          if (!li) return;
+          const node = vfsMap.get(li.dataset.id);
+          if (node) selectNode(node);
+        });
+        listBody.addEventListener('click', (e)=>{
+          const row = e.target.closest('.list-row');
+          if (!row) return;
+          const node = vfsMap.get(row.dataset.id);
+          if (!node) return;
+          selectedListId = node.id;
+          listBody.querySelectorAll('.list-row').forEach(r=> r.classList.toggle('selected', r === row));
+          statusR.textContent = nodeTypeLabel(node);
+        });
+        listBody.addEventListener('dblclick', (e)=>{
+          const row = e.target.closest('.list-row');
+          if (!row) return;
+          const node = vfsMap.get(row.dataset.id);
+          openNode(node);
+        });
+        refresh();
+      }
+    });
+    return id;
+  }
+
 
   /* =========================
      Desktop boot icons (after apps defined)
