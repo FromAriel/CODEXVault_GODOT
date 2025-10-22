@@ -105,6 +105,7 @@
     font-weight: 700;
     cursor: default;
   }
+  #start-button.active,
   #start-button:active { border: 2px inset var(--gray-light); }
   #task-buttons {
     display: flex;
@@ -466,21 +467,71 @@
     browserHome: localStorage.getItem('w95.browserHome') || 'about:win95'
   };
   document.body.style.background = settings.desktopColor;
+  startBtn.setAttribute('aria-haspopup', 'true');
+  startBtn.setAttribute('aria-controls', 'start-menu');
+  startBtn.setAttribute('aria-pressed', 'false');
+  startMenu.setAttribute('aria-hidden', 'true');
+  startMenu.tabIndex = -1;
+
+  const clockTooltipOpts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' };
 
   function fmtTime(d) {
     let hh = d.getHours().toString().padStart(2,'0');
     let mm = d.getMinutes().toString().padStart(2,'0');
     return `${hh}:${mm}`;
   }
-  function tickClock(){ clockEl.textContent = fmtTime(new Date()); }
+  function tickClock(){
+    const now = new Date();
+    clockEl.textContent = fmtTime(now);
+    clockEl.title = now.toLocaleString(undefined, clockTooltipOpts);
+  }
   setInterval(tickClock, 1000*20); tickClock();
 
-  // Start menu toggling
+  let startMenuOpen = false;
+  function setStartMenu(open){
+    startMenuOpen = open;
+    startMenu.style.display = open ? 'block' : 'none';
+    startBtn.classList.toggle('active', open);
+    startBtn.setAttribute('aria-pressed', open ? 'true' : 'false');
+    startMenu.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open){
+      startMenu.focus({preventScroll:true});
+    }
+  }
+  function toggleStartMenu(forced){
+    const target = (typeof forced === 'boolean') ? forced : !startMenuOpen;
+    setStartMenu(target);
+  }
+
   startBtn.addEventListener('click', (e)=>{
     e.stopPropagation();
-    startMenu.style.display = (startMenu.style.display === 'block') ? 'none' : 'block';
+    toggleStartMenu();
   });
-  document.addEventListener('click', ()=> startMenu.style.display = 'none');
+  startMenu.addEventListener('mousedown', (e)=> e.stopPropagation());
+  startMenu.addEventListener('click', (e)=> e.stopPropagation());
+  document.addEventListener('click', ()=> setStartMenu(false));
+  document.addEventListener('keydown', (e)=>{
+    const key = e.key;
+    if (key === 'Escape' && e.ctrlKey && !e.shiftKey && !e.altKey){
+      if (!e.repeat) {
+        e.preventDefault();
+        toggleStartMenu();
+      }
+      return;
+    }
+    if ((key === 'Meta' || key === 'OS') && !e.ctrlKey && !e.altKey){
+      if (!e.repeat) {
+        e.preventDefault();
+        toggleStartMenu(true);
+      }
+      return;
+    }
+    if (key === 'Escape' && startMenuOpen){
+      e.preventDefault();
+      setStartMenu(false);
+      startBtn.focus();
+    }
+  });
 
   function bringToFront(winEl) {
     document.querySelectorAll('.win95-window').forEach(w => w.classList.add('inactive'));
@@ -659,10 +710,11 @@
 
   // Start menu items handlers
   startMenu.addEventListener('click', (e)=>{
+    e.stopPropagation();
     const item = e.target.closest('.menu-item[data-launch]');
     if (!item) return;
     const id = item.getAttribute('data-launch');
-    startMenu.style.display = 'none';
+    setStartMenu(false);
     if (id==='shutdown') {
       if (confirm("Shut down Windows 95?\n\n(Just closes all windows in this demo.)")) {
         Array.from(windows.keys()).forEach(closeWindow);
@@ -952,19 +1004,60 @@
             <button class="btn" data-act="go">Go</button>
             <button class="btn" data-act="openext" title="Open in new tab">↗ Open Externally</button>
           </div>
-          <iframe class="browser-iframe" id="view" sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe>
+          <iframe class="browser-iframe" id="view"></iframe>
         `;
         const addr = content.querySelector('#addr');
         const view = content.querySelector('#view');
         const hist = []; let hIndex = -1;
         let home = settings.browserHome;
+        let embedWarningTimer = null;
 
         function setTitle(url){
           win.querySelector('.title').textContent = `${url} - Internet Explorer`;
         }
-        function load(url, push=true){
-          if (!url) return;
-          if (url==='about:win95'){
+        function normalizeUrl(input){
+          if (!input) return '';
+          const trimmed = input.trim();
+          if (!trimmed) return '';
+          if (trimmed.toLowerCase() === 'about:win95') return 'about:win95';
+          if (/^https?:\/\//i.test(trimmed)) {
+            if (/^http:\/\//i.test(trimmed)) {
+              try {
+                const url = new URL(trimmed);
+                url.protocol = 'https:';
+                return url.href;
+              } catch {
+                // fall through to best-effort handling below
+              }
+            } else {
+              return trimmed;
+            }
+          }
+          if (trimmed.startsWith('//')) return 'https:' + trimmed;
+          if (/^[\w.-]+\.[a-z]{2,}([\/?].*)?$/i.test(trimmed)) {
+            const suffix = trimmed.replace(/^https?:\/\//i,'');
+            return 'https://' + suffix;
+          }
+          try {
+            const viaURL = new URL(trimmed, 'https://');
+            if (viaURL.hostname && viaURL.protocol.startsWith('http')) {
+              return viaURL.href;
+            }
+          } catch {}
+          return 'https://www.bing.com/search?q=' + encodeURIComponent(trimmed);
+        }
+        function load(urlInput, push=true){
+          const normalized = normalizeUrl(urlInput);
+          if (!normalized) return;
+          const external = normalized !== 'about:win95';
+          const clearWarning = ()=> {
+            if (embedWarningTimer){
+              clearTimeout(embedWarningTimer);
+              embedWarningTimer = null;
+            }
+          };
+          clearWarning();
+          if (normalized === 'about:win95'){
             const html = aboutWin95Home();
             view.srcdoc = html;
             setTitle('about:win95');
@@ -975,11 +1068,14 @@
           }
           // Attempt to load; some sites may block framing
           view.removeAttribute('srcdoc');
-          view.src = url;
-          setTitle(url);
+          view.src = normalized;
+          setTitle(normalized);
           statusL.textContent = 'Navigating...';
-          addr.value = url;
-          if (push) { hist.splice(hIndex+1); hist.push(url); hIndex++; }
+          addr.value = normalized;
+          if (push) { hist.splice(hIndex+1); hist.push(normalized); hIndex++; }
+          embedWarningTimer = setTimeout(()=>{
+            statusL.textContent = 'Site may block embedding here. Use Open Externally if blank.';
+          }, 2500);
         }
         function aboutWin95Home(){
           return `
@@ -1010,15 +1106,32 @@
           const b = e.target.closest('button'); if(!b) return;
           const act = b.dataset.act;
           if (act==='go'){
-            let url = addr.value.trim();
-            if (!url) return;
-            if (!/^https?:\/\//i.test(url) && url!=='about:win95'){ url = 'https://' + url; }
+            const url = addr.value;
+            if (!url.trim()) return;
             load(url);
           }
           if (act==='home'){ load(home); }
           if (act==='back'){ if (hIndex>0){ hIndex--; load(hist[hIndex], false); } }
           if (act==='fwd'){ if (hIndex<hist.length-1){ hIndex++; load(hist[hIndex], false); } }
-          if (act==='openext'){ let u = addr.value.trim() || home; if (u==='about:win95') u='https://example.com'; window.open(u, '_blank'); }
+          if (act==='openext'){
+            let u = addr.value.trim() || home;
+            u = normalizeUrl(u || home);
+            if (!u || u === 'about:win95') u = 'https://example.com';
+            window.open(u, '_blank');
+          }
+        });
+        addr.addEventListener('keydown', (e)=>{
+          if (e.key === 'Enter'){
+            e.preventDefault();
+            load(addr.value);
+          }
+        });
+        view.addEventListener('load', ()=>{
+          if (embedWarningTimer){
+            clearTimeout(embedWarningTimer);
+            embedWarningTimer = null;
+          }
+          statusL.textContent = view.hasAttribute('srcdoc') ? 'Loaded local home page.' : 'Done.';
         });
 
         menubar.addEventListener('click', (e)=>{
@@ -1421,7 +1534,9 @@
               document.removeEventListener('mousemove', onMove);
               document.removeEventListener('mouseup', onUp);
               // Drop target: foundation or pile
+              dragStack.forEach(c=> c.style.pointerEvents='none');
               const dropEl = document.elementFromPoint(ev.clientX, ev.clientY);
+              dragStack.forEach(c=> c.style.pointerEvents='');
               let target = dropEl && dropEl.closest('.foundation, .pile, .waste');
               let ok=false;
               if (target && target.classList.contains('foundation')) {
