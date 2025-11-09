@@ -503,7 +503,7 @@
   }
 
   // Wire up UI
-  controls.regen.addEventListener('click', ()=>{ render(); });
+  controls.regen.addEventListener('click', ()=>{ reseed(); render(); });
   controls.seed.addEventListener('click', ()=>{ reseed(); render(); });
   controls.step.addEventListener('click', ()=>{ stepDrift(60); render(); });
   controls.animate.addEventListener('change', ()=>{
