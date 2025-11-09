@@ -20,10 +20,7 @@
       color: var(--ink); background: linear-gradient(180deg, #0a0e14, #0e131a);
       display: grid; grid-template-rows: auto 1fr; gap: 10px;
     }
-    header {
-      padding: 10px 14px; background: #0a0f16aa; backdrop-filter: blur(6px);
-      border-bottom: 1px solid #1a2230; position: sticky; top: 0; z-index: 10;
-    }
+    header { padding: 10px 14px; background: #0a0f16aa; backdrop-filter: blur(6px); border-bottom: 1px solid #1a2230; position: sticky; top: 0; z-index: 10; }
     header h1 { font-size: 18px; margin: 0 0 6px; letter-spacing: 0.3px; }
     .sub { color: var(--muted); font-size: 12px }
     main { display: grid; grid-template-columns: 320px 1fr; gap: 12px; padding: 12px; }
@@ -34,11 +31,8 @@
     .row input[type="range"] { width: 180px; }
     .row input[type="number"] { width: 72px; background: #0e141d; color: var(--ink); border: 1px solid #263246; border-radius: 8px; padding: 6px 8px; }
     .row input[type="checkbox"] { transform: translateY(1px); }
-    .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-    button {
-      background: #0e1622; color: var(--ink); border: 1px solid #2a3548; border-radius: 10px; padding: 8px 10px;
-      cursor: pointer; font-weight: 600; letter-spacing: .2px;
-    }
+    .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    button { background: #0e1622; color: var(--ink); border: 1px solid #2a3548; border-radius: 10px; padding: 8px 10px; cursor: pointer; font-weight: 600; letter-spacing: .2px; }
     button:hover { border-color: #3c4f6b; }
     button.primary { background: #112035; border-color: #345c86; color: #d9eeff; }
     button.warn { background: #20160e; border-color: #5a3b1e; color: #ffd8b0; }
@@ -80,6 +74,10 @@
         <input id="speck" type="range" min="0" max="600" value="120" />
       </div>
 
+      <div class="row"><label>Ocean relax (iters)</label>
+        <input id="orelax" type="range" min="0" max="4" value="1" />
+      </div>
+
       <div class="row"><label>Detail noise (δ)</label>
         <input id="detail" type="range" min="0" max="200" value="80" />
       </div>
@@ -104,6 +102,12 @@
         <input id="rough" type="range" min="0" max="100" value="60" />
       </div>
 
+      <div class="row"><label><input id="lloyd" type="checkbox" checked /> Lloyd relax seeds</label><span></span></div>
+      <div class="row"><label>Lloyd iterations</label>
+        <input id="lloydIter" type="range" min="0" max="5" value="2" />
+      </div>
+      <div class="row"><label><input id="oceanDistShade" type="checkbox" checked /> Smooth ocean by coast distance</label><span></span></div>
+
       <div class="row"><label><input id="wrap" type="checkbox" checked /> Torus wrap (no hard edges)</label><span></span></div>
       <div class="row"><label><input id="animate" type="checkbox"/> Animate drift</label><span></span></div>
       <div class="row"><label>Drift speed</label>
@@ -114,6 +118,7 @@
         <button class="primary" id="regen">Regenerate</button>
         <button id="step">Step drift</button>
         <button class="warn" id="seed">Reseed</button>
+        <button id="selftest">Self‑test</button>
       </div>
 
       <div class="legend">
@@ -150,10 +155,8 @@
   const smoothstep=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
 
   function hash2d(x,y){
-    // quick hash → pseudo-rand [0,1)
     let s = Math.sin(x*127.1 + y*311.7)*43758.5453; return s - Math.floor(s);
   }
-
   function valueNoise2D(x,y){
     const xi = Math.floor(x), yi = Math.floor(y);
     const xf = x - xi, yf = y - yi;
@@ -161,22 +164,17 @@
     const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
     return lerp(lerp(v00,v10,u), lerp(v01,v11,u), v);
   }
-
   function fbm(x,y,oct=4,lac=2,gain=0.5){
     let a=1,f=1,sum=0, amp=0;
     for(let i=0;i<oct;i++){ sum += a*valueNoise2D(x*f,y*f); amp += a; a*=gain; f*=lac; }
-    return sum/amp; // [0,1]
+    return sum/amp;
   }
 
   function poissonDisc(width,height,radius,k=30){
-    // Bridson's algorithm
     const cell = radius/Math.SQRT2;
     const grid = new Array(Math.ceil(width/cell)).fill(0).map(()=>new Array(Math.ceil(height/cell)).fill(-1));
     const samples = [], active=[];
-    function place(p){
-      samples.push(p); active.push(p);
-      grid[Math.floor(p.x/cell)][Math.floor(p.y/cell)] = samples.length-1;
-    }
+    function place(p){ samples.push(p); active.push(p); grid[Math.floor(p.x/cell)][Math.floor(p.y/cell)] = samples.length-1; }
     place({x:rand(width),y:rand(height)});
     while(active.length){
       const i = Math.floor(rand(active.length));
@@ -204,20 +202,45 @@
     return samples;
   }
 
-  // ===== Model =====
   class Plate {
     constructor(x,y,type){
-      this.x=x; this.y=y; // seed position
+      this.x=x; this.y=y;
       this.vx=rand(-1,1); this.vy=rand(-1,1);
       const m = Math.hypot(this.vx,this.vy)||1; this.vx/=m; this.vy/=m;
-      this.type=type; // 'cont' or 'ocean'
+      this.type=type; // 'cont' | 'ocean'
       this.thickness = type==='cont'? lerp(35,45,Math.random()) : lerp(5,10,Math.random());
-      this.weight = type==='cont'? lerp(1.1,2.0,Math.random()): lerp(0.6,1.0,Math.random()); // power diagram-ish bias
+      this.weight = type==='cont'? lerp(1.1,2.0,Math.random()): lerp(0.6,1.0,Math.random());
     }
   }
 
-  // For pixel-based Voronoi we don't explicitly build edges; we use
-  // (nearest, second-nearest) per pixel to derive boundary masks.
+  // === Lloyd relaxation (coarse) ===
+  function lloydRelax(iterations){
+    const iters = Math.max(0, iterations|0);
+    if(iters===0) return;
+    for(let it=0; it<iters; it++){
+      const step = 4;
+      const sumx = new Float64Array(plates.length);
+      const sumy = new Float64Array(plates.length);
+      const cnt  = new Uint32Array(plates.length);
+      for(let y=0;y<H;y+=step){
+        for(let x=0;x<W;x+=step){
+          let best=1e9, idx=-1;
+          for(let k=0;k<plates.length;k++){
+            let dx = x - plates[k].x, dy = y - plates[k].y;
+            if(controls.wrap.checked){
+              if(Math.abs(dx)>W/2) dx -= Math.sign(dx)*W;
+              if(Math.abs(dy)>H/2) dy -= Math.sign(dy)*H;
+            }
+            const d = dx*dx+dy*dy; if(d<best){best=d; idx=k;}
+          }
+          sumx[idx]+=x; sumy[idx]+=y; cnt[idx]++;
+        }
+      }
+      for(let k=0;k<plates.length;k++){
+        if(cnt[k]>0){ plates[k].x = sumx[k]/cnt[k]; plates[k].y = sumy[k]/cnt[k]; }
+      }
+    }
+  }
 
   // ===== Renderer / App =====
   const $ = sel => document.querySelector(sel);
@@ -228,26 +251,26 @@
     plates: $('#plates'), size: $('#size'), sea: $('#sea'), detail: $('#detail'),
     uplift: $('#uplift'), trench: $('#trench'), rift: $('#rift'), rough: $('#rough'),
     bwidth: $('#bwidth'), wrap: $('#wrap'), animate: $('#animate'), speed: $('#speed'),
-    coast: $('#coast'), speck: $('#speck'),
-    regen: $('#regen'), step: $('#step'), seed: $('#seed'),
+    coast: $('#coast'), speck: $('#speck'), orelax: $('#orelax'), lloyd: $('#lloyd'), lloydIter: $('#lloydIter'),
+    oceanDistShade: $('#oceanDistShade'),
+    regen: $('#regen'), step: $('#step'), seed: $('#seed'), selftest: $('#selftest'),
   };
 
   let W = canvas.width, H = canvas.height;
   let plates = [];
-  let t = 0; // time in arbitrary units
   let anim = null;
 
   function reseed(){
     const count = Number(controls.plates.value)|0;
-    const pd = Math.max(8, Math.sqrt(W*H / (count*1.2))); // heuristic spacing
+    const pd = Math.max(8, Math.sqrt(W*H / (count*1.2)));
     const pts = poissonDisc(W,H,pd);
-    // pick count from pts (if too many)
     const chosen = pts.length>=count? pts.slice(0,count) : pts.concat(Array.from({length:count-pts.length},()=>({x:rand(W),y:rand(H)})));
     plates = chosen.map(p=> new Plate(p.x,p.y, Math.random()<0.35? 'cont':'ocean'));
+    if(controls.lloyd.checked){ lloydRelax(Number(controls.lloydIter.value)|0); }
   }
 
   function stepDrift(dt){
-    const spd = Number(controls.speed.value)/1000; // px per tick
+    const spd = Number(controls.speed.value)/1000;
     for(const pl of plates){
       pl.x += pl.vx*spd*dt; pl.y += pl.vy*spd*dt;
       if(controls.wrap.checked){
@@ -261,19 +284,13 @@
   }
 
   function classifyBoundary(a,b,dx,dy){
-    // Determine convergent/divergent/transform via relative velocity along normal
-    const nx = dx, ny = dy; // from a->b (not normalized, ok for sign)
+    const nx = dx, ny = dy;
     const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
-    const dotn = rvx*nx + rvy*ny; // normal component (scaled by |AB|)
-    const rvMag = Math.hypot(rvx,rvy);
-    const tanMag = Math.abs(rvx*(-ny) + rvy*nx) / Math.hypot(nx,ny); // approx tangential
-    // thresholds tuned heuristically
+    const dotn = rvx*nx + rvy*ny;
+    const tanMag = Math.abs(rvx*(-ny) + rvy*nx) / Math.hypot(nx,ny);
     const n = dotn / (Math.hypot(nx,ny) + 1e-6);
-    if (Math.abs(n) > tanMag*0.6) {
-      return n>0? 'convergent':'divergent';
-    } else {
-      return 'transform';
-    }
+    if (Math.abs(n) > tanMag*0.6) return n>0? 'convergent':'divergent';
+    return 'transform';
   }
 
   function render(){
@@ -281,9 +298,9 @@
     if(size !== W){ W = H = size; canvas.width=W; canvas.height=H; }
 
     const seaPct = Number(controls.sea.value)/100;
-    const rough = Number(controls.rough.value)/100; // edge roughness factor
-    const bw = Number(controls.bwidth.value);       // boundary width scalar
-    const gU = Number(controls.uplift.value)/1000;  // strengths
+    const rough = Number(controls.rough.value)/100;
+    const bw = Number(controls.bwidth.value);
+    const gU = Number(controls.uplift.value)/1000;
     const gT = Number(controls.trench.value)/1000;
     const gR = Number(controls.rift.value)/1000;
     const det = Number(controls.detail.value)/1000;
@@ -293,73 +310,80 @@
     const img = ctx.createImageData(W,H);
     const data = img.data;
 
-    // Prepack plate arrays for speed
     const px = plates.map(p=>p.x), py = plates.map(p=>p.y), 
           pvx=plates.map(p=>p.vx), pvy=plates.map(p=>p.vy), 
           pW=plates.map(p=>p.weight), pT=plates.map(p=>p.thickness), pType=plates.map(p=>p.type);
 
     const wrap = controls.wrap.checked;
 
-    // First pass: find nearest and second-nearest plates
+    // Nearest & second-nearest plates per pixel
     const nearestIdx = new Int16Array(W*H);
     const secondIdx  = new Int16Array(W*H);
     const d1Arr = new Float32Array(W*H);
     const d2Arr = new Float32Array(W*H);
+    const distA = new Float32Array(W*H);
+    const distB = new Float32Array(W*H);
 
     for(let y=0, i=0; y<H; y++){
       for(let x=0; x<W; x++, i++){
         let best1=1e9, best2=1e9, ia=-1, ib=-1;
+        let da=0, db=0;
         for(let k=0; k<px.length; k++){
           let dx = x - px[k], dy = y - py[k];
+          let rdx=dx, rdy=dy;
           if(wrap){
-            if(Math.abs(dx) > W/2) dx = dx - Math.sign(dx)*W;
-            if(Math.abs(dy) > H/2) dy = dy - Math.sign(dy)*H;
+            if(Math.abs(dx) > W/2) rdx = dx - Math.sign(dx)*W;
+            if(Math.abs(dy) > H/2) rdy = dy - Math.sign(dy)*H;
           }
-          const d = dx*dx + dy*dy;
+          const dtrue = rdx*rdx + rdy*rdy;
           const w = 1.0 / (pW[k]);
-          const eff = d * w;
-          if(eff < best1){ best2=best1; ib=ia; best1=eff; ia=k; }
-          else if(eff < best2){ best2=eff; ib=k; }
+          const eff = dtrue * w;
+          if(eff < best1){ best2=best1; ib=ia; db=da; best1=eff; ia=k; da=dtrue; }
+          else if(eff < best2){ best2=eff; ib=k; db=dtrue; }
         }
-        nearestIdx[i]=ia; secondIdx[i]=ib; d1Arr[i]=best1; d2Arr[i]=best2;
+        nearestIdx[i]=ia; secondIdx[i]=ib; d1Arr[i]=best1; d2Arr[i]=best2; distA[i]=Math.sqrt(da); distB[i]=Math.sqrt(db);
       }
     }
 
     // Height composition
     let minH=1e9, maxH=-1e9;
     const height = new Float32Array(W*H);
+    const pblend = 2.0;
+    const interiorR = 80.0;
 
     for(let y=0, i=0; y<H; y++){
       for(let x=0; x<W; x++, i++){
         const ia = nearestIdx[i], ib = secondIdx[i];
         const ax = px[ia], ay = py[ia], bx = px[ib], by = py[ib];
         const gap = Math.sqrt(Math.max(d2Arr[i]-d1Arr[i], 0));
-        const w = bw; // boundary softness
-        const m = 1.0 - smoothstep(0, w, gap); // 1 at boundary, 0 far
+        const m = 1.0 - smoothstep(0, bw, gap);
 
-        let nx = bx-ax, ny = by-ay; // A->B
-        if(wrap){
-          if(Math.abs(nx)>W/2) nx -= Math.sign(nx)*W;
-          if(Math.abs(ny)>H/2) ny -= Math.sign(ny)*H;
-        }
+        let nx = bx-ax, ny = by-ay;
+        if(wrap){ if(Math.abs(nx)>W/2) nx -= Math.sign(nx)*W; if(Math.abs(ny)>H/2) ny -= Math.sign(ny)*H; }
         const nlen = Math.hypot(nx,ny)+1e-6; nx/=nlen; ny/=nlen;
-        const tx = -ny, ty = nx; // tangent
+        const tx = -ny, ty = nx;
         const u = (x*tx + y*ty);
         const roughMod = lerp(1-0.5*rough, 1+0.5*rough, fbm(u*0.015, u*0.015, 3, 2, 0.5));
         const mR = clamp(m*roughMod, 0, 1);
 
-        const type = classifyBoundary(
-          {vx:pvx[ia], vy:pvy[ia]},{vx:pvx[ib],vy:pvy[ib]}, bx-ax, by-ay
-        );
+        const type = classifyBoundary({vx:pvx[ia], vy:pvy[ia]}, {vx:pvx[ib], vy:pvy[ib]}, bx-ax, by-ay);
 
-        const base = (fbm(x*0.004, y*0.004, 4, 2, 0.55)-0.5)*0.4; // [-0.2,0.2]
-        const plateStrength = (pType[ia]==='cont'? 0.12: -0.10) + (pT[ia]-20)*0.002; // thicker → higher
-        const interior = plateStrength * (1 - smoothstep(0,40,Math.sqrt(d1Arr[i])));
+        const base = (fbm(x*0.004, y*0.004, 4, 2, 0.55)-0.5)*0.4;
+        const wa_raw = 1/Math.pow(distA[i]+1e-3, pblend);
+        const wb_raw = 1/Math.pow(distB[i]+1e-3, pblend);
+        const inv = 1/(wa_raw+wb_raw);
+        const wa = wa_raw*inv, wb = wb_raw*inv;
+
+        const fallA = 1 - smoothstep(0, interiorR, distA[i]);
+        const fallB = 1 - smoothstep(0, interiorR, distB[i]);
+        const pStrA = (pType[ia]==='cont'? 0.12: -0.10) + (pT[ia]-20)*0.002;
+        const pStrB = (pType[ib]==='cont'? 0.12: -0.10) + (pT[ib]-20)*0.002;
+        const interior = wa * pStrA * fallA + wb * pStrB * fallB;
 
         let uplift=0, trench=0, rift=0;
         if(type==='convergent'){ uplift = mR * gU; }
         else if(type==='divergent'){ rift = mR * gR; }
-        else { uplift += mR * gU*0.15; }
+        else { uplift += mR * gU*0.05; }
 
         if(type==='convergent'){
           const isOceanCont = (pType[ia]!==pType[ib]);
@@ -368,7 +392,10 @@
 
         const detail = (fbm(x*0.02, y*0.02, 3, 2.2, 0.5)-0.5) * det * 2.0;
         let h = base + interior + uplift - trench - rift + detail;
-        h += (pT[ia]- (pType[ia]==='cont'?35:7)) * 0.003;
+
+        const thickBlend = wa*pT[ia] + wb*pT[ib];
+        const baseBlend  = wa*(pType[ia]==='cont'?35:7) + wb*(pType[ib]==='cont'?35:7);
+        h += (thickBlend - baseBlend) * 0.003;
 
         height[i]=h; if(h<minH)minH=h; if(h>maxH)maxH=h;
       }
@@ -377,72 +404,46 @@
     const range = maxH-minH || 1; 
     const sea = minH + seaPct * range;
 
-    // === NEW: ocean/land cleanup ===
-    // Build binary mask, then (1) despeckle small blobs, (2) optional coast smoothing
     const mask = new Uint8Array(W*H);
     for(let i=0;i<mask.length;i++){ mask[i] = height[i] < sea ? 1 : 0; }
 
-    // Despeckle via connected components if threshold > 0
     if(speck>0){
       const visited = new Uint8Array(W*H);
-      const stackX = new Int32Array(W*H);
-      const stackY = new Int32Array(W*H);
-      const flipSmall = (target)=>{
+      const qx = new Int32Array(W*H);
+      const qy = new Int32Array(W*H);
+      const flood = (target)=>{
         for(let y=0;y<H;y++){
           for(let x=0;x<W;x++){
-            const idx=y*W+x; if(visited[idx]||mask[idx]!==target) continue;
-            // flood fill
-            let n=0; visited[idx]=1; stackX[n]=x; stackY[n]=y; n++;
-            let count=0;
-            while(n>0){
-              n--; const cx=stackX[n], cy=stackY[n]; const cidx=cy*W+cx;
-              count++;
-              // 4-neigh
+            const s=y*W+x; if(visited[s]||mask[s]!==target) continue;
+            let head=0, tail=0; visited[s]=1; qx[tail]=x; qy[tail]=y; tail++;
+            let count=0; const cells=[];
+            while(head<tail){
+              const cx=qx[head], cy=qy[head]; head++;
+              const ci=cy*W+cx; cells.push(ci); count++;
               const neigh=[[1,0],[-1,0],[0,1],[0,-1]];
               for(const [dx,dy] of neigh){
                 let nx=cx+dx, ny=cy+dy;
-                if(wrap){ if(nx<0) nx=W-1; if(nx>=W) nx=0; if(ny<0) ny=H-1; if(ny>=H) ny=0; }
+                if(controls.wrap.checked){ if(nx<0) nx=W-1; if(nx>=W) nx=0; if(ny<0) ny=H-1; if(ny>=H) ny=0; }
                 else { if(nx<0||nx>=W||ny<0||ny>=H) continue; }
                 const ni=ny*W+nx;
-                if(!visited[ni] && mask[ni]===target){ visited[ni]=1; stackX[n]=nx; stackY[n]=ny; n++; }
+                if(!visited[ni] && mask[ni]===target){ visited[ni]=1; qx[tail]=nx; qy[tail]=ny; tail++; }
               }
             }
-            // If component is small → flip it
-            if(count<=speck){
-              // second pass to flip same component
-              n=0; visited[idx]=2; stackX[n]=x; stackY[n]=y; n++;
-              while(n>0){
-                n--; const cx=stackX[n], cy=stackY[n]; const cidx=cy*W+cx; mask[cidx]=1-target;
-                const neigh=[[1,0],[-1,0],[0,1],[0,-1]];
-                for(const [dx,dy] of neigh){
-                  let nx=cx+dx, ny=cy+dy;
-                  if(wrap){ if(nx<0) nx=W-1; if(nx>=W) nx=0; if(ny<0) ny=H-1; if(ny>=H) ny=0; }
-                  else { if(nx<0||nx>=W||ny<0||ny>=H) continue; }
-                  const ni=ny*W+nx;
-                  if(visited[ni]!==2 && visited[ni] && mask[ni]===target){ visited[ni]=2; stackX[n]=nx; stackY[n]=ny; n++; }
-                }
-              }
-            }
+            if(count<=speck){ for(const ci of cells) mask[ci]=1-target; }
           }
         }
       };
-      // Remove tiny ocean specks (1s inside land) and tiny land islets (0s inside ocean)
-      flipSmall(1); // tiny water in land → land
-      visited.fill(0);
-      flipSmall(0); // tiny land in water → water
+      flood(1); visited.fill(0); flood(0);
     }
 
-    // Optional coast smoothing: for pixels within band of coastline, blend height with neighborhood average
     if(coastPx>0){
       const h2 = new Float32Array(height);
-      const band = (range*0.03); // ~3% of height range
+      const r = Math.min(coastPx,3);
       for(let y=1;y<H-1;y++){
         for(let x=1;x<W-1;x++){
           const i=y*W+x;
-          const nearCoast = (mask[i]!==mask[i-1]||mask[i]!==mask[i+1]||mask[i]!==mask[i-W]||mask[i]!==mask[i+W]);
-          if(!nearCoast && Math.abs(height[i]-sea)>band) continue;
-          // box blur radius = coastPx (clamped small for perf)
-          const r = Math.min(coastPx,3);
+          const shore = (mask[i]!==mask[i-1]||mask[i]!==mask[i+1]||mask[i]!==mask[i-W]||mask[i]!==mask[i+W]);
+          if(!shore) continue;
           let sum=0, cnt=0;
           for(let yy=-r; yy<=r; yy++){
             for(let xx=-r; xx<=r; xx++){
@@ -453,10 +454,53 @@
           h2[i] = lerp(height[i], sum/cnt, 0.7);
         }
       }
-      for(let i=0;i<height.length;i++) height[i]=h2[i];
+      height.set(h2);
     }
 
-    // Recompute shading helpers if we changed height significantly near coasts
+    const orelaxIters = Number(controls.orelax.value)|0;
+    if(orelaxIters>0){
+      const tmp = new Float32Array(height);
+      for(let it=0; it<orelaxIters; it++){
+        tmp.set(height);
+        for(let y=1;y<H-1;y++){
+          for(let x=1;x<W-1;x++){
+            const i=y*W+x; if(mask[i]!==1) continue;
+            const iL=i-1, iR=i+1, iU=i-W, iD=i+W;
+            const avg = (height[iL]+height[iR]+height[iU]+height[iD])*0.25;
+            tmp[i] = lerp(height[i], avg, 0.5);
+          }
+        }
+        height.set(tmp);
+      }
+    }
+
+    let oceanDist=null;
+    if(controls.oceanDistShade.checked){
+      oceanDist = new Uint16Array(W*H);
+      const INF=0xffff; oceanDist.fill(INF);
+      const qx = new Int32Array(W*H), qy = new Int32Array(W*H);
+      let head=0, tail=0;
+      for(let y=0;y<H;y++){
+        for(let x=0;x<W;x++){
+          const i=y*W+x; if(mask[i]!==1) continue;
+          const shore = (mask[i]!==mask[i-1]||mask[i]!==mask[i+1]||mask[i]!==mask[i-W]||mask[i]!==mask[i+W]);
+          if(shore){ oceanDist[i]=0; qx[tail]=x; qy[tail]=y; tail++; }
+        }
+      }
+      const neigh=[[1,0],[-1,0],[0,1],[0,-1]];
+      while(head<tail){
+        const cx=qx[head], cy=qy[head]; head++;
+        const ci=cy*W+cx; const cd=oceanDist[ci];
+        for(const [dx,dy] of neigh){
+          let nx=cx+dx, ny=cy+dy;
+          if(controls.wrap.checked){ if(nx<0) nx=W-1; if(nx>=W) nx=0; if(ny<0) ny=H-1; if(ny>=H) ny=0; }
+          else { if(nx<0||nx>=W||ny<0||ny>=H) continue; }
+          const ni=ny*W+nx;
+          if(mask[ni]===1 && oceanDist[ni]===INF){ oceanDist[ni]=cd+1; qx[tail]=nx; qy[tail]=ny; tail++; }
+        }
+      }
+    }
+
     let land=0, ocean=0;
     for(let y=0, i=0; y<H; y++){
       for(let x=0; x<W; x++, i++){
@@ -466,13 +510,13 @@
         const sy = (get(x,y+1)-get(x,y-1));
         const shade = 0.6 + 0.4 * (1 - clamp(Math.hypot(sx,sy)*10,0,1));
 
-        // Use CLEANED mask to decide water vs land to avoid striping and micro-islands
         const isOcean = mask[i]===1;
         let r,g,b;
         if(isOcean){
-          const d = clamp((sea - h)/(range*0.25), 0, 1);
-          r = lerp(4, 30, d); g = lerp(25, 90, d); b = lerp(60, 160, d);
-          ocean++;
+          const dDepth = clamp((sea - h)/(range*0.28), 0, 1);
+          let dCoast = 0; if(oceanDist){ dCoast = clamp((oceanDist[i]||0)/30, 0, 1); }
+          const t = clamp(dDepth*0.7 + dCoast*0.3, 0, 1);
+          r = lerp(6, 28, t); g = lerp(32, 100, t); b = lerp(70, 170, t); ocean++;
         } else {
           const d = clamp((h - sea)/(range*0.35), 0, 1);
           if(d < 0.1){ r=194; g=178; b=128; }
@@ -487,31 +531,43 @@
     }
 
     ctx.putImageData(img,0,0);
-
-    // stats
     statsEl.innerHTML = `<span class="pill">plates: ${plates.length}</span>
                          <span class="pill">land: ${Math.round(land*100/(W*H))}%</span>
                          <span class="pill">ocean: ${Math.round(ocean*100/(W*H))}%</span>`;
   }
 
-  function loop(ts){
+  function loop(){
     if(!anim) return;
-    const dt = 16; // fixed step for stability
+    const dt = 16;
     stepDrift(dt);
     render();
     anim = requestAnimationFrame(loop);
   }
 
-  // Wire up UI
+  function runSelfTests(){
+    const issues=[];
+    try{
+      const want = Number(controls.plates.value)|0; reseed();
+      if(plates.length!==want) issues.push(`Plate count mismatch: got ${plates.length}, expected ${want}`);
+      render();
+      const img = ctx.getImageData(0,0,Math.min(4,canvas.width),Math.min(4,canvas.height));
+      const ok = img.data.some(v=>v!==0);
+      if(!ok) issues.push('Render produced all‑black or empty image region.');
+    } catch(e){ issues.push('Exception during tests: '+e.message); }
+    alert(issues.length? ('Self‑test FAILED:\n'+issues.join('\n')) : 'Self‑test passed.');
+  }
+
   controls.regen.addEventListener('click', ()=>{ reseed(); render(); });
   controls.seed.addEventListener('click', ()=>{ reseed(); render(); });
   controls.step.addEventListener('click', ()=>{ stepDrift(60); render(); });
+  controls.selftest.addEventListener('click', runSelfTests);
   controls.animate.addEventListener('change', ()=>{
     if(controls.animate.checked){ if(!anim){ anim = requestAnimationFrame(loop); } }
     else { cancelAnimationFrame(anim); anim=null; }
   });
   ['plates','size'].forEach(id=>controls[id].addEventListener('change', ()=>{ reseed(); render(); }));
-  ['sea','detail','uplift','trench','rift','rough','bwidth','speed','wrap','coast','speck'].forEach(id=>controls[id].addEventListener('input', render));
+  ['sea','detail','uplift','trench','rift','rough','bwidth','speed','wrap','coast','speck','orelax','lloydIter','oceanDistShade']
+    .forEach(id=>controls[id].addEventListener('input', render));
 
   // Init
   reseed(); render();
