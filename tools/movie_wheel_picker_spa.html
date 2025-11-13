@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie Wheel Picker</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --bg-alt: #151821;
+      --accent: #ffcc33;
+      --accent-soft: rgba(255, 204, 51, 0.18);
+      --accent-strong: #ffdd55;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text: #f5f5f5;
+      --text-muted: #a7b0c0;
+      --danger: #ff5c80;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.55);
+      --transition-fast: 0.18s ease-out;
+      --transition-med: 0.25s ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1b2238 0, #05060a 55%, #02030a 100%);
+      color: var(--text);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #app {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header.app-header {
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .app-title {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .app-title h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .app-title .subtitle {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+    }
+
+    .tmdb-credit {
+      font-size: 0.7rem;
+      text-align: right;
+      color: var(--text-muted);
+      max-width: 220px;
+    }
+
+    .tmdb-credit a {
+      color: var(--accent-strong);
+      text-decoration: none;
+    }
+
+    .tmdb-credit a:hover {
+      text-decoration: underline;
+    }
+
+    .api-warning {
+      background: rgba(255, 92, 128, 0.16);
+      border: 1px solid rgba(255, 92, 128, 0.7);
+      color: #ffe6ee;
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .api-warning.hidden {
+      display: none;
+    }
+
+    .api-pill {
+      font-size: 0.7rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: nowrap;
+    }
+
+    main.layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, rgba(11, 12, 18, 0.96), rgba(17, 20, 32, 0.98));
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-header h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #e8edf7;
+      margin: 0;
+    }
+
+    .panel-header span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .search-bar input[type="text"] {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(4, 6, 12, 0.9);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    }
+
+    .search-bar input[type="text"]::placeholder {
+      color: #555c72;
+    }
+
+    .search-bar input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(255, 204, 51, 0.4);
+      background: rgba(5, 9, 18, 0.98);
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition-med), color var(--transition-med), border-color var(--transition-med), transform var(--transition-fast), box-shadow var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: radial-gradient(circle at top, var(--accent-strong), var(--accent));
+      color: #2b2300;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.65);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.75);
+      background: radial-gradient(circle at top, #ffe699, var(--accent-strong));
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      background: rgba(255, 204, 51, 0.06);
+    }
+
+    .btn-small {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+    }
+
+    .search-results, .selected-list {
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.45));
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 80px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      margin: 4px 2px;
+    }
+
+    .result-item, .selected-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(2, 3, 8, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .result-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .selected-item {
+      background: rgba(9, 11, 24, 0.9);
+    }
+
+    .poster-thumb {
+      width: 42px;
+      height: 60px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #2d3348, #101320);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+    }
+
+    .poster-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .no-poster {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 4px;
+    }
+
+    .movie-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .movie-title {
+      font-size: 0.9rem;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .movie-year {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .selected-count {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0 2px 2px;
+    }
+
+    .selected-count strong {
+      color: var(--accent-strong);
+    }
+
+    .wheel-shell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .wheel-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.9));
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+
+    #wheelCanvas {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+
+    .wheel-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .pointer {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-bottom: 22px solid var(--accent-strong);
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+      z-index: 5;
+    }
+
+    .pointer-base {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 16px;
+      background: radial-gradient(circle at top, rgba(0, 0, 0, 0.9), rgba(255, 255, 255, 0.06));
+      border-radius: 0 0 999px 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 4;
+    }
+
+    .wheel-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wheel-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .wheel-status {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: right;
+      flex: 1;
+    }
+
+    .winner {
+      margin-top: 4px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(90deg, rgba(255, 204, 51, 0.20), rgba(255, 204, 51, 0.05));
+      border: 1px solid rgba(255, 204, 51, 0.45);
+      font-size: 0.86rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .winner.visible {
+      display: flex;
+    }
+
+    .winner-title {
+      font-weight: 600;
+    }
+
+    .winner-link {
+      font-size: 0.78rem;
+      color: #1f1200;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .winner-link:hover {
+      background: #ffffff;
+    }
+
+    .message {
+      font-size: 0.78rem;
+      color: var(--danger);
+      margin-top: 4px;
+      min-height: 1em;
+    }
+
+    @media (max-width: 900px) {
+      main.layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      header.app-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .tmdb-credit {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="app-title">
+        <h1>Movie Wheel Picker</h1>
+        <div class="subtitle">Search movies, spin the wheel, and let fate pick tonight’s film.</div>
+        <div id="apiWarning" class="api-warning hidden">
+          <span class="api-pill">TMDb API Key</span>
+          <span>
+            To enable search, open this file in a text editor and replace
+            <code>YOUR_TMDB_API_KEY_HERE</code> in the script with your own
+            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">TMDb API key</a>.
+          </span>
+        </div>
+      </div>
+      <div class="tmdb-credit">
+        This product uses the TMDb API but is not endorsed or certified by TMDb.
+        <br />
+        <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">themoviedb.org</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel" aria-label="Movie search and selection">
+        <div class="panel-header">
+          <h2>Movies</h2>
+          <span>Search &amp; build your wheel</span>
+        </div>
+
+        <div class="search-bar">
+          <input id="searchInput" type="text" placeholder="Search for a movie (e.g. Inception)" autocomplete="off" />
+          <button id="searchButton" class="btn btn-outline btn-small" type="button">Search</button>
+        </div>
+
+        <div class="section-label">Search results</div>
+        <div id="searchResults" class="search-results" aria-live="polite"></div>
+
+        <div class="selected-count">
+          <span>Selected for wheel</span>
+          <span><strong id="selectedCount">0</strong> / <span id="maxCount">10</span></span>
+        </div>
+        <div id="selectedMovies" class="selected-list" aria-live="polite"></div>
+
+        <div id="leftMessage" class="message"></div>
+      </section>
+
+      <section class="panel" aria-label="Wheel and spin controls">
+        <div class="panel-header">
+          <h2>Wheel</h2>
+          <span>Spin to choose</span>
+        </div>
+
+        <div class="wheel-shell">
+          <div class="wheel-container">
+            <div class="pointer-base"></div>
+            <div class="pointer"></div>
+            <canvas id="wheelCanvas"></canvas>
+            <div id="wheelEmpty" class="wheel-empty">
+              Add at least two movies on the left, then hit <strong>&nbsp;Spin&nbsp;</strong> to let the wheel decide.
+            </div>
+          </div>
+
+          <div class="wheel-controls">
+            <div class="wheel-buttons">
+              <button id="spinButton" class="btn btn-primary" type="button" disabled>Spin</button>
+              <button id="resetButton" class="btn btn-outline btn-small" type="button">Reset</button>
+            </div>
+            <div id="wheelStatus" class="wheel-status">Waiting for movies…</div>
+          </div>
+
+          <div id="winner" class="winner" aria-live="polite">
+            <div>
+              <div>Winner:</div>
+              <div id="winnerTitle" class="winner-title"></div>
+            </div>
+            <a id="winnerLink" class="winner-link" href="#" target="_blank" rel="noopener noreferrer">Open page</a>
+          </div>
+
+          <div id="rightMessage" class="message"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const TMDB_API_KEY = ""; // <-- Replace with your TMDb API key
+      const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+      const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w200";
+      const TMDB_MOVIE_URL_BASE = "https://www.themoviedb.org/movie/";
+
+      const MAX_SELECTED = 10;
+
+      const searchInput = document.getElementById("searchInput");
+      const searchButton = document.getElementById("searchButton");
+      const searchResultsEl = document.getElementById("searchResults");
+      const selectedMoviesEl = document.getElementById("selectedMovies");
+      const selectedCountEl = document.getElementById("selectedCount");
+      const maxCountEl = document.getElementById("maxCount");
+      const wheelCanvas = document.getElementById("wheelCanvas");
+      const wheelEmptyEl = document.getElementById("wheelEmpty");
+      const spinButton = document.getElementById("spinButton");
+      const resetButton = document.getElementById("resetButton");
+      const wheelStatusEl = document.getElementById("wheelStatus");
+      const winnerEl = document.getElementById("winner");
+      const winnerTitleEl = document.getElementById("winnerTitle");
+      const winnerLinkEl = document.getElementById("winnerLink");
+      const leftMessageEl = document.getElementById("leftMessage");
+      const rightMessageEl = document.getElementById("rightMessage");
+      const apiWarningEl = document.getElementById("apiWarning");
+
+      maxCountEl.textContent = String(MAX_SELECTED);
+
+      const ctx = wheelCanvas.getContext("2d");
+
+      function resizeCanvas() {
+        const rect = wheelCanvas.getBoundingClientRect();
+        const size = Math.min(rect.width, rect.height || rect.width);
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        wheelCanvas.width = size * devicePixelRatio;
+        wheelCanvas.height = size * devicePixelRatio;
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      }
+
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      const state = {
+        searchResults: [],
+        selectedMovies: [],
+        wheel: {
+          isSpinning: false,
+          rotation: 0,
+          rotationStart: 0,
+          rotationTarget: 0,
+          spinStartTime: null,
+          spinDuration: 0,
+          chosenIndex: null,
+        },
+      };
+
+      function debounce(fn, delay) {
+        let timeoutId;
+        return function debounced() {
+          const args = arguments;
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(function () {
+            fn.apply(null, args);
+          }, delay);
+        };
+      }
+
+      function setLeftMessage(text) {
+        leftMessageEl.textContent = text || "";
+      }
+
+      function setRightMessage(text) {
+        rightMessageEl.textContent = text || "";
+      }
+
+      function setWheelStatus(text) {
+        wheelStatusEl.textContent = text;
+      }
+
+      function yearFromDate(dateString) {
+        if (!dateString) {
+          return "Unknown";
+        }
+        const year = dateString.split("-")[0];
+        return year || "Unknown";
+      }
+
+      function mapTmdbResultToMovie(result) {
+        return {
+          id: result.id,
+          title: result.title || result.name || "Untitled",
+          year: yearFromDate(result.release_date || result.first_air_date),
+          posterUrl: result.poster_path ? TMDB_IMAGE_BASE + result.poster_path : null,
+          tmdbUrl: TMDB_MOVIE_URL_BASE + result.id,
+          posterImage: null,
+        };
+      }
+
+      function ensurePosterImage(movie) {
+        if (!movie || !movie.posterUrl) {
+          return;
+        }
+        if (movie.posterImage && movie.posterImage.complete && movie.posterImage.naturalWidth > 0) {
+          return;
+        }
+        const img = new Image();
+        img.src = movie.posterUrl;
+        movie.posterImage = img;
+        img.onload = function () {
+          drawWheel();
+        };
+      }
+
+      async function searchMovies(query) {
+        if (!query || !query.trim()) {
+          state.searchResults = [];
+          renderSearchResults();
+          return;
+        }
+
+        if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
+          setLeftMessage("Search is disabled until you provide a TMDb API key.");
+          return;
+        }
+
+        setLeftMessage("");
+        searchButton.disabled = true;
+        searchButton.textContent = "Searching…";
+
+        try {
+          const url = new URL(TMDB_BASE_URL + "/search/movie");
+          url.searchParams.set("api_key", TMDB_API_KEY);
+          url.searchParams.set("query", query.trim());
+          url.searchParams.set("include_adult", "false");
+
+          const response = await fetch(url.toString());
+          if (!response.ok) {
+            throw new Error("TMDb search failed with status " + response.status);
+          }
+
+          const data = await response.json();
+          const results = Array.isArray(data.results) ? data.results : [];
+
+          state.searchResults = results.slice(0, 25).map(mapTmdbResultToMovie);
+
+          if (state.searchResults.length === 0) {
+            setLeftMessage("No results found. Try a different title.");
+          } else {
+            setLeftMessage("");
+          }
+
+          renderSearchResults();
+        } catch (error) {
+          console.error("Search error", error);
+          setLeftMessage("Could not fetch movies. Check your network or API key.");
+          state.searchResults = [];
+          renderSearchResults();
+        } finally {
+          searchButton.disabled = false;
+          searchButton.textContent = "Search";
+        }
+      }
+
+      function renderSearchResults() {
+        searchResultsEl.innerHTML = "";
+
+        if (state.searchResults.length === 0) {
+          const placeholder = document.createElement("div");
+          placeholder.className = "section-label";
+          placeholder.style.opacity = "0.7";
+          placeholder.textContent = "Type a movie title above and hit Search.";
+          searchResultsEl.appendChild(placeholder);
+          return;
+        }
+
+        state.searchResults.forEach(function (movie) {
+          const isSelected = state.selectedMovies.some(function (m) {
+            return m.id === movie.id;
+          });
+
+          const item = document.createElement("div");
+          item.className = "result-item";
+
+          const poster = document.createElement("div");
+          poster.className = "poster-thumb";
+          if (movie.posterUrl) {
+            const img = document.createElement("img");
+            img.src = movie.posterUrl;
+            img.alt = movie.title + " poster";
+            poster.appendChild(img);
+          } else {
+            const span = document.createElement("div");
+            span.className = "no-poster";
+            span.textContent = "No poster";
+            poster.appendChild(span);
+          }
+
+          const meta = document.createElement("div");
+          meta.className = "movie-meta";
+
+          const titleEl = document.createElement("div");
+          titleEl.className = "movie-title";
+          titleEl.textContent = movie.title;
+
+          const yearEl = document.createElement("div");
+          yearEl.className = "movie-year";
+          yearEl.textContent = movie.year;
+
+          meta.appendChild(titleEl);
+          meta.appendChild(yearEl);
+
+          const actions = document.createElement("div");
+          actions.style.display = "flex";
+          actions.style.flexDirection = "column";
+          actions.style.alignItems = "flex-end";
+          actions.style.gap = "4px";
+
+          const addButton = document.createElement("button");
+          addButton.type = "button";
+          addButton.className = "btn btn-primary btn-small";
+          addButton.textContent = isSelected ? "Added" : "Add";
+          addButton.disabled = isSelected || state.selectedMovies.length >= MAX_SELECTED;
+          addButton.addEventListener("click", function () {
+            addMovieToWheel(movie);
+          });
+
+          const yearPill = document.createElement("div");
+          yearPill.className = "pill";
+          yearPill.textContent = movie.year !== "Unknown" ? movie.year : "Year n/a";
+
+          actions.appendChild(addButton);
+          actions.appendChild(yearPill);
+
+          item.appendChild(poster);
+          item.appendChild(meta);
+          item.appendChild(actions);
+
+          searchResultsEl.appendChild(item);
+        });
+      }
+
+      function renderSelectedMovies() {
+        selectedMoviesEl.innerHTML = "";
+
+        selectedCountEl.textContent = String(state.selectedMovies.length);
+
+        if (state.selectedMovies.length === 0) {
+          const placeholder = document.createElement("div");
+          placeholder.className = "section-label";
+          placeholder.style.opacity = "0.7";
+          placeholder.textContent = "No movies selected yet.";
+          selectedMoviesEl.appendChild(placeholder);
+        } else {
+          state.selectedMovies.forEach(function (movie) {
+            const item = document.createElement("div");
+            item.className = "selected-item";
+
+            const poster = document.createElement("div");
+            poster.className = "poster-thumb";
+            if (movie.posterUrl) {
+              const img = document.createElement("img");
+              img.src = movie.posterUrl;
+              img.alt = movie.title + " poster";
+              poster.appendChild(img);
+            } else {
+              const span = document.createElement("div");
+              span.className = "no-poster";
+              span.textContent = "No poster";
+              poster.appendChild(span);
+            }
+
+            const meta = document.createElement("div");
+            meta.className = "movie-meta";
+
+            const titleEl = document.createElement("div");
+            titleEl.className = "movie-title";
+            titleEl.textContent = movie.title;
+
+            const yearEl = document.createElement("div");
+            yearEl.className = "movie-year";
+            yearEl.textContent = movie.year;
+
+            meta.appendChild(titleEl);
+            meta.appendChild(yearEl);
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "btn btn-outline btn-small";
+            removeButton.textContent = "Remove";
+            removeButton.addEventListener("click", function () {
+              removeMovieFromWheel(movie.id);
+            });
+
+            item.appendChild(poster);
+            item.appendChild(meta);
+            item.appendChild(removeButton);
+
+            selectedMoviesEl.appendChild(item);
+          });
+        }
+
+        spinButton.disabled = state.selectedMovies.length < 2 || state.wheel.isSpinning;
+        wheelEmptyEl.style.display = state.selectedMovies.length < 2 ? "flex" : "none";
+
+        renderSearchResults();
+        drawWheel();
+      }
+
+      function addMovieToWheel(movie) {
+        if (state.selectedMovies.length >= MAX_SELECTED) {
+          setLeftMessage("Wheel is full (max " + MAX_SELECTED + " movies).");
+          return;
+        }
+        const already = state.selectedMovies.some(function (m) {
+          return m.id === movie.id;
+        });
+        if (already) {
+          return;
+        }
+        ensurePosterImage(movie);
+        state.selectedMovies.push(movie);
+        setLeftMessage("");
+        setWheelStatus("Ready to spin. Add more or hit Spin.");
+        renderSelectedMovies();
+      }
+
+      function removeMovieFromWheel(movieId) {
+        state.selectedMovies = state.selectedMovies.filter(function (m) {
+          return m.id !== movieId;
+        });
+        if (state.selectedMovies.length < 2) {
+          setWheelStatus("Waiting for at least two movies…");
+        }
+        renderSelectedMovies();
+      }
+
+      function easeOutCubic(t) {
+        const inv = 1 - t;
+        return 1 - inv * inv * inv;
+      }
+
+      function drawWheel() {
+        const width = wheelCanvas.width / (window.devicePixelRatio || 1);
+        const height = wheelCanvas.height / (window.devicePixelRatio || 1);
+        const ctx2d = ctx;
+
+        ctx2d.clearRect(0, 0, width, height);
+
+        const cx = width / 2;
+        const cy = height / 2;
+        const radiusOuter = Math.min(width, height) / 2 - 10;
+        const radiusInner = radiusOuter * 0.18;
+
+        ctx2d.save();
+        ctx2d.translate(cx, cy);
+        ctx2d.rotate(state.wheel.rotation);
+
+        const n = state.selectedMovies.length;
+        if (n === 0) {
+          const gradientBg = ctx2d.createRadialGradient(0, 0, radiusInner, 0, 0, radiusOuter);
+          gradientBg.addColorStop(0, "#151821");
+          gradientBg.addColorStop(1, "#05060b");
+          ctx2d.fillStyle = gradientBg;
+          ctx2d.beginPath();
+          ctx2d.arc(0, 0, radiusOuter, 0, Math.PI * 2);
+          ctx2d.fill();
+
+          ctx2d.restore();
+          return;
+        }
+
+        const sliceAngle = (Math.PI * 2) / n;
+
+        for (let i = 0; i < n; i += 1) {
+          const movie = state.selectedMovies[i];
+          const startAngle = i * sliceAngle;
+          const endAngle = startAngle + sliceAngle;
+
+          // make sure poster loading is kicked off for any movie on the wheel
+          ensurePosterImage(movie);
+
+          const grad = ctx2d.createRadialGradient(0, 0, radiusInner, 0, 0, radiusOuter);
+          if (i % 2 === 0) {
+            grad.addColorStop(0, "#1d2031");
+            grad.addColorStop(1, "#060812");
+          } else {
+            grad.addColorStop(0, "#25293f");
+            grad.addColorStop(1, "#090b16");
+          }
+
+          ctx2d.beginPath();
+          ctx2d.moveTo(0, 0);
+          ctx2d.arc(0, 0, radiusOuter, startAngle, endAngle);
+          ctx2d.closePath();
+          ctx2d.fillStyle = grad;
+          ctx2d.fill();
+
+          ctx2d.strokeStyle = "rgba(255, 255, 255, 0.16)";
+          ctx2d.lineWidth = 1.3;
+          ctx2d.beginPath();
+          ctx2d.moveTo(0, 0);
+          ctx2d.lineTo(Math.cos(startAngle) * radiusOuter, Math.sin(startAngle) * radiusOuter);
+          ctx2d.stroke();
+
+          const midAngle = startAngle + sliceAngle / 2;
+          ctx2d.save();
+          ctx2d.rotate(midAngle);
+
+          const img = movie.posterImage;
+          if (img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+            const availableRadial = radiusOuter - radiusInner;
+            const posterHeight = availableRadial * 0.5;
+            const posterWidth = posterHeight * 0.66;
+            const radiusPoster = radiusInner + availableRadial * 0.7;
+            const halfW = posterWidth / 2;
+            const halfH = posterHeight / 2;
+
+            ctx2d.save();
+            ctx2d.translate(radiusPoster, 0);
+            ctx2d.beginPath();
+            ctx2d.rect(-halfW, -halfH, posterWidth, posterHeight);
+            ctx2d.clip();
+            ctx2d.drawImage(img, -halfW, -halfH, posterWidth, posterHeight);
+            ctx2d.restore();
+          }
+
+          ctx2d.save();
+          const radiusLabel = radiusInner + (radiusOuter - radiusInner) * 0.3;
+          ctx2d.translate(radiusLabel, 0);
+          ctx2d.rotate(Math.PI / 2);
+
+          ctx2d.fillStyle = "#fdfdfd";
+          ctx2d.font = "600 11px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+          ctx2d.textAlign = "center";
+          ctx2d.textBaseline = "middle";
+
+          const maxWidth = radiusOuter - radiusInner - 30;
+          const label = movie.title;
+          ctx2d.fillText(label, 0, 0, maxWidth);
+
+          ctx2d.restore();
+          ctx2d.restore();
+        }
+
+        const cdGrad = ctx2d.createRadialGradient(0, 0, radiusInner * 0.2, 0, 0, radiusInner * 1.15);
+        cdGrad.addColorStop(0, "rgba(255, 255, 255, 0.85)");
+        cdGrad.addColorStop(0.3, "rgba(200, 205, 225, 0.9)");
+        cdGrad.addColorStop(0.7, "rgba(40, 44, 68, 0.95)");
+        cdGrad.addColorStop(1, "rgba(10, 12, 20, 1)");
+
+        ctx2d.beginPath();
+        ctx2d.arc(0, 0, radiusInner * 1.1, 0, Math.PI * 2);
+        ctx2d.fillStyle = cdGrad;
+        ctx2d.fill();
+
+        ctx2d.beginPath();
+        ctx2d.arc(0, 0, radiusInner * 0.45, 0, Math.PI * 2);
+        ctx2d.fillStyle = "#050609";
+        ctx2d.fill();
+        ctx2d.lineWidth = 1;
+        ctx2d.strokeStyle = "rgba(255, 255, 255, 0.35)";
+        ctx2d.stroke();
+
+        ctx2d.restore();
+      }
+
+      function spinWheel() {
+        const n = state.selectedMovies.length;
+        if (n < 2) {
+          setRightMessage("Need at least two movies to spin the wheel.");
+          return;
+        }
+        if (state.wheel.isSpinning) {
+          return;
+        }
+
+        setRightMessage("");
+        winnerEl.classList.remove("visible");
+
+        const chosenIndex = Math.floor(Math.random() * n);
+        state.wheel.chosenIndex = chosenIndex;
+
+        const sliceAngle = (Math.PI * 2) / n;
+        const targetAngleLocal = chosenIndex * sliceAngle + sliceAngle / 2;
+
+        const base = -Math.PI / 2 - targetAngleLocal;
+        const fullTurns = 3 + Math.floor(Math.random() * 3);
+        const finalRotation = base + fullTurns * Math.PI * 2;
+
+        state.wheel.rotationStart = state.wheel.rotation;
+        state.wheel.rotationTarget = finalRotation;
+        state.wheel.spinDuration = 3500 + Math.random() * 1500;
+        state.wheel.spinStartTime = null;
+        state.wheel.isSpinning = true;
+
+        spinButton.disabled = true;
+        setWheelStatus("Spinning…");
+      }
+
+      function onSpinComplete() {
+        const n = state.selectedMovies.length;
+        if (n === 0) {
+          return;
+        }
+
+        const sliceAngle = (Math.PI * 2) / n;
+        const normalizedRotation = ((state.wheel.rotation % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const angleAtPointer = ((-Math.PI / 2 - normalizedRotation) + Math.PI * 2) % (Math.PI * 2);
+        let index = Math.floor(angleAtPointer / sliceAngle);
+        if (index < 0) {
+          index = 0;
+        }
+        if (index >= n) {
+          index = n - 1;
+        }
+
+        const winningMovie = state.selectedMovies[index];
+        if (!winningMovie) {
+          setRightMessage("Something went wrong figuring out the winner.");
+          spinButton.disabled = state.selectedMovies.length < 2;
+          setWheelStatus(state.selectedMovies.length >= 2 ? "Ready to spin again." : "Waiting for at least two movies…");
+          return;
+        }
+
+        winnerTitleEl.textContent = winningMovie.title + (winningMovie.year && winningMovie.year !== "Unknown" ? " (" + winningMovie.year + ")" : "");
+        winnerLinkEl.href = winningMovie.tmdbUrl;
+        winnerEl.classList.add("visible");
+
+        setWheelStatus("Winner selected.");
+
+        const opened = window.open(winningMovie.tmdbUrl, "_blank", "noopener");
+        if (!opened) {
+          setRightMessage("Popup blocked. Click \"Open page\" to view the movie.");
+        } else {
+          setRightMessage("");
+        }
+
+        spinButton.disabled = state.selectedMovies.length < 2;
+      }
+
+      function resetWheel() {
+        state.selectedMovies = [];
+        state.wheel.isSpinning = false;
+        state.wheel.rotation = 0;
+        state.wheel.rotationStart = 0;
+        state.wheel.rotationTarget = 0;
+        state.wheel.spinStartTime = null;
+        state.wheel.spinDuration = 0;
+        state.wheel.chosenIndex = null;
+        winnerEl.classList.remove("visible");
+        setLeftMessage("");
+        setRightMessage("");
+        setWheelStatus("Waiting for at least two movies…");
+        renderSelectedMovies();
+      }
+
+      function animationLoop(timestamp) {
+        if (state.wheel.isSpinning) {
+          if (state.wheel.spinStartTime === null) {
+            state.wheel.spinStartTime = timestamp;
+          }
+          const elapsed = timestamp - state.wheel.spinStartTime;
+          const duration = state.wheel.spinDuration || 1;
+          const t = Math.min(elapsed / duration, 1);
+          const eased = easeOutCubic(t);
+          const rotation = state.wheel.rotationStart + eased * (state.wheel.rotationTarget - state.wheel.rotationStart);
+          state.wheel.rotation = rotation;
+
+          if (t >= 1) {
+            state.wheel.isSpinning = false;
+            state.wheel.spinStartTime = null;
+            onSpinComplete();
+          }
+        }
+
+        drawWheel();
+        window.requestAnimationFrame(animationLoop);
+      }
+
+      function initEventHandlers() {
+        const debouncedSearch = debounce(function () {
+          const value = searchInput.value;
+          searchMovies(value);
+        }, 450);
+
+        searchInput.addEventListener("input", function () {
+          debouncedSearch();
+        });
+
+        searchInput.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            searchMovies(searchInput.value);
+          }
+        });
+
+        searchButton.addEventListener("click", function () {
+          searchMovies(searchInput.value);
+        });
+
+        spinButton.addEventListener("click", function () {
+          spinWheel();
+        });
+
+        resetButton.addEventListener("click", function () {
+          resetWheel();
+        });
+      }
+
+      function initApiWarning() {
+        if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
+          apiWarningEl.classList.remove("hidden");
+          setLeftMessage("Provide a TMDb API key to start searching.");
+        } else {
+          apiWarningEl.classList.add("hidden");
+        }
+      }
+
+      function init() {
+        initApiWarning();
+        initEventHandlers();
+        renderSelectedMovies();
+        setWheelStatus("Waiting for at least two movies…");
+        window.requestAnimationFrame(animationLoop);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
