@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Snake Game - 7 Features</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      padding: 16px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      letter-spacing: 0.08em;
+      font-size: 1.4rem;
+      text-transform: uppercase;
+      color: #8be45b;
+    }
+
+    .info {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+
+    .info span.value {
+      font-weight: bold;
+      color: #ffd54f;
+    }
+
+    #game {
+      background: #000;
+      border-radius: 8px;
+      border: 2px solid #444;
+      /* Responsive: canvas scales with viewport */
+      width: 90vmin;
+      height: 90vmin;
+      max-width: 500px;
+      max-height: 500px;
+      display: block;
+      margin: 0 auto 10px auto;
+    }
+
+    .controls {
+      font-size: 0.9rem;
+      color: #cccccc;
+      line-height: 1.5;
+    }
+
+    .controls kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #222;
+      font-size: 0.8rem;
+      margin: 0 2px;
+    }
+
+    .footer {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Snake Game</h1>
+    <div class="info">
+      <div>
+        Score:
+        <span id="score" class="value">0</span>
+      </div>
+      <div>
+        High Score:
+        <span id="highScore" class="value">0</span>
+      </div>
+    </div>
+
+    <canvas id="game" width="500" height="500"></canvas>
+
+    <div class="controls">
+      <div>Move: <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+      <div>Pause / Resume: <kbd>Space</kbd></div>
+      <div>Restart after Game Over: <kbd>Enter</kbd></div>
+    </div>
+
+    <div class="footer">
+      Eat the food, avoid the walls and yourself. Speed increases as you grow!
+    </div>
+  </div>
+
+  <script>
+    // --- Canvas & UI elements ---
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const highScoreEl = document.getElementById("highScore");
+
+    // --- Grid settings ---
+    const tileSize = 20;
+    const tilesX = canvas.width / tileSize; // 500 / 20 = 25
+    const tilesY = canvas.height / tileSize;
+
+    // --- Game state ---
+    let snake = [];
+    let direction = { x: 1, y: 0 }; // moving right
+    let nextDirection = { x: 1, y: 0 };
+    let food = { x: 5, y: 5 };
+
+    let score = 0;
+    let highScore = 0;
+    let speed = 5; // moves per second
+    let gameTimerId = null;
+
+    let isPaused = false;
+    let gameOver = false;
+
+    // --- LocalStorage helpers (feature: persistent high score) ---
+    function loadHighScore() {
+      try {
+        const stored = localStorage.getItem("snakeHighScore");
+        highScore = stored ? parseInt(stored, 10) || 0 : 0;
+      } catch (e) {
+        highScore = 0; // fallback
+      }
+      highScoreEl.textContent = highScore;
+    }
+
+    function saveHighScore() {
+      try {
+        localStorage.setItem("snakeHighScore", String(highScore));
+      } catch (e) {
+        // Ignore if storage not available
+      }
+    }
+
+    // --- Game setup and reset ---
+    function resetGame() {
+      // Snake starts in the center with length 3
+      const startX = Math.floor(tilesX / 2);
+      const startY = Math.floor(tilesY / 2);
+
+      snake = [
+        { x: startX, y: startY },
+        { x: startX - 1, y: startY },
+        { x: startX - 2, y: startY },
+      ];
+
+      direction = { x: 1, y: 0 };
+      nextDirection = { x: 1, y: 0 };
+
+      score = 0;
+      scoreEl.textContent = score;
+
+      speed = 5;
+      isPaused = false;
+      gameOver = false;
+
+      placeFood();
+      draw();
+      startTimer();
+    }
+
+    function startTimer() {
+      if (gameTimerId !== null) {
+        clearInterval(gameTimerId);
+      }
+      const interval = 1000 / speed; // ms per move
+      gameTimerId = setInterval(() => {
+        if (!isPaused && !gameOver) {
+          update();
+          draw();
+        }
+      }, interval);
+    }
+
+    // --- Food placement ---
+    function placeFood() {
+      let newX, newY, collision;
+      do {
+        newX = Math.floor(Math.random() * tilesX);
+        newY = Math.floor(Math.random() * tilesY);
+        collision = snake.some((segment) => segment.x === newX && segment.y === newY);
+      } while (collision);
+
+      food = { x: newX, y: newY };
+    }
+
+    // --- Update game state ---
+    function update() {
+      // Update direction from queued input
+      direction = { ...nextDirection };
+
+      const head = snake[0];
+      const newHead = {
+        x: head.x + direction.x,
+        y: head.y + direction.y,
+      };
+
+      // Feature 6: collision with walls => game over
+      if (
+        newHead.x < 0 ||
+        newHead.x >= tilesX ||
+        newHead.y < 0 ||
+        newHead.y >= tilesY
+      ) {
+        handleGameOver();
+        return;
+      }
+
+      // Check if we are eating food
+      const willGrow = newHead.x === food.x && newHead.y === food.y;
+
+      // Feature 6 (continued): collision with self => game over
+      // When not growing, the tail moves away, so it's safe if we step into current tail.
+      const bodyToCheck = willGrow ? snake : snake.slice(0, snake.length - 1);
+
+      const hitSelf = bodyToCheck.some(
+        (segment) => segment.x === newHead.x && segment.y === newHead.y
+      );
+      if (hitSelf) {
+        handleGameOver();
+        return;
+      }
+
+      // Move snake
+      snake.unshift(newHead); // add new head
+
+      if (willGrow) {
+        // Feature 2: scoring
+        score++;
+        scoreEl.textContent = score;
+
+        // Feature 4: increase speed as we eat
+        speed += 0.5;
+        startTimer();
+
+        // Place new food
+        placeFood();
+      } else {
+        // remove tail
+        snake.pop();
+      }
+    }
+
+    // --- Game over handling ---
+    function handleGameOver() {
+      gameOver = true;
+
+      // Update high score if needed (feature 3)
+      if (score > highScore) {
+        highScore = score;
+        highScoreEl.textContent = highScore;
+        saveHighScore();
+      }
+
+      draw(); // to show overlay
+    }
+
+    // --- Drawing ---
+    function draw() {
+      // Clear canvas
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Optional grid (makes movement clearer)
+      ctx.strokeStyle = "#202020";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= canvas.width; x += tileSize) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += tileSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(canvas.width, y + 0.5);
+        ctx.stroke();
+      }
+
+      // Draw food
+      ctx.fillStyle = "#ff5252";
+      ctx.beginPath();
+      const foodX = food.x * tileSize + tileSize / 2;
+      const foodY = food.y * tileSize + tileSize / 2;
+      ctx.arc(foodX, foodY, tileSize / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw snake
+      snake.forEach((segment, index) => {
+        const px = segment.x * tileSize;
+        const py = segment.y * tileSize;
+        if (index === 0) {
+          // head
+          ctx.fillStyle = "#8be45b";
+        } else {
+          ctx.fillStyle = "#4caf50";
+        }
+        ctx.fillRect(px + 1, py + 1, tileSize - 2, tileSize - 2);
+      });
+
+      // Overlays for pause and game over (features 5 & 6)
+      if (isPaused || gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+
+        if (gameOver) {
+          ctx.font = "32px Arial";
+          ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 10);
+          ctx.font = "18px Arial";
+          ctx.fillText(
+            "Press Enter to restart",
+            canvas.width / 2,
+            canvas.height / 2 + 20
+          );
+        } else if (isPaused) {
+          ctx.font = "32px Arial";
+          ctx.fillText("Paused", canvas.width / 2, canvas.height / 2 - 10);
+          ctx.font = "18px Arial";
+          ctx.fillText(
+            "Press Space to resume",
+            canvas.width / 2,
+            canvas.height / 2 + 20
+          );
+        }
+      }
+    }
+
+    // --- Input handling (feature 1 & 5) ---
+    function handleKeyDown(event) {
+      const key = event.key;
+
+      // Prevent page scrolling with arrow keys / space
+      const handledKeys = [
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        " ",
+        "w",
+        "a",
+        "s",
+        "d",
+        "W",
+        "A",
+        "S",
+        "D",
+      ];
+      if (handledKeys.includes(key)) {
+        event.preventDefault();
+      }
+
+      const goingUp = direction.y === -1;
+      const goingDown = direction.y === 1;
+      const goingLeft = direction.x === -1;
+      const goingRight = direction.x === 1;
+
+      // Movement keys
+      if ((key === "ArrowUp" || key === "w" || key === "W") && !goingDown) {
+        nextDirection = { x: 0, y: -1 };
+      } else if (
+        (key === "ArrowDown" || key === "s" || key === "S") &&
+        !goingUp
+      ) {
+        nextDirection = { x: 0, y: 1 };
+      } else if ((key === "ArrowLeft" || key === "a" || key === "A") && !goingRight) {
+        nextDirection = { x: -1, y: 0 };
+      } else if (
+        (key === "ArrowRight" || key === "d" || key === "D") &&
+        !goingLeft
+      ) {
+        nextDirection = { x: 1, y: 0 };
+      }
+
+      // Pause / resume (feature 5)
+      if (key === " ") {
+        if (!gameOver) {
+          isPaused = !isPaused;
+          draw();
+        }
+      }
+
+      // Restart after game over
+      if (key === "Enter") {
+        if (gameOver) {
+          resetGame();
+        }
+      }
+    }
+
+    // --- Initialization ---
+    function init() {
+      loadHighScore();
+      resetGame();
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    init();
+  </script>
+</body>
+</html>
