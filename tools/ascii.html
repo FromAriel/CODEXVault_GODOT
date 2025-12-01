@@ -1,263 +1,541 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
 <meta charset="utf-8" />
+
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <title>ASCII/Unicode Grid Studio</title>
+
 <style>
+
   :root {
+
     --bg: #0b0d10;
+
     --panel: #12161c;
+
     --ink: #e6edf3;
+
     --muted: #9aa7b3;
+
     --accent: #7c3aed;
+
     --accent-2: #3b82f6;
+
     --danger: #ef4444;
+
     --ok: #10b981;
+
     --grid: #1f2937;
+
     --grid-strong: #334155;
+
     --chip: #1a2230;
+
     --chip-sel: #283247;
+
     --kbd-bg: #0f172a;
+
     --kbd-border: #334155;
+
     --shadow: 0 10px 30px rgba(0,0,0,0.35);
+
   }
+
   html, body {
+
     height: 100%;
+
     margin: 0;
+
     background: var(--bg);
+
     color: var(--ink);
+
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
   }
+
   .app {
+
     display: grid;
+
     grid-template-columns: 340px 1fr;
+
     grid-template-rows: auto 1fr;
+
     gap: 10px;
+
     height: 100%;
+
     padding: 10px;
+
     box-sizing: border-box;
+
   }
+
   header {
+
     grid-column: 1 / span 2;
+
     display: flex;
+
     gap: 12px;
+
     align-items: center;
+
     background: var(--panel);
+
     border: 1px solid #1f2530;
+
     border-radius: 12px;
+
     padding: 10px;
+
     box-shadow: var(--shadow);
+
     flex-wrap: wrap;
+
   }
+
   header .brand {
+
     font-weight: 700;
+
     letter-spacing: 0.3px;
+
     margin-right: 8px;
+
     white-space: nowrap;
+
   }
+
   header .license {
+
     margin-left: auto;
+
     color: var(--muted);
+
     white-space: nowrap;
+
     font-size: 12px;
+
     display: flex;
+
     align-items: center;
+
     gap: 6px;
+
   }
+
   header .controls {
+
     display: flex;
+
     flex-wrap: wrap;
+
     gap: 8px 14px;
+
     align-items: center;
+
   }
+
   .field {
+
     display: flex;
+
     gap: 6px;
+
     align-items: center;
+
     background: #0e131a;
+
     border: 1px solid #1c2230;
+
     padding: 6px 8px;
+
     border-radius: 10px;
+
   }
+
   .field label {
+
     color: var(--muted);
+
     font-size: 12px;
+
   }
+
   .field input[type="number"], .field input[type="text"], .field select {
+
     width: 80px;
+
     background: transparent;
+
     border: none;
+
     color: var(--ink);
+
     outline: none;
+
     font-size: 13px;
+
   }
+
   .field input[type="text"].wide { width: 180px; }
+
   .btn {
+
     background: linear-gradient(180deg,#1d2431,#171c27);
+
     border: 1px solid #2a3446;
+
     color: var(--ink);
+
     padding: 8px 10px;
+
     border-radius: 10px;
+
     cursor: pointer;
+
     font-size: 13px;
+
     user-select: none;
+
   }
+
   .btn:hover { border-color: #3b4a64; }
+
   .btn.primary { border-color: #4c2bd9; background: linear-gradient(180deg,#5b34ff,#3f2aa8); }
+
   .btn.ghost { background: transparent; border-color: #2a3446; }
+
   .btn.danger { border-color: #7f1d1d; background: linear-gradient(180deg,#991b1b,#7f1d1d); }
+
   .chipbar { display: flex; gap: 6px; flex-wrap: wrap; }
+
   .chip {
+
     background: var(--chip);
+
     border: 1px solid #263045;
+
     padding: 5px 8px;
+
     border-radius: 999px;
+
     font-size: 12px;
+
     cursor: pointer;
+
     user-select: none;
+
   }
+
   .chip:hover { border-color: #3a4868; }
+
   .chip.sel { background: var(--chip-sel); border-color: #4b5b7e; }
 
   /* Left panel */
+
   .left {
+
     background: var(--panel);
+
     border: 1px solid #1f2530;
+
     border-radius: 12px;
+
     padding: 10px;
+
     overflow: auto;
+
     box-shadow: var(--shadow);
+
     min-height: 0;
+
   }
+
   .left .search {
+
     display: flex; gap: 8px; margin-bottom: 8px;
+
   }
+
   .left input[type="search"] {
+
     width: 100%;
+
     background: #0e131a;
+
     border: 1px solid #1c2230;
+
     color: #fff;
+
     outline: none;
+
     font-size: 14px;
+
     padding: 8px 10px;
+
     border-radius: 8px;
+
   }
+
   details {
+
     background: #0d1117;
+
     border: 1px solid #1b2332;
+
     border-radius: 10px;
+
     margin: 8px 0;
+
     overflow: hidden;
+
   }
+
   details[open] { border-color: #25314a; }
+
   summary {
+
     cursor: pointer;
+
     padding: 10px 12px;
+
     font-weight: 600;
+
     color: #cbd5e1;
+
     background: #0f1622;
+
   }
+
   .glyph-grid {
+
     display: grid;
+
     grid-template-columns: repeat(10, 1fr);
+
     gap: 6px;
+
     padding: 10px;
+
   }
+
   .glyph {
+
     display: grid;
+
     place-items: center;
+
     height: 32px;
+
     border: 1px solid #263045;
+
     border-radius: 8px;
+
     background: #0a0f16;
+
     cursor: pointer;
+
     font-family: ui-monospace, "Cascadia Code", "Fira Code", "Consolas", "DejaVu Sans Mono", "Noto Sans Mono", "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", monospace;
+
     font-size: 20px;
+
     user-select: none;
+
   }
+
   .glyph:hover { border-color: #3b4a64; }
+
   .glyph.sel { outline: 2px solid var(--accent-2); }
 
   /* Right main area */
+
   .right {
+
     display: grid;
+
     grid-template-rows: auto 1fr;
+
     gap: 10px;
+
     min-height: 0;
+
   }
+
   .toolbar {
+
     background: var(--panel);
+
     border: 1px solid #1f2530;
+
     border-radius: 12px;
+
     padding: 8px;
+
     box-shadow: var(--shadow);
+
     display: flex;
+
     gap: 8px;
+
     align-items: center;
+
     flex-wrap: wrap;
+
   }
+
   .canvas-wrap {
+
     background: #0d1117;
+
     border: 1px solid #1f2530;
+
     border-radius: 12px;
+
     box-shadow: var(--shadow);
+
     position: relative;
+
     overflow: auto;
+
   }
+
+  .frame-bar { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; border: 1px solid #1c2230; background: #0e1420; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; box-shadow: var(--shadow); }
+
+  .frame-controls { display: flex; gap: 8px; align-items: center; }
+
+  .frame-list { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  .frame-extra { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .frame-extra label { font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
+
+  .frame-extra input[type="number"] { width: 80px; background: #0e131a; border: 1px solid #1c2230; color: var(--ink); padding: 4px 6px; border-radius: 6px; }
+
+  .ghost-toggle { background: #142032; border-color: #1f2937; }
+
+  .ghost-toggle.sel { background: #1f2f45; border-color: #334155; }
+
+  .frame-pill { padding: 4px 10px; border-radius: 999px; border: 1px solid #263045; background: #111a2c; color: var(--ink); font-size: 12px; cursor: pointer; transition: background 0.2s ease, border 0.2s ease; }
+
+  .frame-pill:hover { border-color: #3a4a68; }
+
+  .frame-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
   canvas {
+
     display: block;
+
     background: #0b1017;
+
   }
+
   .statusbar {
+
     position: absolute;
+
     left: 8px;
+
     bottom: 8px;
+
     background: rgba(15, 23, 42, 0.9);
+
     border: 1px solid #273144;
+
     color: #cbd5e1;
+
     padding: 6px 8px;
+
     border-radius: 8px;
+
     font-size: 12px;
+
     backdrop-filter: blur(3px);
+
   }
+
   .kbd {
+
     display: inline-block;
+
     border: 1px solid var(--kbd-border);
+
     background: var(--kbd-bg);
+
     border-radius: 6px;
+
     padding: 2px 6px;
+
     font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+
     font-size: 12px;
+
     margin: 0 2px;
+
     color: #cbd5e1;
+
   }
+
   input[type="file"] { display: none; }
+
   .toolgroup {
+
     display: flex; gap: 6px; align-items: center;
+
     padding: 4px; border-radius: 10px; background: #0e1420; border: 1px solid #1d2534;
+
   }
+
   .tool-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid #2a3446; background: #0e1320; cursor:pointer; color: var(--ink); }
+
   .tool-btn.sel { outline: 2px solid var(--accent); }
+
   .color-hud {
+
     position: absolute;
+
     top: 12px;
+
     right: 12px;
+
     width: 200px;
+
     background: rgba(15, 23, 42, 0.95);
+
     border: 1px solid #26354a;
+
     border-radius: 12px;
+
     padding: 12px;
+
     box-shadow: var(--shadow);
+
     color: var(--ink);
+
     font-size: 12px;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
+
     z-index: 5;
+
   }
+
   .color-hud.disabled { opacity: 0.6; }
+
   .color-mode-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+
   .color-current { display: flex; align-items: center; gap: 8px; }
 
   .color-sliders { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -271,585 +549,1163 @@
   .color-slider-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #e6edf3; border: 2px solid #1f2530; cursor: pointer; box-shadow: 0 0 4px rgba(0,0,0,0.5); }
 
   .color-slider-row input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #e6edf3; border: 2px solid #1f2530; cursor: pointer; box-shadow: 0 0 4px rgba(0,0,0,0.5); }
+
   .color-swatch { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #2f3d55; background: #e6edf3; cursor: pointer; padding: 0; }
+
   .color-current input[type="text"] { flex: 1; min-width: 0; background: #0d1423; border: 1px solid #28354c; border-radius: 6px; color: var(--ink); padding: 4px 6px; font-size: 12px; }
+
   .color-current .picker-btn { border: 1px solid #30405c; background: #182238; color: var(--ink); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+
   .recent-block { display: none; }
+
   .color-hud.has-recent .recent-block { display: block; }
+
   .recent-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+
   .recent-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+
   .recent-swatches button { width: 22px; height: 22px; border-radius: 6px; border: 1px solid #2f3d55; cursor: pointer; background: transparent; padding: 0; }
+
   #hiddenColorPicker { position: absolute; left: -9999px; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
   .app.hide-palette { grid-template-columns: 1fr; }
+
   .app.hide-palette .left { display: none; }
 
 </style>
+
 </head>
+
 <body>
+
 <div class="app"> <header> <div class="brand">ASCII/Unicode Grid Studio</div>
 
     <div class="license">
+
       <span>All Rights reserved</span>
+
       <span>&copy;2025 Ariel Williams </span>
+
     </div>
+
     <div class="controls">
+
       <div class="field">
+
         <label>Preset</label>
+
         <div class="chipbar" id="presets">
+
           <div class="chip" data-w="80" data-h="50">80×50</div>
+
           <div class="chip" data-w="120" data-h="36">120×36</div>
+
           <div class="chip" data-w="132" data-h="43">132×43</div>
+
           <div class="chip" data-w="160" data-h="100">160×100</div>
+
         </div>
+
       </div>
+
       <div class="field">
+
         <label>W×H</label>
+
         <input id="gridW" type="number" min="1" value="80" />
+
         <span>×</span>
+
         <input id="gridH" type="number" min="1" value="50" />
+
         <button class="btn" id="applySize">Apply</button>
+
       </div>
+
       <div class="field">
+
         <label>Cell (px)</label>
+
         <input id="cellW" type="number" min="6" value="14" />
+
         <span>×</span>
+
         <input id="cellH" type="number" min="8" value="16" />
+
         <button class="btn" id="applyCell">Apply</button>
+
       </div>
+
       <div class="field">
+
         <label>Font px</label>
+
         <input id="fontSize" type="number" min="8" value="14" />
+
         <button class="btn" id="applyFont">Apply</button>
+
       </div>
+
       <div class="field">
+
         <label>Font family</label>
+
         <input id="fontFamily" class="wide" type="text" value='ui-monospace, "Cascadia Code", "Fira Code", "Consolas", "DejaVu Sans Mono", "Noto Sans Mono", "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", monospace' />
+
         <button class="btn" id="applyFamily">Apply</button>
+
       </div>
+
       <div class="field">
+
         <label>Glyph Scale</label>
+
         <input id="glyphScaleX" type="number" min="0.1" max="2" step="0.05" value="1.50" />
+
         <span>×</span>
+
         <input id="glyphScaleY" type="number" min="0.1" max="2" step="0.05" value="1.00" />
+
         <button class="btn" id="applyGlyphScale">Apply</button>
+
       </div>
+
       <button class="btn" id="toggleFit">Auto-Fit Font: Off</button>
+
       <button class="btn" id="toggleBlend">Blend Draw: On</button>
+
       <button class="btn ghost" id="toggleGridlines">Gridlines: On</button>
+
       <button class="btn" id="clearGrid">Clear</button>
+
       <button class="btn" id="undoBtn">Undo</button>
+
       <button class="btn" id="redoBtn">Redo</button>
+
       <button class="btn primary" id="saveJSON">Save JSON</button>
+
       <button class="btn" id="loadJSON">Load JSON</button>
+
       <button class="btn" id="saveSettings">Save Settings</button>
+
       <button class="btn" id="loadSettings">Load Settings</button>
+
       <button class="btn" id="exportTXT">Export TXT</button>
+
+      <button class="btn" id="exportANSI">Export ANSI</button>
+
       <button class="btn" id="importTXT">Load TXT</button>
+
       <button class="btn" id="exportPNG">Export PNG</button>
+
+      <button class="btn" id="exportAnim">Export Anim (TXT)</button>
+
+      <button class="btn" id="playAnim">Play Animation</button>
+
       <button class="btn" id="togglePaletteBtn">Hide Glyph Palette</button>
+
       <input id="fileJSON" type="file" accept=".json,application/json" />
+
       <input id="fileSettings" type="file" accept=".json,application/json" />
+
       <input id="fileTXT" type="file" accept=".txt,text/plain" />
+
     </div>
+
   </header>
 
   <aside class="left">
+
     <div class="search">
+
       <input id="searchGlyphs" type="search" placeholder="Search glyphs (name or char)…" />
+
     </div>
+
     <div id="palette"></div>
+
   </aside>
 
   <main class="right">
+
     <div class="toolbar">
+
       <div class="toolgroup" id="toolGroup">
+
         <button class="tool-btn sel" data-tool="pencil" title="Paint (click/drag) [P]">✏️ Pencil</button>
+
         <button class="tool-btn" data-tool="eraser" title="Erase (space) [E]">🧽 Eraser</button>
+
         <button class="tool-btn" data-tool="eyedrop" title="Pick glyph [I]">🎯 Eyedrop</button>
+
         <button class="tool-btn" data-tool="type" title="Type mode (keyboard) [T]">⌨️ Type</button>
+
       </div>
+
       <div class="field">
+
         <label>Selected</label>
+
         <div id="selectedGlyph" class="glyph" style="width:40px;height:40px;">█</div>
+
         <input id="customGlyph" type="text" maxlength="4" placeholder="Add glyph" style="width:90px;" />
+
         <button class="btn" id="useCustomGlyph">Use</button>
+
       </div>
+
             <details id="optsHelp">
+
         <summary>Options &amp; Help</summary>
+
         <div id="optsHelpBody" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+
         <div id="helpBody" style="margin-top:8px;padding:8px;border:1px solid #1d2534;border-radius:10px;background:#0e1420">
+
           <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#9aa7b3">
+
             <div>
+
               <div style="color:#cbd5e1;margin-bottom:4px">Navigation</div>
+
               <div><span class="kbd">Ctrl/Wheel</span> zoom</div>
+
               <div><span class="kbd">Arrows</span> move cursor</div>
+
               <div><span class="kbd">Ctrl+0/+/-</span> zoom presets</div>
+
             </div>
+
             <div>
+
               <div style="color:#cbd5e1;margin-bottom:4px">Tools</div>
+
               <div><span class="kbd">P/E/I/T/R/W</span> select tool</div>
+
               <div><span class="kbd">O</span> circle · <span class="kbd">Shift</span> lock · <span class="kbd">Ctrl</span> center</div>
+
               <div><span class="kbd">RMB</span> erase · <span class="kbd">Esc</span> cancel</div>
+
             </div>
+
             <div>
+
               <div style="color:#cbd5e1;margin-bottom:4px">Selection</div>
+
               <div><span class="kbd">S</span> select/move</div>
+
               <div><span class="kbd">Ctrl+C/X/V</span> copy/cut/paste</div>
+
               <div><span class="kbd">Ctrl+Shift+V</span> paste over</div>
+
             </div>
+
             <div>
+
               <div style="color:#cbd5e1;margin-bottom:4px">Export</div>
+
               <div>PNG/TXT/JSON buttons top right</div>
+
               <div>Copy selection writes plain text</div>
+
             </div>
+
           </div>
+
         </div>
+
       </details>
+
+    </div>
+
+    <div class="frame-bar" id="frameBar">
+
+      <div class="frame-controls">
+
+        <button class="btn" id="addFrameBtn">Add Frame</button>
+
+        <button class="btn" id="duplicateFrameBtn">Duplicate</button>
+
+        <button class="btn danger" id="deleteFrameBtn">Delete</button>
+
+      </div>
+
+      <div class="frame-extra">
+
+        <label>Frame delay (ms) <input type="number" id="frameDelay" min="20" max="5000" step="10" value="150" /></label>
+
+        <button class="btn ghost-toggle" id="prevGhostBtn" title="Show previous frame onion-skin">Prev Ghost</button>
+
+        <button class="btn ghost-toggle" id="nextGhostBtn" title="Show next frame onion-skin">Next Ghost</button>
+
+      </div>
+
+      <div class="frame-list" id="frameList"></div>
+
     </div>
 
     <div class="canvas-wrap" id="canvasWrap">
+
       <canvas id="gridCanvas" width="1120" height="800"></canvas>
+
       <div class="statusbar" id="status">80×50 • cell 14×16 • font 14px • zoom 100% • centered</div>
+
       <div class="color-hud" id="colorHud">
+
         <label class="color-mode-toggle">
+
           <input type="checkbox" id="colorModeToggle" />
+
           <span>Color mode</span>
+
         </label>
+
         <div class="color-current">
+
           <button type="button" class="color-swatch" id="currentColorSwatch" title="Select draw color"></button>
+
           <input type="text" id="currentColorInput" value="#E6EDF3" maxlength="7" />
+
           <button type="button" class="picker-btn" id="colorPickerBtn">Pick</button>
+
         </div>
+
         <div class="color-sliders" id="colorSliders">
+
           <div class="color-slider-row">
+
             <label for="colorHue">Hue</label>
+
             <input type="range" id="colorHue" min="0" max="360" value="0" />
+
           </div>
+
           <div class="color-slider-row">
+
             <label for="colorSat">Sat</label>
+
             <input type="range" id="colorSat" min="0" max="100" value="100" />
+
           </div>
+
           <div class="color-slider-row">
+
             <label for="colorVal">Light</label>
+
             <input type="range" id="colorVal" min="0" max="100" value="100" />
+
           </div>
+
         </div>
+
         <div class="recent-block" id="recentColorsBlock">
+
           <div class="recent-label">Recent</div>
+
           <div class="recent-swatches" id="recentColors"></div>
+
         </div>
+
       </div>
+
       <input type="color" id="hiddenColorPicker" value="#E6EDF3" />
+
     </div>
+
   </main>
+
 </div>
 
 <script>
+
 (() => {
+
   // ---------- Utilities ----------
+
   const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
   const isEditableActive = () => {
+
     const el = document.activeElement;
+
     if (!el) return false;
+
     if (el.isContentEditable) return true;
+
     const tag = el.tagName;
+
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
   };
+
   const download = (name, dataUrlOrBlob, mime) => {
+
     if (!(name && (dataUrlOrBlob !== undefined && dataUrlOrBlob !== null))) {
+
       console.error('download() called with invalid args', {name, dataUrlOrBlob, mime});
+
       return;
+
     }
+
     const a = document.createElement('a');
+
     if (dataUrlOrBlob instanceof Blob) {
+
       a.href = URL.createObjectURL(dataUrlOrBlob);
+
     } else if (typeof dataUrlOrBlob === 'string' && dataUrlOrBlob.startsWith('data:')) {
+
       a.href = dataUrlOrBlob;
+
     } else if (typeof dataUrlOrBlob === 'string' || dataUrlOrBlob instanceof ArrayBuffer || ArrayBuffer.isView(dataUrlOrBlob)) {
+
       const blob = new Blob([dataUrlOrBlob], {type: mime || 'application/octet-stream'});
+
       a.href = URL.createObjectURL(blob);
+
     } else {
+
       const blob = new Blob([String(dataUrlOrBlob)], {type: mime || 'application/octet-stream'});
+
       a.href = URL.createObjectURL(blob);
+
     }
+
     a.download = name;
+
     document.body.appendChild(a);
+
     a.click();
+
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+
   };
+
   const measureDPR = () => window.devicePixelRatio || 1;
 
   // ---------- Model ----------
+
   class GridModel {
+
     constructor(w, h) {
+
       this.w = w|0;
+
       this.h = h|0;
+
       const size = this.w * this.h;
+
       this.cells = new Array(size).fill(' ');
+
       this.fg = new Array(size).fill(null);
+
     }
+
     ensureColorArray() {
+
       if (!this.fg || this.fg.length !== this.cells.length) {
+
         this.fg = new Array(this.cells.length).fill(null);
+
       }
+
     }
+
     resize(newW, newH) {
+
       const nw = newW|0, nh = newH|0;
+
       const nextCells = new Array(nw*nh).fill(' ');
+
       const nextFg = new Array(nw*nh).fill(null);
+
       const minW = Math.min(this.w, nw);
+
       const minH = Math.min(this.h, nh);
+
       for (let y=0; y<minH; y++) {
+
         for (let x=0; x<minW; x++) {
+
           const prev = y*this.w + x;
+
           const next = y*nw + x;
+
           nextCells[next] = this.cells[prev];
+
           nextFg[next] = this.fg[prev];
+
         }
+
       }
+
       this.w = nw;
+
       this.h = nh;
+
       this.cells = nextCells;
+
       this.fg = nextFg;
+
     }
+
     idx(x,y){ return y*this.w + x; }
+
     get(x,y){ return this.cells[this.idx(x,y)]; }
+
     getColor(x,y){
+
       if (!this.fg) return null;
+
       const value = this.fg[this.idx(x,y)];
+
       return value === undefined ? null : value;
+
     }
+
     set(x,y,ch,color=undefined){
+
       const index = this.idx(x,y);
+
       this.cells[index] = ch;
+
       if (color !== undefined) {
+
         this.ensureColorArray();
+
         this.fg[index] = (color === null || ch === ' ') ? null : String(color);
+
       } else if (ch === ' ') {
+
         this.ensureColorArray();
+
         this.fg[index] = null;
+
       }
+
     }
+
     setColor(x,y,color){
+
       this.ensureColorArray();
+
       this.fg[this.idx(x,y)] = color === null ? null : String(color);
+
     }
+
     clearColor(x,y){
+
       if (!this.fg) return;
+
       this.fg[this.idx(x,y)] = null;
+
     }
+
     clearColors(){
+
       this.ensureColorArray();
+
       this.fg.fill(null);
+
     }
+
     fill(ch=' ', color=null){
+
       this.cells.fill(ch);
+
       this.ensureColorArray();
+
       const fillColor = (ch === ' ' || color == null) ? null : String(color);
+
       this.fg.fill(fillColor);
+
     }
+
     toRows(){
+
       const rows = [];
+
       for (let y=0; y<this.h; y++) {
+
         rows.push(this.cells.slice(y*this.w,(y+1)*this.w).join(''));
+
       }
+
       return rows;
+
     }
+
     colorsToRows(){
+
       this.ensureColorArray();
+
       const rows = [];
+
       for (let y=0; y<this.h; y++) {
+
         rows.push(this.fg.slice(y*this.w,(y+1)*this.w));
+
       }
+
       return rows;
+
     }
+
     hasAnyColor(){
+
       this.ensureColorArray();
+
       return this.fg.some(v => v !== null && v !== undefined);
+
     }
+
     fromRows(rows) {
+
       const h = Math.min(this.h, rows.length);
+
       this.ensureColorArray();
+
       this.fg.fill(null);
+
       for (let y=0; y<h; y++) {
+
         const row = rows[y] ?? '';
+
         for (let x=0; x<this.w; x++) {
+
           this.set(x,y, row[x] ?? ' ');
+
         }
+
       }
+
     }
+
     applyColorRows(colorRows){
+
       if (!Array.isArray(colorRows)) return;
+
       this.ensureColorArray();
+
       const h = Math.min(this.h, colorRows.length);
+
       for (let y=0; y<h; y++) {
+
         const row = Array.isArray(colorRows[y]) ? colorRows[y] : null;
+
         for (let x=0; x<this.w; x++) {
+
           const value = row ? row[x] : null;
+
           this.fg[this.idx(x,y)] = (value == null) ? null : String(value);
+
         }
+
       }
+
     }
+
     snapshot(){
+
       this.ensureColorArray();
+
       return {
+
         w:this.w,
+
         h:this.h,
+
         cells:[...this.cells],
+
         fg:[...this.fg]
+
       };
+
     }
+
     restore(snap){
+
       this.w = snap.w;
+
       this.h = snap.h;
+
       this.cells = [...snap.cells];
+
       if (Array.isArray(snap.fg) && snap.fg.length === this.cells.length) {
+
         this.fg = [...snap.fg];
+
       } else {
+
         this.fg = new Array(this.cells.length).fill(null);
+
       }
+
     }
+
   }
 
   // ---------- Renderer ----------
+
   class GridRenderer {
+
     constructor(canvas, model) {
+
       this.canvas = canvas;
+
       this.ctx = canvas.getContext('2d');
+
       this.model = model;
+
       this.cellW = 14;
+
       this.cellH = 16;
+
       this.fontSize = 14;
+
       this.fontFamily = 'ui-monospace, "Cascadia Code", "Fira Code", "Consolas", "DejaVu Sans Mono", "Noto Sans Mono", "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", monospace';
+
       this.gridlines = true;
+
       this.bg = '#0b1017';
+
       this.fg = '#e6edf3';
+
       this.gridColor = '#1f2937';
+
       this.gridStrong = '#334155';
+
       this.autoFitFont = false; // per request: do not try to predict glyph size
+
       this.zoom = 1; // CSS/display zoom
+
       this.blendDraw = true; // allow overlap across cells
+
       this.glyphScaleX = 1.5; this.glyphScaleY = 1; // per-glyph scale factors (default 1.5× width, 1× height)
+
       this.vAscent = 0; this.vDescent = 0; this.vHeight = 0; // reference vertical metrics
+
       this._setup();
+
     }
+
     _setup() {
+
       this.ctx.textAlign = 'left';
+
       this.ctx.textBaseline = 'alphabetic';
+
       this.updateCanvasSize();
+
     }
+
     updateCanvasSize() {
+
       const dpr = measureDPR();
+
       const pxW = this.model.w * this.cellW;
+
       const pxH = this.model.h * this.cellH;
+
       // style (layout) size respects zoom for scrollable area
+
       this.canvas.style.width = (pxW * this.zoom) + 'px';
+
       this.canvas.style.height = (pxH * this.zoom) + 'px';
+
       // internal resolution tracks dpr * zoom to stay crisp
+
       this.canvas.width = Math.floor(pxW * dpr * this.zoom);
+
       this.canvas.height = Math.floor(pxH * dpr * this.zoom);
+
       this.ctx.setTransform(dpr * this.zoom, 0, 0, dpr * this.zoom, 0, 0);
+
       this._applyFont(true);
+
       this.fullRedraw();
+
     }
+
     _applyFont(maybeFit=false) {
+
       if (this.autoFitFont && maybeFit) {
+
         this.fitFontToCell();
+
       } else {
+
         this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+
         this.ctx.fillStyle = this.fg;
+
       }
+
       // compute reference vertical metrics using a representative string (cap + descender)
+
       const mRef = this.ctx.measureText('Mg');
+
       const a = (mRef.actualBoundingBoxAscent || this.fontSize * 0.8);
+
       const d = (mRef.actualBoundingBoxDescent || this.fontSize * 0.2);
+
       this.vAscent = a; this.vDescent = d; this.vHeight = a + d;
+
     }
+
     setCellSize(w,h){ this.cellW = w|0; this.cellH = h|0; this.updateCanvasSize(); }
+
     setFontSize(px){ this.fontSize = px|0; this._applyFont(); this.fullRedraw(); }
+
     setFontFamily(f){ this.fontFamily = f; this._applyFont(true); this.fullRedraw(); }
+
     setGridlines(on){ this.gridlines = !!on; this.fullRedraw(); }
+
     setZoom(z){ this.zoom = clamp(z, 0.25, 6); this.updateCanvasSize(); }
+
     setGlyphScale(x,y){
+
       const sx = Math.max(0.1, Math.min(2, +x || 1));
+
       const sy = Math.max(0.1, Math.min(2, +y || 1));
+
       this.glyphScaleX = sx; this.glyphScaleY = sy; this.fullRedraw();
+
     }
 
     fitFontToCell() {
+
       const pad = 2;
+
       const maxPx = Math.max(6, this.cellH * 2);
+
       let lo = 6, hi = maxPx, best = 12;
+
       while (lo <= hi) {
+
         const mid = Math.floor((lo + hi) / 2);
+
         this.ctx.font = `${mid}px ${this.fontFamily}`;
+
         const m = this.ctx.measureText('M');
+
         const width = m.width;
+
         const ascent = (m.actualBoundingBoxAscent || mid * 0.8);
+
         const descent = (m.actualBoundingBoxDescent || mid * 0.2);
+
         const height = ascent + descent;
+
         if (width <= this.cellW - pad && height <= this.cellH - pad) {
+
           best = mid; lo = mid + 1;
+
         } else {
+
           hi = mid - 1;
+
         }
+
       }
+
       this.fontSize = best;
+
       this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+
       this.ctx.fillStyle = this.fg;
+
     }
 
     // Draw a glyph centered by applying per-glyph scale around cell center
+
     drawGlyphAt(x, y, ch, colorOverride=null) {
+
       if (!ch || ch === ' ') return;
+
       const { ctx } = this;
+
       const prev = ctx.fillStyle;
+
       const width = ctx.measureText(ch).width;
+
       const cx = x*this.cellW + Math.round(this.cellW/2);
+
       const cy = y*this.cellH + Math.round(this.cellH/2);
+
       const dx = -Math.round(width/2);
+
       const dy = Math.round(this.vAscent - this.vHeight/2);
+
       ctx.save();
+
       const storedColor = colorOverride ?? this.model.getColor(x,y);
+
       ctx.fillStyle = storedColor || this.fg;
+
       ctx.translate(cx, cy);
+
       ctx.scale(this.glyphScaleX, this.glyphScaleY);
+
       ctx.fillText(ch, dx, dy);
+
       ctx.restore();
+
       ctx.fillStyle = prev;
+
     }
 
     fullRedraw() {
+
       const {ctx} = this;
+
       const W = this.model.w, H = this.model.h;
+
       ctx.fillStyle = this.bg;
+
       ctx.fillRect(0,0, this.model.w*this.cellW, this.model.h*this.cellH);
+
       // grid (optional)
+
       if (this.gridlines) {
+
         ctx.strokeStyle = this.gridColor;
+
         ctx.lineWidth = 1;
+
         ctx.beginPath();
+
         for (let x=0; x<=W; x++) {
+
           const px = x*this.cellW + 0.5;
+
           ctx.moveTo(px, 0); ctx.lineTo(px, H*this.cellH);
+
         }
+
         for (let y=0; y<=H; y++) {
+
           const py = y*this.cellH + 0.5;
+
           ctx.moveTo(0, py); ctx.lineTo(W*this.cellW, py);
+
         }
+
         ctx.stroke();
+
         // strong 10x10
+
         ctx.strokeStyle = this.gridStrong;
+
         ctx.beginPath();
+
         for (let x=0; x<=W; x+=10) {
+
           const px = x*this.cellW + 0.5;
+
           ctx.moveTo(px, 0); ctx.lineTo(px, H*this.cellH);
+
         }
+
         for (let y=0; y<=H; y+=10) {
+
           const py = y*this.cellH + 0.5;
+
           ctx.moveTo(0, py); ctx.lineTo(W*this.cellW, py);
+
         }
+
         ctx.stroke();
+
       }
+
       // glyphs — always drawn at exact cell centers
+
       ctx.fillStyle = this.fg;
+
       const cx = this.cellW/2, cy = this.cellH/2;
+
       for (let y=0; y<H; y++) {
+
         for (let x=0; x<W; x++) {
+
           const ch = this.model.get(x,y);
+
           this.drawGlyphAt(x, y, ch);
+
         }
+
       }
+
     }
 
     // Region redraw helper for blend mode (to handle overlap cleanly)
+
     redrawRegion(x0,y0,x1,y1){
+
       const {ctx} = this;
+
       const W = this.model.w, H = this.model.h;
+
       x0 = clamp(x0,0,W-1); y0 = clamp(y0,0,H-1);
+
       x1 = clamp(x1,0,W-1); y1 = clamp(y1,0,H-1);
+
       const px = x0*this.cellW, py = y0*this.cellH;
+
       const pw = (x1-x0+1)*this.cellW, ph = (y1-y0+1)*this.cellH;
+
       // clear region
+
       ctx.fillStyle = this.bg; ctx.fillRect(px, py, pw, ph);
+
       // local grid
+
       if (this.gridlines) {
+
         ctx.strokeStyle = this.gridColor; ctx.lineWidth = 1; ctx.beginPath();
+
         for (let x=x0; x<=x1+1; x++) { const gx = x*this.cellW + 0.5; ctx.moveTo(gx, py); ctx.lineTo(gx, py+ph); }
+
         for (let y=y0; y<=y1+1; y++) { const gy = y*this.cellH + 0.5; ctx.moveTo(px, gy); ctx.lineTo(px+pw, gy); }
+
         ctx.stroke();
+
         ctx.strokeStyle = this.gridStrong; ctx.beginPath();
+
         for (let x=Math.ceil(x0/10)*10; x<=x1; x+=10) { const gx = x*this.cellW + 0.5; ctx.moveTo(gx, py); ctx.lineTo(gx, py+ph); }
+
         for (let y=Math.ceil(y0/10)*10; y<=y1; y+=10) { const gy = y*this.cellH + 0.5; ctx.moveTo(px, gy); ctx.lineTo(px+pw, gy); }
+
         ctx.stroke();
+
       }
+
       // draw glyphs in region
+
       for (let y=y0; y<=y1; y++) {
+
         for (let x=x0; x<=x1; x++) {
+
           const ch = this.model.get(x,y);
+
           this.drawGlyphAt(x, y, ch);
+
         }
+
       }
+
     }
 
     drawCell(x,y) {
+
       if (this.blendDraw) {
+
         // redraw 3×3 neighborhood to keep overlaps consistent
+
         this.redrawRegion(x-1,y-1,x+1,y+1);
+
         return;
+
       }
+
       const {ctx} = this;
+
       const px = x*this.cellW, py = y*this.cellH;
+
       ctx.fillStyle = this.bg; ctx.fillRect(px, py, this.cellW, this.cellH);
+
       if (this.gridlines) { ctx.strokeStyle = this.gridColor; ctx.lineWidth = 1; ctx.strokeRect(px+0.5, py+0.5, this.cellW-1, this.cellH-1); }
+
       const ch = this.model.get(x,y);
+
       this.drawGlyphAt(x, y, ch);
+
     }
 
     cellFromClient(clientX, clientY) {
+
       const rect = this.canvas.getBoundingClientRect();
+
       const x = Math.floor((clientX - rect.left) / (this.cellW * this.zoom));
+
       const y = Math.floor((clientY - rect.top) / (this.cellH * this.zoom));
+
       if (x<0 || y<0 || x>=this.model.w || y>=this.model.h) return null;
+
       return {x,y};
+
     }
+
   }
 
   // ---------- History (undo/redo) ----------
+
   class History {
+
     constructor(limit=100) {
+
       this.limit = limit;
+
       this.stack = [];
+
       this.index = -1;
+
     }
+
     push(snapshot) {
+
       this.stack = this.stack.slice(0, this.index+1);
+
       this.stack.push(JSON.stringify(snapshot));
+
       if (this.stack.length > this.limit) { this.stack.shift(); }
+
       this.index = this.stack.length - 1;
+
     }
+
     canUndo(){ return this.index > 0; }
+
     canRedo(){ return this.index < this.stack.length - 1; }
+
     undo(){ if (!this.canUndo()) return null; this.index--; return JSON.parse(this.stack[this.index]); }
+
     redo(){ if (!this.canRedo()) return null; this.index++; return JSON.parse(this.stack[this.index]); }
+
     peek(){ if (this.index<0) return null; return JSON.parse(this.stack[this.index]); }
+
   }
 
   // ---------- Palette Data ----------
+
   const range = (startCode, endCode) => {
+
     const arr = [];
+
     for (let cp = startCode; cp <= endCode; cp++) arr.push(String.fromCodePoint(cp));
+
     return arr;
+
   };
+
   const asciiPrintable = range(0x20, 0x7E);
+
   const asciiLetters = [...range(0x41,0x5A), ...range(0x61,0x7A)];
+
   const asciiDigits = range(0x30,0x39);
+
   const asciiPunctChars = "~`!@#$%^&*()-_=+[]{}\\|;:'\",.<>/?"; // literal string; backslashes escaped
+
   const asciiPunct = Array.from(asciiPunctChars);
 
   const boxLight = ['─','│','┌','┐','└','┘','├','┤','┬','┴','┼'];
+
   const boxHeavy = ['━','┃','┏','┓','┗','┛','┣','┫','┳','┻','╋'];
+
   const boxDouble= ['═','║','╔','╗','╚','╝','╠','╣','╦','╩','╬'];
+
   const boxDiag  = ['╱','╲','╳','╴','╵','╶','╷','╼','╽','╾','╿','╭','╮','╯','╰','┍','┑','┕','┙'];
 
   const blocks = ['░','▒','▓','█','▀','▁','▂','▃','▄','▅','▆','▇','▉','▊','▋','▌','▍','▎','▏','▐'];
@@ -865,331 +1721,282 @@
   const greek = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','ς','τ','υ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ','Φ','Ψ','Ω'];
 
   // Braille 0x2800–0x28FF (256 glyphs)
+
   const braille = range(0x2800, 0x28FF);
 
   // Pipe & Curves kits
+
   const pipeAscii = ['-','|','/','\\','+']; // include backslash safely
+
   const pipeRounded = ['╭','╮','╯','╰','◜','◝','◞','◟','◠','◡','○','●','◯','◎'];
+
   const pipeWave = ['~','≈','∽','∿','≋','⌇','〰','～','﹏'];
+
   const quadrants = ['▘','▝','▖','▗'];
+
   const dotLeaders = ['⋯','⋮','⋰','⋱','·','•','∙'];
 
   const categories = [
+
     { name: 'Selected / Common', items: ['█','▓','▒','░','■','□','◆','◇','●','○','◯','▲','▼','◀','▶','╱','╲','─','│','┌','┐','└','┘','┼','╋','╬','╳'] },
+
     { name: 'Pipe Kit — ASCII Minimal', items: pipeAscii },
+
     { name: 'Pipe Kit — Box (Light)', items: boxLight },
+
     { name: 'Pipe Kit — Box (Heavy)', items: boxHeavy },
+
     { name: 'Pipe Kit — Box (Double)', items: boxDouble },
+
     { name: 'Pipe Kit — Rounded/Curvy', items: pipeRounded },
+
     { name: 'Pipe Kit — Waves & Flow', items: pipeWave },
+
     { name: 'Box Drawing — Diagonals & Extras', items: boxDiag },
+
     { name: 'Quadrant Blocks (micro-curves)', items: quadrants },
+
     { name: 'Dotted Leaders & Ellipses', items: dotLeaders },
+
     { name: 'Block Elements & Shades', items: blocks },
+
     { name: 'Geometric Shapes', items: geom },
+
     { name: 'Arrows', items: arrows },
+
     { name: 'Dashes • Lines • Dots', items: dashes },
+
     { name: 'Math & Symbols', items: math },
+
     { name: 'Greek Letters', items: greek },
+
     { name: 'ASCII Letters', items: asciiLetters },
+
     { name: 'ASCII Digits', items: asciiDigits },
+
     { name: 'ASCII Punctuation', items: asciiPunct },
+
     { name: 'ASCII (All Printable)', items: asciiPrintable },
+
     { name: 'Braille (U+2800–U+28FF)', items: braille },
+
   ];
 
   // ---------- Controller / App ----------
+
   const canvas = document.getElementById('gridCanvas');
+
   const canvasWrap = document.getElementById('canvasWrap');
+
   const statusEl = document.getElementById('status');
+
   const presetsEl = document.getElementById('presets');
+
   const gridWEl = document.getElementById('gridW');
+
   const gridHEl = document.getElementById('gridH');
+
   const cellWEl = document.getElementById('cellW');
+
   const cellHEl = document.getElementById('cellH');
+
   const fontSizeEl = document.getElementById('fontSize');
+
   const fontFamilyEl = document.getElementById('fontFamily');
+
   const glyphScaleXEl = document.getElementById('glyphScaleX');
+
   const glyphScaleYEl = document.getElementById('glyphScaleY');
+
   const applySizeBtn = document.getElementById('applySize');
+
   const applyCellBtn = document.getElementById('applyCell');
+
   const applyFontBtn = document.getElementById('applyFont');
+
   const applyFamilyBtn = document.getElementById('applyFamily');
+
   const applyGlyphScaleBtn = document.getElementById('applyGlyphScale');
+
   const fitToggleBtn = document.getElementById('toggleFit');
+
   const blendToggleBtn = document.getElementById('toggleBlend');
+
   const gridToggleBtn = document.getElementById('toggleGridlines');
+
   const clearBtn = document.getElementById('clearGrid');
+
   const undoBtn = document.getElementById('undoBtn');
+
   const redoBtn = document.getElementById('redoBtn');
 
   const saveJSONBtn = document.getElementById('saveJSON');
-  const loadJSONBtn = document.getElementById('loadJSON');
-  const saveSettingsBtn = document.getElementById('saveSettings');
-  const loadSettingsBtn = document.getElementById('loadSettings');
-  const exportTXTBtn = document.getElementById('exportTXT');
-  const importTXTBtn = document.getElementById('importTXT');
-  const exportPNGBtn = document.getElementById('exportPNG');
-  const fileJSON = document.getElementById('fileJSON');
-  const fileSettings = document.getElementById('fileSettings');
-  const fileTXT = document.getElementById('fileTXT');
 
+  const loadJSONBtn = document.getElementById('loadJSON');
+
+const saveSettingsBtn = document.getElementById('saveSettings');
+
+const loadSettingsBtn = document.getElementById('loadSettings');
+
+const exportTXTBtn = document.getElementById('exportTXT');
+
+const exportANSIBtn = document.getElementById('exportANSI');
+
+const importTXTBtn = document.getElementById('importTXT');
+
+const exportPNGBtn = document.getElementById('exportPNG');
+
+const exportAnimBtn = document.getElementById('exportAnim');
+
+const playAnimBtn = document.getElementById('playAnim');
+
+const fileJSON = document.getElementById('fileJSON');
+
+const fileSettings = document.getElementById('fileSettings');
+
+const fileTXT = document.getElementById('fileTXT');
 
 const colorHud = document.getElementById('colorHud');
 
-
-
 const colorModeToggleEl = document.getElementById('colorModeToggle');
-
-
 
 const currentColorSwatchEl = document.getElementById('currentColorSwatch');
 
-
-
 const currentColorInputEl = document.getElementById('currentColorInput');
-
-
 
 const colorPickerBtnEl = document.getElementById('colorPickerBtn');
 
-
-
 const recentColorsWrapEl = document.getElementById('recentColors');
-
-
 
 const recentColorsBlockEl = document.getElementById('recentColorsBlock');
 
-
-
 const hiddenColorPickerEl = document.getElementById('hiddenColorPicker');
-
-
 
 const appRootEl = document.querySelector('.app');
 
-
-
 const togglePaletteBtn = document.getElementById('togglePaletteBtn');
 
+const addFrameBtn = document.getElementById('addFrameBtn');
 
+const duplicateFrameBtn = document.getElementById('duplicateFrameBtn');
+
+const deleteFrameBtn = document.getElementById('deleteFrameBtn');
+
+const frameDelayEl = document.getElementById('frameDelay');
+
+const prevGhostBtn = document.getElementById('prevGhostBtn');
+
+const nextGhostBtn = document.getElementById('nextGhostBtn');
+
+const frameListEl = document.getElementById('frameList');
 
 const colorHueEl = document.getElementById('colorHue');
 
-
-
 const colorSatEl = document.getElementById('colorSat');
-
-
 
 const colorValEl = document.getElementById('colorVal');
 
-
-
 const MAX_RECENT_COLORS = 8;
-
-
 
 const RECENT_COLORS_KEY = 'ascii_recent_colors';
 
-
-
 const PALETTE_COLLAPSE_KEY = 'ascii_palette_collapsed';
-
-
 
 let recentColors = [];
 
-
-
 let sliderHue = 0;
-
-
 
 let sliderSat = 0;
 
-
-
 let sliderValue = 1;
-
-
 
 let sliderSyncLocked = false;
 
-
-
 try {
-
-
 
   const stored = localStorage.getItem(RECENT_COLORS_KEY);
 
-
-
   if (stored) {
-
-
 
     const parsed = JSON.parse(stored);
 
-
-
     if (Array.isArray(parsed)) {
-
-
 
       recentColors = parsed
 
-
-
         .filter((c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c))
-
-
 
         .map((c) => c.toUpperCase());
 
-
-
     }
-
-
 
   }
 
-
-
 } catch {}
-
-
 
 const normalizeColor = (value) => {
 
-
-
   if (typeof value !== 'string') return null;
-
-
 
   const trimmed = value.trim();
 
-
-
   if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toUpperCase();
-
-
 
   return null;
 
-
-
 };
-
-
 
 const persistRecentColors = () => {
 
-
-
   try { localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(recentColors)); } catch {}
 
-
-
 };
-
-
 
 const renderRecentColors = () => {
 
-
-
   if (!recentColorsWrapEl) return;
-
-
 
   recentColorsWrapEl.innerHTML = '';
 
-
-
   recentColors.forEach((color) => {
-
-
 
     const btn = document.createElement('button');
 
-
-
     btn.type = 'button';
-
-
 
     btn.style.background = color;
 
-
-
     btn.title = color;
-
-
 
     btn.addEventListener('click', () => {
 
-
-
       setSelectedColor(color);
-
-
 
       setColorMode(true);
 
-
-
     });
-
-
 
     recentColorsWrapEl.appendChild(btn);
 
-
-
   });
-
-
 
   if (colorHud) colorHud.classList.toggle('has-recent', recentColors.length > 0);
 
-
-
 };
-
-
 
 const pushRecentColor = (color) => {
 
-
-
   const normalized = normalizeColor(color);
-
-
 
   if (!normalized) return;
 
-
-
   recentColors = [normalized, ...recentColors.filter((c) => c !== normalized)].slice(0, MAX_RECENT_COLORS);
-
-
 
   persistRecentColors();
 
-
-
   renderRecentColors();
 
-
-
 };
-
-
 
 const hsvToRgb = (h, s, v) => {
 
@@ -1225,8 +2032,6 @@ const hsvToRgb = (h, s, v) => {
 
 };
 
-
-
 const rgbToHex = (r, g, b) => {
 
   const toHex = (n) => n.toString(16).padStart(2, '0');
@@ -1234,8 +2039,6 @@ const rgbToHex = (r, g, b) => {
   return ('#' + toHex(r) + toHex(g) + toHex(b)).toUpperCase();
 
 };
-
-
 
 const hexToHsv = (hex) => {
 
@@ -1273,8 +2076,6 @@ const hexToHsv = (hex) => {
 
 };
 
-
-
 const updateSliderBackgrounds = () => {
 
   if (!colorHueEl || !colorSatEl || !colorValEl) return;
@@ -1282,21 +2083,22 @@ const updateSliderBackgrounds = () => {
   colorHueEl.style.background = 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
 
   const satRgb = hsvToRgb(sliderHue, 1, sliderValue);
+
   const satHex = rgbToHex(satRgb[0], satRgb[1], satRgb[2]);
 
   const satNeutralRgb = hsvToRgb(sliderHue, 0, sliderValue);
+
   const satNeutral = rgbToHex(satNeutralRgb[0], satNeutralRgb[1], satNeutralRgb[2]);
 
   colorSatEl.style.background = `linear-gradient(to right, ${satNeutral} 0%, ${satHex} 100%)`;
 
   const valRgb = hsvToRgb(sliderHue, sliderSat, 1);
+
   const valColor = rgbToHex(valRgb[0], valRgb[1], valRgb[2]);
 
   colorValEl.style.background = `linear-gradient(to right, #000000 0%, ${valColor} 100%)`;
 
 };
-
-
 
 const syncSlidersFromColor = (hex) => {
 
@@ -1326,47 +2128,379 @@ const syncSlidersFromColor = (hex) => {
 
 };
 
-
-
 const handleSliderInput = () => {
+
   if (!colorHueEl || !colorSatEl || !colorValEl || sliderSyncLocked) return;
+
   sliderHue = Number(colorHueEl.value) / 360;
+
   sliderSat = Number(colorSatEl.value) / 100;
+
   sliderValue = Number(colorValEl.value) / 100;
+
   updateSliderBackgrounds();
+
   const rgb = hsvToRgb(sliderHue, sliderSat, sliderValue);
+
   const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
-  setSelectedColor(hex, { fromSlider: true, pushRecent: false });
+
+  setSelectedColor(hex, { fromSlider: true, pushRecent: false, silentSync: true });
+
   setColorMode(true);
+
 };
 
+let frames = [];
 
+let frameHistories = [];
+
+let currentFrameIndex = 0;
+
+let frameLoading = false;
+
+const captureFrameState = (overrides = {}) => {
+
+  const rows = model.toRows().slice();
+
+  const colorRows = model.colorsToRows();
+
+  const colors = colorRows ? colorRows.map(row => (row ? row.slice() : null)) : null;
+
+  const current = frames[currentFrameIndex];
+
+  let name = `Frame ${currentFrameIndex + 1}`;
+
+  let delay = DEFAULT_FRAME_DELAY;
+
+  if (current && current.name) name = current.name;
+
+  if (current && current.delay !== undefined) delay = current.delay;
+
+  const delayInput = frameDelayEl ? parseInt(frameDelayEl.value, 10) : NaN;
+
+  if (Number.isFinite(delayInput)) delay = clamp(delayInput, 20, 5000);
+
+  if (overrides.name !== undefined) name = overrides.name;
+
+  if (overrides.delay !== undefined) delay = overrides.delay;
+
+  return {
+
+    name,
+
+    rows,
+
+    colors,
+
+    selectedColor,
+
+    colorMode: colorModeEnabled,
+
+    delay
+
+  };
+
+};
+
+const makeBlankFrameState = (name = null) => {
+
+  const blank = new GridModel(model.w, model.h);
+
+  blank.fill(' ');
+
+  const frameName = name || `Frame ${frames.length + 1}`;
+
+  const delayInput = frameDelayEl ? parseInt(frameDelayEl.value, 10) : NaN;
+
+  const delay = Number.isFinite(delayInput) ? clamp(delayInput, 20, 5000) : DEFAULT_FRAME_DELAY;
+
+  return {
+
+    name: frameName,
+
+    rows: blank.toRows(),
+
+    colors: blank.colorsToRows().map(row => (row ? row.slice() : null)),
+
+    selectedColor: DEFAULT_COLOR,
+
+    colorMode: false,
+
+    delay
+
+  };
+
+};
+
+const serializeFrameForExport = (frame, idx) => {
+
+  const rows = Array.isArray(frame.rows) ? frame.rows.map(r => String(r)) : model.toRows();
+
+  const colors = Array.isArray(frame.colors) ? frame.colors.map(row => (Array.isArray(row) ? row.slice() : null)) : null;
+
+  const delay = clamp(parseInt(frame.delay, 10) || DEFAULT_FRAME_DELAY, 20, 5000);
+
+  return {
+
+    name: frame.name || `Frame ${idx + 1}`,
+
+    rows,
+
+    colors,
+
+    selectedColor: normalizeColor(frame.selectedColor) || DEFAULT_COLOR,
+
+    colorMode: !!frame.colorMode,
+
+    delay
+
+  };
+
+};
+
+const normalizeImportedFrame = (frame, idx) => {
+
+  const rows = Array.isArray(frame.rows) ? frame.rows.map(r => String(r)) : model.toRows();
+
+  const colors = Array.isArray(frame.colors) ? frame.colors.map(row => (Array.isArray(row) ? row.slice() : null)) : null;
+
+  return {
+
+    name: frame.name || `Frame ${idx + 1}`,
+
+    rows,
+
+    colors,
+
+    selectedColor: normalizeColor(frame.selectedColor) || DEFAULT_COLOR,
+
+    colorMode: !!frame.colorMode,
+
+    delay: clamp(parseInt(frame.delay, 10) || DEFAULT_FRAME_DELAY, 20, 5000)
+
+  };
+
+};
+
+const renderFrameList = () => {
+
+  if (!frameListEl) return;
+
+  frameListEl.innerHTML = '';
+
+  frames.forEach((frame, idx) => {
+
+    const btn = document.createElement('button');
+
+    btn.className = 'frame-pill';
+
+    if (idx === currentFrameIndex) btn.classList.add('active');
+
+    btn.textContent = frame.name || `Frame ${idx + 1}`;
+
+    btn.addEventListener('click', () => {
+
+      if (idx !== currentFrameIndex) selectFrame(idx);
+
+    });
+
+    frameListEl.appendChild(btn);
+
+  });
+
+};
+
+const syncCurrentFrame = (opts = {}) => {
+
+  if (frameLoading || !frames.length) return;
+
+  frames[currentFrameIndex] = captureFrameState();
+
+  frameHistories[currentFrameIndex] = history;
+
+  if (!opts.silent) renderFrameList();
+
+};
+
+const applyFrameState = (frame) => {
+
+  if (!frame) return;
+
+  frameLoading = true;
+
+  const rows = Array.isArray(frame.rows) ? frame.rows.map((row) => String(row)) : model.toRows();
+
+  const height = rows.length || model.h;
+
+  const width = rows.length ? rows[0].length : model.w;
+
+  model.resize(width, height);
+
+  model.fromRows(rows);
+
+  if (Array.isArray(frame.colors)) {
+
+    model.applyColorRows(frame.colors);
+
+  } else {
+
+    model.clearColors();
+
+  }
+
+  setSelectedColor(frame.selectedColor || DEFAULT_COLOR, { pushRecent: false, updateStatus: false, syncFrame: false, allowDefault: true });
+
+  setColorMode(frame.colorMode);
+
+   if (frameDelayEl) frameDelayEl.value = frame.delay ?? DEFAULT_FRAME_DELAY;
+
+  frameLoading = false;
+
+  renderer.fullRedraw();
+
+  updateStatus();
+
+  syncSlidersFromColor(selectedColor);
+
+  updateSliderBackgrounds();
+
+};
+
+const selectFrame = (index) => {
+
+  if (index < 0 || index >= frames.length || index === currentFrameIndex) return;
+
+  syncCurrentFrame({ silent: true });
+
+  frameHistories[currentFrameIndex] = history;
+
+  currentFrameIndex = index;
+
+  history = frameHistories[currentFrameIndex];
+
+  applyFrameState(frames[currentFrameIndex]);
+
+  renderFrameList();
+
+};
+
+const addFrame = () => {
+
+  syncCurrentFrame({ silent: true });
+
+  frameHistories[currentFrameIndex] = history;
+
+  const blank = makeBlankFrameState();
+
+  frames.splice(currentFrameIndex + 1, 0, blank);
+
+  frameHistories.splice(currentFrameIndex + 1, 0, new History(FRAME_HISTORY_LIMIT));
+
+  selectFrame(currentFrameIndex + 1);
+
+};
+
+const duplicateFrame = () => {
+
+  syncCurrentFrame({ silent: true });
+
+  frameHistories[currentFrameIndex] = history;
+
+  const copy = JSON.parse(JSON.stringify(frames[currentFrameIndex]));
+
+  frames.splice(currentFrameIndex + 1, 0, copy);
+
+  frameHistories.splice(currentFrameIndex + 1, 0, new History(FRAME_HISTORY_LIMIT));
+
+  selectFrame(currentFrameIndex + 1);
+
+};
+
+const deleteFrame = () => {
+
+  if (frames.length <= 1) {
+
+    alert('At least one frame is required.');
+
+    return;
+
+  }
+
+  frames.splice(currentFrameIndex, 1);
+
+  frameHistories.splice(currentFrameIndex, 1);
+
+  const nextIndex = Math.max(0, currentFrameIndex - 1);
+
+  currentFrameIndex = nextIndex;
+
+  history = frameHistories[currentFrameIndex];
+
+  applyFrameState(frames[currentFrameIndex]);
+
+  renderFrameList();
+
+};
+
+const initializeFrames = () => {
+
+  frames = [captureFrameState()];
+
+  frameHistories = [history];
+
+  currentFrameIndex = 0;
+
+  renderFrameList();
+
+};
 
 const setSelectedColor = (color, opts = {}) => {
 
   const normalized = normalizeColor(color);
 
-  const finalColor = normalized || DEFAULT_COLOR;
+  if (!normalized) {
 
-  selectedColor = finalColor;
+    if (opts.allowDefault) {
 
-  if (currentColorInputEl) currentColorInputEl.value = finalColor;
+      selectedColor = DEFAULT_COLOR;
 
-  if (currentColorSwatchEl) currentColorSwatchEl.style.background = finalColor;
+      if (currentColorInputEl) currentColorInputEl.value = DEFAULT_COLOR;
 
-  if (hiddenColorPickerEl) hiddenColorPickerEl.value = finalColor;
+      if (currentColorSwatchEl) currentColorSwatchEl.style.background = DEFAULT_COLOR;
 
-  if (!opts.fromSlider && !sliderSyncLocked) syncSlidersFromColor(finalColor);
+      if (hiddenColorPickerEl) hiddenColorPickerEl.value = DEFAULT_COLOR;
 
-  if (opts.pushRecent !== false && normalized) pushRecentColor(finalColor);
+      if (!opts.fromSlider && !sliderSyncLocked) syncSlidersFromColor(DEFAULT_COLOR);
+
+      if (!frameLoading && opts.syncFrame !== false) syncCurrentFrame({ silent: opts.silentSync === true });
+
+      if (opts.updateStatus !== false && typeof updateStatus === 'function') updateStatus();
+
+    }
+
+    return false;
+
+  }
+
+  selectedColor = normalized;
+
+  if (currentColorInputEl) currentColorInputEl.value = normalized;
+
+  if (currentColorSwatchEl) currentColorSwatchEl.style.background = normalized;
+
+  if (hiddenColorPickerEl) hiddenColorPickerEl.value = normalized;
+
+  if (!opts.fromSlider && !sliderSyncLocked) syncSlidersFromColor(normalized);
+
+  if (opts.pushRecent !== false) pushRecentColor(normalized);
+
+  if (!frameLoading && opts.syncFrame !== false) syncCurrentFrame({ silent: opts.silentSync === true });
 
   if (opts.updateStatus !== false && typeof updateStatus === 'function') updateStatus();
 
-  return !!normalized;
+  return true;
 
 };
-
-
 
 const resolveDrawColor = (colorOverride=undefined) => {
 
@@ -1375,8 +2509,6 @@ const resolveDrawColor = (colorOverride=undefined) => {
   return colorModeEnabled ? selectedColor : null;
 
 };
-
-
 
 const setColorMode = (next) => {
 
@@ -1400,8 +2532,6 @@ const setColorMode = (next) => {
 
   };
 
-
-
   const initPaletteToggle = () => {
 
     if (!appRootEl || !togglePaletteBtn) return;
@@ -1424,1811 +2554,3856 @@ const setColorMode = (next) => {
 
   };
 
-
-
   const initColorHud = () => {
+
     renderRecentColors();
+
     syncSlidersFromColor(selectedColor);
+
     updateSliderBackgrounds();
+
     setSelectedColor(selectedColor, { pushRecent: false, updateStatus: false });
+
     setColorMode(colorModeEnabled);
+
     if (colorModeToggleEl) {
+
       colorModeToggleEl.addEventListener('change', (e) => setColorMode(e.target.checked));
+
     }
+
     if (currentColorInputEl) {
+
       currentColorInputEl.addEventListener('blur', () => {
+
         if (!setSelectedColor(currentColorInputEl.value)) {
+
           currentColorInputEl.value = selectedColor;
+
         } else {
+
           setColorMode(true);
+
         }
+
       });
+
       currentColorInputEl.addEventListener('keydown', (e) => {
+
         if (e.key === 'Enter') {
+
           e.preventDefault();
+
           currentColorInputEl.blur();
+
         }
+
       });
+
     }
+
     const openPicker = () => { if (hiddenColorPickerEl) hiddenColorPickerEl.click(); };
+
     if (currentColorSwatchEl) currentColorSwatchEl.addEventListener('click', openPicker);
+
     if (colorPickerBtnEl) colorPickerBtnEl.addEventListener('click', openPicker);
+
     if (hiddenColorPickerEl) {
+
       hiddenColorPickerEl.addEventListener('input', () => {
+
         setSelectedColor(hiddenColorPickerEl.value);
+
         setColorMode(true);
+
       });
+
     }
+
     if (colorHueEl && colorSatEl && colorValEl) {
+
       [colorHueEl, colorSatEl, colorValEl].forEach((el) => {
+
         el.addEventListener('input', handleSliderInput);
+
         el.addEventListener('change', () => pushRecentColor(selectedColor));
+
       });
+
     }
+
   };
 
-
-
-
   const selectedGlyphBox = document.getElementById('selectedGlyph');
+
   const customGlyphInput = document.getElementById('customGlyph');
+
   const useCustomGlyphBtn = document.getElementById('useCustomGlyph');
 
   const paletteEl = document.getElementById('palette');
+
   const searchEl = document.getElementById('searchGlyphs');
 
   const toolGroup = document.getElementById('toolGroup');
+
   let currentTool = 'pencil'; // 'pencil' | 'eraser' | 'eyedrop' | 'type'
+
   let selectedGlyph = '█';
+
 const DEFAULT_COLOR = "#E6EDF3";
+
+const DEFAULT_FRAME_DELAY = 150;
+
 let selectedColor = DEFAULT_COLOR;
+
 let colorModeEnabled = false;
 
+let showPrevGhost = false;
+
+let showNextGhost = false;
+
+let isPlaying = false;
+
+let playTimer = null;
 
 let model = new GridModel(80,50);
+
 let renderer = new GridRenderer(canvas, model);
-const history = new History(200);
+
+const FRAME_HISTORY_LIMIT = 200;
+
+let history = new History(FRAME_HISTORY_LIMIT);
+
+  const drawGhostFrame = (frame, tint, alpha=0.28) => {
+
+    if (!frame || !Array.isArray(frame.rows)) return;
+
+    const rows = frame.rows;
+
+    const colors = frame.colors;
+
+    const h = rows.length;
+
+    const w = h ? rows[0].length : 0;
+
+    const { ctx } = renderer;
+
+    ctx.save();
+
+    ctx.globalAlpha = alpha;
+
+    for (let y=0; y<h; y++) {
+
+      const row = rows[y] || '';
+
+      for (let x=0; x<w; x++) {
+
+        const ch = row[x];
+
+        if (!ch || ch === ' ') continue;
+
+        if (model.get(x,y) !== ' ') continue;
+
+        const color = colors && Array.isArray(colors[y]) ? colors[y][x] : null;
+
+        const tintColor = color || tint;
+
+        renderer.drawGlyphAt(x, y, ch, tintColor);
+
+      }
+
+    }
+
+    ctx.restore();
+
+  };
+
+  const drawGhostOverlay = () => {
+
+    if (!renderer || !frames.length) return;
+
+    if (showPrevGhost && frames[currentFrameIndex - 1]) drawGhostFrame(frames[currentFrameIndex - 1], '#3b82f6');
+
+    if (showNextGhost && frames[currentFrameIndex + 1]) drawGhostFrame(frames[currentFrameIndex + 1], '#ef4444');
+
+  };
+
+  const stopPlayback = () => {
+
+    isPlaying = false;
+
+    if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+
+    if (playAnimBtn) {
+
+      playAnimBtn.textContent = 'Play Animation';
+
+      playAnimBtn.classList.remove('danger');
+
+    }
+
+  };
+
+  const updatePlayButton = () => {
+
+    if (!playAnimBtn) return;
+
+    playAnimBtn.textContent = isPlaying ? 'Stop' : 'Play Animation';
+
+    playAnimBtn.classList.toggle('danger', isPlaying);
+
+  };
+
+  const schedulePlayback = (idx) => {
+
+    if (!isPlaying || !frames.length) { stopPlayback(); return; }
+
+    selectFrame(idx);
+
+    const frame = frames[idx];
+
+    const delay = clamp(parseInt(frame.delay, 10) || DEFAULT_FRAME_DELAY, 20, 5000);
+
+    playTimer = setTimeout(() => {
+
+      const next = (idx + 1) % frames.length;
+
+      schedulePlayback(next);
+
+    }, delay);
+
+  };
+
+  const startPlayback = () => {
+
+    if (!frames.length) return;
+
+    syncCurrentFrame({ silent: true });
+
+    isPlaying = true;
+
+    updatePlayButton();
+
+    schedulePlayback(currentFrameIndex);
+
+  };
 
   // Overlay hook so selection/preview draws after base content
+
   const _origFullRedraw = renderer.fullRedraw.bind(renderer);
+
   renderer.fullRedraw = function(){
+
     _origFullRedraw();
+
+    drawGhostOverlay();
+
     if (typeof drawSelectionOverlay === 'function') drawSelectionOverlay();
+
   };
 
   const updateStatus = () => {
+
     const z = Math.round(renderer.zoom*100);
+
     statusEl.textContent = `${model.w}×${model.h} • cell ${renderer.cellW}×${renderer.cellH} • font ${renderer.fontSize}px • zoom ${z}% • centered${renderer.blendDraw?' • blend':''}`;
+
   };
 
   // Initialize history with starting state
-  const pushSnapshot = () => history.push(model.snapshot());
+
+  const buildHistorySnapshot = () => ({
+
+    model: model.snapshot(),
+
+    selectedColor,
+
+    colorMode: colorModeEnabled,
+
+  });
+
+  const applyHistorySnapshot = (snap) => {
+
+    if (!snap) return;
+
+    const modelSnap = snap.model || snap;
+
+    model.restore(modelSnap);
+
+    if (snap.selectedColor !== undefined) {
+
+      setSelectedColor(snap.selectedColor, { pushRecent: false, updateStatus: false, allowDefault: true, syncFrame: false });
+
+    }
+
+    if (snap.colorMode !== undefined) setColorMode(snap.colorMode);
+
+    renderer.updateCanvasSize();
+
+    renderer.fullRedraw();
+
+    updateStatus();
+
+    syncCurrentFrame({ silent: true });
+
+    syncSlidersFromColor(selectedColor);
+
+    updateSliderBackgrounds();
+
+  };
+
+  const pushSnapshot = () => history.push(buildHistorySnapshot());
+
   pushSnapshot();
+
+  initializeFrames();
+
   initColorHud();
+
   initPaletteToggle();
 
   // ----- Palette UI -----
+
   const makeGlyphButton = (ch) => {
+
     const div = document.createElement('div');
+
     div.className = 'glyph';
+
     div.textContent = ch;
+
     const cp = ch.codePointAt(0);
+
     div.title = cp ? `U+${cp.toString(16).toUpperCase().padStart(4,'0')}` : '';
+
     div.addEventListener('click', () => {
+
       setSelectedGlyph(ch);
+
     });
+
     return div;
+
   };
 
   const renderPalette = (filter = '') => {
+
     paletteEl.innerHTML = '';
+
     const term = filter.trim().toLowerCase();
+
     categories.forEach(cat => {
+
       const det = document.createElement('details');
+
       det.open = ['Selected / Common','Pipe Kit — Box (Light)','Pipe Kit — Rounded/Curvy','Block Elements & Shades','Braille (U+2800–U+28FF)'].includes(cat.name);
+
       const sum = document.createElement('summary');
+
       sum.textContent = cat.name;
+
       det.appendChild(sum);
 
       const grid = document.createElement('div');
+
       grid.className = 'glyph-grid';
 
       let items = cat.items;
+
       if (term) {
+
         items = items.filter(ch => ch.toLowerCase().includes(term) || cat.name.toLowerCase().includes(term) || sum.textContent.toLowerCase().includes(term));
+
         if (term.startsWith('u+')) {
+
           const want = parseInt(term.slice(2), 16);
+
           items = cat.items.filter(ch => ch.codePointAt(0) === want);
+
         }
+
       }
+
       for (const ch of items) grid.appendChild(makeGlyphButton(ch));
 
       det.appendChild(grid);
+
       paletteEl.appendChild(det);
+
     });
 
     // Separator
+
     const sep = document.createElement('div');
+
     sep.style.height = '1px'; sep.style.background = '#263045'; sep.style.margin = '10px 0'; sep.style.opacity = '0.8';
+
     paletteEl.appendChild(sep);
 
     // ----- UNICODE FULL (lazy) -----
+
     const unicodeFull = document.createElement('details');
+
     const sumFull = document.createElement('summary'); sumFull.textContent = 'UNICODE FULL';
+
     unicodeFull.appendChild(sumFull);
 
     const info = document.createElement('div'); info.style.color='#9aa7b3'; info.style.fontSize='12px'; info.style.margin='6px 0 8px';
+
     info.textContent = 'Blocks load on demand. Large or low-support ranges are collapsed and skipped.';
+
     unicodeFull.appendChild(info);
 
     const unicodeBlocks = [
+
       // Common, broadly supported BMP blocks (subset)
+
       { name:'Latin-1 Supplement', from:0x0080, to:0x00FF },
+
       { name:'Latin Extended-A', from:0x0100, to:0x017F },
+
       { name:'Latin Extended-B', from:0x0180, to:0x024F },
+
       { name:'IPA Extensions', from:0x0250, to:0x02AF },
+
       { name:'Spacing Modifier Letters', from:0x02B0, to:0x02FF },
+
       { name:'Greek and Coptic', from:0x0370, to:0x03FF },
+
       { name:'Cyrillic', from:0x0400, to:0x04FF },
+
       { name:'Hebrew', from:0x0590, to:0x05FF },
+
       { name:'Arabic', from:0x0600, to:0x06FF },
+
       { name:'Armenian', from:0x0530, to:0x058F },
+
       { name:'Devanagari', from:0x0900, to:0x097F },
+
       { name:'Currency Symbols', from:0x20A0, to:0x20CF },
+
       { name:'Letterlike Symbols', from:0x2100, to:0x214F },
+
       { name:'Number Forms', from:0x2150, to:0x218F },
+
       { name:'Arrows', from:0x2190, to:0x21FF },
+
       { name:'Mathematical Operators', from:0x2200, to:0x22FF },
+
       { name:'Misc Technical', from:0x2300, to:0x23FF },
+
       { name:'Control Pictures', from:0x2400, to:0x243F },
+
       { name:'Box Drawing', from:0x2500, to:0x257F },
+
       { name:'Block Elements', from:0x2580, to:0x259F },
+
       { name:'Geometric Shapes', from:0x25A0, to:0x25FF },
+
       { name:'Misc Symbols', from:0x2600, to:0x26FF },
+
       { name:'Dingbats', from:0x2700, to:0x27BF },
+
       { name:'Braille Patterns', from:0x2800, to:0x28FF },
+
       { name:'Supplemental Arrows-A', from:0x27F0, to:0x27FF },
+
       { name:'Supplemental Arrows-B', from:0x2900, to:0x297F },
+
       // Heavy/opt-in or variable support (collapsed by default)
+
       { name:'Emoji (Emoticons)', from:0x1F600, to:0x1F64F, heavy:true },
+
       { name:'Misc Symbols & Pictographs', from:0x1F300, to:0x1F5FF, heavy:true },
+
       { name:'Transport & Map Symbols', from:0x1F680, to:0x1F6FF, heavy:true },
+
       { name:'Geometric Shapes Extended', from:0x1F780, to:0x1F7FF, heavy:true },
+
       { name:'CJK Unified Ideographs (subset)', from:0x4E00, to:0x9FFF, heavy:true },
+
     ];
 
     const isNonCharacter = (cp) => (
+
       (cp >= 0xFDD0 && cp <= 0xFDEF) ||
+
       ((cp & 0xFFFF) === 0xFFFE) || ((cp & 0xFFFF) === 0xFFFF)
+
     );
+
     const isSurrogate = (cp) => (cp >= 0xD800 && cp <= 0xDFFF);
+
     const isPrivateUse = (cp) => ( (cp>=0xE000 && cp<=0xF8FF) || (cp>=0xF0000 && cp<=0xFFFFD) || (cp>=0x100000 && cp<=0x10FFFD) );
-    
+
     // Offscreen pixel-based heuristic (works with monospaced fonts)
+
     let glyphCheckCanvas = null, glyphCheckCtx = null;
+
     const ensureGlyphCheckCtx = () => {
+
       if (!glyphCheckCanvas) {
+
         glyphCheckCanvas = document.createElement('canvas');
+
         glyphCheckCanvas.width = 64; glyphCheckCanvas.height = 64;
+
         glyphCheckCtx = glyphCheckCanvas.getContext('2d');
+
         glyphCheckCtx.textAlign = 'left'; glyphCheckCtx.textBaseline = 'alphabetic';
+
       }
+
       return glyphCheckCtx;
+
     };
+
     const alphaSum = (ch) => {
+
       const ctx2 = ensureGlyphCheckCtx();
+
       const W = glyphCheckCanvas.width, H = glyphCheckCanvas.height;
+
       ctx2.clearRect(0,0,W,H);
+
       ctx2.fillStyle = '#000';
+
       // Mirror renderer font
+
       ctx2.font = renderer.ctx.font;
+
       const y = Math.round(H/2 + renderer.vAscent - renderer.vHeight/2);
+
       ctx2.fillText(ch, 4, y);
+
       const img = ctx2.getImageData(0,0,W,H).data;
+
       let sum = 0; for (let i=3; i<img.length; i+=4) sum += img[i];
+
       return sum;
+
     };
+
     const likelyRenderable = (ch) => {
+
       try {
+
         const aSpace = alphaSum(' ');
+
         const aChar = alphaSum(ch);
+
         const aRepl = alphaSum('\uFFFD');
+
         if (aChar <= aSpace + 8) return false; // visually blank
+
         const diff = Math.abs(aChar - aRepl);
+
         if (diff < aRepl * 0.05) return false; // similar to replacement glyph
+
         return true;
+
       } catch { return true; }
+
     };
 
     const loadBlock = (host, from, to) => {
+
       if (host._loaded) return; host._loaded = true;
+
       const grid = document.createElement('div'); grid.className = 'glyph-grid'; host.appendChild(grid);
+
       const batch = 160; let cp = from;
+
       const step = () => {
+
         const frag = document.createDocumentFragment();
+
         let count = 0;
+
         while (cp <= to && count < batch) {
+
           const c = cp;
+
           cp++;
+
           if (isSurrogate(c) || isPrivateUse(c) || isNonCharacter(c)) continue;
+
           if (c >= 0x0080 && c <= 0x009F) continue;
+
           const ch = String.fromCodePoint(c);
+
           if (!likelyRenderable(ch)) continue;
+
           frag.appendChild(makeGlyphButton(ch));
+
           count++;
+
         }
+
         grid.appendChild(frag);
+
         if (cp <= to) setTimeout(step, 0);
+
       };
+
       step();
+
     };
 
     unicodeBlocks.forEach(b => {
+
       const det = document.createElement('details');
+
       const sum = document.createElement('summary');
+
       const rangeLabel = `U+${b.from.toString(16).toUpperCase().padStart(4,'0')}–U+${b.to.toString(16).toUpperCase().padStart(4,'0')}`;
+
       sum.textContent = `${b.name} (${rangeLabel})${b.heavy? ' [lazy]':''}`;
+
       det.appendChild(sum);
+
       if (!b.heavy) det.open = false; // default collapsed
+
       det.addEventListener('toggle', () => { if (det.open) loadBlock(det, b.from, b.to); });
+
       unicodeFull.appendChild(det);
+
     });
 
     paletteEl.appendChild(unicodeFull);
+
   };
 
   const setSelectedGlyph = (ch) => {
+
     selectedGlyph = ch;
+
     selectedGlyphBox.textContent = ch;
+
     document.querySelectorAll('.glyph.sel').forEach(n => n.classList.remove('sel'));
+
   };
 
   renderPalette();
+
   setSelectedGlyph(selectedGlyph);
 
   searchEl.addEventListener('input', () => renderPalette(searchEl.value));
 
   useCustomGlyphBtn.addEventListener('click', () => {
+
     const raw = customGlyphInput.value;
+
     if (!raw) return;
+
     const cp = [...raw][0];
+
     setSelectedGlyph(cp);
+
   });
 
   // ----- Box/Line Tools UI (dynamic) -----
+
   let boxTLEl, boxTREl, boxBLEl, boxBREl, boxTopEl, boxSideEl, linePatEl, circleCharsEl, circleThkEl, circleThkModeEl;
+
   let brailleDotsEl, brailleStepEl, wormsRoundedEl, wormsDiagEl, wormsCapsEl;
+
   // Extra box edge glyphs (optional). When set, bottom/right edges use these.
+
   let boxBottomExtra = null, boxRightExtra = null;
+
   (function addShapeUI(){
+
     const toolGroup = document.getElementById('toolGroup');
+
     const mkBtn = (tool, label, title) => {
+
       const b = document.createElement('button');
+
       b.className = 'tool-btn';
+
       b.dataset.tool = tool;
+
       b.title = title;
+
       b.textContent = label;
+
       return b;
+
     };
+
     toolGroup.appendChild(mkBtn('select','Select','Select/Move [S]'));
+
     toolGroup.appendChild(mkBtn('box','Box','Draw box (drag) [B]'));
+
     toolGroup.appendChild(mkBtn('line','Line','Draw line (drag) [L]'));
+
     toolGroup.appendChild(mkBtn('circle','Circle','Draw circle/ellipse (drag). Shift=lock circle, Ctrl=center [O]'));
+
     toolGroup.appendChild(mkBtn('braille','Braille','Braille brush (drag)'));
+
     toolGroup.appendChild(mkBtn('worms','Worms','Worms brush (drag)'));
 
     const toolbarEl = document.querySelector('.toolbar');
+
     const sg = document.createElement('div');
+
     sg.className = 'toolgroup';
+
     sg.id = 'shapeParams';
+
     const labelSpan = (text) => { const s=document.createElement('span'); s.className='kbd'; s.textContent=text; return s; };
+
     const addInput = (id,val,w) => { const i=document.createElement('input'); i.type='text'; i.id=id; i.value=val; i.style.width=w; return i; };
+
     const cap = document.createElement('span'); cap.style.color='#9aa7b3'; cap.style.fontSize='12px'; cap.textContent='Box'; sg.appendChild(cap);
+
     sg.appendChild(labelSpan('TL')); sg.appendChild(addInput('boxTL','+', '28px'));
+
     sg.appendChild(labelSpan('TR')); sg.appendChild(addInput('boxTR','+', '28px'));
+
     sg.appendChild(labelSpan('BL')); sg.appendChild(addInput('boxBL','+', '28px'));
+
     sg.appendChild(labelSpan('BR')); sg.appendChild(addInput('boxBR','+', '28px'));
+
     sg.appendChild(labelSpan('Top')); sg.appendChild(addInput('boxTop','-', '56px'));
+
     sg.appendChild(labelSpan('Side')); sg.appendChild(addInput('boxSide','|', '56px'));
+
     const sp = document.createElement('span'); sp.style.marginLeft='8px'; sp.style.color='#9aa7b3'; sp.style.fontSize='12px'; sp.textContent='Line'; sg.appendChild(sp);
+
     sg.appendChild(labelSpan('Pat')); sg.appendChild(addInput('linePat','-', '64px'));
+
     const sc = document.createElement('span'); sc.style.marginLeft='8px'; sc.style.color='#9aa7b3'; sc.style.fontSize='12px'; sc.textContent='Circle'; sg.appendChild(sc);
+
     sg.appendChild(labelSpan('Chars')); sg.appendChild(addInput('circleChars','.,-oO@', '80px'));
+
     sg.appendChild(labelSpan('Thk'));
+
     const thkSel = document.createElement('select'); thkSel.id = 'circleThkMode'; thkSel.style.width = '84px';
+
     [{k:'thin',n:'Thin'},{k:'med',n:'Med'},{k:'thick',n:'Thick'},{k:'custom',n:'Custom'}].forEach(({k,n})=>{ const o=document.createElement('option'); o.value=k; o.textContent=n; thkSel.appendChild(o); });
+
     thkSel.value = 'med';
+
     sg.appendChild(thkSel);
+
     const thkInput = document.createElement('input'); thkInput.type='number'; thkInput.id='circleThk'; thkInput.min='0.05'; thkInput.max='3'; thkInput.step='0.05'; thkInput.value='0.45'; thkInput.style.width='64px'; thkInput.title='Circle thickness (smaller = thinner)';
+
     sg.appendChild(thkInput);
+
     thkSel.addEventListener('change', () => {
+
       const map = { thin: 0.45, med: 0.9, thick: 2.5 };
+
       if (thkSel.value in map) { thkInput.value = map[thkSel.value]; }
+
     });
+
     thkInput.addEventListener('change', () => { thkSel.value = 'custom'; });
+
     const firstField = toolbarEl.querySelector('.field');
+
     (document.getElementById('optsHelpBody') || toolbarEl).appendChild(sg);
+
     boxTLEl = sg.querySelector('#boxTL'); boxTREl = sg.querySelector('#boxTR');
+
     boxBLEl = sg.querySelector('#boxBL'); boxBREl = sg.querySelector('#boxBR');
+
     boxTopEl = sg.querySelector('#boxTop'); boxSideEl = sg.querySelector('#boxSide');
+
     linePatEl = sg.querySelector('#linePat');
+
     circleCharsEl = sg.querySelector('#circleChars');
+
     circleThkEl = sg.querySelector('#circleThk');
+
     circleThkModeEl = sg.querySelector('#circleThkMode');
+
     // Apply preset safely using code points (robust to encoding)
+
     // Box drawing preset dropdown
+
     const boxPresetSel = document.createElement('select'); boxPresetSel.id = 'boxPreset'; boxPresetSel.style.marginLeft = '6px';
+
     [['ascii','ASCII'],['single','Thin'],['thick','Thick'],['double','Double'],['3d','3D']].forEach(function(p){ var o=document.createElement('option'); o.value=p[0]; o.textContent=p[1]; boxPresetSel.appendChild(o); });
+
     sg.insertBefore(boxPresetSel, sg.children[1] || null);
+
     const applyBoxPreset = (mode) => { const C = String.fromCodePoint; const set = (tl,tr,bl,br,top,side) => { boxTLEl.value=tl; boxTREl.value=tr; boxBLEl.value=bl; boxBREl.value=br; boxTopEl.value=top; boxSideEl.value=side; };
+
       if (mode==='ascii') { boxBottomExtra=null; boxRightExtra=null; set('+','+','+','+','-','|'); }
+
       else if (mode==='single') { boxBottomExtra=null; boxRightExtra=null; set(C(0x250C), C(0x2510), C(0x2514), C(0x2518), C(0x2500), C(0x2502)); }
+
       else if (mode==='thick') { boxBottomExtra=null; boxRightExtra=null; set(C(0x250F), C(0x2513), C(0x2517), C(0x251B), C(0x2501), C(0x2503)); }
+
       else if (mode==='double') { boxBottomExtra=null; boxRightExtra=null; set(C(0x2554), C(0x2557), C(0x255A), C(0x255D), C(0x2550), C(0x2551)); }
+
       else if (mode==='3d') { boxBottomExtra=C(0x2550); boxRightExtra=C(0x2551); set(C(0x250C), C(0x2556), C(0x2558), C(0x255D), C(0x2500), C(0x2502)); }
+
     };
+
     boxPresetSel.addEventListener('change', function(){ applyBoxPreset(boxPresetSel.value); });
+
   })();
 
   // ----- Quick glyph popover for inputs -----
+
   let glyphPopover = null; let glyphPopoverBtn = null; let glyphPopoverTarget = null;
+
   const ensureGlyphPopover = () => {
+
     if (glyphPopover) return glyphPopover;
+
     const div = document.createElement('div');
+
     div.id = 'glyphPopover';
+
     div.style.position = 'absolute';
+
     div.style.zIndex = '9999';
+
     div.style.background = '#0e131a';
+
     div.style.border = '1px solid #1c2230';
+
     div.style.borderRadius = '8px';
+
     div.style.padding = '6px';
+
     div.style.boxShadow = '0 6px 18px rgba(0,0,0,0.35)';
+
     div.style.display = 'none';
+
     const btn = document.createElement('button');
+
     btn.type = 'button';
+
     btn.className = 'btn';
+
     btn.style.minWidth = '40px';
+
     btn.title = 'Insert selected glyph';
+
     // Prevent focus change so input doesn't blur-hide the popover before click runs
+
     btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
+
     btn.addEventListener('click', () => {
+
       if (!glyphPopoverTarget) return;
+
       const glyph = selectedGlyph || ' ';
+
       const id = glyphPopoverTarget.id || '';
+
       const single = ['boxTL','boxTR','boxBL','boxBR'].includes(id);
+
       if (single) {
+
         glyphPopoverTarget.value = glyph;
+
       } else {
+
         const start = glyphPopoverTarget.selectionStart ?? glyphPopoverTarget.value.length;
+
         const end = glyphPopoverTarget.selectionEnd ?? start;
+
         const v = glyphPopoverTarget.value;
+
         glyphPopoverTarget.value = v.slice(0,start) + glyph + v.slice(end);
+
         try { glyphPopoverTarget.setSelectionRange(start + glyph.length, start + glyph.length); } catch {}
+
       }
+
       glyphPopover.style.display = 'none';
+
       glyphPopoverTarget.focus();
+
     });
+
     div.appendChild(btn);
+
     document.body.appendChild(div);
+
     glyphPopover = div; glyphPopoverBtn = btn;
+
     // Hide on outside click
+
     document.addEventListener('mousedown', (e) => {
+
       if (!glyphPopover || glyphPopover.style.display==='none') return;
+
       if (e.target === glyphPopover || glyphPopover.contains(e.target)) return;
+
       glyphPopover.style.display = 'none';
+
       glyphPopoverTarget = null;
+
     });
+
     return glyphPopover;
+
   };
+
   const showGlyphPopoverFor = (inputEl) => {
+
     ensureGlyphPopover();
+
     glyphPopoverTarget = inputEl;
+
     glyphPopoverBtn.textContent = selectedGlyph || ' ';
+
     const r = inputEl.getBoundingClientRect();
+
     const top = window.scrollY + r.top - 8 - glyphPopover.offsetHeight;
+
     const left = window.scrollX + r.left + r.width - 40;
+
     glyphPopover.style.display = 'block';
+
     // Place after display to get size
+
     const gpRect = glyphPopover.getBoundingClientRect();
+
     const y = Math.max(4, window.scrollY + r.top - gpRect.height - 6);
+
     const x = Math.max(4, Math.min(window.scrollX + r.right - gpRect.width, window.scrollX + r.left));
+
     glyphPopover.style.top = `${y}px`;
+
     glyphPopover.style.left = `${x}px`;
+
   };
+
   const attachPopover = (el) => {
+
     if (!el) return;
+
     el.addEventListener('focus', () => showGlyphPopoverFor(el));
+
     el.addEventListener('click', () => showGlyphPopoverFor(el));
+
     // Do not hide on blur; global mousedown outside handles dismissal. This avoids hiding before the popover button click.
+
   };
+
   attachPopover(boxTLEl); attachPopover(boxTREl); attachPopover(boxBLEl); attachPopover(boxBREl);
+
   attachPopover(boxTopEl); attachPopover(boxSideEl); attachPopover(linePatEl); attachPopover(circleCharsEl);
 
   // ----- Brush (Pencil/Eraser) UI -----
+
   let brushSize = 1; // 1=1x1, 2=radius 1, etc.
+
   let brushShape = 'square'; // 'square' | 'diamond'
+
   let brushSizeEl, brushShapeBtn;
+
   (function addBrushUI(){
+
     const toolbarEl = document.querySelector('.toolbar');
+
     const bg = document.createElement('div');
+
     bg.className = 'toolgroup';
+
     bg.id = 'brushParams';
+
     const label = document.createElement('span'); label.className='kbd'; label.textContent='Brush'; bg.appendChild(label);
+
     const minus = document.createElement('button'); minus.className='btn ghost'; minus.textContent='-'; minus.title='Smaller'; minus.style.padding='2px 8px'; minus.style.marginLeft='8px';
+
     const plus = document.createElement('button'); plus.className='btn ghost'; plus.textContent='+'; plus.title='Larger'; plus.style.padding='2px 8px'; plus.style.marginLeft='4px';
+
     const sizeLbl = document.createElement('span'); sizeLbl.className='kbd'; sizeLbl.style.marginLeft='6px'; sizeLbl.textContent=String(brushSize);
+
     const shapeBtn = document.createElement('button'); shapeBtn.className='btn ghost'; shapeBtn.title='Toggle brush shape'; shapeBtn.style.marginLeft='8px';
+
     const updateUI = () => { sizeLbl.textContent = String(brushSize); shapeBtn.textContent = (brushShape==='square' ? '?' : '?'); };
+
     minus.addEventListener('click', () => { brushSize = clamp(brushSize-1, 1, 20); updateUI(); });
+
     plus.addEventListener('click', () => { brushSize = clamp(brushSize+1, 1, 20); updateUI(); });
+
     shapeBtn.addEventListener('click', () => { brushShape = (brushShape==='square' ? 'diamond' : 'square'); updateUI(); });
+
     updateUI();
+
     bg.appendChild(minus); bg.appendChild(plus); bg.appendChild(sizeLbl); bg.appendChild(shapeBtn);
+
     const firstField = toolbarEl.querySelector('.field');
+
     (document.getElementById('optsHelpBody') || toolbarEl).appendChild(bg);
+
     brushSizeEl = sizeLbl; brushShapeBtn = shapeBtn;
+
   })();
 
   // ----- Braille + Worms Params UI -----
+
   (function addAdvancedBrushUI(){
+
     const toolbarEl = document.querySelector('.toolbar');
+
     const sg = document.createElement('div');
+
     sg.className = 'toolgroup';
+
     sg.id = 'advBrushParams';
+
     const labelSpan = (text) => { const s=document.createElement('span'); s.className='kbd'; s.textContent=text; return s; };
+
     const addNum = (id, val, min, max, step, width, title) => { const i=document.createElement('input'); i.type='number'; i.id=id; i.value=val; if(min!=null)i.min=String(min); if(max!=null)i.max=String(max); if(step!=null)i.step=String(step); if(width)i.style.width=width; if(title)i.title=title; return i; };
+
     const addChk = (id, checked, title) => { const i=document.createElement('input'); i.type='checkbox'; i.id=id; i.checked=!!checked; if(title) i.title=title; return i; };
+
     const capB = document.createElement('span'); capB.style.marginLeft='8px'; capB.style.color='#9aa7b3'; capB.style.fontSize='12px'; capB.textContent='Braille'; sg.appendChild(capB);
+
     sg.appendChild(labelSpan('Dots')); sg.appendChild(addNum('brailleDots','1',1,4,1,'44px','Number of sub-dots per stamp'));
+
     sg.appendChild(labelSpan('Step')); sg.appendChild(addNum('brailleStep','0.35',0.05,1,0.05,'56px','Sampling step (~cells)'));
+
     const capW = document.createElement('span'); capW.style.marginLeft='8px'; capW.style.color='#9aa7b3'; capW.style.fontSize='12px'; capW.textContent='Worms'; sg.appendChild(capW);
+
     sg.appendChild(labelSpan('Rounded')); sg.appendChild(addChk('wormsRounded', true, 'Use rounded corners (╭╮╯╰)'));
+
     sg.appendChild(labelSpan('Diag')); sg.appendChild(addChk('wormsDiag', true, 'Use diagonal slashes (╱╲)'));
+
     sg.appendChild(labelSpan('Caps')); sg.appendChild(addChk('wormsCaps', true, 'Use end caps (╴╶╵╷) for endpoints'));
+
     const firstField = toolbarEl.querySelector('.field');
+
     (document.getElementById('optsHelpBody') || toolbarEl).appendChild(sg);
+
     brailleDotsEl = sg.querySelector('#brailleDots');
+
     brailleStepEl = sg.querySelector('#brailleStep');
+
     wormsRoundedEl = sg.querySelector('#wormsRounded');
+
     wormsDiagEl = sg.querySelector('#wormsDiag');
+
     wormsCapsEl = sg.querySelector('#wormsCaps');
+
   })();
 
   // ----- Presets / Config -----
+
   presetsEl.addEventListener('click', (e) => {
+
     const chip = e.target.closest('.chip');
+
     if (!chip) return;
+
     const w = parseInt(chip.dataset.w,10);
+
     const h = parseInt(chip.dataset.h,10);
+
     gridWEl.value = w; gridHEl.value = h;
+
     applySize();
+
     presetsEl.querySelectorAll('.chip').forEach(n => n.classList.remove('sel'));
+
     chip.classList.add('sel');
+
   });
 
   const applySize = () => {
+
     const w = clamp(parseInt(gridWEl.value,10)||80, 1, 500);
+
     const h = clamp(parseInt(gridHEl.value,10)||50, 1, 300);
+
     pushSnapshot();
+
     model.resize(w,h);
+
     renderer.updateCanvasSize();
+
     renderer.fullRedraw();
+
     updateStatus();
+
   };
+
   applySizeBtn.addEventListener('click', applySize);
 
   const applyCell = () => {
+
     const cw = clamp(parseInt(cellWEl.value,10)||14, 6, 64);
+
     const ch = clamp(parseInt(cellHEl.value,10)||16, 6, 64);
+
     renderer.setCellSize(cw,ch);
+
     updateStatus();
+
   };
+
   applyCellBtn.addEventListener('click', applyCell);
+
   // Quick-set buttons for Cell size: Current and 8x16
+
   (function addCellQuickSet(){
+
     const cellField = applyCellBtn.closest('.field');
+
     if (!cellField) return;
+
     const mkBtn = (label, title) => { const b=document.createElement('button'); b.className='btn ghost'; b.textContent=label; b.title=title; b.style.marginLeft='6px'; return b; };
+
     const btnCurr = mkBtn('14×16','Set to 14×16 and apply');
+
     const btn816 = mkBtn('8×16','Set to 8×16 and apply');
+
     btnCurr.addEventListener('click', () => { cellWEl.value = 14; cellHEl.value = 16; applyCell(); });
+
     btn816.addEventListener('click', () => { cellWEl.value = 8; cellHEl.value = 16; applyCell(); });
+
     cellField.appendChild(btnCurr);
+
     cellField.appendChild(btn816);
+
   })();
 
   const applyFont = () => {
+
     const fs = clamp(parseInt(fontSizeEl.value,10)||14, 6, 96);
+
     renderer.setFontSize(fs);
+
     fitToggleBtn.textContent = 'Auto-Fit Font: Off';
+
     updateStatus();
+
   };
+
   applyFontBtn.addEventListener('click', applyFont);
+
   const applyGlyphScale = () => {
+
     const sx = clamp(parseFloat(glyphScaleXEl.value)||1, 0.1, 2);
+
     const sy = clamp(parseFloat(glyphScaleYEl.value)||1, 0.1, 2);
+
     glyphScaleXEl.value = sx.toFixed(2);
+
     glyphScaleYEl.value = sy.toFixed(2);
+
     renderer.setGlyphScale(sx, sy);
+
     updateStatus();
+
   };
+
   applyGlyphScaleBtn.addEventListener('click', applyGlyphScale);
 
   const applyFamily = () => {
+
     const fam = fontFamilyEl.value || 'monospace';
+
     renderer.setFontFamily(fam);
+
     updateStatus();
+
   };
+
   applyFamilyBtn.addEventListener('click', applyFamily);
 
   fitToggleBtn.addEventListener('click', () => {
+
     renderer.autoFitFont = !renderer.autoFitFont;
+
     if (renderer.autoFitFont) {
+
       renderer.fitFontToCell();
+
     }
+
     fitToggleBtn.textContent = `Auto-Fit Font: ${renderer.autoFitFont ? 'On' : 'Off'}`;
+
     renderer.fullRedraw();
+
     updateStatus();
+
   });
 
   blendToggleBtn.addEventListener('click', () => {
+
     renderer.blendDraw = !renderer.blendDraw;
+
     blendToggleBtn.textContent = `Blend Draw: ${renderer.blendDraw ? 'On' : 'Off'}`;
+
     renderer.fullRedraw();
+
     updateStatus();
+
   });
 
   gridToggleBtn.addEventListener('click', () => {
+
     renderer.setGridlines(!renderer.gridlines);
+
     gridToggleBtn.textContent = `Gridlines: ${renderer.gridlines ? 'On' : 'Off'}`;
+
   });
 
   clearBtn.addEventListener('click', () => {
+
     if (!confirm('Clear the entire grid?')) return;
+
     pushSnapshot();
+
     model.fill(' ');
+
     renderer.fullRedraw();
+
   });
 
   undoBtn.addEventListener('click', () => {
+
     const snap = history.undo();
-    if (snap) { model.restore(snap); renderer.updateCanvasSize(); renderer.fullRedraw(); updateStatus(); }
-  });
-  redoBtn.addEventListener('click', () => {
-    const snap = history.redo();
-    if (snap) { model.restore(snap); renderer.updateCanvasSize(); renderer.fullRedraw(); updateStatus(); }
+
+    if (snap) applyHistorySnapshot(snap);
+
   });
 
-  // ----- Tools & Interaction -----
-const setTool = (tool) => {
-  currentTool = tool;
-  toolGroup.querySelectorAll('.tool-btn').forEach(btn => {
-    btn.classList.toggle('sel', btn.dataset.tool === tool);
+  redoBtn.addEventListener('click', () => {
+
+    const snap = history.redo();
+
+    if (snap) applyHistorySnapshot(snap);
+
   });
+
+  if (addFrameBtn) addFrameBtn.addEventListener('click', () => { stopPlayback(); syncCurrentFrame({ silent: true }); addFrame(); });
+
+  if (duplicateFrameBtn) duplicateFrameBtn.addEventListener('click', () => { stopPlayback(); syncCurrentFrame({ silent: true }); duplicateFrame(); });
+
+  if (deleteFrameBtn) deleteFrameBtn.addEventListener('click', () => { stopPlayback(); deleteFrame(); });
+
+  if (frameDelayEl) {
+
+    frameDelayEl.addEventListener('change', () => {
+
+      const next = clamp(parseInt(frameDelayEl.value, 10) || DEFAULT_FRAME_DELAY, 20, 5000);
+
+      frameDelayEl.value = next;
+
+      syncCurrentFrame({ silent: true });
+
+    });
+
+  }
+
+  const refreshGhostButtons = () => {
+
+    if (prevGhostBtn) prevGhostBtn.classList.toggle('sel', showPrevGhost);
+
+    if (nextGhostBtn) nextGhostBtn.classList.toggle('sel', showNextGhost);
+
+  };
+
+  if (prevGhostBtn) prevGhostBtn.addEventListener('click', () => { showPrevGhost = !showPrevGhost; refreshGhostButtons(); renderer.fullRedraw(); });
+
+  if (nextGhostBtn) nextGhostBtn.addEventListener('click', () => { showNextGhost = !showNextGhost; refreshGhostButtons(); renderer.fullRedraw(); });
+
+  refreshGhostButtons();
+
+  if (playAnimBtn) {
+
+    playAnimBtn.addEventListener('click', () => {
+
+      if (isPlaying) { stopPlayback(); return; }
+
+      startPlayback();
+
+    });
+
+  }
+
+  window.addEventListener('blur', stopPlayback);
+
+  // ----- Tools & Interaction -----
+
+const setTool = (tool) => {
+
+  currentTool = tool;
+
+  toolGroup.querySelectorAll('.tool-btn').forEach(btn => {
+
+    btn.classList.toggle('sel', btn.dataset.tool === tool);
+
+  });
+
   // Clear selection overlay when leaving Select tool
+
   if (tool !== 'select') {
+
     selectStart = null; selectionMoving = false; selectionRect = null; selectionData = null; previewEnd = null;
+
     renderer.fullRedraw();
+
   }
+
   // Caret management
+
   if (tool === 'type') {
+
     startCaretBlink();
+
   } else {
+
     stopCaretBlink();
+
   }
+
 };
+
   toolGroup.addEventListener('click', (e) => {
+
     const btn = e.target.closest('.tool-btn');
+
     if (!btn) return;
+
     setTool(btn.dataset.tool);
+
   });
 
 let isPointerDown = false;
+
 let typeCursor = {x:0, y:0};
+
 let dragStart = null; // for box/line tools
+
 let previewEnd = null; // last preview end cell to avoid redundant redraws
+
 // Brush-advanced state
+
 let braillePrevPt = null; // {cx, cy} in client coords
+
 let wormsPrevCell = null; // {x,y}
+
 let wormsTrail = []; // recent cells for smoothing
+
 // Selection state
+
 let selectStart = null; // rubber-band start
+
 let selectionRect = null; // {x0,y0,x1,y1}
-let selectionData = null; // {w,h,chars,mask, origin:{x,y}}
+
+let selectionData = null; // {w,h,chars,colors,mask, origin:{x,y}}
+
 let selectionMoving = false;
+
 let moveOffset = {dx:0, dy:0};
-let clipboard = null; // {w,h,chars,mask}
+
+let clipboard = null; // {w,h,chars,colors,mask}
+
 let lastHoverCell = null;
 
 // Caret (Type mode) blink state
+
 let caretTimer = null;
+
 let caretVisible = true;
+
 let lastCaretPos = null;
 
 const stopCaretBlink = () => {
+
   if (caretTimer) { clearInterval(caretTimer); caretTimer = null; }
+
   // Clear last caret overlay by redrawing last caret cell
+
   if (lastCaretPos) {
+
     renderer.redrawRegion(lastCaretPos.x, lastCaretPos.y, lastCaretPos.x, lastCaretPos.y);
+
     lastCaretPos = null;
+
   }
+
 };
+
 const drawCaretOverlay = () => {
+
   if (currentTool !== 'type') return;
+
   if (typeCursor.x<0 || typeCursor.y<0 || typeCursor.x>=model.w || typeCursor.y>=model.h) return;
+
   // Always redraw the caret cell region to erase previous overlay, then draw if visible
+
   renderer.redrawRegion(typeCursor.x, typeCursor.y, typeCursor.x, typeCursor.y);
+
   lastCaretPos = {x:typeCursor.x, y:typeCursor.y};
+
   if (!caretVisible) return;
+
   const { ctx } = renderer;
+
   ctx.save();
+
   ctx.strokeStyle = '#7c3aed';
+
   ctx.globalAlpha = 0.9;
+
   ctx.lineWidth = 2;
+
   const x = typeCursor.x * renderer.cellW + 0.5;
+
   const y = typeCursor.y * renderer.cellH + 0.5;
+
   // Vertical bar caret
+
   const cx = Math.round(x + renderer.cellW/2 - 1);
+
   ctx.beginPath();
+
   ctx.moveTo(cx, y + 2);
+
   ctx.lineTo(cx, y + renderer.cellH - 2);
+
   ctx.stroke();
+
   ctx.restore();
+
 };
+
 const startCaretBlink = () => {
+
   stopCaretBlink();
+
   caretVisible = true;
+
   drawCaretOverlay();
+
   caretTimer = setInterval(() => { caretVisible = !caretVisible; drawCaretOverlay(); }, 500);
+
 };
 
   const colorsEqual = (a, b) => (a === b) || (a == null && b == null);
 
   const paintAt = (x,y,ch,colorOverride=undefined) => {
+
     const beforeChar = model.get(x,y);
+
     const beforeColor = model.getColor(x,y);
+
     const applyColor = resolveDrawColor(colorOverride);
+
     if (beforeChar === ch && colorsEqual(beforeColor, applyColor)) return false;
+
     model.set(x,y,ch, applyColor);
+
     renderer.drawCell(x,y);
+
     return true;
+
   };
 
   const paintBrush = (cx, cy, ch, size, shape) => {
+
     const r = Math.max(0, (size|0) - 1);
+
     if (r === 0) { paintAt(cx, cy, ch); return; }
+
     const minX = Math.max(0, cx - r), maxX = Math.min(model.w - 1, cx + r);
+
     const minY = Math.max(0, cy - r), maxY = Math.min(model.h - 1, cy + r);
+
     for (let y = minY; y <= maxY; y++) {
+
       for (let x = minX; x <= maxX; x++) {
+
         const dx = Math.abs(x - cx), dy = Math.abs(y - cy);
+
         const ok = shape === 'diamond' ? (dx + dy <= r) : (Math.max(dx, dy) <= r);
+
         if (!ok) continue;
+
         paintAt(x, y, ch);
+
       }
+
     }
+
   };
 
   canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
+
   canvas.addEventListener('pointerdown', (e) => {
+
     canvas.setPointerCapture(e.pointerId);
+
     const cell = renderer.cellFromClient(e.clientX, e.clientY);
+
     if (!cell) return;
+
     isPointerDown = true;
+
     if (currentTool === 'eyedrop') {
+
       setSelectedGlyph(model.get(cell.x, cell.y));
+
       return;
+
     }
+
     if (currentTool === 'select') {
+
       if (selectionRect && pointInRect(cell.x, cell.y, normRect(selectionRect))) {
+
         // Begin move
+
         selectionMoving = true;
+
         moveOffset = { dx: cell.x - selectionRect.x0, dy: cell.y - selectionRect.y0 };
+
       } else {
+
         // Begin selection
+
         selectStart = {x:cell.x, y:cell.y};
+
         selectionRect = {x0:cell.x, y0:cell.y, x1:cell.x, y1:cell.y};
+
         selectionData = null;
+
         renderer.fullRedraw();
+
       }
+
       return;
+
     }
+
     if (currentTool === 'braille') {
+
       pushSnapshot();
+
       braillePrevPt = { cx: e.clientX, cy: e.clientY };
+
       // Stamp initial point
+
       brailleStroke(braillePrevPt.cx, braillePrevPt.cy, e.clientX, e.clientY, (e.buttons & 2) !== 0);
+
       return;
+
     }
+
     if (currentTool === 'worms') {
+
       pushSnapshot();
+
       wormsPrevCell = { x: cell.x, y: cell.y };
+
       wormsTrail = [{ x: cell.x, y: cell.y }];
+
       return;
+
     }
+
     if (currentTool === 'box' || currentTool === 'line' || currentTool === 'circle') {
+
       dragStart = {x:cell.x, y:cell.y};
+
       return;
+
     }
+
     const ch = (currentTool === 'eraser' || e.button===2) ? ' ' : selectedGlyph;
+
     pushSnapshot();
+
     paintBrush(cell.x, cell.y, ch, brushSize, brushShape);
+
   });
+
   canvas.addEventListener('pointermove', (e) => {
+
     const cell = renderer.cellFromClient(e.clientX, e.clientY);
+
     if (cell) lastHoverCell = {x:cell.x, y:cell.y};
+
     if (!cell) return;
+
     if (!isPointerDown) return;
+
     if (currentTool === 'pencil' || currentTool === 'eraser') {
+
       const ch = (currentTool === 'eraser') ? ' ' : selectedGlyph;
+
       paintBrush(cell.x, cell.y, ch, brushSize, brushShape);
+
       return;
+
     }
+
     if (currentTool === 'braille') {
+
       if (!braillePrevPt) { braillePrevPt = { cx:e.clientX, cy:e.clientY }; }
+
       brailleStroke(braillePrevPt.cx, braillePrevPt.cy, e.clientX, e.clientY, (e.buttons & 2) !== 0);
+
       braillePrevPt = { cx:e.clientX, cy:e.clientY };
+
       return;
+
     }
+
     if (currentTool === 'worms') {
+
       if (!wormsPrevCell) { wormsPrevCell = { x: cell.x, y: cell.y }; }
+
       wormsPath(wormsPrevCell.x, wormsPrevCell.y, cell.x, cell.y, (e.buttons & 2) !== 0);
+
       wormsPrevCell = { x: cell.x, y: cell.y };
+
       return;
+
     }
+
     if (currentTool === 'select') {
+
       if (selectStart) {
+
         selectionRect = {x0:selectStart.x, y0:selectStart.y, x1:cell.x, y1:cell.y};
+
         renderer.fullRedraw();
+
         drawSelectionOverlay();
+
         return;
+
       }
+
       if (selectionMoving && selectionData) {
+
         const tl = { x: cell.x - moveOffset.dx, y: cell.y - moveOffset.dy };
+
         renderer.fullRedraw();
+
         drawPreviewSelection(tl.x, tl.y);
+
         return;
+
       }
+
     }
+
     if (currentTool === 'box' && dragStart) {
+
       if (previewEnd && previewEnd.x===cell.x && previewEnd.y===cell.y && previewEnd.tool==='box') return;
+
       previewEnd = {x:cell.x, y:cell.y, tool:'box'};
+
       renderer.fullRedraw();
+
       const params = getBoxParams();
+
       drawPreviewBox(dragStart.x, dragStart.y, cell.x, cell.y, params);
+
       return;
+
     }
+
     if (currentTool === 'line' && dragStart) {
+
       if (previewEnd && previewEnd.x===cell.x && previewEnd.y===cell.y && previewEnd.tool==='line') return;
+
       previewEnd = {x:cell.x, y:cell.y, tool:'line'};
+
       renderer.fullRedraw();
+
       const pat = getLinePattern();
+
       drawPreviewLine(dragStart.x, dragStart.y, cell.x, cell.y, pat);
+
       return;
+
     }
+
     if (currentTool === 'circle' && dragStart) {
+
       if (previewEnd && previewEnd.x===cell.x && previewEnd.y===cell.y && previewEnd.tool==='circle') return;
+
       previewEnd = {x:cell.x, y:cell.y, tool:'circle'};
+
       renderer.fullRedraw();
+
       const params = getCircleParams(e);
+
       drawPreviewCircle(dragStart.x, dragStart.y, cell.x, cell.y, params);
+
       return;
+
     }
+
   });
+
   canvas.addEventListener('pointerup', (e) => {
+
     const cell = renderer.cellFromClient(e.clientX, e.clientY);
+
     if (dragStart && cell) {
+
       pushSnapshot();
+
       if (currentTool === 'box') {
+
         const params = getBoxParams();
+
         drawBox(dragStart.x, dragStart.y, cell.x, cell.y, params);
+
       } else if (currentTool === 'line') {
+
         const pat = getLinePattern();
+
         drawLine(dragStart.x, dragStart.y, cell.x, cell.y, pat);
+
       } else if (currentTool === 'circle') {
+
         const params = getCircleParams(e);
+
         drawCircle(dragStart.x, dragStart.y, cell.x, cell.y, params);
+
       }
+
       dragStart = null;
+
       previewEnd = null;
+
       renderer.fullRedraw();
+
       if (currentTool === 'type') drawCaretOverlay();
+
     }
+
     if (currentTool === 'braille') {
+
       braillePrevPt = null;
+
     }
+
     if (currentTool === 'worms') {
+
       wormsPrevCell = null;
+
       wormsTrail = [];
+
     }
+
     if (currentTool === 'select' && cell) {
+
       if (selectStart) {
+
         selectionRect = normRect({x0:selectStart.x, y0:selectStart.y, x1:cell.x, y1:cell.y});
+
         selectionData = captureSelection(selectionRect);
+
         selectStart = null;
+
         renderer.fullRedraw();
+
       } else if (selectionMoving && selectionData) {
+
         const tl = { x: cell.x - moveOffset.dx, y: cell.y - moveOffset.dy };
+
         commitMoveSelection(tl.x, tl.y);
+
         selectionMoving = false;
+
         renderer.fullRedraw();
+
       }
+
     }
+
     isPointerDown = false;
+
   });
 
   // Zoom: Ctrl/⌘ + mouse wheel (with pointer-anchored scrolling)
+
   const zoomAt = (deltaY, clientX, clientY) => {
+
     const before = renderer.zoom;
+
     const factor = Math.exp(-deltaY / 300); // smooth zoom
+
     const next = clamp(before * factor, 0.25, 6);
+
     if (next === before) return;
 
     // Anchor to cursor position
+
     const wrapRect = canvasWrap.getBoundingClientRect();
+
     const viewX = clientX - wrapRect.left;
+
     const viewY = clientY - wrapRect.top;
+
     const contentX = (canvasWrap.scrollLeft + viewX) / before;
+
     const contentY = (canvasWrap.scrollTop + viewY) / before;
 
     renderer.setZoom(next);
 
     // Recompute scroll so the same content point stays under the cursor
+
     canvasWrap.scrollLeft = contentX * next - viewX;
+
     canvasWrap.scrollTop  = contentY * next - viewY;
 
     updateStatus();
+
   };
 
   canvasWrap.addEventListener('wheel', (e) => {
+
     if (e.ctrlKey || e.metaKey) {
+
       e.preventDefault();
+
       zoomAt(e.deltaY/8, e.clientX, e.clientY);
+
     }
+
   }, { passive: false });
 
   // Keyboard: tools, undo/redo, type mode cursor & typing
+
   window.addEventListener('keydown', (e) => {
+
     // Let native typing work in inputs/textareas/contenteditable
+
     if (isEditableActive()) return;
 
     // Escape: cancel current op or exit Type mode
+
     if (e.key === 'Escape') {
+
       if (currentTool === 'type') { setTool('pencil'); e.preventDefault(); return; }
+
       if (dragStart) { dragStart = null; previewEnd = null; renderer.fullRedraw(); e.preventDefault(); return; }
+
       if (selectionRect || selectionMoving || selectStart) {
+
         selectStart = null; selectionMoving = false; selectionRect = null; selectionData = null; previewEnd = null; renderer.fullRedraw(); e.preventDefault(); return;
+
       }
+
     }
 
     if (e.ctrlKey || e.metaKey) {
+
       if (e.shiftKey && e.key.toLowerCase() === 'v') { // paste over selection
+
         if (clipboard && selectionRect) { pasteOverSelection(); e.preventDefault(); }
+
         return;
+
       }
+
       if (e.key.toLowerCase() === 'z') {
+
         e.preventDefault(); undoBtn.click(); return;
+
       }
+
       if (e.key.toLowerCase() === 'y') {
+
         e.preventDefault(); redoBtn.click(); return;
+
       }
+
       if (e.key.toLowerCase() === 'c') { // copy selection
+
         if (selectionRect) { copySelection(); e.preventDefault(); }
+
         return;
+
       }
+
       if (e.key.toLowerCase() === 'x') { // cut selection
+
         if (selectionRect) { cutSelection(); e.preventDefault(); }
+
         return;
+
       }
+
       if (e.key.toLowerCase() === 'v') { // paste at cursor/last hover
+
         if (clipboard) {
+
           const anchor = lastHoverCell || typeCursor || {x:0,y:0};
+
           pasteClipboardAt(anchor.x, anchor.y);
+
           e.preventDefault();
+
         }
+
         return;
+
       }
+
       if (e.key === '+' || e.key === '=') { // zoom in (fine)
+
         e.preventDefault(); zoomAt(-15, window.innerWidth/2, window.innerHeight/2); return;
+
       }
+
       if (e.key === '-') { // zoom out (fine)
+
         e.preventDefault(); zoomAt(15, window.innerWidth/2, window.innerHeight/2); return;
+
       }
+
       if (e.key === '0') { // reset zoom
+
         e.preventDefault(); renderer.setZoom(1); updateStatus(); return;
+
       }
+
     }
+
     if (currentTool === 'type') {
+
       if (e.key === 'ArrowLeft')  { typeCursor.x = clamp(typeCursor.x-1,0,model.w-1); e.preventDefault(); drawCaretOverlay(); return; }
+
       if (e.key === 'ArrowRight') { typeCursor.x = clamp(typeCursor.x+1,0,model.w-1); e.preventDefault(); drawCaretOverlay(); return; }
+
       if (e.key === 'ArrowUp')    { typeCursor.y = clamp(typeCursor.y-1,0,model.h-1); e.preventDefault(); drawCaretOverlay(); return; }
+
       if (e.key === 'ArrowDown')  { typeCursor.y = clamp(typeCursor.y+1,0,model.h-1); e.preventDefault(); drawCaretOverlay(); return; }
+
       if (e.key === 'Backspace'){ pushSnapshot(); paintAt(typeCursor.x, typeCursor.y, ' '); typeCursor.x = clamp(typeCursor.x-1,0,model.w-1); e.preventDefault(); drawCaretOverlay(); return; }
+
       if (e.key.length === 1) {
+
         pushSnapshot();
+
         const ch = e.key;
+
         paintAt(typeCursor.x, typeCursor.y, ch);
+
         typeCursor.x = clamp(typeCursor.x+1,0,model.w-1);
+
         e.preventDefault(); drawCaretOverlay();
+
         return;
+
       }
+
     }
+
     // Tool hotkeys (inactive during type mode to allow typing letters)
+
     if (currentTool !== 'type' && ['p','e','i','t','b','l','s','o','r','w'].includes(e.key.toLowerCase())) {
+
       const map = {p:'pencil', e:'eraser', i:'eyedrop', t:'type', b:'box', l:'line', s:'select', o:'circle', r:'braille', w:'worms'};
+
       setTool(map[e.key.toLowerCase()]);
+
       return;
+
     }
+
     // Delete selection region (when not in type mode)
+
     if (currentTool !== 'type' && (e.key === 'Delete' || (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey))) {
+
       if (selectionRect) {
+
         pushSnapshot();
+
         const r = normRect(selectionRect);
+
         for (let y=r.y0; y<=r.y1; y++) {
+
           for (let x=r.x0; x<=r.x1; x++) {
+
             model.set(x, y, ' ');
+
           }
+
         }
+
         selectionRect = null; selectionData = null; selectionMoving = false; selectStart = null;
+
         renderer.fullRedraw();
+
         e.preventDefault();
+
         return;
+
       }
+
     }
+
   });
 
   // Click to move type cursor
+
   canvas.addEventListener('click', (e) => {
+
     const cell = renderer.cellFromClient(e.clientX, e.clientY);
+
     if (!cell) return;
+
     typeCursor = {x:cell.x, y:cell.y};
+
     if (currentTool === 'type') { caretVisible = true; drawCaretOverlay(); }
+
   });
 
   // ----- Box & Line helpers -----
+
   const firstChar = (s, fallback=' ') => {
+
     if (!s || !s.length) return fallback;
+
     return [...s][0];
+
   };
+
   const patternAt = (s, i, fallback=' ') => {
+
     const arr = [...(s||'')];
+
     if (arr.length === 0) return fallback;
+
     return arr[i % arr.length];
+
   };
+
   const getBoxParams = () => ({
+
     tl: firstChar(typeof boxTLEl!== 'undefined' && boxTLEl ? boxTLEl.value : '+', '+'),
+
     tr: firstChar(typeof boxTREl!== 'undefined' && boxTREl ? boxTREl.value : '+', '+'),
+
     bl: firstChar(typeof boxBLEl!== 'undefined' && boxBLEl ? boxBLEl.value : '+', '+'),
+
     br: firstChar(typeof boxBREl!== 'undefined' && boxBREl ? boxBREl.value : '+', '+'),
+
     top: (typeof boxTopEl!== 'undefined' && boxTopEl ? boxTopEl.value : '-') || '-',
+
     side: (typeof boxSideEl!== 'undefined' && boxSideEl ? boxSideEl.value : '|') || '|',
+
     bottom: (boxBottomExtra || ((typeof boxTopEl!== 'undefined' && boxTopEl ? boxTopEl.value : '-') || '-')),
+
     right: (boxRightExtra || ((typeof boxSideEl!== 'undefined' && boxSideEl ? boxSideEl.value : '|') || '|')),
+
   });
+
   const getLinePattern = () => ((typeof linePatEl!== 'undefined' && linePatEl ? linePatEl.value : '-') || '-');
+
   const getCircleParams = (evt) => ({
+
     chars: ((typeof circleCharsEl!== 'undefined' && circleCharsEl ? circleCharsEl.value : '.,-oO@') || '.,-oO@'),
+
     thickness: (() => {
+
       if (typeof circleThkEl!== 'undefined' && circleThkEl) {
+
         const t = parseFloat(circleThkEl.value);
+
         if (!isNaN(t)) return clamp(t, 0.05, 3);
+
       }
+
       if (typeof circleThkModeEl!== 'undefined' && circleThkModeEl) {
+
         const map = { thin: 0.25, med: 0.45, thick: 0.9 };
+
         if (circleThkModeEl.value in map) return map[circleThkModeEl.value];
+
       }
+
       return 0.7;
+
     })(),
+
     lockAspect: !!(evt && evt.shiftKey),
+
     fromCenter: !!(evt && evt.ctrlKey)
+
   });
 
   // ----- Braille brush helpers -----
+
   const isBrailleChar = (ch) => {
+
     if (!ch) return false;
+
     const cp = ch.codePointAt(0);
+
     return (cp >= 0x2800 && cp <= 0x28FF);
+
   };
+
   const brailleMaskFromChar = (ch) => isBrailleChar(ch) ? (ch.codePointAt(0) - 0x2800) : 0;
+
   const brailleCharFromMask = (mask) => String.fromCodePoint(0x2800 + (mask & 0xFF));
+
   const clientToGridPx = (clientX, clientY) => {
+
     const rect = canvas.getBoundingClientRect();
+
     const gx = (clientX - rect.left) / renderer.zoom;
+
     const gy = (clientY - rect.top) / renderer.zoom;
+
     return { gx, gy };
+
   };
+
   const brailleStampAt = (clientX, clientY, dots, erase=false) => {
+
     const { gx, gy } = clientToGridPx(clientX, clientY);
+
     const cw = renderer.cellW, ch = renderer.cellH;
+
     const cx = Math.floor(gx / cw), cy = Math.floor(gy / ch);
+
     if (cx<0 || cy<0 || cx>=model.w || cy>=model.h) return;
+
     const u = (gx - cx*cw) / cw; // 0..1
+
     const v = (gy - cy*ch) / ch; // 0..1
+
     // Dot centers (2x4 grid)
+
     const xC = [0.25, 0.75];
+
     const yC = [0.125, 0.375, 0.625, 0.875];
+
     const dotNum = (col,row) => (col===0 ? [1,2,3,7][row] : [4,5,6,8][row]);
+
     const centers = [];
+
     for (let row=0; row<4; row++) for (let col=0; col<2; col++) {
+
       const dn = dotNum(col,row);
+
       const dx = u - xC[col];
+
       const dy = v - yC[row];
+
       centers.push({ dn, d2: dx*dx + dy*dy });
+
     }
+
     centers.sort((a,b)=>a.d2-b.d2);
+
     const k = Math.max(1, Math.min(4, (parseInt(dots,10) || 1)));
+
     // Distance threshold grows mildly with k to improve continuity, especially on diagonals
+
     const r2Table = { 1: 0.020, 2: 0.035, 3: 0.055, 4: 0.080 };
+
     const r2 = r2Table[k] || 0.035;
+
     let stampMask = 0;
+
     // Always stamp at least k nearest
+
     for (let i=0; i<k; i++) { stampMask |= (1 << (centers[i].dn - 1)); }
+
     // Also include any within the radius to fill gaps on fast/diagonal strokes
+
     for (let i=0; i<centers.length; i++) {
+
       if (centers[i].d2 <= r2) { stampMask |= (1 << (centers[i].dn - 1)); }
+
     }
+
     const before = model.get(cx,cy);
+
     let mask = brailleMaskFromChar(before);
+
     if (erase) {
+
       mask &= (~stampMask) & 0xFF;
+
     } else {
+
       mask |= stampMask;
+
     }
+
     const next = mask ? brailleCharFromMask(mask) : ' ';
+
     paintAt(cx, cy, next);
+
   };
+
   const brailleStroke = (cxa, cya, cxb, cyb, erase=false) => {
+
     const stepScale = Math.max(0.05, Math.min(1, parseFloat(brailleStepEl ? brailleStepEl.value : '0.35') || 0.35));
+
     const cmin = Math.max(1, Math.min(renderer.cellW, renderer.cellH));
+
     const stepPx = Math.max(1, cmin * stepScale);
+
     const dx = cxb - cxa, dy = cyb - cya;
+
     const dist = Math.hypot(dx,dy) || 1;
+
     const n = Math.max(1, Math.ceil(dist / stepPx));
+
     const dots = brailleDotsEl ? brailleDotsEl.value : 1;
+
     for (let i=0; i<=n; i++) {
+
       const t = i / n;
+
       const sx = cxa + dx * t;
+
       const sy = cya + dy * t;
+
       brailleStampAt(sx, sy, dots, erase);
+
     }
+
   };
 
   // ----- Worms brush helpers -----
+
   const DIR_N = 1, DIR_E = 2, DIR_S = 4, DIR_W = 8;
+
   const oppDir = (d) => (d===DIR_N?DIR_S : d===DIR_S?DIR_N : d===DIR_E?DIR_W : d===DIR_W?DIR_E : 0);
+
   const maskFromGlyph = (ch) => {
+
     switch (ch) {
+
       case '─': return DIR_E|DIR_W;
+
       case '│': return DIR_N|DIR_S;
+
       case '╭': case '┌': case '◜': return DIR_E|DIR_S; // top-left corner
+
       case '╮': case '┐': case '◝': return DIR_W|DIR_S; // top-right corner
+
       case '╯': case '┘': case '◞': return DIR_W|DIR_N; // bottom-right corner
+
       case '╰': case '└': case '◟': return DIR_E|DIR_N; // bottom-left corner
+
       case '├': return DIR_E|DIR_N|DIR_S;
+
       case '┤': return DIR_W|DIR_N|DIR_S;
+
       case '┬': return DIR_E|DIR_W|DIR_S;
+
       case '┴': return DIR_E|DIR_W|DIR_N;
+
       case '┼': return DIR_E|DIR_W|DIR_N|DIR_S;
+
       case '╴': return DIR_E; case '╶': return DIR_W; case '╵': return DIR_S; case '╷': return DIR_N;
+
       default: return 0;
+
     }
+
   };
+
   const glyphFromMask = (mask, opts) => {
+
     const rounded = !!(opts && opts.rounded);
+
     const caps = !!(opts && opts.caps);
+
     switch (mask) {
+
       case 0: return ' ';
+
       case DIR_E: return caps ? '╴' : ' ';
+
       case DIR_W: return caps ? '╶' : ' ';
+
       case DIR_N: return caps ? '╷' : ' ';
+
       case DIR_S: return caps ? '╵' : ' ';
+
       case DIR_E|DIR_W: return '─';
+
       case DIR_N|DIR_S: return '│';
+
       case DIR_E|DIR_S: return rounded ? '╭' : '┌';
+
       case DIR_W|DIR_S: return rounded ? '╮' : '┐';
+
       case DIR_W|DIR_N: return rounded ? '╯' : '┘';
+
       case DIR_E|DIR_N: return rounded ? '╰' : '└';
+
       case DIR_E|DIR_N|DIR_S: return '├';
+
       case DIR_W|DIR_N|DIR_S: return '┤';
+
       case DIR_E|DIR_W|DIR_S: return '┬';
+
       case DIR_E|DIR_W|DIR_N: return '┴';
+
       default: return '┼';
+
     }
+
   };
+
   const wormsApplyCardinalStep = (x0,y0,x1,y1, erase, opts) => {
+
     // Update prev cell
+
     const idxPrev = model.get(x0,y0);
+
     let mPrev = maskFromGlyph(idxPrev);
+
     let dir = 0;
+
     if (x1 > x0) dir = DIR_E; else if (x1 < x0) dir = DIR_W; else if (y1 > y0) dir = DIR_S; else if (y1 < y0) dir = DIR_N;
+
     if (dir) {
+
       if (erase) mPrev &= ~dir; else mPrev |= dir;
+
       const chPrev = glyphFromMask(mPrev, opts);
+
       paintAt(x0,y0,chPrev);
+
       // Update curr cell
+
       const idxCurr = model.get(x1,y1);
+
       let mCurr = maskFromGlyph(idxCurr);
+
       const od = oppDir(dir);
+
       if (erase) mCurr &= ~od; else mCurr |= od;
+
       const chCurr = glyphFromMask(mCurr, opts);
+
       paintAt(x1,y1,chCurr);
+
     }
+
   };
+
   const wormsApplyStep = (x0,y0,x1,y1, erase, opts) => {
+
     let dir = 0;
+
     if (x1 > x0 && y1 === y0) dir = DIR_E;
+
     else if (x1 < x0 && y1 === y0) dir = DIR_W;
+
     else if (y1 > y0 && x1 === x0) dir = DIR_S;
+
     else if (y1 < y0 && x1 === x0) dir = DIR_N;
+
     else {
+
       // Diagonal
+
       if (opts && opts.diag) {
+
         if (opts.rounded) {
+
           // Bridge with two cardinal steps through mid cell (horizontal-first)
+
           const midX = x0 + (x1>x0?1:-1);
+
           const midY = y0;
+
           if (midX>=0 && midY>=0 && midX<model.w && midY<model.h) {
+
             wormsApplyCardinalStep(x0,y0, midX,midY, erase, opts);
+
           }
+
           if (x1>=0 && y1>=0 && x1<model.w && y1<model.h) {
+
             wormsApplyCardinalStep(midX,midY, x1,y1, erase, opts);
+
           }
+
         } else {
+
           const slash = (x1-x0)*(y1-y0) > 0 ? '╲' : '╱';
+
           paintAt(x1, y1, erase ? ' ' : slash);
+
         }
+
       }
+
       return; // ignore diagonal for connectivity
+
     }
+
     wormsApplyCardinalStep(x0,y0,x1,y1, erase, opts);
+
   };
+
   const wormsPath = (x0,y0,x1,y1, erase=false) => {
+
     const opts = { rounded: !wormsRoundedEl || !!wormsRoundedEl.checked, diag: !wormsDiagEl || !!wormsDiagEl.checked, caps: !wormsCapsEl || !!wormsCapsEl.checked };
+
     // Bresenham 8-connected stepping: we walk cell-to-cell
+
     let dx = Math.abs(x1-x0), sx = x0<x1?1:-1;
+
     let dy = -Math.abs(y1-y0), sy = y0<y1?1:-1;
+
     let err = dx+dy;
+
     let cx = x0, cy = y0;
+
     while (true) {
+
       if (cx===x1 && cy===y1) break;
+
       const e2 = 2*err;
+
       let nx = cx, ny = cy;
+
       if (e2 >= dy) { err += dy; nx += sx; }
+
       if (e2 <= dx) { err += dx; ny += sy; }
+
       if (nx===cx && ny===cy) break;
+
       if (nx>=0 && ny>=0 && nx<model.w && ny<model.h) {
+
         wormsApplyStep(cx, cy, nx, ny, erase, opts);
+
         if (!erase) { wormsTrail.push({x:nx,y:ny}); if (wormsTrail.length>64) wormsTrail.shift(); }
+
       }
+
       cx = nx; cy = ny;
+
     }
+
     if (!erase && opts.diag) wormsSmoothDiag(5, opts);
+
   };
 
   const wormsSmoothDiag = (back=5, opts) => {
+
     // Only smooth when diagonals allowed and rounded slashes are desired (rounded off)
+
     if (!(opts && opts.diag)) return;
+
     if (opts.rounded) return; // keep rounded-corner behavior
+
     const n = wormsTrail.length;
+
     if (n < 3) return;
+
     const count = Math.min(Math.max(3, back+1), n);
+
     const start = n - count;
+
     const A = wormsTrail[start], B = wormsTrail[n-1];
+
     const dxSum = B.x - A.x, dySum = B.y - A.y;
+
     const ax = Math.abs(dxSum), ay = Math.abs(dySum);
+
     if (ax < 2 || ay < 2) return; // need meaningful diagonal span
+
     const ratio = Math.max(ax,ay) / Math.max(1, Math.min(ax,ay));
+
     if (ratio > 1.75) return; // too steep vs shallow to be diagonal
+
     const slash = (dxSum*dySum > 0) ? '╲' : '╱';
 
     // Build a thin target path between A and B using linear interpolation rounding
+
     const steps = Math.max(ax, ay);
+
     if (steps <= 1) return;
+
     const pathSet = new Set();
+
     let fx = A.x, fy = A.y;
+
     const sx = dxSum / steps, sy = dySum / steps;
+
     for (let i=1; i<steps; i++) { // interior only
+
       fx += sx; fy += sy;
+
       const xi = Math.round(fx), yi = Math.round(fy);
+
       if (xi>=0 && yi>=0 && xi<model.w && yi<model.h) pathSet.add(xi+","+yi);
+
     }
 
     // Thinning: enforce only target path cells contain slashes of this orientation
+
     for (let i=start+1; i<n-1; i++) {
+
       const p = wormsTrail[i];
+
       const key = p.x+","+p.y;
+
       const ch = model.get(p.x, p.y);
+
       const isSlash = (ch === '╲' || ch === '╱');
+
       const m = maskFromGlyph(ch);
+
       const bits = (m & DIR_N?1:0) + (m & DIR_E?1:0) + (m & DIR_S?1:0) + (m & DIR_W?1:0);
+
       if (pathSet.has(key)) {
+
         if (bits < 3) paintAt(p.x, p.y, slash);
+
       } else if (isSlash && bits < 2) {
+
         // Remove off-path extra slashes to prevent double-thick diagonals
+
         paintAt(p.x, p.y, ' ');
+
       }
+
     }
+
   };
 
   const drawBox = (x0,y0,x1,y1, p) => {
+
     let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
+
     let minY = Math.min(y0,y1), maxY = Math.max(y0,y1);
+
     minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
+
     minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
+
     const w = maxX-minX+1, h = maxY-minY+1;
+
     if (w<=0 || h<=0) return;
+
     if (w===1 && h===1) { model.set(minX,minY,p.tl); return; }
+
     if (h===1) { for (let i=0;i<w;i++) model.set(minX+i, minY, patternAt(p.top,i,'-')); return; }
+
     if (w===1) { for (let j=0;j<h;j++) model.set(minX, minY+j, patternAt(p.side,j,'|')); return; }
+
     // corners
+
     model.set(minX, minY, p.tl);
+
     model.set(maxX, minY, p.tr);
+
     model.set(minX, maxY, p.bl);
+
     model.set(maxX, maxY, p.br);
+
     // top/bottom edges
+
     for (let x=minX+1, i=0; x<=maxX-1; x++, i++) {
+
       model.set(x, minY, patternAt(p.top, i, '-'));
+
       model.set(x, maxY, patternAt(p.bottom || p.top, i, '-'));
+
     }
+
     // sides
+
     for (let y=minY+1, j=0; y<=maxY-1; y++, j++) {
+
       model.set(minX, y, patternAt(p.side, j, '|'));
+
       model.set(maxX, y, patternAt(p.right || p.side, j, '|'));
+
     }
+
   };
 
   const drawLine = (x0,y0,x1,y1, pat) => {
+
     // Bresenham line
+
     let dx = Math.abs(x1-x0), sx = x0<x1?1:-1;
+
     let dy = -Math.abs(y1-y0), sy = y0<y1?1:-1;
+
     let err = dx+dy;
+
     let i = 0;
+
     while (true) {
+
       model.set(x0, y0, patternAt(pat, i, '-'));
+
       if (x0===x1 && y0===y1) break;
+
       const e2 = 2*err;
+
       if (e2 >= dy) { err += dy; x0 += sx; }
+
       if (e2 <= dx) { err += dx; y0 += sy; }
+
       i++;
+
     }
+
   };
 
   const drawCircle = (x0, y0, x1, y1, params) => {
+
     let minX, maxX, minY, maxY;
+
     if (params && params.fromCenter) {
+
       const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+
       minX = x0 - dx; maxX = x0 + dx;
+
       minY = y0 - dy; maxY = y0 + dy;
+
     } else {
+
       minX = Math.min(x0,x1); maxX = Math.max(x0,x1);
+
       minY = Math.min(y0,y1); maxY = Math.max(y0,y1);
+
     }
+
     minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
+
     minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
+
     const cx = (minX + maxX) / 2;
+
     const cy = (minY + maxY) / 2;
+
     let rx = Math.max(0.5, (maxX - minX + 1) / 2);
+
     let ry = Math.max(0.5, (maxY - minY + 1) / 2);
+
     if (params && params.lockAspect) {
+
       const r = Math.min(rx, ry); rx = r; ry = r;
+
     }
+
     const chars = [...((params && params.chars) ? params.chars : '.,-oO@')];
+
     const N = chars.length || 1;
+
     const thickness = (params && typeof params.thickness === 'number') ? params.thickness : 0.7;
+
     const cw = renderer.cellW || 1, ch = renderer.cellH || 1, cmin = Math.max(1, Math.min(cw, ch));
+
     // Iterate with small padding; expand by ~thickness in cell units
+
     const pad = Math.ceil(thickness * (Math.max(cw, ch) / cmin)) + 1;
+
     for (let y=minY-pad; y<=maxY+pad; y++) {
+
       for (let x=minX-pad; x<=maxX+pad; x++) {
+
         if (x<0 || y<0 || x>=model.w || y>=model.h) continue;
+
         const dx = (x + 0.5) - cx;
+
         const dy = (y + 0.5) - cy;
+
         // Work in pixel space for isotropy
+
         const dxp = dx * cw, dyp = dy * ch;
+
         const rxp = rx * cw, ryp = ry * ch;
+
         const f = (dxp*dxp)/(rxp*rxp) + (dyp*dyp)/(ryp*ryp) - 1.0;
+
         const gx = (2 * dxp) / (rxp*rxp);
+
         const gy = (2 * dyp) / (ryp*ryp);
+
         const g = Math.hypot(gx, gy) || 1e-6;
+
         const dpx = Math.abs(f) / g; // approximate signed distance in pixels
+
         const dnorm = dpx / cmin;    // normalize to ~cells
+
         const t = dnorm / thickness;
+
         if (t <= 1.0) {
+
           const idx = Math.min(N-1, Math.max(0, N-1 - Math.floor(t * (N-1))));
+
           model.set(x, y, chars[idx]);
+
         }
+
       }
+
     }
+
   };
 
   // ----- Live Preview (non-destructive) -----
+
   const PREVIEW_COLOR = '#3b82f6';
+
   const drawPreviewGlyph = (x,y,ch) => {
+
     renderer.drawGlyphAt(x, y, ch, PREVIEW_COLOR);
+
   };
+
   const drawPreviewBox = (x0,y0,x1,y1, p) => {
+
     let minX = Math.min(x0,x1), maxX = Math.max(x0,x1);
+
     let minY = Math.min(y0,y1), maxY = Math.max(y0,y1);
+
     minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
+
     minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
+
     const w = maxX-minX+1, h = maxY-minY+1;
+
     if (w<=0 || h<=0) return;
+
     if (w===1 && h===1) { drawPreviewGlyph(minX,minY,p.tl); return; }
+
     if (h===1) { for (let i=0;i<w;i++) drawPreviewGlyph(minX+i, minY, patternAt(p.top,i,'-')); return; }
+
     if (w===1) { for (let j=0;j<h;j++) drawPreviewGlyph(minX, minY+j, patternAt(p.side,j,'|')); return; }
+
     // corners
+
     drawPreviewGlyph(minX, minY, p.tl);
+
     drawPreviewGlyph(maxX, minY, p.tr);
+
     drawPreviewGlyph(minX, maxY, p.bl);
+
     drawPreviewGlyph(maxX, maxY, p.br);
+
     // top/bottom edges
+
     for (let x=minX+1, i=0; x<=maxX-1; x++, i++) {
+
       drawPreviewGlyph(x, minY, patternAt(p.top, i, '-'));
+
       drawPreviewGlyph(x, maxY, patternAt(p.bottom || p.top, i, '-'));
+
     }
+
     // sides
+
     for (let y=minY+1, j=0; y<=maxY-1; y++, j++) {
+
       drawPreviewGlyph(minX, y, patternAt(p.side, j, '|'));
+
       drawPreviewGlyph(maxX, y, patternAt(p.right || p.side, j, '|'));
+
     }
+
   };
 
   const drawPreviewCircle = (x0, y0, x1, y1, params) => {
+
     let minX, maxX, minY, maxY;
+
     if (params && params.fromCenter) {
+
       const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+
       minX = x0 - dx; maxX = x0 + dx;
+
       minY = y0 - dy; maxY = y0 + dy;
+
     } else {
+
       minX = Math.min(x0,x1); maxX = Math.max(x0,x1);
+
       minY = Math.min(y0,y1); maxY = Math.max(y0,y1);
+
     }
+
     minX = clamp(minX,0,model.w-1); maxX = clamp(maxX,0,model.w-1);
+
     minY = clamp(minY,0,model.h-1); maxY = clamp(maxY,0,model.h-1);
+
     const cx = (minX + maxX) / 2;
+
     const cy = (minY + maxY) / 2;
+
     let rx = Math.max(0.5, (maxX - minX + 1) / 2);
+
     let ry = Math.max(0.5, (maxY - minY + 1) / 2);
+
     if (params && params.lockAspect) {
+
       const r = Math.min(rx, ry); rx = r; ry = r;
+
     }
+
     const chars = [...((params && params.chars) ? params.chars : '.,-oO@')];
+
     const N = chars.length || 1;
+
     const thickness = (params && typeof params.thickness === 'number') ? params.thickness : 0.7; // thickness in ~cells
+
     const cw = renderer.cellW || 1, ch = renderer.cellH || 1, cmin = Math.max(1, Math.min(cw, ch));
+
     const pad = Math.ceil(thickness * (Math.max(cw, ch) / cmin)) + 1;
+
     for (let y=minY-pad; y<=maxY+pad; y++) {
+
       for (let x=minX-pad; x<=maxX+pad; x++) {
+
         if (x<0 || y<0 || x>=model.w || y>=model.h) continue;
+
         const dx = (x + 0.5) - cx;
+
         const dy = (y + 0.5) - cy;
+
         const dxp = dx * cw, dyp = dy * ch;
+
         const rxp = rx * cw, ryp = ry * ch;
+
         const f = (dxp*dxp)/(rxp*rxp) + (dyp*dyp)/(ryp*ryp) - 1.0;
+
         const gx = (2 * dxp) / (rxp*rxp);
+
         const gy = (2 * dyp) / (ryp*ryp);
+
         const g = Math.hypot(gx, gy) || 1e-6;
+
         const dpx = Math.abs(f) / g;
+
         const dnorm = dpx / cmin;
+
         const t = dnorm / thickness;
+
         if (t <= 1.0) {
+
           const idx = Math.min(N-1, Math.max(0, N-1 - Math.floor(t * (N-1))));
+
           drawPreviewGlyph(x, y, chars[idx]);
+
         }
+
       }
+
     }
+
   };
+
   const drawPreviewLine = (x0,y0,x1,y1, pat) => {
+
     let dx = Math.abs(x1-x0), sx = x0<x1?1:-1;
+
     let dy = -Math.abs(y1-y0), sy = y0<y1?1:-1;
+
     let err = dx+dy;
+
     let i = 0;
+
     while (true) {
+
       drawPreviewGlyph(x0, y0, patternAt(pat, i, '-'));
+
       if (x0===x1 && y0===y1) break;
+
       const e2 = 2*err;
+
       if (e2 >= dy) { err += dy; x0 += sx; }
+
       if (e2 <= dx) { err += dx; y0 += sy; }
+
       i++;
+
     }
+
   };
 
   // ----- Selection: capture, overlay, move -----
+
   const normRect = (r) => ({
+
     x0: Math.min(r.x0, r.x1), y0: Math.min(r.y0, r.y1),
+
     x1: Math.max(r.x0, r.x1), y1: Math.max(r.y0, r.y1),
+
   });
+
   const pointInRect = (x,y,r) => (x>=r.x0 && x<=r.x1 && y>=r.y0 && y<=r.y1);
+
   const NBSP = '\u00A0';
+
   const isSolid = (ch) => (ch !== ' ' && ch !== NBSP);
 
   const drawSelectionRect = (r) => {
+
     if (!r) return;
+
     r = normRect(r);
+
     const { ctx } = renderer;
+
     const x = r.x0*renderer.cellW + 0.5;
+
     const y = r.y0*renderer.cellH + 0.5;
+
     const w = (r.x1 - r.x0 + 1)*renderer.cellW - 1;
+
     const h = (r.y1 - r.y0 + 1)*renderer.cellH - 1;
+
     ctx.save();
+
     ctx.strokeStyle = '#7c3aed'; // accent
+
     ctx.lineWidth = 2;
+
     ctx.strokeRect(x, y, w, h);
+
     ctx.restore();
+
   };
+
   const drawSelectionOverlay = () => {
+
     if (selectionRect) drawSelectionRect(selectionRect);
+
   };
 
   const captureSelection = (r) => {
+
     r = normRect(r);
+
     const w = r.x1 - r.x0 + 1;
+
     const h = r.y1 - r.y0 + 1;
+
     const chars = [];
+
     const mask = [];
+
+    const colors = [];
+
     for (let y=0; y<h; y++) {
-      const rowC = [], rowM = [];
+
+      const rowC = [], rowM = [], rowColor = [];
+
       for (let x=0; x<w; x++) {
+
         const ch = model.get(r.x0 + x, r.y0 + y);
+
         rowC.push(ch);
+
         rowM.push(isSolid(ch));
+
+        rowColor.push(model.getColor(r.x0 + x, r.y0 + y));
+
       }
-      chars.push(rowC); mask.push(rowM);
+
+      chars.push(rowC); mask.push(rowM); colors.push(rowColor);
+
     }
-    return { w, h, chars, mask, origin:{x:r.x0, y:r.y0} };
+
+    return { w, h, chars, colors, mask, origin:{x:r.x0, y:r.y0} };
+
   };
+
   const drawPreviewSelection = (tx, ty) => {
+
     if (!selectionData) return;
+
     for (let y=0; y<selectionData.h; y++) {
+
       for (let x=0; x<selectionData.w; x++) {
+
         if (!selectionData.mask[y][x]) continue;
+
         const ch = selectionData.chars[y][x];
+
         const gx = tx + x, gy = ty + y;
+
         if (gx<0 || gy<0 || gx>=model.w || gy>=model.h) continue;
+
         drawPreviewGlyph(gx, gy, ch);
+
       }
+
     }
+
     drawSelectionRect({x0:tx, y0:ty, x1:tx+selectionData.w-1, y1:ty+selectionData.h-1});
+
   };
+
   const commitMoveSelection = (tx, ty) => {
+
     if (!selectionData) return;
+
     const ox = selectionData.origin.x, oy = selectionData.origin.y;
+
     if (tx === ox && ty === oy) {
+
       // No movement; leave data untouched.
+
       return;
+
     }
+
     pushSnapshot();
+
     const w = selectionData.w, h = selectionData.h;
+
     // Phase 1: clear source region (masked) — safe even with overlap
+
     for (let y=0; y<h; y++) {
+
       for (let x=0; x<w; x++) {
+
         if (!selectionData.mask[y][x]) continue;
+
         const sx = ox + x;
+
         const sy = oy + y;
+
         if (sx>=0 && sy>=0 && sx<model.w && sy<model.h) {
+
           model.set(sx, sy, ' ');
+
         }
+
       }
+
     }
+
     // Phase 2: write destination (masked)
+
     for (let y=0; y<h; y++) {
+
       for (let x=0; x<w; x++) {
+
         if (!selectionData.mask[y][x]) continue;
+
         const dx = tx + x;
+
         const dy = ty + y;
+
         if (dx>=0 && dy>=0 && dx<model.w && dy<model.h) {
-          model.set(dx, dy, selectionData.chars[y][x]);
+
+          const color = selectionData.colors ? selectionData.colors[y][x] : undefined;
+
+          model.set(dx, dy, selectionData.chars[y][x], color);
+
         }
+
       }
+
     }
+
     selectionRect = { x0: tx, y0: ty, x1: tx + w - 1, y1: ty + h - 1 };
+
     selectionData.origin = { x: tx, y: ty };
+
   };
 
   // ----- Clipboard operations -----
-  const deepCloneGrid = (data) => ({
-    w: data.w,
-    h: data.h,
-    chars: data.chars.map(row => row.slice()),
-    mask: data.mask.map(row => row.slice()),
-  });
+
+const deepCloneGrid = (data) => ({
+
+  w: data.w,
+
+  h: data.h,
+
+  chars: data.chars.map(row => row.slice()),
+
+  colors: data.colors ? data.colors.map(row => row.slice()) : null,
+
+  mask: data.mask.map(row => row.slice()),
+
+});
+
   const rowsFromGridData = (data) => {
+
     const rows = [];
+
     for (let y=0; y<data.h; y++) {
+
       let line = '';
+
       for (let x=0; x<data.w; x++) {
+
         const ch = data.chars[y][x];
+
         const c = (!ch || ch === ' ') ? ' ' : (ch.codePointAt && ch.codePointAt(0) === 0x00A0 ? ' ' : ch);
+
         line += c;
+
       }
+
       rows.push(line);
+
     }
+
     return rows;
+
   };
+
+  const hexToRgbParts = (hex) => {
+
+    const norm = normalizeColor(hex);
+
+    if (!norm) return null;
+
+    return [
+
+      parseInt(norm.slice(1,3), 16),
+
+      parseInt(norm.slice(3,5), 16),
+
+      parseInt(norm.slice(5,7), 16)
+
+    ];
+
+  };
+
+  const gridToAnsi = (rows, colors) => {
+
+    const lines = [];
+
+    for (let y=0; y<rows.length; y++) {
+
+      const row = rows[y] ?? '';
+
+      const colorRow = Array.isArray(colors) ? colors[y] : null;
+
+      let active = null;
+
+      const parts = [];
+
+      for (let x=0; x<row.length; x++) {
+
+        const ch = row[x] ?? ' ';
+
+        const nextColor = (colorRow && Array.isArray(colorRow)) ? colorRow[x] : null;
+
+        const norm = nextColor ? normalizeColor(nextColor) : null;
+
+        if (norm !== active) {
+
+          if (norm) {
+
+            const rgb = hexToRgbParts(norm);
+
+            if (rgb) parts.push(`\u001b[38;2;${rgb[0]};${rgb[1]};${rgb[2]}m`);
+
+          } else if (active) {
+
+            parts.push('\u001b[0m');
+
+          }
+
+          active = norm;
+
+        }
+
+        parts.push(ch || ' ');
+
+      }
+
+      if (active) parts.push('\u001b[0m');
+
+      lines.push(parts.join(''));
+
+    }
+
+    lines.push('\u001b[0m');
+
+    return lines.join('\n');
+
+  };
+
   const copyTextToSystemClipboard = async (text) => {
+
     try {
+
       if (navigator.clipboard && navigator.clipboard.writeText) {
+
         await navigator.clipboard.writeText(text);
+
         return true;
+
       }
+
     } catch {}
+
     // Fallback: temporary textarea
+
     try {
+
       const ta = document.createElement('textarea');
+
       ta.value = text;
+
       ta.style.position = 'fixed'; ta.style.left='-9999px'; ta.style.top='-9999px';
+
       document.body.appendChild(ta);
+
       ta.focus(); ta.select();
+
       const ok = document.execCommand && document.execCommand('copy');
+
       document.body.removeChild(ta);
+
       return !!ok;
+
     } catch {}
+
     return false;
+
   };
+
   const copySelection = () => {
+
     if (!selectionRect) return;
+
     const data = captureSelection(selectionRect);
+
     clipboard = deepCloneGrid(data);
+
     // Expose plain text to system clipboard
+
     const rows = rowsFromGridData(data);
+
     copyTextToSystemClipboard(rows.join('\n'));
+
   };
+
   const cutSelection = () => {
+
     if (!selectionRect) return;
+
     const data = captureSelection(selectionRect);
+
     clipboard = deepCloneGrid(data);
+
     // Expose plain text to system clipboard
+
     const rows = rowsFromGridData(data);
+
     copyTextToSystemClipboard(rows.join('\n'));
+
     // clear source only where mask true
+
     pushSnapshot();
+
     for (let y=0; y<data.h; y++) {
+
       for (let x=0; x<data.w; x++) {
+
         if (!data.mask[y][x]) continue;
+
         model.set(selectionRect.x0 + x, selectionRect.y0 + y, ' ');
+
       }
+
     }
+
     selectionData = null; selectionRect = null; selectionMoving = false; selectStart = null;
+
     renderer.fullRedraw();
+
   };
+
   const pasteClipboardAt = (tx, ty) => {
+
     if (!clipboard) return;
+
     pushSnapshot();
+
     const w = clipboard.w, h = clipboard.h;
+
     for (let y=0; y<h; y++) {
+
       for (let x=0; x<w; x++) {
+
         if (!clipboard.mask[y][x]) continue;
+
         const dx = tx + x, dy = ty + y;
+
         if (dx<0 || dy<0 || dx>=model.w || dy>=model.h) continue;
-        model.set(dx, dy, clipboard.chars[y][x]);
+
+        const color = clipboard.colors ? clipboard.colors[y][x] : undefined;
+
+        model.set(dx, dy, clipboard.chars[y][x], color);
+
       }
+
     }
+
     // Set selection to pasted region for easy move
+
     selectionRect = { x0: tx, y0: ty, x1: tx + w - 1, y1: ty + h - 1 };
-    selectionData = { w, h, chars: clipboard.chars.map(r=>r.slice()), mask: clipboard.mask.map(r=>r.slice()), origin:{x:tx,y:ty} };
+
+    selectionData = {
+
+      w,
+
+      h,
+
+      chars: clipboard.chars.map(r=>r.slice()),
+
+      colors: clipboard.colors ? clipboard.colors.map(r=>r.slice()) : null,
+
+      mask: clipboard.mask.map(r=>r.slice()),
+
+      origin:{x:tx,y:ty}
+
+    };
+
     renderer.fullRedraw();
+
   };
 
   const pasteOverSelection = () => {
+
     if (!clipboard || !selectionRect) return;
+
     const r = normRect(selectionRect);
+
     const w = Math.min(clipboard.w, r.x1 - r.x0 + 1);
+
     const h = Math.min(clipboard.h, r.y1 - r.y0 + 1);
+
     pushSnapshot();
+
     for (let y=0; y<h; y++) {
+
       for (let x=0; x<w; x++) {
+
         if (!clipboard.mask[y][x]) continue;
+
         const dx = r.x0 + x;
+
         const dy = r.y0 + y;
-        model.set(dx, dy, clipboard.chars[y][x]);
+
+        const color = clipboard.colors ? clipboard.colors[y][x] : undefined;
+
+        model.set(dx, dy, clipboard.chars[y][x], color);
+
       }
+
     }
+
     renderer.redrawRegion(r.x0, r.y0, r.x0 + w - 1, r.y0 + h - 1);
+
   };
 
   // ----- Import/Export -----
+
   saveJSONBtn.addEventListener('click', () => {
+
+    syncCurrentFrame({ silent: true });
+
+    const freshFrames = frames.map((frame, idx) => (idx === currentFrameIndex ? captureFrameState({ name: frame.name, delay: frame.delay }) : frame));
+
+    const framesPayload = freshFrames.map((f, idx) => serializeFrameForExport(f, idx));
+
     const payload = {
+
       meta: {
+
         app: 'ASCII/Unicode Grid Studio',
+
         ts: new Date().toISOString(),
+
+        colorMode: colorModeEnabled,
+
+        selectedColor,
+
+        frameCount: framesPayload.length,
+
+        currentFrame: currentFrameIndex
+
       },
+
       grid: {
+
         w: model.w,
+
         h: model.h,
+
         cell: { w: renderer.cellW, h: renderer.cellH },
+
         font: { size: renderer.fontSize, family: renderer.fontFamily },
+
         gridlines: renderer.gridlines
+
       },
-      rows: model.toRows()
+
+      rows: model.toRows(),
+
+      colors: model.colorsToRows(),
+
+      frames: framesPayload
+
     };
+
     download(`ascii_grid_${model.w}x${model.h}.json`, JSON.stringify(payload, null, 2), 'application/json');
+
   });
 
+  const buildAnimationTextPayload = () => {
+
+    syncCurrentFrame({ silent: true });
+
+    const freshFrames = frames.map((frame, idx) => (idx === currentFrameIndex ? captureFrameState({ name: frame.name, delay: frame.delay }) : frame));
+
+    const payloadFrames = freshFrames.map((f, idx) => serializeFrameForExport(f, idx));
+
+    const lines = [];
+
+    lines.push('# ASCII Grid Animation');
+
+    lines.push(`# frames: ${payloadFrames.length}`);
+
+    lines.push(`# size: ${model.w}x${model.h}`);
+
+    payloadFrames.forEach((frame, idx) => {
+
+      lines.push(`--- frame ${idx + 1} delay=${frame.delay}ms name=${frame.name}`);
+
+      lines.push(...frame.rows);
+
+      lines.push('');
+
+    });
+
+    return lines.join('\n');
+
+  };
+
   loadJSONBtn.addEventListener('click', () => fileJSON.click());
+
   fileJSON.addEventListener('change', async () => {
+
+    stopPlayback();
+
     const file = fileJSON.files[0];
+
     if (!file) return;
+
     try {
+
       const text = await file.text();
+
       const data = JSON.parse(text);
-      if (!data || !data.rows || !data.grid) throw new Error('Invalid JSON format');
+
+      if (!data || !data.grid || (!data.rows && !Array.isArray(data.frames))) throw new Error('Invalid JSON format');
+
       pushSnapshot();
+
       gridWEl.value = data.grid.w; gridHEl.value = data.grid.h;
+
       model.resize(data.grid.w, data.grid.h);
+
       if (data.grid.cell) {
+
         cellWEl.value = data.grid.cell.w; cellHEl.value = data.grid.cell.h;
+
         renderer.setCellSize(data.grid.cell.w, data.grid.cell.h);
+
       }
+
       if (data.grid.font) {
+
         fontSizeEl.value = data.grid.font.size;
+
         fontFamilyEl.value = data.grid.font.family;
+
         renderer.setFontFamily(data.grid.font.family);
+
         if (renderer.autoFitFont) renderer.fitFontToCell(); else renderer.setFontSize(data.grid.font.size);
+
       }
+
       if (typeof data.grid.gridlines === 'boolean') {
+
         renderer.setGridlines(data.grid.gridlines);
+
         gridToggleBtn.textContent = `Gridlines: ${renderer.gridlines ? 'On' : 'Off'}`;
+
       }
-      model.fromRows(data.rows);
+
+      if (Array.isArray(data.frames) && data.frames.length) {
+
+        const importedFrames = data.frames.map((frame, idx) => normalizeImportedFrame(frame, idx));
+
+        frames = importedFrames;
+
+        frameHistories = frames.map(() => new History(FRAME_HISTORY_LIMIT));
+
+        const metaFrame = data.meta && Number.isFinite(data.meta.currentFrame) ? data.meta.currentFrame : 0;
+
+        currentFrameIndex = clamp(metaFrame, 0, frames.length - 1);
+
+        history = frameHistories[currentFrameIndex];
+
+        applyFrameState(frames[currentFrameIndex]);
+
+        renderFrameList();
+
+      } else {
+
+        model.fromRows(data.rows);
+
+        if (Array.isArray(data.colors)) {
+
+          model.applyColorRows(data.colors);
+
+        } else {
+
+          model.clearColors();
+
+        }
+
+        const meta = data.meta || {};
+
+        const loadedColor = normalizeColor(meta.selectedColor) || selectedColor;
+
+        setSelectedColor(loadedColor, { pushRecent: false, updateStatus: false, allowDefault: true });
+
+        const nextColorMode = (typeof meta.colorMode === 'boolean') ? meta.colorMode : colorModeEnabled;
+
+        setColorMode(nextColorMode);
+
+      }
+
       renderer.fullRedraw();
+
       updateStatus();
+
       fileJSON.value = '';
+
     } catch (err) {
+
       alert('Failed to load JSON: ' + err.message);
+
     }
+
   });
 
   exportTXTBtn.addEventListener('click', () => {
+
     const txt = model.toRows().join('\n');
+
     download(`ascii_grid_${model.w}x${model.h}.txt`, txt, 'text/plain');
+
   });
 
+  if (exportANSIBtn) {
+
+    exportANSIBtn.addEventListener('click', () => {
+
+      syncCurrentFrame({ silent: true });
+
+      const rows = model.toRows();
+
+      const colors = model.colorsToRows();
+
+      const ansi = gridToAnsi(rows, colors);
+
+      download(`ascii_grid_${model.w}x${model.h}.ansi`, ansi, 'text/plain');
+
+    });
+
+  }
+
+  if (exportAnimBtn) {
+
+    exportAnimBtn.addEventListener('click', () => {
+
+      const animTxt = buildAnimationTextPayload();
+
+      download(`ascii_anim_${model.w}x${model.h}.txt`, animTxt, 'text/plain');
+
+    });
+
+  }
+
   importTXTBtn.addEventListener('click', () => fileTXT.click());
+
   fileTXT.addEventListener('change', async () => {
+
     const file = fileTXT.files[0];
+
     if (!file) return;
+
     try {
+
       const text = await file.text();
+
       const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
       const rows = normalized.split('\n');
+
       pushSnapshot();
+
       model.fromRows(rows);
+
       renderer.fullRedraw();
+
       updateStatus();
+
       fileTXT.value = '';
+
     } catch (err) {
+
       alert('Failed to load TXT: ' + err.message);
+
     }
+
   });
 
   exportPNGBtn.addEventListener('click', () => {
+
     const dataURL = canvas.toDataURL('image/png');
+
     download(`ascii_grid_${model.w}x${model.h}.png`, dataURL, 'image/png');
+
   });
 
   // ----- Settings (persist/load) -----
+
   const collectSettings = () => ({
+
     glyphScale: { x: renderer.glyphScaleX, y: renderer.glyphScaleY },
+
     brush: { size: brushSize, shape: brushShape },
+
     circle: { chars: circleCharsEl ? circleCharsEl.value : '.,-oO@', thickness: circleThkEl ? parseFloat(circleThkEl.value) : 0.45, mode: circleThkModeEl ? circleThkModeEl.value : 'med' },
+
     braille: { dots: brailleDotsEl ? parseInt(brailleDotsEl.value,10) : 1, step: brailleStepEl ? parseFloat(brailleStepEl.value) : 0.35 },
+
     worms: { rounded: !!(wormsRoundedEl && wormsRoundedEl.checked), diag: !!(wormsDiagEl && wormsDiagEl.checked), caps: !!(wormsCapsEl && wormsCapsEl.checked) },
+
     grid: { w: model.w, h: model.h },
+
     cell: { w: renderer.cellW, h: renderer.cellH },
+
     font: { size: renderer.fontSize, family: renderer.fontFamily },
+
     gridlines: renderer.gridlines,
+
     blend: renderer.blendDraw,
+
     autoFitFont: renderer.autoFitFont
+
   });
+
   const applySettings = (s) => {
+
     if (!s || typeof s !== 'object') return;
+
     if (s.cell) { cellWEl.value = s.cell.w ?? cellWEl.value; cellHEl.value = s.cell.h ?? cellHEl.value; renderer.setCellSize(parseInt(cellWEl.value,10)||14, parseInt(cellHEl.value,10)||16); }
+
     if (s.font) {
+
       if (s.font.family) { fontFamilyEl.value = s.font.family; renderer.setFontFamily(s.font.family); }
+
       if (s.font.size) { fontSizeEl.value = s.font.size; renderer.setFontSize(parseInt(s.font.size,10)||14); }
+
     }
+
     if (typeof s.gridlines === 'boolean') { renderer.setGridlines(s.gridlines); gridToggleBtn.textContent = `Gridlines: ${renderer.gridlines ? 'On' : 'Off'}`; }
+
     if (typeof s.blend === 'boolean') { renderer.blendDraw = !!s.blend; blendToggleBtn.textContent = `Blend Draw: ${renderer.blendDraw ? 'On' : 'Off'}`; }
+
     if (typeof s.autoFitFont === 'boolean') { renderer.autoFitFont = !!s.autoFitFont; }
+
     if (s.glyphScale) {
+
       glyphScaleXEl.value = (s.glyphScale.x ?? 1).toFixed(2);
+
       glyphScaleYEl.value = (s.glyphScale.y ?? 1).toFixed(2);
+
       renderer.setGlyphScale(parseFloat(glyphScaleXEl.value), parseFloat(glyphScaleYEl.value));
+
     }
+
     if (s.brush) {
+
       brushSize = Math.max(1, Math.min(20, parseInt(s.brush.size,10)||brushSize));
+
       brushShape = (s.brush.shape === 'diamond') ? 'diamond' : 'square';
+
     }
+
     if (s.circle) {
+
       if (circleCharsEl) circleCharsEl.value = s.circle.chars ?? circleCharsEl.value;
+
       if (circleThkModeEl) circleThkModeEl.value = s.circle.mode ?? circleThkModeEl.value;
+
       if (circleThkEl) circleThkEl.value = s.circle.thickness ?? circleThkEl.value;
+
     }
+
     if (s.braille) {
+
       if (brailleDotsEl) brailleDotsEl.value = s.braille.dots ?? brailleDotsEl.value;
+
       if (brailleStepEl) brailleStepEl.value = s.braille.step ?? brailleStepEl.value;
+
     }
+
     if (s.worms) {
+
       if (wormsRoundedEl) wormsRoundedEl.checked = !!s.worms.rounded;
+
       if (wormsDiagEl) wormsDiagEl.checked = !!s.worms.diag;
+
       if (wormsCapsEl) wormsCapsEl.checked = !!s.worms.caps;
+
     }
+
     renderer.fullRedraw(); updateStatus();
+
   };
+
   const saveSettingsLocal = (s) => { try { localStorage.setItem('ascii_settings_v1', JSON.stringify(s)); } catch {} };
+
   const loadSettingsLocal = () => { try { const raw = localStorage.getItem('ascii_settings_v1'); if (raw) return JSON.parse(raw); } catch {} return null; };
+
   saveSettingsBtn.addEventListener('click', () => {
+
     const s = collectSettings();
+
     saveSettingsLocal(s);
+
     download('ascii_settings.json', JSON.stringify(s, null, 2), 'application/json');
+
   });
+
   loadSettingsBtn.addEventListener('click', () => fileSettings.click());
+
   fileSettings.addEventListener('change', async () => {
+
     const file = fileSettings.files[0];
+
     if (!file) return;
+
     try {
+
       const text = await file.text();
+
       const s = JSON.parse(text);
+
       applySettings(s);
+
       saveSettingsLocal(s);
+
       fileSettings.value = '';
+
     } catch (err) {
+
       alert('Failed to load settings: ' + err.message);
+
     }
+
   });
 
   // Try auto-load settings: localStorage first, then same-origin ascii_settings.json (if served)
+
   (async () => {
+
     const local = loadSettingsLocal();
+
     if (local) { applySettings(local); return; }
+
     try {
+
       const res = await fetch('ascii_settings.json', { cache: 'no-store' });
+
       if (res && res.ok) { const s = await res.json(); applySettings(s); saveSettingsLocal(s); }
+
     } catch {}
+
   })();
 
   // Initial status
+
   updateStatus();
 
   // ---------- Self Tests (non-blocking, console only) ----------
+
   (function runSelfTests(){
+
     try {
+
       // newline normalize
+
       const t1 = ['A','B'].join('\n');
+
       const t2 = t1.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+
       console.assert(t2.length === 2 && t2[0]==='A' && t2[1]==='B', 'newline normalize failed');
 
       // pipeAscii includes backslash
+
       console.assert(pipeAscii.includes('\\'), 'pipeAscii missing \\');
 
       // asciiPunct coverage
+
       console.assert(asciiPunct.includes('`') && asciiPunct.includes('\\'), 'asciiPunct missing ` or \\');
 
       // GridModel resize retains data
+
       const gm = new GridModel(2,2); gm.set(1,1,'X'); gm.resize(3,3);
+
       console.assert(gm.get(1,1)==='X', 'GridModel resize lost cell');
 
       // History round-trip
+
       const h = new History(5); const s0 = {a:1}; h.push(s0); const s1 = {a:2}; h.push(s1);
+
       console.assert(h.canUndo() && !h.canRedo(), 'History flags wrong after push');
+
       const u = h.undo(); console.assert(u.a===1 && h.canRedo(), 'History undo/redo wrong');
 
       // Blend toggle default
+
       console.assert(new GridRenderer(document.createElement('canvas'), new GridModel(1,1)).blendDraw === true, 'blendDraw should default true');
 
       console.log('%cSelf-tests passed','color:#10b981');
+
     } catch (e) {
+
       console.warn('Self-tests encountered an issue:', e);
+
     }
+
   })();
 
 })();
+
 </script>
+
 </body>
+
 </html>
-
-
-
-
-
