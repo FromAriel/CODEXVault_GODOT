@@ -39,6 +39,13 @@ An opinionated re-imagining of the classic Zork runtime with a live builder buil
 - **Audio**: Ambient/loop media can autoplay per room; TTS playback (first visit/always/never) reads room text via `tts.mp3`/`tts.wav` with adjustable volume and cancel when moving away.
 - **Fallbacks**: If manifest targets are missing, discovery provides best-effort resolution; missing assets degrade cleanly.
 
+## Natural Language Parsing
+- **Offline-enriched vocab**: `enrich_vocab.py` harvests synonyms/weights from WordNet, ConceptNet, Datamuse, Vader sentiment, and optional embeddings. Zork 1/2/3 seeds plus your world vocab are merged into `parser_only.json` and weighted synonym tables so slang like “yeet/lob/chuck” can map to THROW once included.
+- **Runtime matcher**: Input is normalized (punctuation stripped, unicode-folded) and each token is matched against canonical entries, strong/weak/slang synonyms, weighted/generated synonyms, world-derived tokens, and finally spellfix (edit distance ≤2). Candidates are deduped and ranked by score with reasons.
+- **Spellfix guardrails**: Auto-correction only fires when confidence and score gaps are sufficient (e.g., spellfix with score ≥0.65 and clear lead), preventing bad jumps. Accepted corrections are noted in the transcript.
+- **Context-aware intent**: `match_intent` uses exits/inventory from `WorldIndex` to bias noun/verb picks; builder actions are checked before parser intents. Dynamic `world_vocab` is refreshed after edits so new rooms/objects/actions become valid tokens.
+- **Rebuild for new words**: When you author new nouns/verbs, run `/rebuild` to regenerate the weighted vocab; synonyms/embeddings then make near-miss phrasing resolve naturally in both CLI and UI.
+
 ### Dialog Effects & Guards
 - **Requires**: Flags (`FLAG`, `!FLAG`) and counters (`O2>=3`, `HEALTH<1`).
 - **Effects**: Set/clear flags (`FLAG`, `!FLAG`), mutate counters (`O2+=1`, `HEALTH=0`), give/take items (`GIVE:ITEM`, `TAKE:ITEM`), and credit changes (`CREDITS+=5`).
