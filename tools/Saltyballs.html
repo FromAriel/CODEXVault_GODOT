@@ -299,6 +299,7 @@
         rippleImpulseRadius: 3,
         rippleDisplaceStrength: 0.12,
         rippleBrightness: 0.5,
+        backgroundScale: 0.6,
         particleMax: 3000,
         particleLifeMin: 0.5,
         particleLifeMax: 1.4,
@@ -319,6 +320,7 @@
 
         // Physics tick quality
         maxDt: 1 / 30,               // clamp big dt spikes
+        maxDevicePixelRatio: 1.5,
         spawnFpsThreshold: 40,
 
         // Glow halo
@@ -417,6 +419,20 @@
 
         vec2 posClip = centerClip + a_pos * scale;
         gl_Position = vec4(posClip, 0.0, 1.0);
+      }
+      `;
+
+      const BLIT_FRAG_SRC = `#version 300 es
+      precision highp float;
+
+      in vec2 v_local;
+      out vec4 outColor;
+
+      uniform sampler2D u_tex;
+
+      void main() {
+        vec2 uv = v_local * 0.5 + 0.5;
+        outColor = texture(u_tex, uv);
       }
       `;
 
@@ -997,11 +1013,11 @@
       }
       
       void main() {
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
         vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
         vec4 color = vec4(0.0);
         mainImage(color, fragCoord);
-        float r = length(v_local);
-        if (r > 1.0) { discard; }
         float aa = fwidth(r);
         float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
         float lum = max(max(color.r, color.g), color.b);
@@ -1364,11 +1380,11 @@
       
       
       void main() {
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
         vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
         vec4 color = vec4(0.0);
         mainImage(color, fragCoord);
-        float r = length(v_local);
-        if (r > 1.0) { discard; }
         float aa = fwidth(r);
         float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
         float lum = max(max(color.r, color.g), color.b);
@@ -1434,11 +1450,11 @@
       }
       
       void main() {
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
         vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
         vec4 color = vec4(0.0);
         mainImage(color, fragCoord);
-        float r = length(v_local);
-        if (r > 1.0) { discard; }
         float aa = fwidth(r);
         float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
         float lum = max(max(color.r, color.g), color.b);
@@ -1486,11 +1502,11 @@
       }
 
       void main() {
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
         vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
         vec4 color = vec4(0.0);
         mainImage(color, fragCoord);
-        float r = length(v_local);
-        if (r > 1.0) { discard; }
         float aa = fwidth(r);
         float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
         float lum = max(max(color.r, color.g), color.b);
@@ -1599,11 +1615,11 @@
       }
 
       void main() {
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
         vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
         vec4 color = vec4(0.0);
         mainImage(color, fragCoord);
-        float r = length(v_local);
-        if (r > 1.0) { discard; }
         float aa = fwidth(r);
         float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
         float lum = max(max(color.r, color.g), color.b);
@@ -1750,11 +1766,11 @@
       }
 
       void main() {
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
         vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
         vec4 color = vec4(0.0);
         mainImage(color, fragCoord);
-        float r = length(v_local);
-        if (r > 1.0) { discard; }
         float aa = fwidth(r);
         float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
         outColor = vec4(color.rgb, color.a * edge);
@@ -1866,6 +1882,7 @@
       }
 
       let program;
+      let blitProgram = null;
       let gearProgram = null;
       let fairyProgram = null;
       let holoProgram = null;
@@ -1881,6 +1898,13 @@
       } catch (e) {
         showError("Shader compile/link failed:\n\n" + String(e));
         return;
+      }
+
+      try {
+        blitProgram = createProgram(VERT_SRC, BLIT_FRAG_SRC);
+      } catch (e) {
+        console.warn("Blit shader compile/link failed:", e);
+        blitProgram = null;
       }
 
       try {
@@ -1977,6 +2001,13 @@
         style:      gl.getUniformLocation(program, "u_style"),
       };
 
+      const BLIT_U = blitProgram ? {
+        resolution: gl.getUniformLocation(blitProgram, "u_resolution"),
+        center:     gl.getUniformLocation(blitProgram, "u_center"),
+        radius:     gl.getUniformLocation(blitProgram, "u_radius"),
+        tex:        gl.getUniformLocation(blitProgram, "u_tex"),
+      } : null;
+
       const GEAR_U = gearProgram ? {
         resolution: gl.getUniformLocation(gearProgram, "u_resolution"),
         time:       gl.getUniformLocation(gearProgram, "u_time"),
@@ -2057,6 +2088,12 @@
         }
       }
 
+      if (blitProgram && BLIT_U) {
+        gl.useProgram(blitProgram);
+        gl.uniform1i(BLIT_U.tex, 0);
+        gl.useProgram(program);
+      }
+
       if (gearProgram && GEAR_U) {
         gearTexture = createNoiseTexture(128, false);
         if (!gearTexture) {
@@ -2109,6 +2146,53 @@
       }
 
       initRippleTexture();
+
+      // Background buffer (downscaled)
+      let bgTexture = null;
+      let bgFbo = null;
+      let bgWidth = 0;
+      let bgHeight = 0;
+
+      function initBackgroundBuffer() {
+        if (!blitProgram || !BLIT_U) { return; }
+        const targetW = Math.max(2, Math.floor(canvas.width * CONFIG.backgroundScale));
+        const targetH = Math.max(2, Math.floor(canvas.height * CONFIG.backgroundScale));
+        if (bgTexture && bgFbo && bgWidth === targetW && bgHeight === targetH) {
+          return;
+        }
+        if (!bgTexture) {
+          bgTexture = gl.createTexture();
+        }
+        if (!bgFbo) {
+          bgFbo = gl.createFramebuffer();
+        }
+        if (!bgTexture || !bgFbo) {
+          bgTexture = null;
+          bgFbo = null;
+          return;
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, targetW, targetH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, bgFbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bgTexture, 0);
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+          bgTexture = null;
+          bgFbo = null;
+          bgWidth = 0;
+          bgHeight = 0;
+        } else {
+          bgWidth = targetW;
+          bgHeight = targetH;
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      }
 
       // Particle trail buffer
       const particleMax = CONFIG.particleMax;
@@ -2225,6 +2309,11 @@
 
       function rand(a, b) {
         return a + Math.random() * (b - a);
+      }
+
+      function getDpr() {
+        const raw = window.devicePixelRatio || 1;
+        return Math.min(raw, CONFIG.maxDevicePixelRatio);
       }
 
       function pickBallStyle() {
@@ -3645,7 +3734,7 @@
       // ---------------------------
       function updateMouseFromEvent(ev) {
         const rect = canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getDpr();
 
         const cx = (ev.clientX - rect.left);
         const cy = (ev.clientY - rect.top);
@@ -3724,7 +3813,7 @@
       // Resize
       // ---------------------------
       function resize() {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getDpr();
         const w = Math.max(2, Math.floor(window.innerWidth * dpr));
         const h = Math.max(2, Math.floor(window.innerHeight * dpr));
 
@@ -3740,6 +3829,7 @@
         }
 
         gl.viewport(0, 0, w, h);
+        initBackgroundBuffer();
         if (trailCtx && trailCanvas) {
           trailCtx.setTransform(1, 0, 0, 1, 0, 0);
           trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
@@ -4070,17 +4160,70 @@
       function render(timeSeconds) {
         const w = canvas.width;
         const h = canvas.height;
+        const lightX = mouse.has ? mouse.x : w * 0.5;
+        const lightY = mouse.has ? mouse.y : h * 0.5;
+        const bgReady = !!(bgFbo && bgTexture && blitProgram && BLIT_U);
 
+        if (bgReady) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, bgFbo);
+          gl.viewport(0, 0, bgWidth, bgHeight);
+          gl.clearColor(0.0, 0.0, 0.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          gl.useProgram(program);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(U.resolution, bgWidth, bgHeight);
+          gl.uniform1f(U.time, timeSeconds);
+          gl.uniform2f(U.light, bgWidth * 0.5, bgHeight * 0.5);
+          if (U.rippleTexel) {
+            gl.uniform2f(U.rippleTexel, 1 / rippleSize, 1 / rippleSize);
+            gl.uniform1f(U.rippleStrength, CONFIG.rippleDisplaceStrength);
+            gl.uniform1f(U.rippleBrightness, CONFIG.rippleBrightness);
+          }
+          if (rippleTexture && U.ripple) {
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, rippleTexture);
+          }
+
+          const bgRadius = Math.max(bgWidth, bgHeight) * 0.5;
+          gl.uniform1f(U.bg, 1.0);
+          gl.uniform2f(U.center, bgWidth * 0.5, bgHeight * 0.5);
+          gl.uniform1f(U.radius, bgRadius);
+          gl.uniform1f(U.energy, 0.0);
+          gl.uniform1f(U.hit, 0.0);
+          gl.uniform1f(U.freeze, 0.0);
+          gl.uniform3f(U.color, 0, 0, 0);
+          gl.uniform1f(U.seed, 0.0);
+          gl.uniform1i(U.style, 0);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+          gl.bindVertexArray(null);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+
+        gl.viewport(0, 0, w, h);
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
+        if (bgReady) {
+          gl.disable(gl.BLEND);
+          gl.useProgram(blitProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(BLIT_U.resolution, w, h);
+          gl.uniform2f(BLIT_U.center, w * 0.5, h * 0.5);
+          gl.uniform1f(BLIT_U.radius, Math.max(w, h) * 0.5);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, bgTexture);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+          gl.bindVertexArray(null);
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        }
+
         gl.useProgram(program);
         gl.bindVertexArray(vao);
-
         gl.uniform2f(U.resolution, w, h);
         gl.uniform1f(U.time, timeSeconds);
-        const lightX = mouse.has ? mouse.x : w * 0.5;
-        const lightY = mouse.has ? mouse.y : h * 0.5;
         gl.uniform2f(U.light, lightX, lightY);
         if (U.rippleTexel) {
           gl.uniform2f(U.rippleTexel, 1 / rippleSize, 1 / rippleSize);
@@ -4092,17 +4235,19 @@
           gl.bindTexture(gl.TEXTURE_2D, rippleTexture);
         }
 
-        const bgRadius = Math.max(w, h) * 0.5;
-        gl.uniform1f(U.bg, 1.0);
-        gl.uniform2f(U.center, w * 0.5, h * 0.5);
-        gl.uniform1f(U.radius, bgRadius);
-        gl.uniform1f(U.energy, 0.0);
-        gl.uniform1f(U.hit, 0.0);
-        gl.uniform1f(U.freeze, 0.0);
-        gl.uniform3f(U.color, 0, 0, 0);
-        gl.uniform1f(U.seed, 0.0);
-        gl.uniform1i(U.style, 0);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        if (!bgReady) {
+          const bgRadius = Math.max(w, h) * 0.5;
+          gl.uniform1f(U.bg, 1.0);
+          gl.uniform2f(U.center, w * 0.5, h * 0.5);
+          gl.uniform1f(U.radius, bgRadius);
+          gl.uniform1f(U.energy, 0.0);
+          gl.uniform1f(U.hit, 0.0);
+          gl.uniform1f(U.freeze, 0.0);
+          gl.uniform3f(U.color, 0, 0, 0);
+          gl.uniform1f(U.seed, 0.0);
+          gl.uniform1i(U.style, 0);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
 
         gl.uniform1f(U.bg, 0.0);
 
@@ -4518,7 +4663,7 @@
             if (!effectKey) { continue; }
             const color = CURSOR_HINT_COLORS[effectKey] || [200, 200, 200];
             const c = cursorStates[slot];
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = getDpr();
             const hintW = cursorImageWidth * dpr;
             const hintH = cursorImageHeight * dpr;
             const pulseScale = 0.9 + 0.25 * pulse;
