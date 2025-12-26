@@ -1,0 +1,4639 @@
+<!-- FILE: index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Energy Balls (WebGL placeholder shaders)</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+      cursor: none;
+    }
+    #wrap {
+      position: fixed;
+      inset: 0;
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: none;
+      z-index: 0;
+    }
+    #trail {
+      pointer-events: none;
+      z-index: 0;
+    }
+    #t {
+      z-index: 1;
+      pointer-events: none;
+    }
+    #score {
+      position: fixed;
+      left: 50%;
+      top: 12px;
+      transform: translateX(-50%);
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      line-height: 1;
+      font-size: 14px;
+      letter-spacing: 0.4px;
+      user-select: none;
+      pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      z-index: 2;
+    }
+    #print-cursor {
+      position: fixed;
+      left: 0;
+      top: 0;
+      opacity: 0.5;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      user-select: none;
+      z-index: 3;
+      display: none;
+    }
+    #fps {
+      position: fixed;
+      right: 12px;
+      top: 54px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.45);
+      line-height: 1;
+      font-size: 11px;
+      letter-spacing: 0.4px;
+      user-select: none;
+      pointer-events: none;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      z-index: 2;
+    }
+    #newgame {
+      position: fixed;
+      right: 12px;
+      top: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      line-height: 1;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 2;
+    }
+    #newgame:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    #newgame:active {
+      transform: translateY(1px);
+    }
+    #hud {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      max-width: 420px;
+      line-height: 1.25;
+      font-size: 13px;
+      user-select: none;
+      pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      z-index: 2;
+    }
+    #hud b { font-weight: 700; }
+    #error {
+      margin-top: 8px;
+      color: #ffb4b4;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      display: none;
+    }
+    #hint {
+      margin-top: 6px;
+      color: rgba(255,255,255,0.85);
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="c"></canvas>
+    <canvas id="trail"></canvas>
+    <canvas id="t"></canvas>
+    <div id="score">Score: 0</div>
+    <button id="newgame" type="button">New game</button>
+    <div id="fps">FPS: --</div>
+    <img id="print-cursor" src="print.png" alt="" />
+    <div id="hud">
+      <div><b>Energy Balls</b> - mouse "hits" inject energy; drag + inelastic collisions remove it.</div>
+      <div id="hint">
+        Move mouse through balls to strike | <b>R</b>=randomize | <b>Space</b>=pause | <b>C</b>=calm | <b>+</b>/<b>-</b>=balls
+      </div>
+      <div id="error"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // ---------------------------
+      // Tunables (feel knobs)
+      // ---------------------------
+      const CONFIG = {
+        initialBallCount: 14,
+        minRadius: 18,
+        maxRadius: 46,
+
+        // Global drag: higher = faster energy decay. (Units: 1/second)
+        dragPerSecond: 1.25,
+
+        // Collision energy retention (0..1). Lower = more loss per bounce.
+        wallRestitution: 0.88,
+        ballRestitution: 0.92,
+
+        // Impulse controls (mouse + bumpers)
+        mouseMinSpeedToStrike: 120,  // below this: no strike
+        impulseBaseKick: 220,        // px/s added even on modest strike
+        impulseSpeedToKick: 0.60,    // multiplier on speed input
+        impulseMax: 2200,            // cap strike strength
+        impulseBaseMultiplier: 400,
+        mouseImpulseMultiplier: 1.0,
+        pinballImpulseMultiplier: 1.0,
+        directionalImpulseMultiplier: 1.0,
+        directionalChangingImpulseMultiplier: 1.0,
+        pinballHoloMinSpeed: 10,
+        pinballHoloSpinRate: 0.004,
+        pinballScaleStiffness: 70.0,
+        pinballScaleDamping: 9.0,
+        pinballScaleMin: 0.7,
+        pinballScaleMax: 1.5,
+        pinballHitImpulse: 4.8,
+        pinballHitPulseDecay: 15.0,
+
+        // Points
+        pointsStart: 100,
+        pointsMin: 10,
+        pointsDecayRate: 0.10,
+        pointsDecayDelay: 0.6,
+        hitWindowSeconds: 0.25,
+        scoreMultiplierStep: 0.5,
+        scoreMultiplierDecayPerSecond: 0.4,
+        scoreMultiplierMax: 10,
+        textPulseSpeed: 3.0,
+        textPulseScale: 0.10,
+        textBounceScale: 0.28,
+        textBounceFreq: 16.0,
+        textBounceDamp: 7.5,
+        textBounceYOffset: 0.18,
+        textBounceDuration: 0.9,
+
+        // Ball shader styles
+        styleCount: 3,
+        plasmaStyleIndex: 1,
+        plasmaStyleChance: 0.9,
+        snakeGemChance: 0.08,
+        snakeGemMax: 2,
+        snakeGemScale: 2.0,
+
+        // Freeze effect
+        freezeDuration: 1.1,
+        freezeDragPerSecond: 4.0,
+        freezeSheenStrength: 0.85,
+
+        // Powerup ball + cursor effects
+        powerupSpawnIntervalMin: 8.0,
+        powerupSpawnIntervalMax: 12.0,
+        powerupDuration: 14.0,
+        powerupBallMax: 1,
+        powerupHitsPerBall: 2,
+        powerupFlashDecay: 3.2,
+        secondCursorOffset: 70,
+        dualCursorOffset: 60,
+        clawRadius: 90,
+        clawArc: 1.3,
+        furballScale: 2.8,
+        furballKickSpeedThreshold: 75,
+        furballKickImpulseMin: 220,
+        furballKickImpulseMax: 520,
+        furballKickCooldown: 0.7,
+        furballRespawnMin: 6.0,
+        furballRespawnMax: 10.0,
+
+        // Bumpers
+        bumperSpawnIntervalMin: 2.2,
+        bumperSpawnIntervalMax: 4.5,
+        bumperMaxCount: 4,
+        bumperSpeedMin: 90,
+        bumperSpeedMax: 220,
+        bumperRadiusMin: 22,
+        bumperRadiusMax: 38,
+        directionalChangeMin: 1.0,
+        directionalChangeMax: 4.0,
+        devourDuration: 0.7,
+        devourPullStrength: 8.0,
+        devourShake: 3.5,
+        devourGravityRadius: 260,
+        devourGravityStrength: 220,
+        devourGravityFalloff: 1.6,
+        devourerRadius: 102,
+        devourerMaxCount: 1,
+        devourerSpawnWeightLow: 0.1,
+        devourerSpawnWeightHigh: 0.5,
+        devourerQueueIntervalMin: 0.8,
+        devourerQueueIntervalMax: 1.6,
+        devourerSpinPeriod: 10.0,
+        devourerSpinThreshold: 0.45,
+        spawnerSpawnWeightLow: 0.4,
+        spawnerSpawnWeightHigh: 0.1,
+        spawnerRadius: 60,
+        spawnerRestitution: 0.55,
+        spawnerHitThreshold: 2,
+        spawnerHitWindow: 2.5,
+        spawnerSpawnGhost: 0.18,
+        spawnerGrowBoost: 0.25,
+        spawnerShrinkPulse: 0.2,
+        spawnerHitPulseDecay: 4.5,
+        spawnerEnergeticBoost: 0.5,
+        spawnerScaleStiffness: 80.0,
+        spawnerScaleDamping: 10.0,
+        spawnerScaleMin: 0.55,
+        spawnerScaleMax: 1.8,
+        spawnerHitImpulse: 6.0,
+        spawnerSpawnImpulse: 7.0,
+        stuckMoveEpsilon: 0.6,
+        stuckTimeThreshold: 0.6,
+        stuckHitThreshold: 3,
+        stuckGhostMin: 0.25,
+        stuckGhostMax: 2.0,
+        stuckPopSpeedMin: 220,
+        stuckPopSpeedMax: 520,
+
+        // Visual mapping
+        energySpeedForFull: 1800,    // speed at which shader "energy" ~ 1
+
+        // Background ripple (cheap water)
+        rippleSize: 128,
+        rippleDamping: 0.985,
+        rippleImpulseStrength: 0.08,
+        rippleImpulseRadius: 3,
+        rippleDisplaceStrength: 0.12,
+        rippleBrightness: 0.5,
+        particleMax: 3000,
+        particleLifeMin: 0.5,
+        particleLifeMax: 1.4,
+        particleSizeMin: 4,
+        particleSizeMax: 11,
+        particleSpawnSpacing: 18,
+        particleSpawnJitter: 6,
+        mistCountMin: 2,
+        mistCountMax: 3,
+        mistRadiusScale: 0.9,
+        mistLifeMin: 0.25,
+        mistLifeMax: 0.7,
+        mistSizeMin: 1,
+        mistSizeMax: 3,
+
+        // Safety caps
+        maxBallSpeed: 2800,
+
+        // Physics tick quality
+        maxDt: 1 / 30,               // clamp big dt spikes
+        spawnFpsThreshold: 40,
+
+        // Glow halo
+        glowRadiusScale: 1.35,
+        glowInnerScale: 0.28,
+        glowAlphaBase: 0.12,
+        glowAlphaHit: 0.18,
+      };
+
+      const BEST_SCORE_KEY = "saltyballs.bestScore";
+      const NUMBER_SUFFIXES = [
+        "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No",
+        "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod",
+        "Vg", "Uv", "Dv", "Tv", "Qav", "Qiv", "Sxv", "Spv", "Ocv", "Nov",
+        "Tg", "Utg", "Dtg", "Ttg", "Qatg", "Qitg", "Sxtg", "Sptg", "Octg", "Notg",
+        "Qag"
+      ];
+
+      // ---------------------------
+      // Canvas + WebGL setup
+      // ---------------------------
+      const canvas = document.getElementById("c");
+      const trailCanvas = document.getElementById("trail");
+      const textCanvas = document.getElementById("t");
+      const scoreEl = document.getElementById("score");
+      const newGameButton = document.getElementById("newgame");
+      const fpsEl = document.getElementById("fps");
+      const printCursor = document.getElementById("print-cursor");
+      const errorEl = document.getElementById("error");
+      const trailCtx = trailCanvas ? trailCanvas.getContext("2d") : null;
+      const textCtx = textCanvas ? textCanvas.getContext("2d") : null;
+      let cursorImageWidth = 33;
+      let cursorImageHeight = 46;
+
+      if (printCursor) {
+        const syncCursorImageSize = () => {
+          if (!printCursor.naturalWidth || !printCursor.naturalHeight) { return; }
+          cursorImageWidth = printCursor.naturalWidth;
+          cursorImageHeight = printCursor.naturalHeight;
+          printCursor.style.width = cursorImageWidth + "px";
+          printCursor.style.height = cursorImageHeight + "px";
+        };
+        syncCursorImageSize();
+        printCursor.addEventListener("load", syncCursorImageSize, { once: true });
+      }
+
+      /** @type {WebGL2RenderingContext | null} */
+      const gl = canvas.getContext("webgl2", {
+        alpha: true,
+        antialias: true,
+        depth: false,
+        stencil: false,
+        premultipliedAlpha: false,
+        preserveDrawingBuffer: false,
+      });
+
+      if (!gl) {
+        showError(
+          "WebGL2 unavailable.\n\nThis prototype uses simple fragment \"ball shaders\".\nTry:\n- a different browser\n- enabling WebGL\n- updating GPU drivers"
+        );
+        return;
+      }
+
+      gl.disable(gl.DEPTH_TEST);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.enable(gl.PROGRAM_POINT_SIZE);
+
+      // ---------------------------
+      // Shaders (placeholder styles)
+      // One program, style switch.
+      // ---------------------------
+      const VERT_SRC = `#version 300 es
+      precision highp float;
+
+      layout(location=0) in vec2 a_pos; // quad corners in [-1..1]
+
+      uniform vec2 u_resolution; // in pixels (device pixels)
+      uniform vec2 u_center;     // ball center in pixels
+      uniform float u_radius;    // ball radius in pixels
+
+      out vec2 v_local; // [-1..1] local coords inside the ball
+
+      void main() {
+        v_local = a_pos;
+
+        vec2 centerClip = vec2(
+          (u_center.x / u_resolution.x) * 2.0 - 1.0,
+          1.0 - (u_center.y / u_resolution.y) * 2.0
+        );
+
+        vec2 scale = vec2(
+          (u_radius / u_resolution.x) * 2.0,
+          (u_radius / u_resolution.y) * 2.0
+        );
+
+        vec2 posClip = centerClip + a_pos * scale;
+        gl_Position = vec4(posClip, 0.0, 1.0);
+      }
+      `;
+
+      const FRAG_SRC = `#version 300 es
+      precision highp float;
+
+      in vec2 v_local; // [-1..1]
+      out vec4 outColor;
+
+      uniform vec2  u_resolution;
+      uniform float u_time;
+      uniform vec2  u_center;   // ball center in pixels
+      uniform vec2  u_light;    // light position in pixels
+      uniform float u_bg;       // 1.0 for background pass
+      uniform sampler2D u_ripple;
+      uniform vec2  u_rippleTexel;
+      uniform float u_rippleStrength;
+      uniform float u_rippleBrightness;
+      uniform float u_energy;   // 0..1 approx
+      uniform float u_hit;      // 0..1 flash
+      uniform float u_freeze;   // 0..1 freeze overlay
+      uniform vec3  u_color;    // base color
+      uniform float u_seed;     // 0..1
+      uniform int   u_style;    // 0..2 placeholder styles
+
+      // Hash / noise helpers (cheap)
+      float hash12(vec2 p) {
+        vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+        p3 += dot(p3, p3.yzx + 33.33);
+        return fract((p3.x + p3.y) * p3.z);
+      }
+
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        float a = hash12(i);
+        float b = hash12(i + vec2(1.0, 0.0));
+        float c = hash12(i + vec2(0.0, 1.0));
+        float d = hash12(i + vec2(1.0, 1.0));
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+      }
+
+      float fbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        vec2 shift = vec2(100.0, 100.0);
+        for (int i = 0; i < 4; i++) {
+          v += a * noise(p);
+          p = p * 2.0 + shift;
+          a *= 0.5;
+        }
+        return v;
+      }
+
+      void main() {
+        if (u_bg > 0.5) {
+          vec2 uv = v_local * 0.5 + 0.5;
+          vec2 p = (uv - 0.5) * 2.0;
+          float t = u_time;
+          float rip = texture(u_ripple, uv).r * 2.0 - 1.0;
+          float ripX = texture(u_ripple, uv + vec2(u_rippleTexel.x, 0.0)).r
+            - texture(u_ripple, uv - vec2(u_rippleTexel.x, 0.0)).r;
+          float ripY = texture(u_ripple, uv + vec2(0.0, u_rippleTexel.y)).r
+            - texture(u_ripple, uv - vec2(0.0, u_rippleTexel.y)).r;
+          vec2 warp = vec2(ripX, ripY) * u_rippleStrength;
+          float n = fbm((p + warp) * 2.4 + vec2(t * 0.05, -t * 0.03));
+          float contrast = smoothstep(0.2, 0.8, n);
+          vec3 base = mix(vec3(0.01, 0.015, 0.025), vec3(0.025, 0.045, 0.08), contrast);
+          float crest = pow(rip * 0.5 + 0.5, 1.6);
+          base += vec3(0.03, 0.06, 0.11) * crest * u_rippleBrightness * 1.4;
+          outColor = vec4(base, 1.0);
+          return;
+        }
+
+        float r = length(v_local);
+        if (r > 1.0) {
+          discard;
+        }
+
+        // Sphere-ish normal (fake 3D) for lighting
+        float z = sqrt(max(0.0, 1.0 - r * r));
+        vec3 n = normalize(vec3(v_local.x, v_local.y, z));
+        // Flip Y to match v_local's up-axis (screen Y grows downward).
+        vec2 lightVec = vec2(u_light.x - u_center.x, u_center.y - u_light.y);
+        float lightLen = max(length(lightVec), 1.0);
+        vec2 lightDir2 = lightVec / lightLen;
+        vec3 lightDir = normalize(vec3(lightDir2, 0.75));
+        float diff = max(dot(n, lightDir), 0.0);
+
+        // Rim glow control
+        float rim = smoothstep(0.65, 1.0, r);
+        float inner = 1.0 - smoothstep(0.0, 1.0, r);
+
+        vec3 base = u_color * (0.22 + 0.85 * diff);
+        base += u_color * rim * (0.10 + 0.85 * u_energy); // energy-driven rim
+        base += vec3(1.0) * (u_hit * 0.55); // hit flash
+
+        // Local coords to use in patterning
+        vec2 p = v_local;
+        float t = u_time;
+
+        // Placeholder styles
+        if (u_style == 0) {
+          // Style 0: RimGlow + soft internal gradient
+          float glow = inner * (0.12 + 0.95 * u_energy);
+          base += u_color * glow;
+          // slight vignette darkening near edge to keep it readable
+          base *= (1.0 - rim * 0.12);
+
+        } else if (u_style == 1) {
+          // Style 1: Plasma (adapted from WcVBRh)
+          float spike = smoothstep(0.6, 1.0, u_hit);
+          float tail = pow(u_hit, 0.55);
+          float baseAngle = u_seed * 6.2831853;
+          float drift = sin(t * 0.95 + u_seed * 11.0) * 0.8;
+          drift += sin(t * 1.7 + u_seed * 23.0) * 0.55;
+          drift += cos(t * 0.55 + u_seed * 5.0) * 0.35;
+          drift += sin(t * 2.9 + u_seed * 17.0) * 0.25;
+          float ang = baseAngle + drift;
+          float ca = cos(ang);
+          float sa = sin(ang);
+          vec2 rp = vec2(ca * p.x - sa * p.y, sa * p.x + ca * p.y);
+          vec2 pp = rp * (1.05 + 0.08 * u_energy);
+          float z = 4.0 - 4.0 * abs(0.7 - dot(pp, pp));
+          vec2 f = pp * z;
+          vec4 plasma = vec4(0.0);
+          float iter = 0.0;
+          float tt = (t + u_seed * 6.0) * (1.0 + spike * 1.8);
+
+          for (int k = 0; k < 8; k++) {
+            iter += 1.0;
+            vec2 sinf = sin(f) + 1.0;
+            plasma += vec4(sinf.x, sinf.y, sinf.y, sinf.x) * abs(f.x - f.y);
+            f += cos(f.yx * iter + vec2(iter) + tt * (1.0 + tail * 0.9)) / iter + (0.7 + spike * 0.15);
+          }
+
+          vec4 denom = max(plasma, vec4(0.001));
+          vec4 pl = tanh(7.0 * exp(z - 4.0 - pp.y * vec4(-1.0, 1.0, 2.0, 0.0)) / denom);
+          vec3 plasmaColor = clamp(pl.rgb, 0.0, 1.0);
+          plasmaColor = mix(plasmaColor, u_color, 0.25 + 0.2 * u_energy);
+          plasmaColor *= 0.7 + tail * (0.6 + 0.4 * u_energy);
+
+          float lightStroke = smoothstep(0.25, 0.95, diff);
+          base = mix(base, plasmaColor, 0.85 + tail * 0.1);
+          base += vec3(1.0) * (spike * 0.35);
+          base += u_color * rim * (0.12 + 0.55 * u_energy);
+          base += u_color * rim * lightStroke * (0.2 + 0.45 * tail);
+
+        } else {
+          // Style 2: Sparkle noise (cheap "shimmery core")
+          vec2 q = p * (12.0 + 18.0 * u_energy) + vec2(t * 0.4, t * -0.25) + u_seed * 37.0;
+          float n1 = fbm(q);
+          float spark = smoothstep(0.82, 0.98, n1);
+          spark *= inner;
+
+          vec3 sparkColor = mix(u_color, vec3(1.0), 0.6);
+          base += sparkColor * spark * (0.35 + 0.95 * u_energy);
+          base += u_color * inner * (0.08 + 0.55 * u_energy);
+        }
+
+        float freeze = clamp(u_freeze, 0.0, 1.0);
+        if (freeze > 0.001) {
+          vec2 frostP = p * (10.0 + 6.0 * u_energy) + vec2(t * 0.12, -t * 0.08) + u_seed * 31.0;
+          float frost = fbm(frostP);
+          float frostMask = smoothstep(0.35, 0.9, frost);
+          vec3 frostColor = mix(vec3(0.62, 0.78, 0.98), vec3(0.92, 0.96, 1.0), frostMask);
+          base = mix(base, frostColor, freeze * (0.35 + 0.45 * frostMask));
+          base += frostColor * freeze * 0.18 * frostMask;
+          base = mix(base, base * 0.78, freeze * 0.3);
+        }
+
+        // Final shaping: keep edges crisp, avoid muddy bloom
+        float alpha = 1.0;
+        // Soft edge AA
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        alpha *= edge;
+
+        outColor = vec4(base, alpha);
+      }
+      `;
+
+      const GEAR_FRAG_SRC = `#version 300 es
+      precision highp float;
+      
+      in vec2 v_local;
+      out vec4 outColor;
+      
+      uniform float u_time;
+      uniform float u_radius;
+      uniform sampler2D iChannel0;
+      
+      #define HW_PERFORMANCE 0
+      #define iTime u_time
+      #define iResolution vec3(u_radius * 2.0, u_radius * 2.0, 1.0)
+      #define iFrame 0
+      
+      // Copyright Inigo Quilez, 2019 - https://iquilezles.org/
+      // I am the sole copyright owner of this Work. You cannot
+      // host, display, distribute or share this Work neither as
+      // is or altered, in any form including physical and
+      // digital. You cannot use this Work in any commercial or
+      // non-commercial product, website or project. You cannot
+      // sell this Work and you cannot mint an NFTs of it. You
+      // cannot use this Work to train AI models. I share this
+      // Work for educational purposes, you can link to it as
+      // an URL, proper attribution and unmodified screenshot,
+      // as part of your educational material. If these
+      // conditions are too restrictive please contact me.
+      
+      // Basically the same as https://www.shadertoy.com/view/XlVcWz
+      // but optimized through symmetry so it only needs to evaluate
+      // four gears instead of 18. Also I made the gears with actual
+      // boxes rather than displacements, which creates an exact SDF
+      // allowing me to raymarch the scene at the speed of light, or
+      // in other words, without reducing the raymarching step size.
+      // Also I'm using a bounding volume to speed things up further
+      // so I can affor some nice ligthing and motion blur.
+      //
+      // Live streamed tutorial on this shader:
+      // PART 1: https://www.youtube.com/watch?v=sl9x19EnKng
+      // PART 2: https://www.youtube.com/watch?v=bdICU2uvOdU
+      //
+      // Video capture here: https://www.youtube.com/watch?v=ydTVmDBSGYQ
+      //
+      #if HW_PERFORMANCE==0
+      #define AA 1
+      #else
+      #define AA 2  // Set AA to 1 if your machine is too slow
+      #endif
+      
+      
+      // https://iquilezles.org/articles/smin
+      float smax( float a, float b, float k )
+      {
+          float h = max(k-abs(a-b),0.0);
+          return max(a, b) + h*h*0.25/k;
+      }
+      
+      // https://iquilezles.org/articles/distfunctions
+      float sdSphere( in vec3 p, in float r )
+      {
+          return length(p)-r;
+      }
+      
+      float sdVerticalSemiCapsule( vec3 p, float h, float r )
+      {
+          p.y = max(p.y-h,0.0);
+          return length( p ) - r;
+      }
+      
+      // https://iquilezles.org/articles/distfunctions2d
+      float sdCross( in vec2 p, in vec2 b, float r ) 
+      {
+          p = abs(p); p = (p.y>p.x) ? p.yx : p.xy;
+          
+      	vec2  q = p - b;
+          float k = max(q.y,q.x);
+          vec2  w = (k>0.0) ? q : vec2(b.y-p.x,-k);
+          
+          return sign(k)*length(max(w,0.0)) + r;
+      }
+      
+      // https://www.shadertoy.com/view/MlycD3
+      float dot2( in vec2 v ) { return dot(v,v); }
+      float sdTrapezoid( in vec2 p, in float r1, float r2, float he )
+      {
+          vec2 k1 = vec2(r2,he);
+          vec2 k2 = vec2(r2-r1,2.0*he);
+      
+      	p.x = abs(p.x);
+          vec2 ca = vec2(max(0.0,p.x-((p.y<0.0)?r1:r2)), abs(p.y)-he);
+          vec2 cb = p - k1 + k2*clamp( dot(k1-p,k2)/dot2(k2), 0.0, 1.0 );
+          
+          float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+          
+          return s*sqrt( min(dot2(ca),dot2(cb)) );
+      }
+      
+      // https://iquilezles.org/articles/intersectors
+      vec2 iSphere( in vec3 ro, in vec3 rd, in float rad )
+      {
+      	float b = dot( ro, rd );
+      	float c = dot( ro, ro ) - rad*rad;
+      	float h = b*b - c;
+      	if( h<0.0 ) return vec2(-1.0);
+          h = sqrt(h);
+      	return vec2(-b-h, -b+h );
+      }
+      
+      //----------------------------------
+      
+      float dents( in vec2 q, in float tr, in float y )
+      {
+          const float an = 6.283185/12.0;
+          float fa = (atan(q.y,q.x)+an*0.5)/an;
+          float sym = an*floor(fa);
+          vec2 r = mat2(cos(sym),-sin(sym), sin(sym), cos(sym))*q;
+          
+      #if 1
+          float d = length(max(abs(r-vec2(0.17,0))-tr*vec2(0.042,0.041*y),0.0));
+      #else
+          float d = sdTrapezoid( r.yx-vec2(0.0,0.17), 0.085*y, 0.028*y, tr*0.045 );
+      #endif
+      
+      	return d - 0.005*tr;
+      }
+      
+      vec4 gear(vec3 q, float off, float time)
+      {
+          {
+          float an = 2.0*time*sign(q.y) + off*6.283185/24.0;
+          float co = cos(an), si = sin(an);
+          q.xz = mat2(co,-si,si,co)*q.xz;
+          }
+          
+          q.y = abs(q.y);
+          
+          float an2 = 2.0*min(1.0-2.0*abs(fract(0.5+time/10.0)-0.5),1.0/2.0);
+          vec3 tr = min( 10.0*an2 - vec3(4.0,6.0,8.0),1.0);
+          
+          // ring
+          float d = abs(length(q.xz) - 0.155*tr.y) - 0.018;
+      
+          // add dents
+          float r = length(q);
+          d = min( d, dents(q.xz,tr.z, r) );
+      
+          
+          // slice it
+          float de = -0.0015*clamp(600.0*abs(dot(q.xz,q.xz)-0.155*0.155),0.0,1.0);
+          d = smax( d, abs(r-0.5)-0.03+de, 0.005*tr.z );
+      
+          // add cross
+          float d3 = sdCross( q.xz, vec2(0.15,0.022)*tr.y, 0.02*tr.y );
+          vec2 w = vec2( d3, abs(q.y-0.485)-0.005*tr.y );
+          d3 = min(max(w.x,w.y),0.0) + length(max(w,0.0))-0.003*tr.y;
+          d = min( d, d3 ); 
+              
+          // add pivot
+          d = min( d, sdVerticalSemiCapsule( q, 0.5*tr.x, 0.01 ));
+      
+          // base
+          d = min( d, sdSphere(q-vec3(0.0,0.12,0.0),0.025) );
+          
+          return vec4(d,q.xzy);
+      }
+      
+      vec2 rot( vec2 v )
+      {
+          return vec2(v.x-v.y,v.y+v.x)*0.707107;
+      }
+          
+      vec4 map( in vec3 p, float time )
+      {
+          // center sphere
+          vec4 d = vec4( sdSphere(p,0.12), p );
+          
+          // gears. There are 18, but we only evaluate 4    
+          vec3 qx = vec3(rot(p.zy),p.x); if(abs(qx.x)>abs(qx.y)) qx=qx.zxy;
+          vec3 qy = vec3(rot(p.xz),p.y); if(abs(qy.x)>abs(qy.y)) qy=qy.zxy;
+          vec3 qz = vec3(rot(p.yx),p.z); if(abs(qz.x)>abs(qz.y)) qz=qz.zxy;
+          vec3 qa = abs(p); qa = (qa.x>qa.y && qa.x>qa.z) ? p.zxy : 
+                                 (qa.z>qa.y             ) ? p.yzx :
+                                                            p.xyz;
+          vec4 t;
+          t = gear( qa,0.0,time ); if( t.x<d.x ) d=t;
+          t = gear( qx,1.0,time ); if( t.x<d.x ) d=t;
+          t = gear( qz,1.0,time ); if( t.x<d.x ) d=t;
+          t = gear( qy,1.0,time ); if( t.x<d.x ) d=t;
+          
+      	return d;
+      }
+      
+      #define ZERO min(iFrame,0)
+      
+      // https://iquilezles.org/articles/normalsSDF
+      vec3 calcNormal( in vec3 pos, in float time )
+      {
+      #if 0
+          vec2 e = vec2(1.0,-1.0)*0.5773;
+          const float eps = 0.00025;
+          return normalize( e.xyy*map( pos + e.xyy*eps, time ).x + 
+      					  e.yyx*map( pos + e.yyx*eps, time ).x + 
+      					  e.yxy*map( pos + e.yxy*eps, time ).x + 
+      					  e.xxx*map( pos + e.xxx*eps, time ).x );
+      #else
+          // klems's trick to prevent the compiler from inlining map() 4 times
+          vec3 n = vec3(0.0);
+          for( int i=ZERO; i<4; i++ )
+          {
+              vec3 e = 0.5773*(2.0*vec3((((i+3)>>1)&1),((i>>1)&1),(i&1))-1.0);
+              n += e*map(pos+0.0005*e,time).x;
+          }
+          return normalize(n);
+      #endif    
+      }
+      
+      float calcAO( in vec3 pos, in vec3 nor, in float time )
+      {
+      	float occ = 0.0;
+          float sca = 1.0;
+          for( int i=ZERO; i<5; i++ )
+          {
+              float h = 0.01 + 0.12*float(i)/4.0;
+              float d = map( pos+h*nor, time ).x;
+              occ += (h-d)*sca;
+              sca *= 0.95;
+          }
+          return clamp( 1.0 - 3.0*occ, 0.0, 1.0 );
+      }
+      
+      // https://iquilezles.org/articles/rmshadows
+      float calcSoftshadow( in vec3 ro, in vec3 rd, in float k, in float time )
+      {
+          float res = 1.0;
+          
+          // bounding sphere
+          vec2 b = iSphere( ro, rd, 0.535 );
+      	if( b.y>0.0 )
+          {
+              // raymarch
+              float tmax = b.y;
+              float t    = max(b.x,0.001);
+              for( int i=0; i<64; i++ )
+              {
+                  float h = map( ro + rd*t, time ).x;
+                  res = min( res, k*h/t );
+                  t += clamp( h, 0.012, 0.2 );
+                  if( res<0.001 || t>tmax ) break;
+              }
+          }
+          
+          return clamp( res, 0.0, 1.0 );
+      }
+      
+      vec4 intersect( in vec3 ro, in vec3 rd, in float time )
+      {
+          vec4 res = vec4(-1.0);
+          
+          // bounding sphere
+          vec2 tminmax = iSphere( ro, rd, 0.535 );
+      	if( tminmax.y>0.0 )
+          {
+              // raymarch
+              float t = max(tminmax.x,0.001);
+              for( int i=0; i<128 && t<tminmax.y; i++ )
+              {
+                  vec4 h = map(ro+t*rd,time);
+                  if( h.x<0.001 ) { res=vec4(t,h.yzw); break; }
+                  t += h.x;
+              }
+          }
+          
+          return res;
+      }
+      
+      mat3 setCamera( in vec3 ro, in vec3 ta, float cr )
+      {
+      	vec3 cw = normalize(ta-ro);
+      	vec3 cp = vec3(sin(cr), cos(cr),0.0);
+      	vec3 cu = normalize( cross(cw,cp) );
+      	vec3 cv =          ( cross(cu,cw) );
+          return mat3( cu, cv, cw );
+      }
+      
+      void mainImage( out vec4 fragColor, in vec2 fragCoord )
+      {
+          vec3 tot = vec3(0.0);
+          
+          #if AA>1
+          for( int m=ZERO; m<AA; m++ )
+          for( int n=ZERO; n<AA; n++ )
+          {
+              // pixel coordinates
+              vec2 o = vec2(float(m),float(n)) / float(AA) - 0.5;
+              vec2 p = (2.0*(fragCoord+o)-iResolution.xy)/iResolution.y;
+              float d = 0.5*sin(fragCoord.x*147.0)*sin(fragCoord.y*131.0);
+              float time = iTime - 0.5*(1.0/24.0)*(float(m*AA+n)+d)/float(AA*AA-1);
+              #else    
+              vec2 p = (2.0*fragCoord-iResolution.xy)/iResolution.y;
+              float time = iTime;
+              #endif
+      
+      	    // camera	
+              float an = 6.2831*time/40.0;
+              vec3 ta = vec3( 0.0, 0.0, 0.0 );
+              vec3 ro = ta + vec3( 1.3*cos(an), 0.5, 1.2*sin(an) );
+              
+              ro += 0.005*sin(92.0*time/40.0+vec3(0.0,1.0,3.0));
+              ta += 0.009*sin(68.0*time/40.0+vec3(2.0,4.0,6.0));
+              
+              // camera-to-world transformation
+              mat3 ca = setCamera( ro, ta, 0.0 );
+              
+              // ray direction
+              float fl = 2.0;
+              vec3 rd = ca * normalize( vec3(p,fl) );
+      
+              // background
+              vec3 col = vec3(1.0+rd.y)*0.03;
+              
+              // raymarch geometry
+              vec4 tuvw = intersect( ro, rd, time );
+              if( tuvw.x>0.0 )
+              {
+                  // shading/lighting	
+                  vec3 pos = ro + tuvw.x*rd;
+                  vec3 nor = calcNormal(pos, time);
+                              
+                  vec3 te = 0.5*texture( iChannel0, tuvw.yz*2.0 ).xyz+
+                            0.5*texture( iChannel0, tuvw.yw*1.0 ).xyz;
+                  
+                  vec3 mate = 0.22*te;
+                  float len = length(pos);
+                  
+                  mate *= 1.0 + vec3(2.0,0.5,0.0)*(1.0-smoothstep(0.121,0.122,len) ) ;
+                  
+                  float focc  = 0.1+0.9*clamp(0.5+0.5*dot(nor,pos/len),0.0,1.0);
+                        focc *= 0.1+0.9*clamp(len*2.0,0.0,1.0);
+                  float ks = clamp(te.x*1.5,0.0,1.0);
+                  vec3  f0 = mate;
+                  float kd = (1.0-ks)*0.125;
+                  
+                  float occ = calcAO( pos, nor, time ) * focc;
+                  
+                  col = vec3(0.0);
+                  
+                  // side
+                  {
+                  vec3  lig = normalize(vec3(0.8,0.2,0.6));
+                  float dif = clamp( dot(nor,lig), 0.0, 1.0 );
+                  vec3  hal = normalize(lig-rd);
+                  float sha = 1.0; if( dif>0.001 ) sha = calcSoftshadow( pos+0.001*nor, lig, 20.0, time );
+                  vec3  spe = pow(clamp(dot(nor,hal),0.0,1.0),16.0)*(f0+(1.0-f0)*pow(clamp(1.0+dot(hal,rd),0.0,1.0),5.0));
+                  col += kd*mate*2.0*vec3(1.00,0.70,0.50)*dif*sha;
+                  col += ks*     2.0*vec3(1.00,0.80,0.70)*dif*sha*spe*3.14;
+                  }
+      
+                  // top
+                  {
+                  vec3  ref = reflect(rd,nor);
+                  float fre = clamp(1.0+dot(nor,rd),0.0,1.0);
+                  float sha = occ;
+                  col += kd*mate*25.0*vec3(0.19,0.22,0.24)*(0.6 + 0.4*nor.y)*sha;
+                  col += ks*     25.0*vec3(0.19,0.22,0.24)*sha*smoothstep( -1.0+1.5*focc, 1.0-0.4*focc, ref.y ) * (f0 + (1.0-f0)*pow(fre,5.0));
+                  }
+                  
+                  // bottom
+                  {
+                  float dif = clamp(0.4-0.6*nor.y,0.0,1.0);
+                  col += kd*mate*5.0*vec3(0.25,0.20,0.15)*dif*occ;
+                  }
+              }
+              
+              // compress        
+              // col = 1.2*col/(1.0+col);
+              
+              // vignetting
+              col *= 1.0-0.1*dot(p,p);
+              
+              // gamma        
+      	    tot += pow(col,vec3(0.45) );
+          #if AA>1
+          }
+          tot /= float(AA*AA);
+          #endif
+      
+          // s-curve    
+          tot = min(tot,1.0);
+          tot = tot*tot*(3.0-2.0*tot);
+          
+          // cheap dithering
+          tot += sin(fragCoord.x*114.0)*sin(fragCoord.y*211.1)/512.0;
+      
+          fragColor = vec4( tot, 1.0 );
+      }
+      
+      void main() {
+        vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
+        vec4 color = vec4(0.0);
+        mainImage(color, fragCoord);
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        float lum = max(max(color.r, color.g), color.b);
+        float alpha = smoothstep(0.02, 0.35, lum);
+        outColor = vec4(color.rgb, alpha * edge);
+      }
+      `;
+      const FAIRY_FRAG_SRC = `#version 300 es
+      precision highp float;
+      
+      in vec2 v_local;
+      out vec4 outColor;
+      
+      uniform float u_time;
+      uniform float u_radius;
+      uniform vec4 u_mouse;
+      
+      #define iTime u_time
+      #define iResolution vec3(u_radius * 2.0, u_radius * 2.0, 1.0)
+      #define iMouse u_mouse
+      
+      // --------------------------------------------------------
+      // OPTIONS
+      // --------------------------------------------------------
+      
+      // Disable to see more colour variety
+      #define SEAMLESS_LOOP
+      #define COLOUR_CYCLE
+      #define HIGH_QUALITY
+      
+      // --------------------------------------------------------
+      // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
+      // --------------------------------------------------------
+      
+      mat3 rotationMatrix(vec3 axis, float angle)
+      {
+          axis = normalize(axis);
+          float s = sin(angle);
+          float c = cos(angle);
+          float oc = 1.0 - c;
+      
+          return mat3(
+              oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
+              oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
+              oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c
+          );
+      }
+      
+      
+      // --------------------------------------------------------
+      // HG_SDF
+      // https://www.shadertoy.com/view/Xs3GRB
+      // --------------------------------------------------------
+      
+      #define PI 3.14159265359
+      #define PHI (1.618033988749895)
+      
+      
+      float t;
+      
+      
+      float vmax(vec3 v) {
+          return max(max(v.x, v.y), v.z);
+      }
+      
+      float sgn(float x) {
+          return (x<0.)?-1.:1.;
+      }
+      
+      // Rotate around a coordinate axis (i.e. in a plane perpendicular to that axis) by angle <a>.
+      // Read like this: R(p.xz, a) rotates "x towards z".
+      // This is fast if <a> is a compile-time constant and slower (but still practical) if not.
+      void pR(inout vec2 p, float a) {
+          p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
+      }
+      
+      // Reflect space at a plane
+      float pReflect(inout vec3 p, vec3 planeNormal, float offset) {
+          float t = dot(p, planeNormal)+offset;
+          if (t < 0.) {
+              p = p - (2.*t)*planeNormal;
+          }
+          return sign(t);
+      }
+      
+      // Repeat around the origin by a fixed angle.
+      // For easier use, num of repetitions is use to specify the angle.
+      float pModPolar(inout vec2 p, float repetitions) {
+          float angle = 2.*PI/repetitions;
+          float a = atan(p.y, p.x) + angle/2.;
+          float r = length(p);
+          float c = floor(a/angle);
+          a = mod(a,angle) - angle/2.;
+          p = vec2(cos(a), sin(a))*r;
+          // For an odd number of repetitions, fix cell index of the cell in -x direction
+          // (cell index would be e.g. -5 and 5 in the two halves of the cell):
+          if (abs(c) >= (repetitions/2.)) c = abs(c);
+          return c;
+      }
+      
+      
+      // --------------------------------------------------------
+      // IQ
+      // https://www.shadertoy.com/view/ll2GD3
+      // --------------------------------------------------------
+      
+      vec3 pal( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d ) {
+          return a + b*cos( 6.28318*(c*t+d) );
+      }
+      
+      vec3 spectrum(float n) {
+          return pal( n, vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67) );
+      }
+      
+      
+      // --------------------------------------------------------
+      // knighty
+      // https://www.shadertoy.com/view/MsKGzw
+      // --------------------------------------------------------
+      
+      int Type=5;
+      vec3 nc;
+      vec3 pbc;
+      vec3 pca;
+      void initIcosahedron() {//setup folding planes and vertex
+          float cospin=cos(PI/float(Type)), scospin=sqrt(0.75-cospin*cospin);
+          nc=vec3(-0.5,-cospin,scospin);//3rd folding plane. The two others are xz and yz planes
+          pbc=vec3(scospin,0.,0.5);//No normalization in order to have 'barycentric' coordinates work evenly
+          pca=vec3(0.,scospin,cospin);
+          pbc=normalize(pbc); pca=normalize(pca);//for slightly better DE. In reality it's not necesary to apply normalization :) 
+      
+      }
+      
+      void pModIcosahedron(inout vec3 p) {
+          p = abs(p);
+          pReflect(p, nc, 0.);
+          p.xy = abs(p.xy);
+          pReflect(p, nc, 0.);
+          p.xy = abs(p.xy);
+          pReflect(p, nc, 0.);
+      }
+      
+      float splitPlane(float a, float b, vec3 p, vec3 plane) {
+          float split = max(sign(dot(p, plane)), 0.);
+          return mix(a, b, split);
+      }
+      
+      float icosahedronIndex(inout vec3 p) {
+          vec3 sp, plane;
+          float x, y, z, idx;
+      
+          sp = sign(p);
+          x = sp.x * .5 + .5;
+          y = sp.y * .5 + .5;
+          z = sp.z * .5 + .5;
+      
+          plane = vec3(-1. - PHI, -1, PHI);
+      
+          idx = x + y * 2. + z * 4.;
+          idx = splitPlane(idx, 8. + y + z * 2., p, plane * sp);
+          idx = splitPlane(idx, 12. + x + y * 2., p, plane.yzx * sp);
+          idx = splitPlane(idx, 16. + z + x * 2., p, plane.zxy * sp);
+      
+          return idx;
+      }
+      
+      vec3 icosahedronVertex(vec3 p) {
+          vec3 sp, v, v1, v2, v3, result, plane;
+          float split;
+          v = vec3(PHI, 1, 0);
+          sp = sign(p);
+          v1 = v.xyz * sp;
+          v2 = v.yzx * sp;
+          v3 = v.zxy * sp;
+      
+          plane = vec3(1, PHI, -PHI - 1.);
+      
+          split = max(sign(dot(p, plane.xyz * sp)), 0.);
+          result = mix(v2, v1, split);
+          plane = mix(plane.yzx * -sp, plane.zxy * sp, split);
+          split = max(sign(dot(p, plane)), 0.);
+          result = mix(result, v3, split);
+      
+          return normalize(result);
+      }
+      
+      // Nearest vertex and distance.
+      // Distance is roughly to the boundry between the nearest and next
+      // nearest icosahedron vertices, ensuring there is always a smooth
+      // join at the edges, and normalised from 0 to 1
+      vec4 icosahedronAxisDistance(vec3 p) {
+          vec3 iv = icosahedronVertex(p);
+          vec3 originalIv = iv;
+      
+          vec3 pn = normalize(p);
+          pModIcosahedron(pn);
+          pModIcosahedron(iv);
+      
+          float boundryDist = dot(pn, vec3(1, 0, 0));
+          float boundryMax = dot(iv, vec3(1, 0, 0));
+          boundryDist /= boundryMax;
+      
+          float roundDist = length(iv - pn);
+          float roundMax = length(iv - vec3(0, 0, 1.));
+          roundDist /= roundMax;
+          roundDist = -roundDist + 1.;
+      
+          float blend = 1. - boundryDist;
+          blend = pow(blend, 6.);
+          
+          float dist = mix(roundDist, boundryDist, blend);
+      
+          return vec4(originalIv, dist);
+      }
+      
+      // Twists p around the nearest icosahedron vertex
+      void pTwistIcosahedron(inout vec3 p, float amount) {
+          vec4 a = icosahedronAxisDistance(p);
+          vec3 axis = a.xyz;
+          float dist = a.a;
+          mat3 m = rotationMatrix(axis, dist * amount);
+          p *= m;
+      }
+      
+      
+      // --------------------------------------------------------
+      // MAIN
+      // --------------------------------------------------------
+      
+      struct Model {
+          float dist;
+          vec3 colour;
+          float id;
+      };
+           
+           
+      Model fInflatedIcosahedron(vec3 p) {
+          float d = 1000.;
+      
+          // Slightly inflated icosahedron
+          float idx = icosahedronIndex(p);
+          d = min(d, dot(p, pca) - .9);
+          d = mix(d, length(p) - .9, 1.0);
+      
+          // Colour each icosahedron face differently
+          # ifdef SEAMLESS_LOOP
+              if (idx == 3.) {
+                  idx = 2.;
+              }
+              idx /= 10.;
+          # else
+              idx /= 20.;
+          # endif
+          # ifdef COLOUR_CYCLE
+              idx = mod(idx + t*1., 1.);
+          # endif
+          vec3 colour = spectrum(idx);
+          
+          d *= .6;
+          return Model(d, colour, 1.);
+      }
+      
+      Model model(vec3 p) {
+          float rate = PI/6.;
+      
+          float a = atan(1., PHI + 1.);
+          pR(p.yz, a);
+      
+          pR(p.yx, t * 2.1 + rate);
+          pR(p.yz, a);
+      
+          vec3 twistCenter = vec3(.7, 0, 0);
+          pR(twistCenter.yx, t * 2.1 + rate);
+          pR(twistCenter.yz, a);
+      
+          p += twistCenter;
+          pTwistIcosahedron(p, 10.5);
+          p -= twistCenter;
+      
+          # ifdef SEAMLESS_LOOP
+              pR(p.yz, -a);
+              pR(p.xy, -PI/2.);
+              pModPolar(p.xy, 3.);
+              pR(p.xy, -PI/2.);
+              pR(p.yz, -a);
+          #endif
+      
+          return fInflatedIcosahedron(p);
+      }
+      
+      
+      Model map(vec3 p) {
+          return model(p);
+      }
+      
+      
+      mat3 calcLookAtMatrix(in vec3 ro, in vec3 ta, in float roll) {
+          vec3 ww = normalize( ta - ro );
+          vec3 uu = normalize( cross(ww,vec3(sin(roll),cos(roll),0.0) ) );
+          vec3 vv = normalize( cross(uu,ww));
+          return mat3( uu, vv, ww );
+      }
+      
+      const float MAX_TRACE_DISTANCE = 6.0;
+      const float INTERSECTION_PRECISION = 0.001;
+      #ifdef HIGH_QUALITY
+          const float FUDGE_FACTOR = .2;
+      #else
+          const float FUDGE_FACTOR = .4;
+      #endif
+      
+      void mainImage( out vec4 fragColor, in vec2 fragCoord )
+      {
+          initIcosahedron();
+          t = iTime - .25;
+          t /= 2.;
+          //t = mod(t, 1.);
+          //t *= 2.5;
+          
+          vec2 p = (-iResolution.xy + 2.0*fragCoord.xy)/iResolution.y;
+          vec2 m = iMouse.xy / iResolution.xy;
+          
+      
+          vec3 camPos = vec3(-1.5,1.6,0);
+          vec3 camTar = -camPos + vec3(0,.1,0);
+          float camRoll = 0.;
+      
+          // camera matrix
+          mat3 camMat = calcLookAtMatrix( camPos, camTar, camRoll );  // 0.0 is the camera roll
+      
+          // create view ray
+          vec3 rd = normalize( camMat * vec3(p.xy,1.0) ); // 2.0 is the lens length
+      
+          vec3 color = pow(vec3(.15,0,.2), vec3(2.2));    
+          
+          vec3 ro = camPos;
+          float t = 0.0;
+          float h = INTERSECTION_PRECISION * 2.0;
+          float res = -1.0;
+          vec3 colour;
+          
+          int iter = int(20. / FUDGE_FACTOR);
+      
+          for( int i=0; i < iter; i++ ){
+      
+              if( t > MAX_TRACE_DISTANCE ) break;
+              Model m = map( ro+rd*t );
+              h = abs(m.dist);
+              t += max(INTERSECTION_PRECISION, h * FUDGE_FACTOR);
+              color += m.colour * pow(max(0., (.02 - h)) * 19.5, 10.) * 150.;
+              color += m.colour * .001 * FUDGE_FACTOR;
+          }
+          
+          color = pow(color, vec3(1./1.8)) * 1.5;
+          color = pow(color, vec3(1.5));
+          color *= 3.5;
+          
+          fragColor = vec4(color,1.0);
+      }
+      
+      
+      void main() {
+        vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
+        vec4 color = vec4(0.0);
+        mainImage(color, fragCoord);
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        float lum = max(max(color.r, color.g), color.b);
+        float alpha = smoothstep(0.02, 0.35, lum);
+        outColor = vec4(color.rgb, alpha * edge);
+      }
+      `;
+      const HOLO_FRAG_SRC = `#version 300 es
+      precision highp float;
+      
+      in vec2 v_local;
+      out vec4 outColor;
+      
+      uniform float u_time;
+      uniform float u_radius;
+      uniform vec4 u_mouse;
+      
+      #define iTime u_time
+      #define iResolution vec3(u_radius * 2.0, u_radius * 2.0, 1.0)
+      #define iMouse u_mouse
+      
+      /*================================
+      =         Holofoil Dice          =
+      =         Author: Jaenam         =
+      ================================*/
+      // Date:    2025-12-07
+      // License: Creative Commons (CC BY-NC-SA 4.0)
+      
+      //Twigl version: https://x.com/Jaenam97/status/1997653539078693351?s=20
+      
+      #define A(C, Z) \\
+      for (float d, i, c, e, sc, h, a, s, sf; i++ < 80.;) { \\
+          vec3 p = vec3((I + I - r.xy) / r.y*d, d - 8.),g,f,k; \\
+          if (abs(p.x) > 5.) break; \\
+          p.xz *= Rx; \\
+          iMouse.z > 0. ? p.yz *= Ry : p.xy *= Ry; \\
+          g = floor(p * 6.); \\
+          f = fract(p * 6.) - .5; \\
+          h = step(length(f), fract(sin(dot(g, vec3(127.1, 311.7, 74.7))) * 43758.5) * .3 + .1); \\
+          a = fract(sin(dot(g, vec3(43.7, 78.2, 123.4))) * 127.1) * 6.28; \\
+          e = 1., sc = 2.; \\
+          for (int j = 0; j < 3; j++) { \\
+              g = abs(mod(p * sc, 2.) - 1.); \\
+              e = min(e, min(max(g.x, g.y), min(max(g.y, g.z), max(g.x, g.z))) / sc); \\
+              sc *= .6; \\
+          } \\
+          c = max(max(max(abs(p.x), abs(p.y)), abs(p.z)), dot(abs(p), vec3(.577)) * .9) - 3.; \\
+          d += s = .01 + .15 * abs(max(max(c, e - .1),length(sin(c))-.3) + Z * .02 - i / 130.); \\
+          sf = smoothstep(.02, .01, s); \\
+          O.C += 1.6 / s * (.5 + .5 * sin(i * .3 + Z * 5.) + sf * 4. * h * sin(a + i * .4 + Z * 5.));\\
+      }
+      
+      void mainImage(out vec4 O, vec2 I)
+      {   
+          vec3 r = iResolution;
+          vec2 m = iMouse.z > 0. ? (iMouse.xy / r.xy - .5) * 6.28 : vec2(iTime / 2.);
+          mat2 Rx = mat2(cos(m.x + vec4(0, 33, 11, 0)));
+          mat2 Ry = mat2(cos(m.y + vec4(0, 33, 11, 0)));
+          O *= 0.;
+          
+          A(r, -1.)A(g, 0.)A(b, 1.)
+          O = tanh(O * O / 1e7);
+      }
+      
+      void main() {
+        vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
+        vec4 color = vec4(0.0);
+        mainImage(color, fragCoord);
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        float lum = max(max(color.r, color.g), color.b);
+        float alpha = smoothstep(0.02, 0.35, lum);
+      outColor = vec4(color.rgb, alpha * edge);
+      }
+      `;
+      const SNAKE_FRAG_SRC = `#version 300 es
+      precision highp float;
+
+      in vec2 v_local;
+      out vec4 outColor;
+
+      uniform float u_time;
+      uniform float u_radius;
+
+      #define iTime u_time
+      #define iResolution vec3(u_radius * 2.0, u_radius * 2.0, 1.0)
+
+      /*================================
+      =            SnakeGem            =
+      =         Author: Jaenam         =
+      ================================*/
+      // Date:    2025-11-10
+      // License: Creative Commons (CC BY-NC-SA 4.0)
+
+      void mainImage( out vec4 O, vec2 I )
+      {   
+          vec3 p = vec3(0.0);
+          vec3 c = vec3(0.0);
+          vec3 r = iResolution;
+          mat2 R = mat2(cos(iTime / 2.0 + vec4(0.0, 33.0, 11.0, 0.0)));
+          
+          for (float i = 0.0, d = 0.0, s = 0.0; i++ < 100.0; c += max(1.3 * sin(i * .5 + vec3(1.0, 2.0, 3.0)) / max(s, 1e-4), -length(p * p))) {
+              p = vec3(d * (I + I - r.xy) / r.y * R, d - 9.0);
+              p.xz *= R;
+              d += s = .012 + .07 * abs(
+                  max(
+                      sin(length(floor(p * 3.0) + dot(sin(p), cos(p.yzx)) / .4)),
+                      length(p) - 4.0
+                  ) - i / 100.0
+              );
+          }
+          O.rgb = tanh(c * c / 8e5);
+      }
+
+      void main() {
+        vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
+        vec4 color = vec4(0.0);
+        mainImage(color, fragCoord);
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        float lum = max(max(color.r, color.g), color.b);
+        float alpha = smoothstep(0.02, 0.5, lum);
+      outColor = vec4(color.rgb, alpha * edge);
+      }
+      `;
+      const POWER_FRAG_SRC = `#version 300 es
+      precision highp float;
+
+      in vec2 v_local;
+      out vec4 outColor;
+
+      uniform float u_time;
+      uniform float u_radius;
+      uniform vec4 u_mouse;
+
+      #define iTime u_time
+      #define iResolution vec3(u_radius * 2.0, u_radius * 2.0, 1.0)
+      #define iMouse u_mouse
+
+      // Adapted from https://www.shadertoy.com/view/WdB3Dw
+      #define PI 3.14159265359
+      #define fTime mod(iTime / 4.0, 1.0)
+
+      vec3 pal(in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d) {
+          return a + b * cos(6.28318 * (c * t + d));
+      }
+      vec3 spectrum(float n) {
+          return pal(n, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.0, 0.33, 0.67));
+      }
+
+      void pR(inout vec2 p, float a) {
+          p = cos(a) * p + sin(a) * vec2(p.y, -p.x);
+      }
+
+      float map(vec3 p) {
+          return length(p) - 0.5;
+      }
+
+      mat3 calcLookAtMatrix(vec3 ro, vec3 ta, vec3 up) {
+          vec3 ww = normalize(ta - ro);
+          vec3 uu = normalize(cross(ww, up));
+          vec3 vv = normalize(cross(uu, ww));
+          return mat3(uu, vv, ww);
+      }
+
+      const float ITER = 160.0;
+      const float FUDGE_FACTORR = 0.25;
+      const float INTERSECTION_PRECISION = 0.0001;
+      const float MAX_DIST = 4.0;
+
+      void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+          vec2 p = (-iResolution.xy + 2.0 * fragCoord.xy) / iResolution.y;
+
+          vec3 pos = vec3(0.0);
+          float rayLength = 0.0;
+          float dist = 0.0;
+
+          vec3 origin = vec3(0.0, 0.0, 2.9);
+
+          vec2 rot = vec2(0.525, -0.41);
+          vec2 im = (iMouse.xy / iResolution.xy) * 2.0 - 1.0;
+          if (im.x > -1.0 && im.y > -1.0) {
+             rot += im;
+          }
+          pR(origin.zy, rot.y * 1.5);
+          pR(origin.zx, rot.x * 1.5);
+
+          mat3 camMat = calcLookAtMatrix(origin, vec3(0.0), vec3(0.0, 1.0, 0.0));
+          vec3 rd = normalize(camMat * vec3(p, 4.0));
+
+          vec3 color = vec3(10.0, 0.0, 12.0) * 0.0007;
+          vec3 c;
+
+          for (float i = 0.0; i < ITER; i++) {
+              rayLength += max(INTERSECTION_PRECISION, abs(dist) * FUDGE_FACTORR);
+              pos = origin + rd * rayLength;
+
+              float w = smoothstep(0.0, 0.2, fTime) - pow(smoothstep(0.2, 1.0, fTime), 1.0);
+              pos += sin(pos * mix(10.0, 100.0, fTime)) * mix(0.0, 0.05, w);
+
+              dist = map(pos);
+
+              c = vec3(max(0.0, 0.001 - abs(dist)) * 0.5);
+              c *= vec3(1.4, 2.1, 1.7);
+
+              c += vec3(0.6, 0.25, 0.7) * FUDGE_FACTORR / 160.0;
+              c *= smoothstep(20.0, 7.0, length(pos));
+
+              c *= smoothstep(0.01, 0.0, dist) * 0.5;
+              c *= spectrum(length(sin(pos - vec3(0.45, 0.0, 0.0))) * 10.0 - 0.6 - fTime * 5.0);
+
+              color += c;
+
+              if (rayLength > MAX_DIST) {
+                  break;
+              }
+          }
+
+          color = pow(color, vec3(1.0 / 1.8)) * 2.0;
+          color = pow(color, vec3(2.0)) * 3.0;
+          color = pow(color, vec3(1.0 / 2.2));
+
+          fragColor = vec4(color, 1.0);
+      }
+
+      void main() {
+        vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
+        vec4 color = vec4(0.0);
+        mainImage(color, fragCoord);
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        float lum = max(max(color.r, color.g), color.b);
+        float alpha = smoothstep(0.02, 0.45, lum);
+      outColor = vec4(color.rgb, alpha * edge);
+      }
+      `;
+      const FUR_FRAG_SRC = `#version 300 es
+      precision highp float;
+
+      in vec2 v_local;
+      out vec4 outColor;
+
+      uniform float u_time;
+      uniform float u_radius;
+      uniform vec4 u_mouse;
+      uniform sampler2D iChannel0;
+      uniform sampler2D iChannel1;
+
+      #define iTime u_time
+      #define iResolution vec3(u_radius * 2.0, u_radius * 2.0, 1.0)
+      #define iMouse u_mouse
+
+      // fur ball (c) simon green 2013
+      const float uvScale = 1.0;
+      const float colorUvScale = 0.1;
+      const float furDepth = 0.2;
+      const int furLayers = 64;
+      const float rayStep = furDepth * 2.0 / float(furLayers);
+      const float furThreshold = 0.4;
+      const float shininess = 50.0;
+
+      bool intersectSphere(vec3 ro, vec3 rd, float r, out float t) {
+        float b = dot(-ro, rd);
+        float det = b * b - dot(ro, ro) + r * r;
+        if (det < 0.0) return false;
+        det = sqrt(det);
+        t = b - det;
+        return t > 0.0;
+      }
+
+      vec3 rotateX(vec3 p, float a) {
+        float sa = sin(a);
+        float ca = cos(a);
+        return vec3(p.x, ca * p.y - sa * p.z, sa * p.y + ca * p.z);
+      }
+
+      vec3 rotateY(vec3 p, float a) {
+        float sa = sin(a);
+        float ca = cos(a);
+        return vec3(ca * p.x + sa * p.z, p.y, -sa * p.x + ca * p.z);
+      }
+
+      vec2 cartesianToSpherical(vec3 p) {
+        float r = length(p);
+        float t = (r - (1.0 - furDepth)) / furDepth;
+        p = rotateX(p.zyx, -cos(iTime * 1.5) * t * t * 0.4).zyx;
+        p /= r;
+        vec2 uv = vec2(atan(p.y, p.x), acos(p.z));
+        uv.y -= t * t * 0.1;
+        return uv;
+      }
+
+      float furDensity(vec3 pos, out vec2 uv) {
+        uv = cartesianToSpherical(pos.xzy);
+        vec4 tex = textureLod(iChannel0, uv * uvScale, 0.0);
+        float density = smoothstep(furThreshold, 1.0, tex.x);
+        float r = length(pos);
+        float t = (r - (1.0 - furDepth)) / furDepth;
+        float len = tex.y;
+        density *= smoothstep(len, len - 0.2, t);
+        return density;
+      }
+
+      vec3 furNormal(vec3 pos, float density) {
+        float eps = 0.01;
+        vec3 n;
+        vec2 uv;
+        n.x = furDensity(vec3(pos.x + eps, pos.y, pos.z), uv) - density;
+        n.y = furDensity(vec3(pos.x, pos.y + eps, pos.z), uv) - density;
+        n.z = furDensity(vec3(pos.x, pos.y, pos.z + eps), uv) - density;
+        return normalize(n);
+      }
+
+      vec3 furShade(vec3 pos, vec2 uv, vec3 ro, float density) {
+        const vec3 L = vec3(0.0, 1.0, 0.0);
+        vec3 V = normalize(ro - pos);
+        vec3 H = normalize(V + L);
+        vec3 N = -furNormal(pos, density);
+        float diff = max(0.0, dot(N, L) * 0.5 + 0.5);
+        float spec = pow(max(0.0, dot(N, H)), shininess);
+        vec3 color = textureLod(iChannel1, uv * colorUvScale, 0.0).xyz;
+        float r = length(pos);
+        float t = (r - (1.0 - furDepth)) / furDepth;
+        t = clamp(t, 0.0, 1.0);
+        float i = t * 0.5 + 0.5;
+        return color * diff * i + vec3(spec * i);
+      }
+
+      vec4 scene(vec3 ro, vec3 rd) {
+        vec3 p = vec3(0.0);
+        const float r = 1.0;
+        float t;
+        bool hit = intersectSphere(ro - p, rd, r, t);
+        vec4 c = vec4(0.0);
+        if (hit) {
+          vec3 pos = ro + rd * t;
+          for (int i = 0; i < furLayers; i++) {
+            vec4 sampleCol;
+            vec2 uv;
+            sampleCol.a = furDensity(pos, uv);
+            if (sampleCol.a > 0.0) {
+              sampleCol.rgb = furShade(pos, uv, ro, sampleCol.a);
+              sampleCol.rgb *= sampleCol.a;
+              c = c + sampleCol * (1.0 - c.a);
+              if (c.a > 0.95) break;
+            }
+            pos += rd * rayStep;
+          }
+        }
+        return c;
+      }
+
+      void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+        vec2 uv = fragCoord.xy / iResolution.xy;
+        uv = uv * 2.0 - 1.0;
+        uv.x *= iResolution.x / iResolution.y;
+        vec3 ro = vec3(0.0, 0.0, 2.5);
+        vec3 rd = normalize(vec3(uv, -2.0));
+        vec2 mouse = iMouse.xy / iResolution.xy;
+        float roty = 0.0;
+        float rotx = 0.0;
+        if (iMouse.z > 0.0) {
+          rotx = (mouse.y - 0.5) * 3.0;
+          roty = -(mouse.x - 0.5) * 6.0;
+        } else {
+          roty = sin(iTime * 1.5);
+        }
+        ro = rotateX(ro, rotx);
+        ro = rotateY(ro, roty);
+        rd = rotateX(rd, rotx);
+        rd = rotateY(rd, roty);
+        fragColor = scene(ro, rd);
+      }
+
+      void main() {
+        vec2 fragCoord = (v_local * 0.5 + 0.5) * (u_radius * 2.0);
+        vec4 color = vec4(0.0);
+        mainImage(color, fragCoord);
+        float r = length(v_local);
+        if (r > 1.0) { discard; }
+        float aa = fwidth(r);
+        float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+        outColor = vec4(color.rgb, color.a * edge);
+      }
+      `;
+      const PARTICLE_VERT_SRC = `#version 300 es
+      precision highp float;
+
+      layout(location=0) in vec2 a_pos;
+      layout(location=1) in float a_age;
+      layout(location=2) in float a_life;
+      layout(location=3) in float a_size;
+      layout(location=4) in vec3 a_color;
+
+      uniform vec2 u_resolution;
+
+      out vec3 v_color;
+      out float v_alpha;
+
+      void main() {
+        vec2 posClip = vec2(
+          (a_pos.x / u_resolution.x) * 2.0 - 1.0,
+          1.0 - (a_pos.y / u_resolution.y) * 2.0
+        );
+        gl_Position = vec4(posClip, 0.0, 1.0);
+
+        float t = clamp(a_age / max(a_life, 1e-4), 0.0, 1.0);
+        float fade = 1.0 - t;
+        v_alpha = fade * fade;
+        v_color = a_color;
+        gl_PointSize = a_size * (0.6 + 0.8 * fade);
+      }
+      `;
+
+      const PARTICLE_FRAG_SRC = `#version 300 es
+      precision highp float;
+
+      in vec3 v_color;
+      in float v_alpha;
+      out vec4 outColor;
+
+      void main() {
+        vec2 uv = gl_PointCoord * 2.0 - 1.0;
+        float d = dot(uv, uv);
+        if (d > 1.0) { discard; }
+        float glow = exp(-3.5 * d);
+        float alpha = v_alpha * glow;
+        outColor = vec4(v_color * (0.6 + 0.8 * glow), alpha);
+      }
+      `;
+      function showError(msg) {
+        errorEl.style.display = "block";
+        errorEl.textContent = msg;
+      }
+
+      function compileShader(type, src) {
+        const sh = gl.createShader(type);
+        if (!sh) { throw new Error("createShader failed"); }
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+          const info = gl.getShaderInfoLog(sh) || "(no log)";
+          gl.deleteShader(sh);
+          throw new Error(info);
+        }
+        return sh;
+      }
+
+      function createProgram(vsSrc, fsSrc) {
+        const vs = compileShader(gl.VERTEX_SHADER, vsSrc);
+        const fs = compileShader(gl.FRAGMENT_SHADER, fsSrc);
+        const prog = gl.createProgram();
+        if (!prog) { throw new Error("createProgram failed"); }
+        gl.attachShader(prog, vs);
+        gl.attachShader(prog, fs);
+        gl.linkProgram(prog);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+          const info = gl.getProgramInfoLog(prog) || "(no log)";
+          gl.deleteProgram(prog);
+          throw new Error(info);
+        }
+        return prog;
+      }
+
+      function createNoiseTexture(size, colorize) {
+        const tex = gl.createTexture();
+        if (!tex) { return null; }
+        const data = new Uint8Array(size * size * 4);
+        for (let i = 0; i < data.length; i += 4) {
+          const r = Math.floor(Math.random() * 256);
+          const g = colorize ? Math.floor(Math.random() * 256) : r;
+          const b = colorize ? Math.floor(Math.random() * 256) : r;
+          data[i] = r;
+          data[i + 1] = g;
+          data[i + 2] = b;
+          data[i + 3] = 255;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        return tex;
+      }
+
+      let program;
+      let gearProgram = null;
+      let fairyProgram = null;
+      let holoProgram = null;
+      let snakeProgram = null;
+      let powerProgram = null;
+      let furProgram = null;
+      let particleProgram = null;
+      let gearTexture = null;
+      let furTexture0 = null;
+      let furTexture1 = null;
+      try {
+        program = createProgram(VERT_SRC, FRAG_SRC);
+      } catch (e) {
+        showError("Shader compile/link failed:\n\n" + String(e));
+        return;
+      }
+
+      try {
+        gearProgram = createProgram(VERT_SRC, GEAR_FRAG_SRC);
+      } catch (e) {
+        console.warn("Gear shader compile/link failed:", e);
+        gearProgram = null;
+      }
+
+      try {
+        fairyProgram = createProgram(VERT_SRC, FAIRY_FRAG_SRC);
+      } catch (e) {
+        console.warn("Fairy shader compile/link failed:", e);
+        fairyProgram = null;
+      }
+
+      try {
+        holoProgram = createProgram(VERT_SRC, HOLO_FRAG_SRC);
+      } catch (e) {
+        console.warn("Holofoil shader compile/link failed:", e);
+        holoProgram = null;
+      }
+
+      try {
+        snakeProgram = createProgram(VERT_SRC, SNAKE_FRAG_SRC);
+      } catch (e) {
+        console.warn("SnakeGem shader compile/link failed:", e);
+        snakeProgram = null;
+      }
+
+      try {
+        powerProgram = createProgram(VERT_SRC, POWER_FRAG_SRC);
+      } catch (e) {
+        console.warn("Powerup shader compile/link failed:", e);
+        powerProgram = null;
+      }
+
+      try {
+        furProgram = createProgram(VERT_SRC, FUR_FRAG_SRC);
+      } catch (e) {
+        console.warn("Fur shader compile/link failed:", e);
+        furProgram = null;
+      }
+
+      try {
+        particleProgram = createProgram(PARTICLE_VERT_SRC, PARTICLE_FRAG_SRC);
+      } catch (e) {
+        console.warn("Particle shader compile/link failed:", e);
+        particleProgram = null;
+      }
+
+      gl.useProgram(program);
+
+      // Quad geometry: two triangles covering [-1..1] square
+      const quad = new Float32Array([
+        -1, -1,
+         1, -1,
+         1,  1,
+        -1, -1,
+         1,  1,
+        -1,  1,
+      ]);
+      const vao = gl.createVertexArray();
+      const vbo = gl.createBuffer();
+      if (!vao || !vbo) {
+        showError("WebGL buffer/VAO creation failed.");
+        return;
+      }
+
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      gl.bindVertexArray(null);
+
+      // Uniform locations
+      const U = {
+        resolution: gl.getUniformLocation(program, "u_resolution"),
+        time:       gl.getUniformLocation(program, "u_time"),
+        center:     gl.getUniformLocation(program, "u_center"),
+        light:      gl.getUniformLocation(program, "u_light"),
+        bg:         gl.getUniformLocation(program, "u_bg"),
+        ripple:     gl.getUniformLocation(program, "u_ripple"),
+        rippleTexel: gl.getUniformLocation(program, "u_rippleTexel"),
+        rippleStrength: gl.getUniformLocation(program, "u_rippleStrength"),
+        rippleBrightness: gl.getUniformLocation(program, "u_rippleBrightness"),
+        radius:     gl.getUniformLocation(program, "u_radius"),
+        energy:     gl.getUniformLocation(program, "u_energy"),
+        hit:        gl.getUniformLocation(program, "u_hit"),
+        freeze:     gl.getUniformLocation(program, "u_freeze"),
+        color:      gl.getUniformLocation(program, "u_color"),
+        seed:       gl.getUniformLocation(program, "u_seed"),
+        style:      gl.getUniformLocation(program, "u_style"),
+      };
+
+      const GEAR_U = gearProgram ? {
+        resolution: gl.getUniformLocation(gearProgram, "u_resolution"),
+        time:       gl.getUniformLocation(gearProgram, "u_time"),
+        center:     gl.getUniformLocation(gearProgram, "u_center"),
+        radius:     gl.getUniformLocation(gearProgram, "u_radius"),
+        channel0:   gl.getUniformLocation(gearProgram, "iChannel0"),
+      } : null;
+
+      const FAIRY_U = fairyProgram ? {
+        resolution: gl.getUniformLocation(fairyProgram, "u_resolution"),
+        time:       gl.getUniformLocation(fairyProgram, "u_time"),
+        center:     gl.getUniformLocation(fairyProgram, "u_center"),
+        radius:     gl.getUniformLocation(fairyProgram, "u_radius"),
+        mouse:      gl.getUniformLocation(fairyProgram, "u_mouse"),
+      } : null;
+
+      const HOLO_U = holoProgram ? {
+        resolution: gl.getUniformLocation(holoProgram, "u_resolution"),
+        time:       gl.getUniformLocation(holoProgram, "u_time"),
+        center:     gl.getUniformLocation(holoProgram, "u_center"),
+        radius:     gl.getUniformLocation(holoProgram, "u_radius"),
+        mouse:      gl.getUniformLocation(holoProgram, "u_mouse"),
+      } : null;
+
+      const SNAKE_U = snakeProgram ? {
+        resolution: gl.getUniformLocation(snakeProgram, "u_resolution"),
+        time:       gl.getUniformLocation(snakeProgram, "u_time"),
+        center:     gl.getUniformLocation(snakeProgram, "u_center"),
+        radius:     gl.getUniformLocation(snakeProgram, "u_radius"),
+      } : null;
+
+      const POWER_U = powerProgram ? {
+        resolution: gl.getUniformLocation(powerProgram, "u_resolution"),
+        time:       gl.getUniformLocation(powerProgram, "u_time"),
+        center:     gl.getUniformLocation(powerProgram, "u_center"),
+        radius:     gl.getUniformLocation(powerProgram, "u_radius"),
+        mouse:      gl.getUniformLocation(powerProgram, "u_mouse"),
+      } : null;
+
+      const FUR_U = furProgram ? {
+        resolution: gl.getUniformLocation(furProgram, "u_resolution"),
+        time:       gl.getUniformLocation(furProgram, "u_time"),
+        center:     gl.getUniformLocation(furProgram, "u_center"),
+        radius:     gl.getUniformLocation(furProgram, "u_radius"),
+        mouse:      gl.getUniformLocation(furProgram, "u_mouse"),
+        channel0:   gl.getUniformLocation(furProgram, "iChannel0"),
+        channel1:   gl.getUniformLocation(furProgram, "iChannel1"),
+      } : null;
+
+      const PARTICLE_U = particleProgram ? {
+        resolution: gl.getUniformLocation(particleProgram, "u_resolution"),
+      } : null;
+
+      const particleStride = 8;
+      let particleVao = null;
+      let particleVbo = null;
+      if (particleProgram && PARTICLE_U) {
+        particleVao = gl.createVertexArray();
+        particleVbo = gl.createBuffer();
+        if (particleVao && particleVbo) {
+          gl.bindVertexArray(particleVao);
+          gl.bindBuffer(gl.ARRAY_BUFFER, particleVbo);
+          gl.bufferData(gl.ARRAY_BUFFER, CONFIG.particleMax * particleStride * 4, gl.DYNAMIC_DRAW);
+          const strideBytes = particleStride * 4;
+          gl.enableVertexAttribArray(0);
+          gl.vertexAttribPointer(0, 2, gl.FLOAT, false, strideBytes, 0);
+          gl.enableVertexAttribArray(1);
+          gl.vertexAttribPointer(1, 1, gl.FLOAT, false, strideBytes, 2 * 4);
+          gl.enableVertexAttribArray(2);
+          gl.vertexAttribPointer(2, 1, gl.FLOAT, false, strideBytes, 3 * 4);
+          gl.enableVertexAttribArray(3);
+          gl.vertexAttribPointer(3, 1, gl.FLOAT, false, strideBytes, 4 * 4);
+          gl.enableVertexAttribArray(4);
+          gl.vertexAttribPointer(4, 3, gl.FLOAT, false, strideBytes, 5 * 4);
+          gl.bindVertexArray(null);
+        } else {
+          particleProgram = null;
+        }
+      }
+
+      if (gearProgram && GEAR_U) {
+        gearTexture = createNoiseTexture(128, false);
+        if (!gearTexture) {
+          console.warn("Gear shader texture creation failed.");
+          gearProgram = null;
+        } else {
+          gl.useProgram(gearProgram);
+          gl.uniform1i(GEAR_U.channel0, 0);
+          gl.useProgram(program);
+        }
+      }
+
+      if (furProgram && FUR_U) {
+        furTexture0 = createNoiseTexture(128, false);
+        furTexture1 = createNoiseTexture(128, true);
+        if (!furTexture0 || !furTexture1) {
+          console.warn("Fur shader texture creation failed.");
+          furProgram = null;
+        } else {
+          gl.useProgram(furProgram);
+          gl.uniform1i(FUR_U.channel0, 0);
+          gl.uniform1i(FUR_U.channel1, 1);
+          gl.useProgram(program);
+        }
+      }
+
+      // Background ripple buffer
+      const rippleSize = CONFIG.rippleSize;
+      let rippleA = new Float32Array(rippleSize * rippleSize);
+      let rippleB = new Float32Array(rippleSize * rippleSize);
+      const ripplePixels = new Uint8Array(rippleSize * rippleSize);
+      let rippleTexture = null;
+
+      function initRippleTexture() {
+        rippleTexture = gl.createTexture();
+        if (!rippleTexture) { return; }
+        gl.bindTexture(gl.TEXTURE_2D, rippleTexture);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, rippleSize, rippleSize, 0, gl.RED, gl.UNSIGNED_BYTE, ripplePixels);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        if (U.ripple) {
+          gl.useProgram(program);
+          gl.uniform1i(U.ripple, 1);
+        }
+      }
+
+      initRippleTexture();
+
+      // Particle trail buffer
+      const particleMax = CONFIG.particleMax;
+      const particleX = new Float32Array(particleMax);
+      const particleY = new Float32Array(particleMax);
+      const particleAge = new Float32Array(particleMax);
+      const particleLife = new Float32Array(particleMax);
+      const particleSize = new Float32Array(particleMax);
+      const particleR = new Float32Array(particleMax);
+      const particleG = new Float32Array(particleMax);
+      const particleB = new Float32Array(particleMax);
+      const particleData = new Float32Array(particleMax * particleStride);
+      let particleNext = 0;
+      let particleDrawCount = 0;
+
+      // ---------------------------
+      // Simulation state
+      // ---------------------------
+      const balls = [];
+      const ballById = new Map();
+      let snakeBallCount = 0;
+      let powerBallCount = 0;
+      let furBallCount = 0;
+      let nextBallId = 1;
+      const bumpers = [];
+      let nextBumperId = 1;
+      let nextBumperSpawn = 0;
+      let nextPowerupSpawn = 0;
+      let nextFurballSpawn = 0;
+
+      const mouse = {
+        x: 0, y: 0,
+        px: 0, py: 0,
+        has: false
+      };
+
+      let paused = false;
+      let simTime = 0;
+      let renderTimeSeconds = 0;
+      let currentHighScore = 0;
+      let bestHighScore = 0;
+      let scoreMultiplier = 1;
+      let strikeFrameId = 0;
+      let currentFps = 60;
+      let spawnAllowed = true;
+
+      bestHighScore = loadBestScore();
+
+      const POWERUP_EFFECTS = [
+        "mirrorX",
+        "mirrorY",
+        "mirrorDiag",
+        "second",
+        "dual",
+        "claw",
+      ];
+
+      const POWERUP_LABELS = {
+        mirrorX: "Mirror L/R",
+        mirrorY: "Mirror T/B",
+        mirrorDiag: "Mirror Diagonal",
+        second: "Second Cursor",
+        dual: "Dual Cursors",
+        claw: "Claw Hand",
+      };
+
+      const CURSOR_HINT_COLORS = {
+        mirrorX: [110, 220, 255],
+        mirrorY: [255, 140, 220],
+        mirrorDiag: [120, 255, 190],
+        second: [255, 210, 120],
+        dual: [255, 170, 90],
+        claw: [160, 190, 255],
+      };
+
+      const powerupTimers = {
+        mirrorX: 0,
+        mirrorY: 0,
+        mirrorDiag: 0,
+        second: 0,
+        dual: 0,
+        claw: 0,
+      };
+
+      const CURSOR_SLOTS = {
+        base: 0,
+        mirrorX: 1,
+        mirrorY: 2,
+        mirrorDiag: 3,
+        second: 4,
+        dualA: 5,
+        dualB: 6,
+        claw0: 7,
+        claw1: 8,
+        claw2: 9,
+        claw3: 10,
+      };
+
+      const CURSOR_SLOT_COUNT = 11;
+      const cursorStates = Array.from({ length: CURSOR_SLOT_COUNT }, () => ({
+        x: 0,
+        y: 0,
+        px: 0,
+        py: 0,
+        active: false,
+      }));
+      const activeCursorIndices = [];
+
+      function clamp(v, a, b) {
+        if (v < a) { return a; }
+        if (v > b) { return b; }
+        return v;
+      }
+
+      function rand(a, b) {
+        return a + Math.random() * (b - a);
+      }
+
+      function pickBallStyle() {
+        if (CONFIG.styleCount <= 1) {
+          return 0;
+        }
+        if (Math.random() < CONFIG.plasmaStyleChance) {
+          return CONFIG.plasmaStyleIndex;
+        }
+        const otherCount = CONFIG.styleCount - 1;
+        let pick = Math.floor(rand(0, otherCount));
+        if (pick >= CONFIG.plasmaStyleIndex) {
+          pick += 1;
+        }
+        return pick;
+      }
+
+      function pickSnakeFlag() {
+        return snakeBallCount < CONFIG.snakeGemMax && Math.random() < CONFIG.snakeGemChance;
+      }
+
+      function computeImpulseFromSpeed(speed) {
+        const base = clamp(CONFIG.impulseBaseKick + speed * CONFIG.impulseSpeedToKick, 0, CONFIG.impulseMax);
+        return base * CONFIG.impulseBaseMultiplier;
+      }
+
+      function computeSpawnerSpawnCount(totalBalls) {
+        const ratio = totalBalls / Math.max(1, CONFIG.initialBallCount);
+        let count;
+
+        if (ratio <= 0.5) {
+          count = 10;
+        } else if (ratio <= 0.75) {
+          count = 10 - (ratio - 0.5) * 20;
+        } else if (ratio <= 1.0) {
+          count = 5 - (ratio - 0.75) * 12;
+        } else {
+          count = 2;
+        }
+
+        count = Math.round(count);
+        return clamp(count, 2, 10);
+      }
+
+      function scheduleNextPowerup(now) {
+        nextPowerupSpawn = now + rand(CONFIG.powerupSpawnIntervalMin, CONFIG.powerupSpawnIntervalMax);
+      }
+
+      function scheduleNextFurball(now) {
+        nextFurballSpawn = now + rand(CONFIG.furballRespawnMin, CONFIG.furballRespawnMax);
+      }
+
+      function canSpawnBall(force) {
+        return !!(force || spawnAllowed);
+      }
+
+      function makePowerupBall(ball) {
+        if (!ball || ball.isPower || ball.isSnake || ball.isFur) { return; }
+        ball.isPower = true;
+        ball.powerHitsLeft = CONFIG.powerupHitsPerBall;
+        ball.powerFlash = 0;
+        ball.freezeUntil = 0;
+        ball.freezeAppliedAt = -1e9;
+        ball.freeze = 0;
+        powerBallCount += 1;
+      }
+
+      function makeFurball(ball) {
+        if (!ball || ball.isFur) { return; }
+        const baseRadius = ball.isSnake ? (ball.r / CONFIG.snakeGemScale) : ball.r;
+        if (ball.isSnake) {
+          ball.isSnake = false;
+          snakeBallCount = Math.max(0, snakeBallCount - 1);
+        }
+        if (ball.isPower) {
+          ball.isPower = false;
+          ball.powerHitsLeft = 0;
+          ball.powerFlash = 0;
+          powerBallCount = Math.max(0, powerBallCount - 1);
+        }
+        ball.isFur = true;
+        ball.r = baseRadius * CONFIG.furballScale;
+        ball.baseRadius = ball.r;
+        ball.m = (ball.r * ball.r) * 0.0025 + 0.25;
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > 1e-3) {
+          ball.furDirX = ball.vx / speed;
+          ball.furDirY = ball.vy / speed;
+        } else {
+          const angle = rand(0, Math.PI * 2);
+          ball.furDirX = Math.cos(angle);
+          ball.furDirY = Math.sin(angle);
+        }
+        const w = canvas.width;
+        const h = canvas.height;
+        ball.x = clamp(ball.x, ball.r, w - ball.r);
+        ball.y = clamp(ball.y, ball.r, h - ball.r);
+        ball.furSlow = false;
+        ball.furLastKick = -1e9;
+        furBallCount += 1;
+      }
+
+      function ensureFurball(force) {
+        if (furBallCount > 0) { return; }
+        if (!canSpawnBall(force)) { return; }
+        let candidate = null;
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove || b.isPower) { continue; }
+          if (!b.isSnake) {
+            candidate = b;
+            break;
+          }
+          if (!candidate) {
+            candidate = b;
+          }
+        }
+        if (candidate) {
+          makeFurball(candidate);
+          return;
+        }
+        const w = canvas.width;
+        const h = canvas.height;
+        const r = rand(CONFIG.minRadius, CONFIG.maxRadius);
+        const x = rand(r, w - r);
+        const y = rand(r, h - r);
+        createBall(x, y, r, { isFur: true, isSnake: false });
+      }
+
+      function spawnPowerupBall() {
+        if (powerBallCount >= CONFIG.powerupBallMax) { return false; }
+        const candidates = [];
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove || b.devouring || b.isSnake || b.isPower || b.isFur) { continue; }
+          candidates.push(b);
+        }
+        if (!candidates.length) { return false; }
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        makePowerupBall(pick);
+        pick.hitFlash = Math.max(pick.hitFlash, 0.6);
+        return true;
+      }
+
+      function maybeSpawnPowerupBall(now) {
+        if (now < nextPowerupSpawn) { return; }
+        spawnPowerupBall();
+        scheduleNextPowerup(now);
+      }
+
+      function grantRandomPowerup() {
+        const idx = Math.floor(Math.random() * POWERUP_EFFECTS.length);
+        const key = POWERUP_EFFECTS[idx];
+        powerupTimers[key] += CONFIG.powerupDuration;
+      }
+
+      function triggerPowerup(ball) {
+        if (!ball || ball.remove || !ball.isPower) { return; }
+        if (ball.powerHitsLeft <= 0) { return; }
+        grantRandomPowerup();
+        ball.powerHitsLeft -= 1;
+        ball.powerFlash = 1;
+        ball.hitFlash = Math.max(ball.hitFlash, 0.85);
+        if (ball.powerHitsLeft <= 0) {
+          ball.isPower = false;
+          ball.remove = true;
+          powerBallCount = Math.max(0, powerBallCount - 1);
+        }
+      }
+
+      function updatePowerups(dt) {
+        for (let i = 0; i < POWERUP_EFFECTS.length; i++) {
+          const key = POWERUP_EFFECTS[i];
+          if (powerupTimers[key] > 0) {
+            powerupTimers[key] = Math.max(0, powerupTimers[key] - dt);
+          }
+        }
+      }
+
+      function powerupStrength(key) {
+        return clamp(powerupTimers[key] / CONFIG.powerupDuration, 0, 1);
+      }
+
+      function cursorSlotEffect(slot) {
+        if (slot === CURSOR_SLOTS.mirrorX) { return "mirrorX"; }
+        if (slot === CURSOR_SLOTS.mirrorY) { return "mirrorY"; }
+        if (slot === CURSOR_SLOTS.mirrorDiag) { return "mirrorDiag"; }
+        if (slot === CURSOR_SLOTS.second) { return "second"; }
+        if (slot === CURSOR_SLOTS.dualA || slot === CURSOR_SLOTS.dualB) { return "dual"; }
+        if (slot >= CURSOR_SLOTS.claw0 && slot <= CURSOR_SLOTS.claw3) { return "claw"; }
+        return null;
+      }
+
+      function cursorSlotStrength(slot) {
+        const key = cursorSlotEffect(slot);
+        return key ? powerupStrength(key) : 0;
+      }
+
+      function setCursor(slot, x, y, px, py) {
+        const c = cursorStates[slot];
+        c.x = x;
+        c.y = y;
+        c.px = px;
+        c.py = py;
+        if (!c.active) {
+          c.active = true;
+          activeCursorIndices.push(slot);
+        }
+      }
+
+      function updateCursors() {
+        for (let i = 0; i < cursorStates.length; i++) {
+          cursorStates[i].active = false;
+        }
+        activeCursorIndices.length = 0;
+
+        if (!mouse.has) {
+          return;
+        }
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const baseX = mouse.x;
+        const baseY = mouse.y;
+        const basePX = mouse.px;
+        const basePY = mouse.py;
+        setCursor(CURSOR_SLOTS.base, baseX, baseY, basePX, basePY);
+
+        const dx = baseX - basePX;
+        const dy = baseY - basePY;
+        const dist = Math.hypot(dx, dy);
+        let dirX = 0;
+        let dirY = -1;
+        if (dist > 1e-3) {
+          dirX = dx / dist;
+          dirY = dy / dist;
+        }
+        const perpX = -dirY;
+        const perpY = dirX;
+
+        const mirrorX = powerupStrength("mirrorX");
+        if (mirrorX > 0) {
+          const mx = w - baseX;
+          const mpx = w - basePX;
+          setCursor(
+            CURSOR_SLOTS.mirrorX,
+            baseX + (mx - baseX) * mirrorX,
+            baseY,
+            basePX + (mpx - basePX) * mirrorX,
+            basePY
+          );
+        }
+
+        const mirrorY = powerupStrength("mirrorY");
+        if (mirrorY > 0) {
+          const my = h - baseY;
+          const mpy = h - basePY;
+          setCursor(
+            CURSOR_SLOTS.mirrorY,
+            baseX,
+            baseY + (my - baseY) * mirrorY,
+            basePX,
+            basePY + (mpy - basePY) * mirrorY
+          );
+        }
+
+        const mirrorDiag = powerupStrength("mirrorDiag");
+        if (mirrorDiag > 0) {
+          const nx = (baseX / w) * 2 - 1;
+          const ny = (baseY / h) * 2 - 1;
+          const npx = (basePX / w) * 2 - 1;
+          const npy = (basePY / h) * 2 - 1;
+          const dx0 = (ny + 1) * 0.5 * w;
+          const dy0 = (nx + 1) * 0.5 * h;
+          const dpx0 = (npy + 1) * 0.5 * w;
+          const dpy0 = (npx + 1) * 0.5 * h;
+          setCursor(
+            CURSOR_SLOTS.mirrorDiag,
+            baseX + (dx0 - baseX) * mirrorDiag,
+            baseY + (dy0 - baseY) * mirrorDiag,
+            basePX + (dpx0 - basePX) * mirrorDiag,
+            basePY + (dpy0 - basePY) * mirrorDiag
+          );
+        }
+
+        const second = powerupStrength("second");
+        if (second > 0) {
+          const offset = CONFIG.secondCursorOffset * second;
+          setCursor(
+            CURSOR_SLOTS.second,
+            baseX - dirX * offset,
+            baseY - dirY * offset,
+            basePX - dirX * offset,
+            basePY - dirY * offset
+          );
+        }
+
+        const dual = powerupStrength("dual");
+        if (dual > 0) {
+          const offset = CONFIG.dualCursorOffset * dual;
+          setCursor(
+            CURSOR_SLOTS.dualA,
+            baseX + perpX * offset,
+            baseY + perpY * offset,
+            basePX + perpX * offset,
+            basePY + perpY * offset
+          );
+          setCursor(
+            CURSOR_SLOTS.dualB,
+            baseX - perpX * offset,
+            baseY - perpY * offset,
+            basePX - perpX * offset,
+            basePY - perpY * offset
+          );
+        }
+
+        const claw = powerupStrength("claw");
+        if (claw > 0) {
+          const radius = CONFIG.clawRadius * claw;
+          const arc = CONFIG.clawArc;
+          const baseAngle = Math.atan2(dirY, dirX);
+          for (let i = 0; i < 4; i++) {
+            const t = (i - 1.5) / 1.5;
+            const ang = baseAngle + t * arc;
+            const cx = baseX + Math.cos(ang) * radius;
+            const cy = baseY + Math.sin(ang) * radius;
+            const cpx = basePX + Math.cos(ang) * radius;
+            const cpy = basePY + Math.sin(ang) * radius;
+            setCursor(CURSOR_SLOTS.claw0 + i, cx, cy, cpx, cpy);
+          }
+        }
+      }
+
+      function addRippleAt(x, y, strength) {
+        if (!rippleTexture || strength <= 0) { return; }
+        const size = rippleSize;
+        const gx = Math.floor((x / canvas.width) * size);
+        const gy = Math.floor((y / canvas.height) * size);
+        const radius = CONFIG.rippleImpulseRadius;
+
+        for (let oy = -radius; oy <= radius; oy++) {
+          const yy = gy + oy;
+          if (yy <= 0 || yy >= size - 1) { continue; }
+          for (let ox = -radius; ox <= radius; ox++) {
+            const xx = gx + ox;
+            if (xx <= 0 || xx >= size - 1) { continue; }
+            const dist = Math.hypot(ox, oy) / Math.max(1e-6, radius);
+            if (dist > 1) { continue; }
+            const idx = yy * size + xx;
+            rippleA[idx] += strength * (1 - dist);
+          }
+        }
+      }
+
+      function updateRipple(dt) {
+        if (!rippleTexture) { return; }
+        const size = rippleSize;
+        const damping = Math.pow(CONFIG.rippleDamping, dt * 60);
+        const impulseScale = CONFIG.rippleImpulseStrength * dt * 60;
+
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove) { continue; }
+          const speed = Math.hypot(b.vx, b.vy);
+          const energy = clamp(speed / CONFIG.energySpeedForFull, 0, 1);
+          const strength = (energy * 0.6 + b.hitFlash * 0.9) * impulseScale;
+          addRippleAt(b.x, b.y, strength);
+        }
+
+        for (let y = 1; y < size - 1; y++) {
+          const row = y * size;
+          for (let x = 1; x < size - 1; x++) {
+            const idx = row + x;
+            const val = (rippleA[idx - 1] + rippleA[idx + 1] + rippleA[idx - size] + rippleA[idx + size]) * 0.5 - rippleB[idx];
+            rippleB[idx] = val * damping;
+          }
+        }
+
+        const temp = rippleA;
+        rippleA = rippleB;
+        rippleB = temp;
+
+        for (let i = 0; i < rippleA.length; i++) {
+          const v = clamp(rippleA[i] * 0.5 + 0.5, 0, 1);
+          ripplePixels[i] = Math.floor(v * 255);
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, rippleTexture);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, size, size, gl.RED, gl.UNSIGNED_BYTE, ripplePixels);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+      }
+
+      function applyFreeze(ball, now) {
+        if (!ball || ball.remove || ball.devouring || ball.isSnake) { return; }
+        ball.freezeUntil = now + CONFIG.freezeDuration;
+        ball.freezeAppliedAt = now;
+        ball.freeze = 1;
+        ball.hitFlash = Math.max(ball.hitFlash, 0.25);
+      }
+
+      function thawBall(ball) {
+        if (!ball) { return; }
+        ball.freezeUntil = 0;
+        ball.freezeAppliedAt = -1e9;
+        ball.freeze = 0;
+      }
+
+      function resetParticles() {
+        particleNext = 0;
+        particleDrawCount = 0;
+        particleAge.fill(0);
+        particleLife.fill(0);
+      }
+
+      function emitParticle(x, y, color, speed, flash) {
+        const idx = particleNext;
+        particleNext = (particleNext + 1) % particleMax;
+        particleX[idx] = x;
+        particleY[idx] = y;
+        particleAge[idx] = 0;
+        particleLife[idx] = rand(CONFIG.particleLifeMin, CONFIG.particleLifeMax);
+        const speedNorm = clamp(speed / CONFIG.energySpeedForFull, 0, 1);
+        const size = rand(CONFIG.particleSizeMin, CONFIG.particleSizeMax) * (0.6 + 0.9 * speedNorm + 0.6 * flash);
+        particleSize[idx] = size;
+        const boost = 0.08 + 0.32 * speedNorm + 0.22 * flash;
+        const tint = 0.9 + 0.35 * speedNorm;
+        particleR[idx] = clamp(color[0] * tint + boost, 0, 1);
+        particleG[idx] = clamp(color[1] * tint + boost, 0, 1);
+        particleB[idx] = clamp(color[2] * tint + boost, 0, 1);
+      }
+
+      function emitMistParticle(x, y, radius, color, speed, flash) {
+        const idx = particleNext;
+        particleNext = (particleNext + 1) % particleMax;
+        const angle = Math.random() * Math.PI * 2;
+        const rad = radius * Math.sqrt(Math.random());
+        particleX[idx] = x + Math.cos(angle) * rad;
+        particleY[idx] = y + Math.sin(angle) * rad;
+        particleAge[idx] = 0;
+        particleLife[idx] = rand(CONFIG.mistLifeMin, CONFIG.mistLifeMax);
+        particleSize[idx] = rand(CONFIG.mistSizeMin, CONFIG.mistSizeMax);
+        const speedNorm = clamp(speed / CONFIG.energySpeedForFull, 0, 1);
+        const boost = 0.03 + 0.08 * speedNorm + 0.08 * flash;
+        const tint = 0.75 + 0.2 * Math.random();
+        particleR[idx] = clamp(color[0] * tint + boost, 0, 1);
+        particleG[idx] = clamp(color[1] * tint + boost, 0, 1);
+        particleB[idx] = clamp(color[2] * tint + boost, 0, 1);
+      }
+
+      function updateParticles(dt) {
+        const enabled = !!(particleProgram && particleVao && particleVbo && PARTICLE_U);
+        if (!enabled) {
+          particleDrawCount = 0;
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            b.trailX = b.x;
+            b.trailY = b.y;
+            b.trailAcc = 0;
+          }
+          return;
+        }
+
+        for (let i = 0; i < particleMax; i++) {
+          if (particleLife[i] <= 0) { continue; }
+          particleAge[i] += dt;
+          if (particleAge[i] >= particleLife[i]) {
+            particleLife[i] = 0;
+          }
+        }
+
+        const spacing = CONFIG.particleSpawnSpacing;
+        const jitter = CONFIG.particleSpawnJitter;
+
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove) { continue; }
+          if (b.devouring) {
+            b.trailX = b.x;
+            b.trailY = b.y;
+            b.trailAcc = 0;
+            continue;
+          }
+
+          const dx = b.x - b.trailX;
+          const dy = b.y - b.trailY;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 1e-3) {
+            b.trailAcc = Math.min(b.trailAcc + dist, spacing);
+            b.trailX = b.x;
+            b.trailY = b.y;
+            continue;
+          }
+
+          const maxJump = b.r * 6 + 120;
+          if (dist > maxJump) {
+            b.trailX = b.x;
+            b.trailY = b.y;
+            b.trailAcc = 0;
+            continue;
+          }
+
+          const travel = b.trailAcc + dist;
+          if (travel >= spacing) {
+            const count = Math.floor(travel / spacing);
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const start = spacing - b.trailAcc;
+            const speed = Math.hypot(b.vx, b.vy);
+            const flash = clamp(b.hitFlash, 0, 1);
+            for (let k = 0; k < count; k++) {
+              const d = start + k * spacing;
+              const px = b.trailX + nx * d + rand(-jitter, jitter);
+              const py = b.trailY + ny * d + rand(-jitter, jitter);
+              emitParticle(px, py, b.color, speed, flash);
+              const mistCount = CONFIG.mistCountMin + Math.floor(Math.random() * (CONFIG.mistCountMax - CONFIG.mistCountMin + 1));
+              const mistRadius = b.r * CONFIG.mistRadiusScale;
+              for (let m = 0; m < mistCount; m++) {
+                emitMistParticle(px, py, mistRadius, b.color, speed, flash);
+              }
+            }
+            b.trailAcc = travel - count * spacing;
+          } else {
+            b.trailAcc = travel;
+          }
+
+          b.trailX = b.x;
+          b.trailY = b.y;
+        }
+
+        let count = 0;
+        for (let i = 0; i < particleMax; i++) {
+          if (particleLife[i] <= 0) { continue; }
+          const base = count * particleStride;
+          particleData[base] = particleX[i];
+          particleData[base + 1] = particleY[i];
+          particleData[base + 2] = particleAge[i];
+          particleData[base + 3] = particleLife[i];
+          particleData[base + 4] = particleSize[i];
+          particleData[base + 5] = particleR[i];
+          particleData[base + 6] = particleG[i];
+          particleData[base + 7] = particleB[i];
+          count += 1;
+        }
+        particleDrawCount = count;
+      }
+
+      function formatShortNumber(value) {
+        if (!Number.isFinite(value)) { return "0"; }
+        const sign = value < 0 ? "-" : "";
+        let abs = Math.abs(value);
+
+        if (abs < 1000) {
+          const rounded = Math.round(abs * 100) / 100;
+          return sign + rounded.toFixed(2).replace(/\.?0+$/, "");
+        }
+
+        const maxTier = NUMBER_SUFFIXES.length;
+        let tier = Math.floor(Math.log10(abs) / 3);
+        if (!Number.isFinite(tier) || tier < 1) { tier = 1; }
+        if (tier > maxTier) { tier = maxTier; }
+
+        let scale = Math.pow(1000, tier);
+        let scaled = abs / scale;
+        scaled = Math.round(scaled * 100) / 100;
+
+        if (scaled >= 1000 && tier < maxTier) {
+          tier += 1;
+          scale *= 1000;
+          scaled = Math.round((abs / scale) * 100) / 100;
+        }
+
+        const text = scaled.toFixed(2).replace(/\.?0+$/, "");
+        const suffix = NUMBER_SUFFIXES[tier - 1] || "";
+        return sign + text + suffix;
+      }
+
+      function markHit(ball, now) {
+        if (ball.remove) { return; }
+        ball.lastHitTime = now;
+        if (ball.freezeUntil > now && ball.freezeAppliedAt < now) {
+          thawBall(ball);
+        }
+        if (ball.devouring) { return; }
+        if (ball.stuckTime >= CONFIG.stuckTimeThreshold) {
+          ball.stuckHits += 1;
+        }
+      }
+
+      function startGhostPop(ball, now) {
+        const duration = rand(CONFIG.stuckGhostMin, CONFIG.stuckGhostMax);
+        const angle = rand(0, Math.PI * 2);
+        const speed = rand(CONFIG.stuckPopSpeedMin, CONFIG.stuckPopSpeedMax);
+        ball.ghostUntil = now + duration;
+        ball.vx = Math.cos(angle) * speed;
+        ball.vy = Math.sin(angle) * speed;
+        ball.stuckHits = 0;
+        ball.stuckTime = 0;
+        ball.bumpersInside.clear();
+        ball.cursorInside.fill(false);
+        ball.hitFlash = Math.max(ball.hitFlash, 0.6);
+      }
+
+      function updateStuckState(ball, dt, now) {
+        const dx = ball.x - ball.lastX;
+        const dy = ball.y - ball.lastY;
+        const moved = Math.hypot(dx, dy);
+        if (moved < CONFIG.stuckMoveEpsilon) {
+          ball.stuckTime += dt;
+        } else {
+          ball.stuckTime = 0;
+          ball.stuckHits = 0;
+        }
+        ball.lastX = ball.x;
+        ball.lastY = ball.y;
+
+        if (ball.stuckTime >= CONFIG.stuckTimeThreshold && ball.stuckHits >= CONFIG.stuckHitThreshold && ball.ghostUntil <= now) {
+          startGhostPop(ball, now);
+        }
+      }
+
+      function updatePointBounce(ball, dt) {
+        if (ball.remove) { return; }
+        if (ball.points > ball.lastPoints + 1e-3) {
+          ball.textBounceTime = 0;
+        }
+        if (ball.textBounceTime >= 0) {
+          ball.textBounceTime += dt;
+          if (ball.textBounceTime > CONFIG.textBounceDuration) {
+            ball.textBounceTime = -1;
+          }
+        }
+        ball.lastPoints = ball.points;
+      }
+
+      function directionArrow(angle) {
+        const tau = Math.PI * 2;
+        let a = angle % tau;
+        if (a < 0) { a += tau; }
+        const idx = Math.round(a / (Math.PI / 4)) % 8;
+        const arrows = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"];
+        return arrows[idx];
+      }
+
+      function capBallSpeed(b) {
+        const sp = Math.hypot(b.vx, b.vy);
+        if (sp > CONFIG.maxBallSpeed) {
+          const s = CONFIG.maxBallSpeed / sp;
+          b.vx *= s;
+          b.vy *= s;
+        }
+      }
+
+      function loadBestScore() {
+        try {
+          const raw = localStorage.getItem(BEST_SCORE_KEY);
+          const value = raw ? Number(raw) : 0;
+          return Number.isFinite(value) ? value : 0;
+        } catch (e) {
+          return 0;
+        }
+      }
+
+      function saveBestScore(score) {
+        try {
+          localStorage.setItem(BEST_SCORE_KEY, String(Math.round(score)));
+        } catch (e) {
+          // ignore storage failures
+        }
+      }
+
+      function registerScoreHit() {
+        scoreMultiplier = Math.min(CONFIG.scoreMultiplierMax, scoreMultiplier + CONFIG.scoreMultiplierStep);
+      }
+
+      function bumpHighScore(amount) {
+        currentHighScore += amount * scoreMultiplier;
+        if (currentHighScore > bestHighScore) {
+          bestHighScore = currentHighScore;
+          saveBestScore(bestHighScore);
+        }
+      }
+
+      function updateScoreDisplay(total) {
+        const scaledTotal = total * scoreMultiplier;
+        if (scaledTotal > currentHighScore) {
+          currentHighScore = scaledTotal;
+        }
+        if (currentHighScore > bestHighScore) {
+          bestHighScore = currentHighScore;
+          saveBestScore(bestHighScore);
+        }
+
+        if (scoreEl) {
+          const scoreText = formatShortNumber(currentHighScore);
+          const bestText = formatShortNumber(bestHighScore);
+          const multText = scoreMultiplier.toFixed(1).replace(/\.0$/, "");
+          scoreEl.textContent = "Score: " + scoreText + " x" + multText + " | Best: " + bestText;
+        }
+      }
+
+      // Simple HSL to RGB for nice varied ball colors
+      function hslToRgb(h, s, l) {
+        // h: 0..1, s: 0..1, l: 0..1
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) { t += 1; }
+          if (t > 1) { t -= 1; }
+          if (t < 1/6) { return p + (q - p) * 6 * t; }
+          if (t < 1/2) { return q; }
+          if (t < 2/3) { return p + (q - p) * (2/3 - t) * 6; }
+          return p;
+        };
+
+        let r, g, b;
+        if (s === 0) {
+          r = l; g = l; b = l;
+        } else {
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+        return [r, g, b];
+      }
+
+      function resetHitWindow(ball) {
+        ball.hitWindowStart = null;
+        ball.hitWindowPoints = 0;
+        ball.hitWindowTargets.clear();
+      }
+
+      function beginHitWindow(ball, now) {
+        ball.hitWindowStart = now;
+        ball.hitWindowPoints = ball.points;
+        ball.hitWindowTargets.clear();
+      }
+
+      function flushHitWindow(ball, now) {
+        const count = ball.hitWindowTargets.size;
+        if (!count) {
+          resetHitWindow(ball);
+          return;
+        }
+
+        const basePoints = ball.hitWindowPoints;
+        const share = count > 1 ? ((basePoints * 0.5) / count) : (basePoints * 0.25);
+
+        ball.hitWindowTargets.forEach((id) => {
+          const target = ballById.get(id);
+          if (!target || target.remove) { return; }
+          target.points += share;
+          target.lastHitTime = now;
+        });
+
+        resetHitWindow(ball);
+      }
+
+      function registerHit(giver, receiver, now) {
+        if (giver.hitWindowStart === null || (now - giver.hitWindowStart) > CONFIG.hitWindowSeconds) {
+          flushHitWindow(giver, now);
+          beginHitWindow(giver, now);
+        }
+
+        if (!giver.hitWindowTargets.has(receiver.id)) {
+          giver.hitWindowTargets.add(receiver.id);
+        }
+
+        giver.lastHitTime = now;
+      }
+
+      function flushExpiredHitWindows(now) {
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.hitWindowStart !== null && (now - b.hitWindowStart) >= CONFIG.hitWindowSeconds) {
+            flushHitWindow(b, now);
+          }
+        }
+      }
+
+      function createBall(x, y, r, options) {
+        const wantsFur = !!(options && options.isFur);
+        const wantsSnake = typeof (options && options.isSnake) === "boolean"
+          ? options.isSnake
+          : pickSnakeFlag();
+        const isFur = wantsFur && furBallCount < 1;
+        const isSnake = !isFur && wantsSnake;
+        let radius = r;
+        if (isSnake) {
+          radius = r * CONFIG.snakeGemScale;
+        }
+        if (isFur) {
+          radius = r * CONFIG.furballScale;
+        }
+        const mass = (radius * radius) * 0.0025 + 0.25; // mild mass scaling
+        const hue = Math.random();
+        const col = hslToRgb(hue, 0.75, 0.52);
+        const w = canvas.width;
+        const h = canvas.height;
+        const cx = clamp(x, radius, w - radius);
+        const cy = clamp(y, radius, h - radius);
+
+        const id = nextBallId++;
+        const furAngle = rand(0, Math.PI * 2);
+        const ball = {
+          id,
+          x: cx, y: cy,
+          vx: rand(-80, 80),
+          vy: rand(-80, 80),
+          r: radius,
+          m: mass,
+          style: pickBallStyle(),
+          color: col,
+          seed: Math.random(),
+          baseRadius: radius,
+          hitFlash: 0.0,
+          freeze: 0,
+          freezeUntil: 0,
+          freezeAppliedAt: -1e9,
+          isSnake,
+          isFur,
+          isPower: false,
+          powerHitsLeft: 0,
+          powerFlash: 0,
+          furDirX: Math.cos(furAngle),
+          furDirY: Math.sin(furAngle),
+          furSlow: false,
+          furLastKick: -1e9,
+          cursorInside: new Array(CURSOR_SLOT_COUNT).fill(false),
+          lastStrikeFrame: -1,
+          bumpersInside: new Set(),
+          lastX: cx,
+          lastY: cy,
+          trailX: cx,
+          trailY: cy,
+          trailAcc: 0,
+          stuckTime: 0,
+          stuckHits: 0,
+          ghostUntil: 0,
+          lastPoints: CONFIG.pointsStart,
+          textBounceTime: -1,
+          points: CONFIG.pointsStart,
+          lastHitTime: -1e9,
+          hitWindowStart: null,
+          hitWindowPoints: 0,
+          hitWindowTargets: new Set(),
+          devouring: false,
+          devourStart: 0,
+          devourDuration: 0,
+          devourerId: null,
+          remove: false,
+        };
+
+        if (isSnake) {
+          snakeBallCount += 1;
+        }
+        if (isFur) {
+          furBallCount += 1;
+        }
+        balls.push(ball);
+        ballById.set(id, ball);
+        return ball;
+      }
+
+      function addBall(force) {
+        if (!canSpawnBall(force)) { return null; }
+        const w = canvas.width;
+        const h = canvas.height;
+        const r = rand(CONFIG.minRadius, CONFIG.maxRadius);
+        const isSnake = pickSnakeFlag();
+        const radius = isSnake ? (r * CONFIG.snakeGemScale) : r;
+
+        // Light overlap avoidance attempts
+        let x = rand(radius, w - radius);
+        let y = rand(radius, h - radius);
+        for (let tries = 0; tries < 10; tries++) {
+          let ok = true;
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            const dx = b.x - x;
+            const dy = b.y - y;
+            const rr = b.r + radius + 6;
+            if ((dx * dx + dy * dy) < (rr * rr)) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) { break; }
+          x = rand(radius, w - radius);
+          y = rand(radius, h - radius);
+        }
+
+        return createBall(x, y, r, { isSnake });
+      }
+
+      function spawnBallAt(x, y) {
+        if (!canSpawnBall(false)) { return null; }
+        const w = canvas.width;
+        const h = canvas.height;
+        const r = rand(CONFIG.minRadius, CONFIG.maxRadius);
+        const isSnake = pickSnakeFlag();
+        const radius = isSnake ? (r * CONFIG.snakeGemScale) : r;
+        const cx = clamp(x, radius, w - radius);
+        const cy = clamp(y, radius, h - radius);
+        const ball = createBall(cx, cy, r, { isSnake });
+        ball.vx = rand(-140, 140);
+        ball.vy = rand(-140, 140);
+        return ball;
+      }
+
+      function countActiveDevourers() {
+        let count = 0;
+        for (let i = 0; i < bumpers.length; i++) {
+          const b = bumpers[i];
+          if (b.type === "devourer" && !b.remove) {
+            count += 1;
+          }
+        }
+        return count;
+      }
+
+      function hasActiveDevourer() {
+        return countActiveDevourers() >= CONFIG.devourerMaxCount;
+      }
+
+      function devourerSpinGate(timeSeconds) {
+        // Matches shader: an2 = 2.0*min(1.0-2.0*abs(fract(0.5+time/10.0)-0.5), 0.5)
+        const phase = (timeSeconds / CONFIG.devourerSpinPeriod) + 0.5;
+        const frac = phase - Math.floor(phase);
+        const tri = 1.0 - 2.0 * Math.abs(frac - 0.5);
+        return 2.0 * Math.min(tri, 0.5);
+      }
+
+      function isDevourerActive(timeSeconds) {
+        return devourerSpinGate(timeSeconds) >= CONFIG.devourerSpinThreshold;
+      }
+
+      function pickBumperType(hasDevourer) {
+        const ratio = clamp(balls.length / Math.max(1, CONFIG.initialBallCount), 0, 2);
+        const devourerWeight = hasDevourer ? 0
+          : CONFIG.devourerSpawnWeightLow
+          + (CONFIG.devourerSpawnWeightHigh - CONFIG.devourerSpawnWeightLow) * clamp(ratio, 0, 1);
+        const spawnerWeight = CONFIG.spawnerSpawnWeightLow
+          + (CONFIG.spawnerSpawnWeightHigh - CONFIG.spawnerSpawnWeightLow) * clamp(ratio, 0, 1);
+
+        const weights = [
+          ["pinball", 0.30],
+          ["directional", 0.25],
+          ["directional-changing", 0.15],
+          ["devourer", devourerWeight],
+          ["spawner", spawnerWeight],
+        ];
+
+        let total = 0;
+        for (let i = 0; i < weights.length; i++) {
+          total += weights[i][1];
+        }
+        let roll = Math.random() * total;
+
+        for (let i = 0; i < weights.length; i++) {
+          const weight = weights[i][1];
+          if (weight <= 0) { continue; }
+          if (roll < weight) {
+            return weights[i][0];
+          }
+          roll -= weight;
+        }
+
+        return "pinball";
+      }
+
+      function spawnBumper(now, type) {
+        const w = canvas.width;
+        const h = canvas.height;
+        const bumperType = type || pickBumperType(hasActiveDevourer());
+        let r = rand(CONFIG.bumperRadiusMin, CONFIG.bumperRadiusMax);
+
+        if (bumperType === "devourer") {
+          r = CONFIG.devourerRadius;
+        } else if (bumperType === "spawner") {
+          r = CONFIG.spawnerRadius;
+        }
+
+        const side = Math.floor(rand(0, 4));
+        const margin = r + 12;
+        let x = 0;
+        let y = 0;
+
+        if (side === 0) { x = -margin; y = rand(-margin, h + margin); }
+        else if (side === 1) { x = w + margin; y = rand(-margin, h + margin); }
+        else if (side === 2) { x = rand(-margin, w + margin); y = -margin; }
+        else { x = rand(-margin, w + margin); y = h + margin; }
+
+        const tx = rand(r, w - r);
+        const ty = rand(r, h - r);
+        const dx = tx - x;
+        const dy = ty - y;
+        const len = Math.hypot(dx, dy) || 1;
+        const speed = rand(CONFIG.bumperSpeedMin, CONFIG.bumperSpeedMax);
+        const vx = (dx / len) * speed;
+        const vy = (dy / len) * speed;
+
+        const bumper = {
+          id: nextBumperId++,
+          type: bumperType,
+          x,
+          y,
+          vx,
+          vy,
+          r,
+          angle: rand(0, Math.PI * 2),
+          nextDirectionChange: now + rand(CONFIG.directionalChangeMin, CONFIG.directionalChangeMax),
+          hitCount: 0,
+          hitWindowStart: null,
+          hitPulse: 0,
+          spawnPulse: 0,
+          scale: 1,
+          scaleVel: 0,
+          holoAngle: 0,
+          holoSpin: 0,
+          seed: Math.random(),
+          remove: false,
+        };
+
+        if (bumperType === "pinball") {
+          bumper.holoAngle = Math.atan2(-vy, vx);
+          bumper.holoSpin = 0;
+        }
+
+        bumpers.push(bumper);
+        return bumperType;
+      }
+
+      function updateBumpers(dt, now) {
+        for (let i = bumpers.length - 1; i >= 0; i--) {
+          const b = bumpers[i];
+          if (b.remove) {
+            bumpers.splice(i, 1);
+            continue;
+          }
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+
+          if (b.type === "directional-changing" && now >= b.nextDirectionChange) {
+            b.angle = rand(0, Math.PI * 2);
+            b.nextDirectionChange = now + rand(CONFIG.directionalChangeMin, CONFIG.directionalChangeMax);
+          }
+
+          if (b.type === "spawner" && b.hitWindowStart !== null && (now - b.hitWindowStart) > CONFIG.spawnerHitWindow) {
+            b.hitWindowStart = null;
+            b.hitCount = 0;
+          }
+          if (b.type === "pinball") {
+            const speed = Math.hypot(b.vx, b.vy);
+            if (speed > CONFIG.pinballHoloMinSpeed) {
+              b.holoAngle = Math.atan2(-b.vy, b.vx);
+            }
+            b.holoSpin -= speed * CONFIG.pinballHoloSpinRate * dt;
+            if (b.holoSpin > Math.PI * 2 || b.holoSpin < -Math.PI * 2) {
+              b.holoSpin %= Math.PI * 2;
+            }
+          }
+          if (b.type === "pinball") {
+            b.hitPulse = Math.max(0, b.hitPulse - dt * CONFIG.pinballHitPulseDecay);
+            const targetScale = 1 + b.hitPulse * 0.3;
+            const accel = (targetScale - b.scale) * CONFIG.pinballScaleStiffness;
+            b.scaleVel += accel * dt;
+            b.scaleVel *= Math.exp(-CONFIG.pinballScaleDamping * dt);
+            b.scale += b.scaleVel * dt;
+            b.scale = clamp(b.scale, CONFIG.pinballScaleMin, CONFIG.pinballScaleMax);
+          }
+          if (b.type === "spawner") {
+            b.hitPulse = Math.max(0, b.hitPulse - dt * CONFIG.spawnerHitPulseDecay);
+            b.spawnPulse = Math.max(0, b.spawnPulse - dt * (CONFIG.spawnerHitPulseDecay * 0.8));
+            const grow = b.hitCount > 0 ? CONFIG.spawnerGrowBoost : 0;
+            const shrink = b.spawnPulse * CONFIG.spawnerShrinkPulse;
+            const targetScale = 1 + grow + b.hitPulse * 0.08 - shrink;
+            const accel = (targetScale - b.scale) * CONFIG.spawnerScaleStiffness;
+            b.scaleVel += accel * dt;
+            b.scaleVel *= Math.exp(-CONFIG.spawnerScaleDamping * dt);
+            b.scale += b.scaleVel * dt;
+            b.scale = clamp(b.scale, CONFIG.spawnerScaleMin, CONFIG.spawnerScaleMax);
+          }
+
+          const margin = b.r + 20;
+          if (b.x < -margin || b.x > canvas.width + margin || b.y < -margin || b.y > canvas.height + margin) {
+            bumpers.splice(i, 1);
+          }
+        }
+      }
+
+      function maybeSpawnBumper(now) {
+        if (bumpers.length >= CONFIG.bumperMaxCount) { return; }
+        if (now < nextBumperSpawn) { return; }
+        const hasDevourer = hasActiveDevourer();
+        const type = pickBumperType(hasDevourer);
+        const spawnedType = spawnBumper(now, type);
+        const queueDevourer = !hasDevourer && spawnedType !== "devourer";
+        const minDelay = queueDevourer ? CONFIG.devourerQueueIntervalMin : CONFIG.bumperSpawnIntervalMin;
+        const maxDelay = queueDevourer ? CONFIG.devourerQueueIntervalMax : CONFIG.bumperSpawnIntervalMax;
+        nextBumperSpawn = now + rand(minDelay, maxDelay);
+      }
+
+      function startDevour(ball, bumper, now) {
+        if (ball.devouring) { return; }
+        ball.devouring = true;
+        ball.devourStart = now;
+        ball.devourDuration = CONFIG.devourDuration;
+        ball.devourerId = bumper.id;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.hitFlash = Math.max(ball.hitFlash, 0.85);
+        markHit(ball, now);
+        bumpHighScore(ball.points);
+      }
+
+      function updateDevouringBall(ball, dt, now) {
+        const elapsed = now - ball.devourStart;
+        const t = ball.devourDuration > 0 ? clamp(elapsed / ball.devourDuration, 0, 1) : 1;
+        const bumper = bumpers.find((b) => b.id === ball.devourerId);
+
+        if (!bumper) {
+          ball.remove = true;
+          return;
+        }
+
+        const pull = 1 - Math.exp(-CONFIG.devourPullStrength * dt);
+        ball.x += (bumper.x - ball.x) * pull;
+        ball.y += (bumper.y - ball.y) * pull;
+
+        const jitter = CONFIG.devourShake * (1 - t);
+        ball.x += (Math.random() - 0.5) * jitter;
+        ball.y += (Math.random() - 0.5) * jitter;
+
+        ball.r = ball.baseRadius * (1 - t);
+        ball.hitFlash = Math.max(ball.hitFlash, 0.4 + 0.4 * (1 - t));
+
+        if (t >= 1) {
+          ball.remove = true;
+        }
+      }
+
+      function applyDevourerGravity(dt, now) {
+        const radius = CONFIG.devourGravityRadius;
+        const radiusSq = radius * radius;
+        const strength = CONFIG.devourGravityStrength;
+        const falloff = CONFIG.devourGravityFalloff;
+
+        for (let i = 0; i < bumpers.length; i++) {
+          const devourer = bumpers[i];
+          if (devourer.type !== "devourer" || devourer.remove) { continue; }
+
+          for (let j = 0; j < balls.length; j++) {
+            const ball = balls[j];
+            if (ball.remove || ball.devouring || ball.ghostUntil > now) { continue; }
+
+            const dx = devourer.x - ball.x;
+            const dy = devourer.y - ball.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq > radiusSq || distSq < 1e-6) { continue; }
+
+            const dist = Math.sqrt(distSq);
+            const t = 1 - dist / radius;
+            const pull = strength * Math.pow(t, falloff);
+
+            ball.vx += (dx / dist) * pull * dt;
+            ball.vy += (dy / dist) * pull * dt;
+          }
+        }
+      }
+
+      function registerSpawnerHit(spawner, now) {
+        if (spawner.hitWindowStart === null || (now - spawner.hitWindowStart) > CONFIG.spawnerHitWindow) {
+          spawner.hitWindowStart = now;
+          spawner.hitCount = 0;
+        }
+
+        spawner.hitCount += 1;
+        spawner.hitPulse = 1;
+        spawner.scaleVel += CONFIG.spawnerHitImpulse;
+
+        if (spawner.hitCount >= CONFIG.spawnerHitThreshold) {
+          const totalBalls = balls.length;
+          const spawnCount = computeSpawnerSpawnCount(totalBalls);
+          let spawned = 0;
+
+          for (let i = 0; i < spawnCount; i++) {
+            const angle = rand(0, Math.PI * 2);
+            const offset = spawner.r * 0.6;
+            const nx = Math.cos(angle);
+            const ny = Math.sin(angle);
+            const ball = spawnBallAt(spawner.x + nx * offset, spawner.y + ny * offset);
+            if (!ball) { continue; }
+            ball.vx += nx * rand(80, 160);
+            ball.vy += ny * rand(80, 160);
+            ball.lastHitTime = now;
+            ball.ghostUntil = now + CONFIG.spawnerSpawnGhost;
+            ball.bumpersInside.add(spawner.id);
+            spawned += 1;
+          }
+          if (spawned > 0) {
+            spawner.spawnPulse = 1;
+            spawner.scaleVel -= CONFIG.spawnerSpawnImpulse;
+            spawner.hitCount = 0;
+          }
+        }
+      }
+
+      function resolveBallBumper(ball, bumper, now) {
+        if (ball.devouring || bumper.remove || ball.ghostUntil > now) { return; }
+
+        const dx = ball.x - bumper.x;
+        const dy = ball.y - bumper.y;
+        const minDist = ball.r + bumper.r;
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq >= minDist * minDist) {
+          ball.bumpersInside.delete(bumper.id);
+          return;
+        }
+
+        let dist = Math.sqrt(distSq);
+        let nx = 1;
+        let ny = 0;
+        if (dist < 1e-6) {
+          const ang = rand(0, Math.PI * 2);
+          nx = Math.cos(ang);
+          ny = Math.sin(ang);
+          dist = 1;
+        } else {
+          nx = dx / dist;
+          ny = dy / dist;
+        }
+
+        ball.x = bumper.x + nx * minDist;
+        ball.y = bumper.y + ny * minDist;
+
+        if (ball.bumpersInside.has(bumper.id)) {
+          return;
+        }
+        ball.bumpersInside.add(bumper.id);
+
+        ball.hitFlash = Math.max(ball.hitFlash, 0.55);
+        markHit(ball, now);
+        registerScoreHit();
+
+        if (bumper.type === "pinball") {
+          const incomingSpeed = Math.hypot(ball.vx, ball.vy);
+          const velAlong = ball.vx * nx + ball.vy * ny;
+          if (velAlong < 0) {
+            ball.vx -= (1.0 + CONFIG.wallRestitution) * velAlong * nx;
+            ball.vy -= (1.0 + CONFIG.wallRestitution) * velAlong * ny;
+          }
+          const kick = computeImpulseFromSpeed(incomingSpeed) * CONFIG.pinballImpulseMultiplier;
+          ball.vx += nx * kick;
+          ball.vy += ny * kick;
+          bumper.hitPulse = 1;
+          bumper.scaleVel += CONFIG.pinballHitImpulse;
+          capBallSpeed(ball);
+          return;
+        }
+
+        if (bumper.type === "directional" || bumper.type === "directional-changing") {
+          const dirX = Math.cos(bumper.angle);
+          const dirY = Math.sin(bumper.angle);
+          const speed = Math.hypot(ball.vx, ball.vy);
+          let kick = computeImpulseFromSpeed(speed);
+          const multiplier = bumper.type === "directional" ? CONFIG.directionalImpulseMultiplier : CONFIG.directionalChangingImpulseMultiplier;
+          kick *= multiplier;
+          const dot = ball.vx * dirX + ball.vy * dirY;
+          if (dot < 0) {
+            kick = Math.min(kick, speed);
+          }
+          ball.vx += dirX * kick;
+          ball.vy += dirY * kick;
+          capBallSpeed(ball);
+          return;
+        }
+
+        if (bumper.type === "devourer") {
+          if (isDevourerActive(renderTimeSeconds)) {
+            startDevour(ball, bumper, now);
+          } else {
+            const velAlong = ball.vx * nx + ball.vy * ny;
+            if (velAlong < 0) {
+              ball.vx -= (1.0 + CONFIG.wallRestitution) * velAlong * nx;
+              ball.vy -= (1.0 + CONFIG.wallRestitution) * velAlong * ny;
+              capBallSpeed(ball);
+            }
+          }
+          return;
+        }
+
+        if (bumper.type === "spawner") {
+          const velAlong = ball.vx * nx + ball.vy * ny;
+          if (velAlong < 0) {
+            ball.vx -= (1.0 + CONFIG.spawnerRestitution) * velAlong * nx;
+            ball.vy -= (1.0 + CONFIG.spawnerRestitution) * velAlong * ny;
+          }
+          capBallSpeed(ball);
+          registerSpawnerHit(bumper, now);
+        }
+      }
+
+      function cleanupBalls() {
+        for (let i = balls.length - 1; i >= 0; i--) {
+          if (balls[i].remove) {
+            if (balls[i].isSnake) {
+              snakeBallCount = Math.max(0, snakeBallCount - 1);
+            }
+            if (balls[i].isPower) {
+              powerBallCount = Math.max(0, powerBallCount - 1);
+            }
+            if (balls[i].isFur) {
+              furBallCount = Math.max(0, furBallCount - 1);
+            }
+            ballById.delete(balls[i].id);
+            balls.splice(i, 1);
+          }
+        }
+      }
+
+      function cleanupBumpers() {
+        for (let i = bumpers.length - 1; i >= 0; i--) {
+          if (bumpers[i].remove) {
+            bumpers.splice(i, 1);
+          }
+        }
+      }
+
+      function setBallCount(n, force) {
+        const target = clamp(Math.floor(n), 1, 120);
+        while (balls.length < target) {
+          if (!addBall(force)) { break; }
+        }
+        while (balls.length > target) {
+          let idx = balls.length - 1;
+          for (let i = balls.length - 1; i >= 0; i--) {
+            if (!balls[i].isFur) {
+              idx = i;
+              break;
+            }
+          }
+          const removed = balls.splice(idx, 1)[0];
+          if (removed) {
+            if (removed.isSnake) {
+              snakeBallCount = Math.max(0, snakeBallCount - 1);
+            }
+            if (removed.isPower) {
+              powerBallCount = Math.max(0, powerBallCount - 1);
+            }
+            if (removed.isFur) {
+              furBallCount = Math.max(0, furBallCount - 1);
+              if (furBallCount === 0) {
+                scheduleNextFurball(simTime);
+              }
+            }
+            ballById.delete(removed.id);
+          }
+        }
+        ensureFurball(force);
+      }
+
+      function randomizeLooks() {
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          b.style = pickBallStyle();
+          b.seed = Math.random();
+          const hue = Math.random();
+          b.color = hslToRgb(hue, 0.75, 0.52);
+        }
+      }
+
+      function calmAll() {
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          b.vx *= 0.05;
+          b.vy *= 0.05;
+          b.hitFlash = 0.0;
+        }
+      }
+
+      function resetGame() {
+        balls.length = 0;
+        ballById.clear();
+        bumpers.length = 0;
+        snakeBallCount = 0;
+        powerBallCount = 0;
+        furBallCount = 0;
+        nextBallId = 1;
+        nextBumperId = 1;
+        simTime = 0;
+        currentHighScore = 0;
+        scoreMultiplier = 1;
+        paused = false;
+        resetParticles();
+        if (trailCtx && trailCanvas) {
+          trailCtx.setTransform(1, 0, 0, 1, 0, 0);
+          trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+        }
+        setBallCount(CONFIG.initialBallCount, true);
+        ensureFurball(true);
+        resetMouseState();
+        nextBumperSpawn = rand(CONFIG.bumperSpawnIntervalMin, CONFIG.bumperSpawnIntervalMax);
+        for (let i = 0; i < POWERUP_EFFECTS.length; i++) {
+          powerupTimers[POWERUP_EFFECTS[i]] = 0;
+        }
+        scheduleNextPowerup(simTime);
+        scheduleNextFurball(simTime);
+        let total = 0;
+        for (let i = 0; i < balls.length; i++) {
+          total += balls[i].points;
+        }
+        updateScoreDisplay(total);
+      }
+
+      // ---------------------------
+      // Input
+      // ---------------------------
+      function updateMouseFromEvent(ev) {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+
+        const cx = (ev.clientX - rect.left);
+        const cy = (ev.clientY - rect.top);
+
+        const mx = cx * dpr;
+        const my = cy * dpr;
+
+        if (printCursor) {
+          printCursor.style.left = ev.clientX + "px";
+          printCursor.style.top = ev.clientY + "px";
+          if (printCursor.style.display !== "block") {
+            printCursor.style.display = "block";
+          }
+        }
+
+        if (!mouse.has) {
+          mouse.x = mx; mouse.y = my;
+          mouse.px = mx; mouse.py = my;
+          mouse.has = true;
+        } else {
+          mouse.x = mx; mouse.y = my;
+        }
+      }
+
+      window.addEventListener("pointermove", (ev) => {
+        updateMouseFromEvent(ev);
+      }, { passive: true });
+
+      window.addEventListener("pointerdown", (ev) => {
+        updateMouseFromEvent(ev);
+      }, { passive: true });
+
+      function resetMouseState() {
+        mouse.has = false;
+        if (printCursor) {
+          printCursor.style.display = "none";
+        }
+        for (let i = 0; i < balls.length; i++) {
+          balls[i].cursorInside.fill(false);
+        }
+      }
+
+      if (newGameButton) {
+        newGameButton.addEventListener("click", resetGame);
+      }
+
+      canvas.addEventListener("pointerleave", resetMouseState, { passive: true });
+      canvas.addEventListener("pointercancel", resetMouseState, { passive: true });
+      window.addEventListener("blur", resetMouseState);
+
+      window.addEventListener("keydown", (ev) => {
+        if (ev.key === " " || ev.code === "Space") {
+          paused = !paused;
+          ev.preventDefault();
+          return;
+        }
+        if (ev.key === "r" || ev.key === "R") {
+          randomizeLooks();
+          return;
+        }
+        if (ev.key === "c" || ev.key === "C") {
+          calmAll();
+          return;
+        }
+        if (ev.key === "+" || ev.key === "=") {
+          setBallCount(balls.length + 1);
+          return;
+        }
+        if (ev.key === "-" || ev.key === "_") {
+          setBallCount(balls.length - 1);
+          return;
+        }
+      });
+
+      // ---------------------------
+      // Resize
+      // ---------------------------
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = Math.max(2, Math.floor(window.innerWidth * dpr));
+        const h = Math.max(2, Math.floor(window.innerHeight * dpr));
+
+        canvas.width = w;
+        canvas.height = h;
+        if (trailCanvas) {
+          trailCanvas.width = w;
+          trailCanvas.height = h;
+        }
+        if (textCanvas) {
+          textCanvas.width = w;
+          textCanvas.height = h;
+        }
+
+        gl.viewport(0, 0, w, h);
+        if (trailCtx && trailCanvas) {
+          trailCtx.setTransform(1, 0, 0, 1, 0, 0);
+          trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+        }
+
+        // Keep balls inside bounds on resize
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          b.x = clamp(b.x, b.r, w - b.r);
+          b.y = clamp(b.y, b.r, h - b.r);
+        }
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+
+      // Seed balls + score
+      resetGame();
+
+      // ---------------------------
+      // Physics
+      // ---------------------------
+      function strikeBallFromCursor(b, cursor, dtForSpeed, now) {
+        const mdx = cursor.x - cursor.px;
+        const mdy = cursor.y - cursor.py;
+        const mouseSpeed = Math.hypot(mdx, mdy) / Math.max(1e-6, dtForSpeed); // px/s
+
+        if (mouseSpeed < CONFIG.mouseMinSpeedToStrike) { return; }
+
+        // Direction based on where the mouse came from (mouse previous position)
+        let dx = b.x - cursor.px;
+        let dy = b.y - cursor.py;
+        const len = Math.hypot(dx, dy);
+        if (len < 1e-6) { return; }
+        dx /= len; dy /= len;
+
+        const kick = computeImpulseFromSpeed(mouseSpeed) * CONFIG.mouseImpulseMultiplier;
+
+        b.vx += dx * kick;
+        b.vy += dy * kick;
+        capBallSpeed(b);
+
+        // Flash for shader
+        b.hitFlash = 1.0;
+        markHit(b, now);
+      }
+
+      function resolveWall(b) {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Left
+        if (b.x - b.r < 0) {
+          b.x = b.r;
+          b.vx = Math.abs(b.vx) * CONFIG.wallRestitution;
+          b.hitFlash = Math.max(b.hitFlash, 0.25);
+        }
+        // Right
+        if (b.x + b.r > w) {
+          b.x = w - b.r;
+          b.vx = -Math.abs(b.vx) * CONFIG.wallRestitution;
+          b.hitFlash = Math.max(b.hitFlash, 0.25);
+        }
+        // Top
+        if (b.y - b.r < 0) {
+          b.y = b.r;
+          b.vy = Math.abs(b.vy) * CONFIG.wallRestitution;
+          b.hitFlash = Math.max(b.hitFlash, 0.25);
+        }
+        // Bottom
+        if (b.y + b.r > h) {
+          b.y = h - b.r;
+          b.vy = -Math.abs(b.vy) * CONFIG.wallRestitution;
+          b.hitFlash = Math.max(b.hitFlash, 0.25);
+        }
+      }
+
+      function resolveBallBall(a, b, now) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const distSq = dx * dx + dy * dy;
+        const minDist = a.r + b.r;
+
+        if (distSq >= minDist * minDist) {
+          return;
+        }
+
+        let dist = Math.sqrt(distSq);
+        if (dist < 1e-6) {
+          // Rare exact overlap
+          dist = minDist;
+        }
+
+        // Normal
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        // Separate to fix overlap (mass-weighted)
+        const penetration = (minDist - dist);
+        const invMa = 1.0 / a.m;
+        const invMb = 1.0 / b.m;
+        const invSum = invMa + invMb;
+
+        a.x -= nx * penetration * (invMa / invSum);
+        a.y -= ny * penetration * (invMa / invSum);
+        b.x += nx * penetration * (invMb / invSum);
+        b.y += ny * penetration * (invMb / invSum);
+
+        // Relative velocity
+        const rvx = b.vx - a.vx;
+        const rvy = b.vy - a.vy;
+
+        // Velocity along normal
+        const velAlongNormal = rvx * nx + rvy * ny;
+        if (velAlongNormal > 0) {
+          return;
+        }
+
+        // Impulse scalar
+        const e = CONFIG.ballRestitution;
+        const j = -(1.0 + e) * velAlongNormal / invSum;
+
+        // Apply impulse
+        const ix = j * nx;
+        const iy = j * ny;
+
+        a.vx -= ix * invMa;
+        a.vy -= iy * invMa;
+        b.vx += ix * invMb;
+        b.vy += iy * invMb;
+        capBallSpeed(a);
+        capBallSpeed(b);
+
+        a.hitFlash = Math.max(a.hitFlash, 0.35);
+        b.hitFlash = Math.max(b.hitFlash, 0.35);
+        markHit(a, now);
+        markHit(b, now);
+
+        registerHit(a, b, now);
+        registerHit(b, a, now);
+
+        if (a.isPower) {
+          triggerPowerup(a);
+        }
+        if (b.isPower) {
+          triggerPowerup(b);
+        }
+
+        if (a.isSnake && !b.isSnake) {
+          applyFreeze(b, now);
+        } else if (b.isSnake && !a.isSnake) {
+          applyFreeze(a, now);
+        }
+      }
+
+      function update(dt, dtForMouse) {
+        if (paused) {
+          // Still update mouse previous to prevent huge "mouse speed" burst after unpause
+          mouse.px = mouse.x;
+          mouse.py = mouse.y;
+          return;
+        }
+
+        simTime += dt;
+        strikeFrameId += 1;
+        updatePowerups(dt);
+        maybeSpawnBumper(simTime);
+        maybeSpawnPowerupBall(simTime);
+        updateBumpers(dt, simTime);
+        applyDevourerGravity(dt, simTime);
+
+        // Global drag
+        const drag = Math.exp(-CONFIG.dragPerSecond * dt);
+
+        // Mouse injection happens on "enter ball" contact, not continuously
+        updateCursors();
+        if (activeCursorIndices.length > 0) {
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            for (let slot = 0; slot < CURSOR_SLOT_COUNT; slot++) {
+              if (!cursorStates[slot].active) {
+                b.cursorInside[slot] = false;
+              }
+            }
+            if (b.devouring || b.remove || b.ghostUntil > simTime) {
+              for (let j = 0; j < activeCursorIndices.length; j++) {
+                b.cursorInside[activeCursorIndices[j]] = false;
+              }
+              continue;
+            }
+
+            for (let j = 0; j < activeCursorIndices.length; j++) {
+              const idx = activeCursorIndices[j];
+              const cursor = cursorStates[idx];
+              const dx = cursor.x - b.x;
+              const dy = cursor.y - b.y;
+              const inside = (dx * dx + dy * dy) <= (b.r * b.r);
+
+              if (inside && !b.cursorInside[idx] && b.lastStrikeFrame !== strikeFrameId) {
+                strikeBallFromCursor(b, cursor, dtForMouse, simTime);
+                b.lastStrikeFrame = strikeFrameId;
+              }
+              b.cursorInside[idx] = inside;
+            }
+          }
+        }
+
+        // Integrate
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove) { continue; }
+          if (b.devouring) {
+            updateDevouringBall(b, dt, simTime);
+            b.freeze = 0;
+            b.lastX = b.x;
+            b.lastY = b.y;
+            continue;
+          }
+          const ghosted = b.ghostUntil > simTime;
+
+          // Apply drag (energy decay)
+          b.vx *= drag;
+          b.vy *= drag;
+
+          let freezeStrength = 0;
+          if (b.freezeUntil > simTime) {
+            freezeStrength = clamp((b.freezeUntil - simTime) / CONFIG.freezeDuration, 0, 1);
+            const freezeDrag = Math.exp(-CONFIG.freezeDragPerSecond * freezeStrength * dt);
+            b.vx *= freezeDrag;
+            b.vy *= freezeDrag;
+          }
+          b.freeze = freezeStrength;
+          if (b.powerFlash > 0) {
+            b.powerFlash = Math.max(0, b.powerFlash - dt * CONFIG.powerupFlashDecay);
+          }
+
+          if (b.isFur) {
+            const preSpeed = Math.hypot(b.vx, b.vy);
+            const wasSlow = b.furSlow;
+            const isSlow = preSpeed < CONFIG.furballKickSpeedThreshold;
+            if (!wasSlow && isSlow && (simTime - b.furLastKick) >= CONFIG.furballKickCooldown) {
+              const angle = rand(0, Math.PI * 2);
+              const impulse = rand(CONFIG.furballKickImpulseMin, CONFIG.furballKickImpulseMax);
+              b.vx += Math.cos(angle) * impulse;
+              b.vy += Math.sin(angle) * impulse;
+              b.furLastKick = simTime;
+              b.hitFlash = Math.max(b.hitFlash, 0.65);
+              markHit(b, simTime);
+            }
+            const speed = Math.hypot(b.vx, b.vy);
+            b.furSlow = speed < CONFIG.furballKickSpeedThreshold;
+            if (speed > 1e-3) {
+              b.furDirX = b.vx / speed;
+              b.furDirY = b.vy / speed;
+            }
+          }
+
+          // Speed cap for stability
+          capBallSpeed(b);
+
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+
+          // Flash decay: fast spike, slower tail
+          if (b.hitFlash > 0.6) {
+            b.hitFlash = Math.max(0.0, b.hitFlash - dt * 8.0);
+          } else {
+            b.hitFlash = Math.max(0.0, b.hitFlash - dt * 1.6);
+          }
+
+          if ((simTime - b.lastHitTime) > CONFIG.pointsDecayDelay) {
+            const decay = Math.pow(1 - CONFIG.pointsDecayRate, dt);
+            b.points = Math.max(CONFIG.pointsMin, b.points * decay);
+          }
+
+          if (ghosted) {
+            const w = canvas.width;
+            const h = canvas.height;
+            b.x = clamp(b.x, b.r, w - b.r);
+            b.y = clamp(b.y, b.r, h - b.r);
+          } else {
+            resolveWall(b);
+          }
+
+          updateStuckState(b, dt, simTime);
+        }
+
+        // Ball-ball collisions (O(n^2), fine for small n)
+        for (let i = 0; i < balls.length; i++) {
+          for (let j = i + 1; j < balls.length; j++) {
+            if (balls[i].devouring || balls[j].devouring || balls[i].remove || balls[j].remove) { continue; }
+            if (balls[i].ghostUntil > simTime || balls[j].ghostUntil > simTime) { continue; }
+            resolveBallBall(balls[i], balls[j], simTime);
+          }
+        }
+
+        // Ball-bumper collisions
+        for (let i = 0; i < balls.length; i++) {
+          const ball = balls[i];
+          if (ball.devouring || ball.remove || ball.ghostUntil > simTime) { continue; }
+          for (let j = 0; j < bumpers.length; j++) {
+            resolveBallBumper(ball, bumpers[j], simTime);
+          }
+        }
+
+        flushExpiredHitWindows(simTime);
+        for (let i = 0; i < balls.length; i++) {
+          updatePointBounce(balls[i], dt);
+        }
+        if (scoreMultiplier > 1) {
+          scoreMultiplier = Math.max(1, scoreMultiplier - CONFIG.scoreMultiplierDecayPerSecond * dt);
+        }
+        cleanupBalls();
+        cleanupBumpers();
+        if (furBallCount === 0 && simTime >= nextFurballSpawn) {
+          ensureFurball();
+          scheduleNextFurball(simTime);
+        }
+
+        // Advance mouse "previous" position after using it for strikes
+        mouse.px = mouse.x;
+        mouse.py = mouse.y;
+      }
+
+      // ---------------------------
+      // Render
+      // ---------------------------
+      function render(timeSeconds) {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.useProgram(program);
+        gl.bindVertexArray(vao);
+
+        gl.uniform2f(U.resolution, w, h);
+        gl.uniform1f(U.time, timeSeconds);
+        const lightX = mouse.has ? mouse.x : w * 0.5;
+        const lightY = mouse.has ? mouse.y : h * 0.5;
+        gl.uniform2f(U.light, lightX, lightY);
+        if (U.rippleTexel) {
+          gl.uniform2f(U.rippleTexel, 1 / rippleSize, 1 / rippleSize);
+          gl.uniform1f(U.rippleStrength, CONFIG.rippleDisplaceStrength);
+          gl.uniform1f(U.rippleBrightness, CONFIG.rippleBrightness);
+        }
+        if (rippleTexture && U.ripple) {
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, rippleTexture);
+        }
+
+        const bgRadius = Math.max(w, h) * 0.5;
+        gl.uniform1f(U.bg, 1.0);
+        gl.uniform2f(U.center, w * 0.5, h * 0.5);
+        gl.uniform1f(U.radius, bgRadius);
+        gl.uniform1f(U.energy, 0.0);
+        gl.uniform1f(U.hit, 0.0);
+        gl.uniform1f(U.freeze, 0.0);
+        gl.uniform3f(U.color, 0, 0, 0);
+        gl.uniform1f(U.seed, 0.0);
+        gl.uniform1i(U.style, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        gl.uniform1f(U.bg, 0.0);
+
+        if (particleProgram && particleVao && particleVbo && PARTICLE_U && particleDrawCount > 0) {
+          gl.useProgram(particleProgram);
+          gl.bindVertexArray(particleVao);
+          gl.uniform2f(PARTICLE_U.resolution, w, h);
+          gl.bindBuffer(gl.ARRAY_BUFFER, particleVbo);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, particleData.subarray(0, particleDrawCount * particleStride));
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+          gl.drawArrays(gl.POINTS, 0, particleDrawCount);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          gl.bindVertexArray(null);
+          gl.useProgram(program);
+          gl.bindVertexArray(vao);
+        }
+
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove) { continue; }
+          if (b.isSnake && snakeProgram) { continue; }
+          if (b.isPower && powerProgram) { continue; }
+          if (b.isFur && furProgram) { continue; }
+          const speed = Math.hypot(b.vx, b.vy);
+          const energy = clamp(speed / CONFIG.energySpeedForFull, 0.0, 1.0);
+          const freezeVisual = clamp(b.freeze * CONFIG.freezeSheenStrength, 0, 1);
+
+          gl.uniform2f(U.center, b.x, b.y);
+          gl.uniform1f(U.radius, b.r);
+          gl.uniform1f(U.energy, energy);
+          gl.uniform1f(U.hit, b.hitFlash);
+          gl.uniform1f(U.freeze, freezeVisual);
+          gl.uniform3f(U.color, b.color[0], b.color[1], b.color[2]);
+          gl.uniform1f(U.seed, b.seed);
+          gl.uniform1i(U.style, b.style);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        gl.bindVertexArray(null);
+
+        if (snakeProgram && SNAKE_U) {
+          gl.useProgram(snakeProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(SNAKE_U.resolution, w, h);
+          gl.uniform1f(SNAKE_U.time, timeSeconds);
+
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            if (b.remove || !b.isSnake) { continue; }
+            gl.uniform2f(SNAKE_U.center, b.x, b.y);
+            gl.uniform1f(SNAKE_U.radius, b.r);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          gl.bindVertexArray(null);
+        }
+
+        if (powerProgram && POWER_U) {
+          gl.useProgram(powerProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(POWER_U.resolution, w, h);
+          gl.uniform1f(POWER_U.time, timeSeconds);
+
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            if (b.remove || !b.isPower) { continue; }
+            const radius = b.r;
+            gl.uniform2f(POWER_U.center, b.x, b.y);
+            gl.uniform1f(POWER_U.radius, radius);
+            if (POWER_U.mouse) {
+              if (mouse.has) {
+                const localX = clamp(mouse.x - b.x + radius, 0, radius * 2);
+                const localY = clamp(b.y - mouse.y + radius, 0, radius * 2);
+                gl.uniform4f(POWER_U.mouse, localX, localY, 1, 0);
+              } else {
+                gl.uniform4f(POWER_U.mouse, -1, -1, -1, 0);
+              }
+            }
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          gl.bindVertexArray(null);
+        }
+
+        if (furProgram && FUR_U && furTexture0 && furTexture1) {
+          gl.useProgram(furProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(FUR_U.resolution, w, h);
+          gl.uniform1f(FUR_U.time, timeSeconds);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, furTexture0);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, furTexture1);
+
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            if (b.remove || !b.isFur) { continue; }
+            const radius = b.r;
+            gl.uniform2f(FUR_U.center, b.x, b.y);
+            gl.uniform1f(FUR_U.radius, radius);
+            if (FUR_U.mouse) {
+              const dirX = clamp(b.furDirX || 0, -1, 1);
+              const dirY = clamp(b.furDirY || 0, -1, 1);
+              const localX = (dirX * 0.5 + 0.5) * radius * 2;
+              const localY = (dirY * 0.5 + 0.5) * radius * 2;
+              gl.uniform4f(FUR_U.mouse, localX, localY, 1, 0);
+            }
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          gl.bindVertexArray(null);
+        }
+
+        if (gearProgram && gearTexture && GEAR_U) {
+          gl.useProgram(gearProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(GEAR_U.resolution, w, h);
+          gl.uniform1f(GEAR_U.time, timeSeconds);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, gearTexture);
+
+          for (let i = 0; i < bumpers.length; i++) {
+            const b = bumpers[i];
+            if (b.type !== "devourer") { continue; }
+            gl.uniform2f(GEAR_U.center, b.x, b.y);
+            gl.uniform1f(GEAR_U.radius, b.r);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          gl.bindVertexArray(null);
+        }
+
+        if (holoProgram && HOLO_U) {
+          gl.useProgram(holoProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(HOLO_U.resolution, w, h);
+          gl.uniform1f(HOLO_U.time, timeSeconds);
+          const tau = Math.PI * 2;
+
+          for (let i = 0; i < bumpers.length; i++) {
+            const b = bumpers[i];
+            if (b.type !== "pinball") { continue; }
+            const radius = b.r * 3 * (b.scale || 1);
+            gl.uniform2f(HOLO_U.center, b.x, b.y);
+            gl.uniform1f(HOLO_U.radius, radius);
+            if (HOLO_U.mouse) {
+              const yaw = b.holoAngle || 0;
+              const roll = b.holoSpin || 0;
+              const yawWrapped = ((yaw % tau) + tau) % tau;
+              const rollWrapped = ((roll % tau) + tau) % tau;
+              const localX = ((yawWrapped / tau) + 0.5) * radius * 2;
+              const localY = ((rollWrapped / tau) + 0.5) * radius * 2;
+              gl.uniform4f(HOLO_U.mouse, localX, localY, 1, 0);
+            }
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          gl.bindVertexArray(null);
+        }
+
+        if (fairyProgram && FAIRY_U) {
+          gl.useProgram(fairyProgram);
+          gl.bindVertexArray(vao);
+          gl.uniform2f(FAIRY_U.resolution, w, h);
+          gl.uniform1f(FAIRY_U.time, timeSeconds);
+
+          for (let i = 0; i < bumpers.length; i++) {
+            const b = bumpers[i];
+            if (b.type !== "spawner") { continue; }
+            const radius = b.r * b.scale;
+            gl.uniform2f(FAIRY_U.center, b.x, b.y);
+            gl.uniform1f(FAIRY_U.radius, radius);
+            if (FAIRY_U.mouse) {
+              const localX = mouse.has ? clamp(mouse.x - b.x + radius, 0, radius * 2) : radius;
+              const localY = mouse.has ? clamp(b.y - mouse.y + radius, 0, radius * 2) : radius;
+              const energy = clamp((b.hitPulse + b.spawnPulse) * CONFIG.spawnerEnergeticBoost, 0, 1);
+              gl.uniform4f(FAIRY_U.mouse, localX, localY, energy, 0);
+            }
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          gl.bindVertexArray(null);
+        }
+      }
+
+      function renderTrails(dt) {
+        if (!trailCtx || !trailCanvas) { return; }
+        trailCtx.setTransform(1, 0, 0, 1, 0, 0);
+        trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+        trailCtx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove || b.devouring) { continue; }
+          const cx = b.x;
+          const cy = b.y;
+          const hitBoost = clamp(b.hitFlash, 0, 1);
+          const alpha = CONFIG.glowAlphaBase + CONFIG.glowAlphaHit * hitBoost;
+          const inner = Math.max(1, b.r * CONFIG.glowInnerScale);
+          const radius = b.r * CONFIG.glowRadiusScale;
+          const colorR = Math.round((b.color[0] * 0.6 + 0.4) * 255);
+          const colorG = Math.round((b.color[1] * 0.6 + 0.4) * 255);
+          const colorB = Math.round((b.color[2] * 0.6 + 0.4) * 255);
+          const grad = trailCtx.createRadialGradient(cx, cy, inner, cx, cy, radius);
+          grad.addColorStop(0, "rgba(" + colorR + "," + colorG + "," + colorB + "," + alpha.toFixed(3) + ")");
+          grad.addColorStop(0.65, "rgba(" + colorR + "," + colorG + "," + colorB + "," + (alpha * 0.4).toFixed(3) + ")");
+          grad.addColorStop(1, "rgba(" + colorR + "," + colorG + "," + colorB + ",0)");
+          trailCtx.fillStyle = grad;
+          trailCtx.beginPath();
+          trailCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+          trailCtx.fill();
+        }
+        trailCtx.globalCompositeOperation = "source-over";
+      }
+
+      function renderOverlay(timeSeconds) {
+        let total = 0;
+
+        for (let i = 0; i < balls.length; i++) {
+          total += balls[i].points;
+        }
+
+        updateScoreDisplay(total);
+
+        if (!textCtx || !textCanvas) {
+          return;
+        }
+
+        textCtx.setTransform(1, 0, 0, 1, 0, 0);
+        textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+        textCtx.textAlign = "center";
+        textCtx.textBaseline = "middle";
+        textCtx.shadowOffsetX = 0;
+        textCtx.shadowOffsetY = 0;
+
+        // Powerup labels
+        const activeEffects = [];
+        for (let i = 0; i < POWERUP_EFFECTS.length; i++) {
+          const key = POWERUP_EFFECTS[i];
+          const strength = powerupStrength(key);
+          if (strength > 0) {
+            activeEffects.push({
+              key,
+              label: POWERUP_LABELS[key] || key,
+              strength,
+              remaining: powerupTimers[key],
+            });
+          }
+        }
+        if (activeEffects.length) {
+          textCtx.save();
+          textCtx.textAlign = "left";
+          textCtx.textBaseline = "top";
+          textCtx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
+          textCtx.lineJoin = "round";
+          textCtx.lineWidth = 3;
+          const sep = "  |  ";
+          const sepWidth = textCtx.measureText(sep).width;
+          const segments = activeEffects.map((effect) => {
+            const seconds = Math.max(0, effect.remaining);
+            const value = seconds.toFixed(1).replace(/\.0$/, "");
+            return effect.label + " " + value + "s";
+          });
+          let totalWidth = 0;
+          for (let i = 0; i < segments.length; i++) {
+            totalWidth += textCtx.measureText(segments[i]).width;
+            if (i < segments.length - 1) {
+              totalWidth += sepWidth;
+            }
+          }
+          let cursorX = textCanvas.width * 0.5 - totalWidth * 0.5;
+          const labelY = 46;
+          for (let i = 0; i < segments.length; i++) {
+            const effect = activeEffects[i];
+            const seg = segments[i];
+            const segWidth = textCtx.measureText(seg).width;
+            const speed = 1.6 + (1.0 - effect.strength) * 1.6;
+            const wave = 0.5 + 0.5 * Math.sin(timeSeconds * speed + i * 0.55);
+            const bright = Math.pow(wave, 1.1 + (1.0 - effect.strength) * 0.4);
+            const dimScale = 0.8 + 0.2 * effect.strength;
+            const alpha = clamp((0.35 + 0.35 * bright) * dimScale, 0.3, 0.95);
+            textCtx.strokeStyle = "rgba(0,0,0,0.85)";
+            textCtx.shadowBlur = 14 + 10 * bright;
+            textCtx.shadowColor = "rgba(140,220,255," + (alpha * 0.75).toFixed(3) + ")";
+            textCtx.strokeText(seg, cursorX, labelY);
+            textCtx.fillStyle = "rgba(170,235,255," + alpha.toFixed(3) + ")";
+            textCtx.fillText(seg, cursorX, labelY);
+            cursorX += segWidth;
+            if (i < segments.length - 1) {
+              textCtx.shadowBlur = 0;
+              textCtx.fillStyle = "rgba(200,220,240,0.25)";
+              textCtx.fillText(sep, cursorX, labelY);
+              cursorX += sepWidth;
+            }
+          }
+          textCtx.restore();
+        }
+
+        // Draw bumpers
+        for (let i = 0; i < bumpers.length; i++) {
+          const b = bumpers[i];
+          const pulse = 0.5 + 0.5 * Math.sin(timeSeconds * 3 + b.seed * 6.283);
+          textCtx.save();
+          textCtx.translate(b.x, b.y);
+
+          if (b.type === "pinball") {
+            if (!holoProgram) {
+              const radius = b.r * (b.scale || 1);
+              textCtx.strokeStyle = "rgba(255,200,80,0.9)";
+              textCtx.lineWidth = 2;
+              textCtx.shadowBlur = 12 + 10 * pulse;
+              textCtx.shadowColor = "rgba(255,200,80,0.6)";
+              textCtx.beginPath();
+              textCtx.arc(0, 0, radius, 0, Math.PI * 2);
+              textCtx.stroke();
+              textCtx.beginPath();
+              textCtx.moveTo(-radius * 0.4, 0);
+              textCtx.lineTo(radius * 0.4, 0);
+              textCtx.moveTo(0, -radius * 0.4);
+              textCtx.lineTo(0, radius * 0.4);
+              textCtx.stroke();
+            }
+
+          } else if (b.type === "directional" || b.type === "directional-changing") {
+            const arrowColor = b.type === "directional" ? "rgba(110,220,255,0.95)" : "rgba(120,255,180,0.95)";
+            textCtx.strokeStyle = arrowColor;
+            textCtx.fillStyle = arrowColor;
+            textCtx.lineWidth = 2;
+            textCtx.shadowBlur = 10 + 8 * pulse;
+            textCtx.shadowColor = arrowColor;
+            textCtx.beginPath();
+            textCtx.arc(0, 0, b.r, 0, Math.PI * 2);
+            textCtx.stroke();
+
+            const arrow = directionArrow(b.angle);
+            textCtx.font = "700 " + Math.round(b.r * 0.9) + "px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace";
+            textCtx.fillText(arrow, 0, 0);
+
+          } else if (b.type === "devourer") {
+            if (!gearProgram) {
+              const ring = 0.55 + 0.35 * pulse;
+              textCtx.strokeStyle = "rgba(255,120,120,0.95)";
+              textCtx.lineWidth = 3;
+              textCtx.shadowBlur = 14 + 12 * pulse;
+              textCtx.shadowColor = "rgba(255,120,120,0.6)";
+              textCtx.beginPath();
+              textCtx.arc(0, 0, b.r, 0, Math.PI * 2);
+              textCtx.stroke();
+              textCtx.globalAlpha = 0.35;
+              textCtx.beginPath();
+              textCtx.arc(0, 0, b.r * ring, 0, Math.PI * 2);
+              textCtx.stroke();
+            }
+
+          } else if (b.type === "spawner") {
+            if (!fairyProgram) {
+              const progress = clamp(b.hitCount / CONFIG.spawnerHitThreshold, 0, 1);
+              textCtx.strokeStyle = "rgba(180,180,255,0.95)";
+              textCtx.fillStyle = "rgba(180,180,255,0.15)";
+              textCtx.lineWidth = 2;
+              textCtx.shadowBlur = 12 + 8 * pulse;
+              textCtx.shadowColor = "rgba(180,180,255,0.5)";
+              textCtx.beginPath();
+              textCtx.arc(0, 0, b.r, 0, Math.PI * 2);
+              textCtx.fill();
+              textCtx.stroke();
+
+              textCtx.strokeStyle = "rgba(180,180,255,0.9)";
+              textCtx.lineWidth = 3;
+              textCtx.beginPath();
+              textCtx.arc(0, 0, b.r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+              textCtx.stroke();
+            }
+            if (mouse.has) {
+              const scale = b.scale || 1;
+              const radius = b.r * scale;
+              const lx = mouse.x - b.x;
+              const ly = mouse.y - b.y;
+              const dist = Math.hypot(lx, ly) || 1;
+              const nx = lx / dist;
+              const ny = ly / dist;
+              const pulseBoost = 0.6 + 0.4 * pulse;
+              const offset = radius * (0.32 + 0.08 * pulseBoost);
+              const specRadius = radius * (0.18 + 0.06 * pulseBoost);
+              textCtx.save();
+              textCtx.globalCompositeOperation = "lighter";
+              textCtx.translate(nx * offset, ny * offset);
+              const grad = textCtx.createRadialGradient(0, 0, 1, 0, 0, specRadius);
+              grad.addColorStop(0, "rgba(255,255,255,0.7)");
+              grad.addColorStop(0.45, "rgba(200,230,255,0.25)");
+              grad.addColorStop(1, "rgba(200,230,255,0)");
+              textCtx.fillStyle = grad;
+              textCtx.beginPath();
+              textCtx.arc(0, 0, specRadius, 0, Math.PI * 2);
+              textCtx.fill();
+              textCtx.restore();
+            }
+          }
+
+          textCtx.restore();
+          textCtx.globalAlpha = 1;
+        }
+
+        // Virtual cursor hints
+        if (mouse.has && activeCursorIndices.length > 1) {
+          const pulse = 0.5 + 0.5 * Math.sin(timeSeconds * 5.5);
+          for (let i = 0; i < activeCursorIndices.length; i++) {
+            const slot = activeCursorIndices[i];
+            if (slot === CURSOR_SLOTS.base) { continue; }
+            const strength = cursorSlotStrength(slot);
+            if (strength <= 0) { continue; }
+            const effectKey = cursorSlotEffect(slot);
+            if (!effectKey) { continue; }
+            const color = CURSOR_HINT_COLORS[effectKey] || [200, 200, 200];
+            const c = cursorStates[slot];
+            const dpr = window.devicePixelRatio || 1;
+            const hintW = cursorImageWidth * dpr;
+            const hintH = cursorImageHeight * dpr;
+            const pulseScale = 0.9 + 0.25 * pulse;
+            const alpha = 0.3 + 0.5 * strength;
+            textCtx.save();
+            textCtx.translate(c.x, c.y);
+            textCtx.strokeStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + alpha.toFixed(3) + ")";
+            textCtx.lineWidth = 2;
+            textCtx.shadowBlur = 10 + 8 * pulse;
+            textCtx.shadowColor = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + (alpha * 0.9).toFixed(3) + ")";
+            textCtx.beginPath();
+            textCtx.ellipse(0, 0, (hintW * 0.5) * pulseScale, (hintH * 0.5) * pulseScale, 0, 0, Math.PI * 2);
+            textCtx.stroke();
+            textCtx.restore();
+          }
+        }
+
+        // Powerup flash
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (!b.isPower || b.powerFlash <= 0) { continue; }
+          const t = clamp(b.powerFlash, 0, 1);
+          const radius = b.r * (1.6 + 1.2 * t);
+          textCtx.save();
+          textCtx.translate(b.x, b.y);
+          textCtx.globalCompositeOperation = "lighter";
+          const grad = textCtx.createRadialGradient(0, 0, b.r * 0.2, 0, 0, radius);
+          grad.addColorStop(0, "rgba(220,245,255," + (0.55 * t).toFixed(3) + ")");
+          grad.addColorStop(0.55, "rgba(140,210,255," + (0.25 * t).toFixed(3) + ")");
+          grad.addColorStop(1, "rgba(140,210,255,0)");
+          textCtx.fillStyle = grad;
+          textCtx.beginPath();
+          textCtx.arc(0, 0, radius, 0, Math.PI * 2);
+          textCtx.fill();
+          textCtx.restore();
+        }
+
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (b.remove) { continue; }
+          const pointsValue = Math.max(CONFIG.pointsMin, b.points);
+          const text = formatShortNumber(pointsValue);
+          const pulse = 0.5 + 0.5 * Math.sin(timeSeconds * CONFIG.textPulseSpeed + b.seed * 6.283);
+          let bounce = 0;
+          if (b.textBounceTime >= 0) {
+            bounce = Math.sin(b.textBounceTime * CONFIG.textBounceFreq) * Math.exp(-CONFIG.textBounceDamp * b.textBounceTime);
+            if (bounce < 0) { bounce = 0; }
+          }
+          const baseSize = Math.max(10, Math.min(28, b.r * 0.75));
+          const sizeScale = 1 + CONFIG.textPulseScale * pulse + CONFIG.textBounceScale * bounce;
+          const fontSize = baseSize * sizeScale;
+          const fontPx = Math.round(fontSize);
+          const yOffset = -bounce * b.r * CONFIG.textBounceYOffset;
+
+          const colorR = Math.round((b.color[0] * 0.55 + 0.45) * 255);
+          const colorG = Math.round((b.color[1] * 0.55 + 0.45) * 255);
+          const colorB = Math.round((b.color[2] * 0.55 + 0.45) * 255);
+          const glowAlpha = clamp(0.35 + 0.45 * pulse + 0.25 * bounce, 0, 1);
+          const textAlpha = clamp(0.55 + 0.35 * pulse + 0.2 * bounce, 0, 1);
+
+          textCtx.font = "700 " + fontPx + "px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
+          textCtx.lineJoin = "round";
+          textCtx.shadowBlur = 0;
+          textCtx.strokeStyle = "rgba(0,0,0,0.85)";
+          textCtx.lineWidth = Math.max(1.5, fontSize * 0.12);
+          textCtx.strokeText(text, b.x, b.y + yOffset);
+
+          textCtx.shadowBlur = b.r * (0.4 + 0.7 * pulse + 0.5 * bounce);
+          textCtx.shadowColor = "rgba(" + colorR + "," + colorG + "," + colorB + "," + glowAlpha + ")";
+          textCtx.fillStyle = "rgba(" + colorR + "," + colorG + "," + colorB + "," + textAlpha + ")";
+          textCtx.fillText(text, b.x, b.y + yOffset);
+        }
+      }
+
+      // ---------------------------
+      // Main loop
+      // ---------------------------
+      let last = performance.now();
+      let fpsLast = last;
+      let fpsFrames = 0;
+      function updateFps(now) {
+        fpsFrames += 1;
+        const elapsed = now - fpsLast;
+        if (elapsed >= 250) {
+          const fps = Math.round((fpsFrames * 1000) / elapsed);
+          currentFps = fps;
+          spawnAllowed = currentFps >= CONFIG.spawnFpsThreshold;
+          if (fpsEl) {
+            fpsEl.textContent = "FPS: " + fps;
+          }
+          fpsFrames = 0;
+          fpsLast = now;
+        }
+      }
+      function frame(now) {
+        const rawDt = (now - last) / 1000;
+        const dt = Math.min(CONFIG.maxDt, rawDt);
+        last = now;
+
+        // Use raw dt for mouse speed to avoid spikes when physics dt is clamped.
+        const timeSeconds = now / 1000;
+        renderTimeSeconds = timeSeconds;
+        update(dt, rawDt);
+        updateRipple(dt);
+        updateParticles(dt);
+        render(timeSeconds);
+        renderTrails(dt);
+        renderOverlay(timeSeconds);
+        updateFps(now);
+
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+    })();
+  </script>
+</body>
+</html>
