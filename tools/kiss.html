@@ -2,193 +2,486 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>KISS Doll Interface</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KISS Doll Interface (Offline)</title>
 
 <style>
-    html, body {
-        margin: 0;
-        padding: 0;
-        background: #f5f5f5;
-        font-family: Arial, Helvetica, sans-serif;
-        user-select: none;
-    }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #f5f5f5;
+    font-family: Arial, Helvetica, sans-serif;
+    user-select: none;
+    height: 100%;
+  }
 
-    #app {
-        display: flex;
-        height: 100vh;
-    }
+  #app {
+    display: flex;
+    height: 100vh;
+  }
 
-    /* LEFT TOOL PANEL */
-    #palette {
-        width: 280px;
-        background: #222;
-        color: #fff;
-        padding: 12px;
-        overflow-y: auto;
-        box-sizing: border-box;
-    }
+  /* LEFT TOOL PANEL */
+  #palette {
+    width: 300px;
+    background: #222;
+    color: #fff;
+    padding: 12px;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
 
-    #palette h2 {
-        margin: 8px 0;
-        font-size: 16px;
-        border-bottom: 1px solid #444;
-        padding-bottom: 4px;
-    }
+  #palette .title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 6px 0 10px;
+  }
 
-    .item {
-        background: #333;
-        border: 1px solid #555;
-        margin-bottom: 8px;
-        padding: 6px;
-        cursor: pointer;
-        text-align: center;
-        font-size: 13px;
-    }
+  #palette h2 {
+    margin: 12px 0 8px;
+    font-size: 14px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 4px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    opacity: 0.95;
+  }
 
-    .item:hover {
-        background: #444;
-    }
+  .item {
+    background: #333;
+    border: 1px solid #555;
+    margin-bottom: 8px;
+    padding: 8px 8px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 13px;
+    border-radius: 6px;
+  }
 
-    /* MAIN CANVAS */
-    #stage-container {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: #ddd;
-    }
+  .item:hover {
+    background: #444;
+  }
 
-    #stage {
-        position: relative;
-        width: 360px;
-        height: 640px;
-        background: #fff;
-        border: 4px solid #222;
-    }
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+  .row .item {
+    flex: 1;
+  }
 
-    .layer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 360px;
-        height: 640px;
-        pointer-events: none;
-    }
+  .hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #cfcfcf;
+    line-height: 1.35;
+    opacity: 0.9;
+  }
 
-    .draggable {
-        pointer-events: auto;
-        cursor: grab;
-    }
+  /* MAIN CANVAS */
+  #stage-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ddd;
+    padding: 10px;
+    box-sizing: border-box;
+  }
 
-    .hidden {
-        display: none;
-    }
+  #stage {
+    position: relative;
+    width: 360px;
+    height: 640px;
+    background: #fff;
+    border: 4px solid #222;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
 
+  .layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 360px;
+    height: 640px;
+    pointer-events: none;
+  }
+
+  .draggable {
+    pointer-events: auto;
+    cursor: grab;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  /* Small status line at bottom */
+  #status {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #cfcfcf;
+    opacity: 0.95;
+  }
+
+  /* Make the stage responsive without breaking proportions */
+  @media (max-width: 820px) {
+    #app { flex-direction: column; }
+    #palette { width: 100%; height: 280px; }
+    #stage { width: 300px; height: 534px; }
+    .layer { width: 300px; height: 534px; }
+  }
 </style>
 </head>
 
 <body>
-
 <div id="app">
 
-    <!-- PALETTE -->
-    <div id="palette">
-        <h2>Heads</h2>
-        <div class="item" onclick="toggleLayer('head1')">Head 1</div>
-        <div class="item" onclick="toggleLayer('head2')">Head 2</div>
+  <!-- PALETTE -->
+  <div id="palette">
+    <div class="title">KISS Doll (Offline)</div>
 
-        <h2>Outfits</h2>
-        <div class="item" onclick="toggleLayer('outfit1')">Outfit A</div>
-        <div class="item" onclick="toggleLayer('outfit2')">Outfit B</div>
-
-        <h2>Accessories</h2>
-        <div class="item" onclick="toggleLayer('hat')">Hat</div>
-        <div class="item" onclick="toggleLayer('megaphone')">Megaphone</div>
+    <h2>Heads</h2>
+    <div class="row">
+      <div class="item" onclick="setExclusive('heads', 'head1')">Head 1</div>
+      <div class="item" onclick="setExclusive('heads', 'head2')">Head 2</div>
+    </div>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('head1')">Toggle Head 1</div>
+      <div class="item" onclick="toggleLayer('head2')">Toggle Head 2</div>
     </div>
 
-    <!-- STAGE -->
-    <div id="stage-container">
-        <div id="stage">
-
-            <!-- BASE BODY -->
-            <img id="body"
-                 class="layer"
-                 src="https://via.placeholder.com/360x640/ffe0cc/000000?text=BODY"
-                 alt="body" />
-
-            <!-- HEADS -->
-            <img id="head1"
-                 class="layer hidden"
-                 src="https://via.placeholder.com/360x640/ccccff/000000?text=HEAD+1"
-                 alt="head1" />
-
-            <img id="head2"
-                 class="layer hidden"
-                 src="https://via.placeholder.com/360x640/ccffcc/000000?text=HEAD+2"
-                 alt="head2" />
-
-            <!-- OUTFITS -->
-            <img id="outfit1"
-                 class="layer hidden"
-                 src="https://via.placeholder.com/360x640/ffcccc/000000?text=OUTFIT+A"
-                 alt="outfit1" />
-
-            <img id="outfit2"
-                 class="layer hidden"
-                 src="https://via.placeholder.com/360x640/cccccc/000000?text=OUTFIT+B"
-                 alt="outfit2" />
-
-            <!-- ACCESSORIES (DRAGGABLE) -->
-            <img id="hat"
-                 class="layer draggable hidden"
-                 src="https://via.placeholder.com/200x120/000000/ffffff?text=HAT"
-                 style="top: 10px; left: 80px;"
-                 alt="hat" />
-
-            <img id="megaphone"
-                 class="layer draggable hidden"
-                 src="https://via.placeholder.com/180x120/ff0000/ffffff?text=MEGAPHONE"
-                 style="top: 420px; left: 90px;"
-                 alt="megaphone" />
-
-        </div>
+    <h2>Outfits</h2>
+    <div class="row">
+      <div class="item" onclick="setExclusive('outfits', 'outfit1')">Outfit A</div>
+      <div class="item" onclick="setExclusive('outfits', 'outfit2')">Outfit B</div>
     </div>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('outfit1')">Toggle Outfit A</div>
+      <div class="item" onclick="toggleLayer('outfit2')">Toggle Outfit B</div>
+    </div>
+
+    <h2>Accessories (Draggable)</h2>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('hat')">Hat</div>
+      <div class="item" onclick="toggleLayer('megaphone')">Megaphone</div>
+    </div>
+
+    <h2>Actions</h2>
+    <div class="row">
+      <div class="item" onclick="randomize()">Randomize</div>
+      <div class="item" onclick="resetAll()">Reset</div>
+    </div>
+
+    <div class="hint">
+      • Click items to show/hide layers.<br>
+      • Drag accessories around the doll.<br>
+      • This version loads <b>no external resources</b> (works offline).<br>
+      • Replace SVG placeholders with your own transparent PNGs later.
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <!-- STAGE -->
+  <div id="stage-container">
+    <div id="stage">
+
+      <!-- BASE BODY -->
+      <img id="body" class="layer" alt="body" />
+
+      <!-- HEADS -->
+      <img id="head1" class="layer hidden" alt="head1" />
+      <img id="head2" class="layer hidden" alt="head2" />
+
+      <!-- OUTFITS -->
+      <img id="outfit1" class="layer hidden" alt="outfit1" />
+      <img id="outfit2" class="layer hidden" alt="outfit2" />
+
+      <!-- ACCESSORIES (DRAGGABLE) -->
+      <img id="hat" class="layer draggable hidden" alt="hat" style="top: 18px; left: 90px; width: 180px; height: 110px;" />
+      <img id="megaphone" class="layer draggable hidden" alt="megaphone" style="top: 420px; left: 90px; width: 190px; height: 130px;" />
+
+    </div>
+  </div>
 
 </div>
 
 <script>
-    function toggleLayer(id) {
-        const el = document.getElementById(id);
-        el.classList.toggle('hidden');
+  // --- Offline placeholder art using SVG data URIs ---
+  // This avoids any network requests and won't trigger ERR_NAME_NOT_RESOLVED.
+
+  function svgDataUri(svgText) {
+    // Encode SVG so it can be used as an <img src="data:image/svg+xml,...">
+    // Using encodeURIComponent keeps it robust across browsers.
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svgText);
+  }
+
+  function makeLayerSvg(opts) {
+    const w = opts.w;
+    const h = opts.h;
+    const bg = opts.bg;
+    const fg = opts.fg;
+    const label = opts.label;
+    const note = opts.note || "";
+    const border = opts.border || "rgba(0,0,0,0.35)";
+
+    // Light paper-doll vibes: dashed outline + label block
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <rect x="0" y="0" width="${w}" height="${h}" fill="${bg}" />
+  <rect x="10" y="10" width="${w-20}" height="${h-20}" fill="none" stroke="${border}" stroke-width="3" stroke-dasharray="10 10" opacity="0.8"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="18" y="18" width="${Math.min(260, w-36)}" height="54" rx="8" fill="rgba(0,0,0,0.55)" />
+    <text x="30" y="52" font-size="22" fill="${fg}" font-weight="700">${escapeXml(label)}</text>
+    ${note ? `<text x="30" y="74" font-size="12" fill="rgba(255,255,255,0.85)">${escapeXml(note)}</text>` : ""}
+  </g>
+</svg>`;
+  }
+
+  function makeAccessorySvg(opts) {
+    const w = opts.w;
+    const h = opts.h;
+    const bg = opts.bg;
+    const fg = opts.fg;
+    const label = opts.label;
+    const shape = opts.shape; // "hat" | "megaphone" | etc.
+
+    let art = "";
+    if (shape === "hat") {
+      art = `
+        <path d="M40 ${h-35} C 70 ${h-75}, ${w-70} ${h-75}, ${w-40} ${h-35} L ${w-40} ${h-20} L 40 ${h-20} Z"
+              fill="rgba(0,0,0,0.35)"/>
+        <path d="M70 ${h-45} C 85 ${h-95}, ${w-85} ${h-95}, ${w-70} ${h-45} Z"
+              fill="rgba(0,0,0,0.55)"/>
+      `;
+    } else if (shape === "megaphone") {
+      art = `
+        <rect x="12" y="${Math.floor(h*0.45)}" width="${Math.floor(w*0.35)}" height="${Math.floor(h*0.18)}" rx="10" fill="rgba(0,0,0,0.35)"/>
+        <polygon points="${Math.floor(w*0.38)},${Math.floor(h*0.42)} ${w-18},${Math.floor(h*0.30)} ${w-18},${Math.floor(h*0.78)} ${Math.floor(w*0.38)},${Math.floor(h*0.66)}"
+                 fill="rgba(0,0,0,0.55)"/>
+        <rect x="${Math.floor(w*0.18)}" y="${Math.floor(h*0.63)}" width="${Math.floor(w*0.12)}" height="${Math.floor(h*0.20)}" rx="8" fill="rgba(0,0,0,0.45)"/>
+      `;
+    } else {
+      art = `<circle cx="${Math.floor(w/2)}" cy="${Math.floor(h/2)}" r="${Math.floor(Math.min(w,h)/3)}" fill="rgba(0,0,0,0.35)"/>`;
     }
 
-    // Simple drag logic
-    let dragTarget = null;
-    let offsetX = 0;
-    let offsetY = 0;
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <rect x="0" y="0" width="${w}" height="${h}" fill="${bg}" opacity="0.0"/>
+  ${art}
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="10" y="10" width="${Math.min(170, w-20)}" height="42" rx="8" fill="rgba(0,0,0,0.60)" />
+    <text x="22" y="38" font-size="18" fill="${fg}" font-weight="700">${escapeXml(label)}</text>
+  </g>
+</svg>`;
+  }
 
-    document.addEventListener('mousedown', (e) => {
-        if (e.target.classList.contains('draggable')) {
-            dragTarget = e.target;
-            offsetX = e.clientX - dragTarget.offsetLeft;
-            offsetY = e.clientY - dragTarget.offsetTop;
-            dragTarget.style.cursor = 'grabbing';
-        }
-    });
+  function escapeXml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&apos;");
+  }
 
-    document.addEventListener('mousemove', (e) => {
-        if (dragTarget) {
-            dragTarget.style.left = (e.clientX - offsetX) + 'px';
-            dragTarget.style.top = (e.clientY - offsetY) + 'px';
-        }
-    });
+  function initArt() {
+    // Stage size should match CSS stage default for correct alignment
+    const stage = document.getElementById("stage");
+    const rect = stage.getBoundingClientRect();
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
 
-    document.addEventListener('mouseup', () => {
-        if (dragTarget) {
-            dragTarget.style.cursor = 'grab';
-        }
-        dragTarget = null;
-    });
+    // Base body
+    document.getElementById("body").src = svgDataUri(makeLayerSvg({
+      w, h, bg: "#ffe0cc", fg: "#ffffff",
+      label: "BODY",
+      note: "Replace with your PNG later",
+      border: "rgba(0,0,0,0.25)"
+    }));
+
+    // Heads (full-frame overlays in this placeholder version)
+    document.getElementById("head1").src = svgDataUri(makeLayerSvg({
+      w, h, bg: "rgba(160,160,255,0.30)", fg: "#ffffff",
+      label: "HEAD 1",
+      note: "Full overlay placeholder",
+      border: "rgba(30,30,80,0.35)"
+    }));
+
+    document.getElementById("head2").src = svgDataUri(makeLayerSvg({
+      w, h, bg: "rgba(160,255,160,0.30)", fg: "#ffffff",
+      label: "HEAD 2",
+      note: "Full overlay placeholder",
+      border: "rgba(30,80,30,0.35)"
+    }));
+
+    // Outfits
+    document.getElementById("outfit1").src = svgDataUri(makeLayerSvg({
+      w, h, bg: "rgba(255,120,120,0.25)", fg: "#ffffff",
+      label: "OUTFIT A",
+      note: "Full overlay placeholder",
+      border: "rgba(120,30,30,0.40)"
+    }));
+
+    document.getElementById("outfit2").src = svgDataUri(makeLayerSvg({
+      w, h, bg: "rgba(180,180,180,0.35)", fg: "#ffffff",
+      label: "OUTFIT B",
+      note: "Full overlay placeholder",
+      border: "rgba(70,70,70,0.45)"
+    }));
+
+    // Accessories (small, transparent background, drawn shape)
+    const hat = document.getElementById("hat");
+    const meg = document.getElementById("megaphone");
+
+    hat.src = svgDataUri(makeAccessorySvg({
+      w: 180, h: 110, bg: "transparent", fg: "#fff", label: "HAT", shape: "hat"
+    }));
+
+    meg.src = svgDataUri(makeAccessorySvg({
+      w: 190, h: 130, bg: "transparent", fg: "#fff", label: "MEGAPHONE", shape: "megaphone"
+    }));
+
+    setStatus("Ready (offline placeholders active).");
+  }
+
+  // --- Layer toggling + exclusive groups ---
+  const groups = {
+    heads: ["head1", "head2"],
+    outfits: ["outfit1", "outfit2"]
+  };
+
+  function toggleLayer(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle("hidden");
+    setStatus("Toggled: " + id);
+  }
+
+  function setExclusive(groupName, idToShow) {
+    const ids = groups[groupName] || [];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (id === idToShow) {
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
+    }
+    setStatus("Selected " + groupName + ": " + idToShow);
+  }
+
+  function resetAll() {
+    for (const groupName of Object.keys(groups)) {
+      for (const id of groups[groupName]) {
+        document.getElementById(id).classList.add("hidden");
+      }
+    }
+    document.getElementById("hat").classList.add("hidden");
+    document.getElementById("megaphone").classList.add("hidden");
+
+    // Reset accessory positions
+    document.getElementById("hat").style.left = "90px";
+    document.getElementById("hat").style.top = "18px";
+    document.getElementById("megaphone").style.left = "90px";
+    document.getElementById("megaphone").style.top = "420px";
+
+    setStatus("Reset all layers.");
+  }
+
+  function randomize() {
+    // 50% chance show head; choose random
+    if (Math.random() < 0.5) {
+      for (const id of groups.heads) document.getElementById(id).classList.add("hidden");
+    } else {
+      const pick = groups.heads[Math.floor(Math.random() * groups.heads.length)];
+      setExclusive("heads", pick);
+    }
+
+    // 70% chance show outfit
+    if (Math.random() < 0.3) {
+      for (const id of groups.outfits) document.getElementById(id).classList.add("hidden");
+    } else {
+      const pick = groups.outfits[Math.floor(Math.random() * groups.outfits.length)];
+      setExclusive("outfits", pick);
+    }
+
+    // Accessories: independent 50%
+    document.getElementById("hat").classList.toggle("hidden", Math.random() < 0.5);
+    document.getElementById("megaphone").classList.toggle("hidden", Math.random() < 0.5);
+
+    setStatus("Randomized.");
+  }
+
+  function setStatus(msg) {
+    const status = document.getElementById("status");
+    status.textContent = msg;
+  }
+
+  // --- Drag logic (works for accessories) ---
+  let dragTarget = null;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  document.addEventListener("mousedown", (e) => {
+    const t = e.target;
+    if (t && t.classList && t.classList.contains("draggable")) {
+      dragTarget = t;
+      // Offset relative to stage container
+      const stage = document.getElementById("stage");
+      const stageRect = stage.getBoundingClientRect();
+      const tRect = dragTarget.getBoundingClientRect();
+
+      offsetX = e.clientX - tRect.left;
+      offsetY = e.clientY - tRect.top;
+
+      dragTarget.style.cursor = "grabbing";
+      // Bring dragged item to top visually
+      dragTarget.style.zIndex = "9999";
+      setStatus("Dragging: " + dragTarget.id);
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!dragTarget) return;
+
+    const stage = document.getElementById("stage");
+    const stageRect = stage.getBoundingClientRect();
+
+    let x = e.clientX - stageRect.left - offsetX;
+    let y = e.clientY - stageRect.top - offsetY;
+
+    // Clamp inside stage bounds (so it doesn't vanish)
+    const maxX = stageRect.width - dragTarget.offsetWidth;
+    const maxY = stageRect.height - dragTarget.offsetHeight;
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (x > maxX) x = maxX;
+    if (y > maxY) y = maxY;
+
+    dragTarget.style.left = Math.round(x) + "px";
+    dragTarget.style.top = Math.round(y) + "px";
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (dragTarget) {
+      dragTarget.style.cursor = "grab";
+      dragTarget.style.zIndex = "";
+      setStatus("Dropped: " + dragTarget.id);
+    }
+    dragTarget = null;
+  });
+
+  // Initialize on load
+  window.addEventListener("load", () => {
+    initArt();
+  });
+
+  // Re-init SVG placeholders if the stage size changes (responsive mode)
+  window.addEventListener("resize", () => {
+    initArt();
+  });
 </script>
 
 </body>
