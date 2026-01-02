@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>KISS Doll Interface</title>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: #f5f5f5;
+        font-family: Arial, Helvetica, sans-serif;
+        user-select: none;
+    }
+
+    #app {
+        display: flex;
+        height: 100vh;
+    }
+
+    /* LEFT TOOL PANEL */
+    #palette {
+        width: 280px;
+        background: #222;
+        color: #fff;
+        padding: 12px;
+        overflow-y: auto;
+        box-sizing: border-box;
+    }
+
+    #palette h2 {
+        margin: 8px 0;
+        font-size: 16px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 4px;
+    }
+
+    .item {
+        background: #333;
+        border: 1px solid #555;
+        margin-bottom: 8px;
+        padding: 6px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .item:hover {
+        background: #444;
+    }
+
+    /* MAIN CANVAS */
+    #stage-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #ddd;
+    }
+
+    #stage {
+        position: relative;
+        width: 360px;
+        height: 640px;
+        background: #fff;
+        border: 4px solid #222;
+    }
+
+    .layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 360px;
+        height: 640px;
+        pointer-events: none;
+    }
+
+    .draggable {
+        pointer-events: auto;
+        cursor: grab;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- PALETTE -->
+    <div id="palette">
+        <h2>Heads</h2>
+        <div class="item" onclick="toggleLayer('head1')">Head 1</div>
+        <div class="item" onclick="toggleLayer('head2')">Head 2</div>
+
+        <h2>Outfits</h2>
+        <div class="item" onclick="toggleLayer('outfit1')">Outfit A</div>
+        <div class="item" onclick="toggleLayer('outfit2')">Outfit B</div>
+
+        <h2>Accessories</h2>
+        <div class="item" onclick="toggleLayer('hat')">Hat</div>
+        <div class="item" onclick="toggleLayer('megaphone')">Megaphone</div>
+    </div>
+
+    <!-- STAGE -->
+    <div id="stage-container">
+        <div id="stage">
+
+            <!-- BASE BODY -->
+            <img id="body"
+                 class="layer"
+                 src="https://via.placeholder.com/360x640/ffe0cc/000000?text=BODY"
+                 alt="body" />
+
+            <!-- HEADS -->
+            <img id="head1"
+                 class="layer hidden"
+                 src="https://via.placeholder.com/360x640/ccccff/000000?text=HEAD+1"
+                 alt="head1" />
+
+            <img id="head2"
+                 class="layer hidden"
+                 src="https://via.placeholder.com/360x640/ccffcc/000000?text=HEAD+2"
+                 alt="head2" />
+
+            <!-- OUTFITS -->
+            <img id="outfit1"
+                 class="layer hidden"
+                 src="https://via.placeholder.com/360x640/ffcccc/000000?text=OUTFIT+A"
+                 alt="outfit1" />
+
+            <img id="outfit2"
+                 class="layer hidden"
+                 src="https://via.placeholder.com/360x640/cccccc/000000?text=OUTFIT+B"
+                 alt="outfit2" />
+
+            <!-- ACCESSORIES (DRAGGABLE) -->
+            <img id="hat"
+                 class="layer draggable hidden"
+                 src="https://via.placeholder.com/200x120/000000/ffffff?text=HAT"
+                 style="top: 10px; left: 80px;"
+                 alt="hat" />
+
+            <img id="megaphone"
+                 class="layer draggable hidden"
+                 src="https://via.placeholder.com/180x120/ff0000/ffffff?text=MEGAPHONE"
+                 style="top: 420px; left: 90px;"
+                 alt="megaphone" />
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function toggleLayer(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('hidden');
+    }
+
+    // Simple drag logic
+    let dragTarget = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    document.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('draggable')) {
+            dragTarget = e.target;
+            offsetX = e.clientX - dragTarget.offsetLeft;
+            offsetY = e.clientY - dragTarget.offsetTop;
+            dragTarget.style.cursor = 'grabbing';
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (dragTarget) {
+            dragTarget.style.left = (e.clientX - offsetX) + 'px';
+            dragTarget.style.top = (e.clientY - offsetY) + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (dragTarget) {
+            dragTarget.style.cursor = 'grab';
+        }
+        dragTarget = null;
+    });
+</script>
+
+</body>
+</html>
