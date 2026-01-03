@@ -6,10 +6,15 @@
 <title>KISS Doll Interface (Offline)</title>
 
 <style>
+  :root {
+    --stage-w: 634px;
+    --stage-h: 877px;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
-    background: #f5f5f5;
+    background: #f2f2f2;
     font-family: Arial, Helvetica, sans-serif;
     user-select: none;
     height: 100%;
@@ -22,7 +27,7 @@
 
   /* LEFT TOOL PANEL */
   #palette {
-    width: 300px;
+    width: 320px;
     background: #222;
     color: #fff;
     padding: 12px;
@@ -39,7 +44,7 @@
 
   #palette h2 {
     margin: 12px 0 8px;
-    font-size: 14px;
+    font-size: 13px;
     border-bottom: 1px solid #444;
     padding-bottom: 4px;
     letter-spacing: 0.4px;
@@ -54,7 +59,7 @@
     padding: 8px 8px;
     cursor: pointer;
     text-align: center;
-    font-size: 13px;
+    font-size: 12px;
     border-radius: 6px;
   }
 
@@ -66,6 +71,7 @@
     display: flex;
     gap: 8px;
   }
+
   .row .item {
     flex: 1;
   }
@@ -84,33 +90,49 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #ddd;
-    padding: 10px;
+    background: #d8d8d8;
+    padding: 12px;
     box-sizing: border-box;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  #stage-wrap {
+    position: relative;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
   }
 
   #stage {
     position: relative;
-    width: 360px;
-    height: 640px;
-    background: #fff;
-    border: 4px solid #222;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    overflow: hidden;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    transform-origin: top left;
   }
 
   .layer {
     position: absolute;
     top: 0;
     left: 0;
-    width: 360px;
-    height: 640px;
     pointer-events: none;
+    user-select: none;
   }
+
+  .bg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .z-body { z-index: 10; }
+  .z-clothes { z-index: 20; }
+  .z-head { z-index: 30; }
+  .z-headgear { z-index: 35; }
+  .z-face { z-index: 40; }
+  .z-prop { z-index: 50; }
 
   .draggable {
     pointer-events: auto;
     cursor: grab;
+    touch-action: none;
   }
 
   .hidden {
@@ -125,12 +147,10 @@
     opacity: 0.95;
   }
 
-  /* Make the stage responsive without breaking proportions */
-  @media (max-width: 820px) {
+  @media (max-width: 900px) {
     #app { flex-direction: column; }
-    #palette { width: 100%; height: 280px; }
-    #stage { width: 300px; height: 534px; }
-    .layer { width: 300px; height: 534px; }
+    #palette { width: 100%; height: 320px; }
+    #stage-container { height: calc(100vh - 320px); }
   }
 </style>
 </head>
@@ -144,28 +164,55 @@
 
     <h2>Heads</h2>
     <div class="row">
-      <div class="item" onclick="setExclusive('heads', 'head1')">Head 1</div>
-      <div class="item" onclick="setExclusive('heads', 'head2')">Head 2</div>
+      <div class="item" onclick="setExclusive('heads', 'head1')">Head A</div>
+      <div class="item" onclick="setExclusive('heads', 'head2')">Head B</div>
+      <div class="item" onclick="setExclusive('heads', 'head3')">Head C</div>
     </div>
     <div class="row">
-      <div class="item" onclick="toggleLayer('head1')">Toggle Head 1</div>
-      <div class="item" onclick="toggleLayer('head2')">Toggle Head 2</div>
-    </div>
-
-    <h2>Outfits</h2>
-    <div class="row">
-      <div class="item" onclick="setExclusive('outfits', 'outfit1')">Outfit A</div>
-      <div class="item" onclick="setExclusive('outfits', 'outfit2')">Outfit B</div>
-    </div>
-    <div class="row">
-      <div class="item" onclick="toggleLayer('outfit1')">Toggle Outfit A</div>
-      <div class="item" onclick="toggleLayer('outfit2')">Toggle Outfit B</div>
+      <div class="item" onclick="clearGroup('heads')">Clear Heads</div>
     </div>
 
-    <h2>Accessories (Draggable)</h2>
+    <h2>Full Outfits</h2>
     <div class="row">
-      <div class="item" onclick="toggleLayer('hat')">Hat</div>
+      <div class="item" onclick="setExclusive('fullOutfits', 'outfitCow')">Cow Suit</div>
+      <div class="item" onclick="setExclusive('fullOutfits', 'outfitMesh')">Mesh Outfit</div>
+    </div>
+    <div class="row">
+      <div class="item" onclick="clearGroup('fullOutfits')">Clear Outfits</div>
+    </div>
+
+    <h2>Separates</h2>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('topGreen')">Green Shirt</div>
+      <div class="item" onclick="toggleLayer('pantsWhite')">White Pants</div>
+    </div>
+
+    <h2>Head &amp; Face</h2>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('hairBlue')">Blue Hair</div>
+      <div class="item" onclick="toggleLayer('crown')">Crown</div>
+    </div>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('sunglasses')">Sunglasses</div>
+      <div class="item" onclick="toggleLayer('necklace')">Necklace</div>
+    </div>
+
+    <h2>Props (Draggable)</h2>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('bat')">Bat</div>
       <div class="item" onclick="toggleLayer('megaphone')">Megaphone</div>
+    </div>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('suitcase')">Suitcase</div>
+      <div class="item" onclick="toggleLayer('money')">Money</div>
+    </div>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('toiletPaper')">Toilet Paper</div>
+      <div class="item" onclick="toggleLayer('heart')">Heart</div>
+    </div>
+    <div class="row">
+      <div class="item" onclick="toggleLayer('exclamation')">Exclamation</div>
+      <div class="item" onclick="toggleLayer('cursor')">Cursor</div>
     </div>
 
     <h2>Actions</h2>
@@ -175,242 +222,91 @@
     </div>
 
     <div class="hint">
-      • Click items to show/hide layers.<br>
-      • Drag accessories around the doll.<br>
-      • This version loads <b>no external resources</b> (works offline).<br>
-      • Replace SVG placeholders with your own transparent PNGs later.
+      Pieces start around the sides; drag them onto the body.<br>
+      Use buttons to show or hide layers if needed.<br>
+      All art loads locally; no network needed.
       <div id="status"></div>
     </div>
   </div>
 
   <!-- STAGE -->
   <div id="stage-container">
-    <div id="stage">
+    <div id="stage-wrap">
+      <div id="stage">
+        <img id="bg" class="layer bg" src="k1.png" alt="background" width="634" height="877" />
 
-      <!-- BASE BODY -->
-      <img id="body" class="layer" alt="body" />
+        <img id="body" class="layer z-body draggable" src="k9.png" alt="body" width="178" height="431" style="left: 228px; top: 230px;" data-start-x="228" data-start-y="230" />
 
-      <!-- HEADS -->
-      <img id="head1" class="layer hidden" alt="head1" />
-      <img id="head2" class="layer hidden" alt="head2" />
+        <img id="outfitCow" class="layer z-clothes draggable" src="k3.png" alt="cow suit" width="173" height="381" style="left: 20px; top: 220px;" data-start-x="20" data-start-y="220" />
+        <img id="outfitMesh" class="layer z-clothes draggable" src="k13.png" alt="mesh outfit" width="113" height="371" style="left: 470px; top: 220px;" data-start-x="470" data-start-y="220" />
+        <img id="topGreen" class="layer z-clothes draggable" src="k16.png" alt="green shirt" width="155" height="152" style="left: 430px; top: 60px;" data-start-x="430" data-start-y="60" />
+        <img id="pantsWhite" class="layer z-clothes draggable" src="k19.png" alt="white pants" width="116" height="268" style="left: 40px; top: 609px;" data-start-x="40" data-start-y="609" />
 
-      <!-- OUTFITS -->
-      <img id="outfit1" class="layer hidden" alt="outfit1" />
-      <img id="outfit2" class="layer hidden" alt="outfit2" />
+        <img id="head1" class="layer z-head draggable" src="k5.png" alt="head 1" width="50" height="75" style="left: 260px; top: 40px;" data-start-x="260" data-start-y="40" />
+        <img id="head2" class="layer z-head draggable" src="k6.png" alt="head 2" width="48" height="60" style="left: 320px; top: 40px;" data-start-x="320" data-start-y="40" />
+        <img id="head3" class="layer z-head draggable" src="k7.png" alt="head 3" width="45" height="68" style="left: 380px; top: 40px;" data-start-x="380" data-start-y="40" />
 
-      <!-- ACCESSORIES (DRAGGABLE) -->
-      <img id="hat" class="layer draggable hidden" alt="hat" style="top: 18px; left: 90px; width: 180px; height: 110px;" />
-      <img id="megaphone" class="layer draggable hidden" alt="megaphone" style="top: 420px; left: 90px; width: 190px; height: 130px;" />
+        <img id="hairBlue" class="layer z-headgear draggable" src="k12.png" alt="blue hair" width="171" height="137" style="left: 20px; top: 60px;" data-start-x="20" data-start-y="60" />
+        <img id="crown" class="layer z-headgear draggable" src="k2.png" alt="crown" width="51" height="64" style="left: 260px; top: 130px;" data-start-x="260" data-start-y="130" />
+        <img id="sunglasses" class="layer z-face draggable" src="k22.png" alt="sunglasses" width="48" height="40" style="left: 320px; top: 140px;" data-start-x="320" data-start-y="140" />
+        <img id="necklace" class="layer z-face draggable" src="k8.png" alt="necklace" width="29" height="17" style="left: 380px; top: 150px;" data-start-x="380" data-start-y="150" />
 
+        <img id="bat" class="layer z-prop draggable" src="k10.png" alt="bat" width="42" height="188" style="left: 180px; top: 670px;" data-start-x="180" data-start-y="670" />
+        <img id="megaphone" class="layer z-prop draggable" src="k17.png" alt="megaphone" width="121" height="134" style="left: 360px; top: 680px;" data-start-x="360" data-start-y="680" />
+        <img id="suitcase" class="layer z-prop draggable" src="k18.png" alt="suitcase" width="114" height="111" style="left: 240px; top: 760px;" data-start-x="240" data-start-y="760" />
+        <img id="money" class="layer z-prop draggable" src="k20.png" alt="money" width="61" height="132" style="left: 500px; top: 670px;" data-start-x="500" data-start-y="670" />
+        <img id="toiletPaper" class="layer z-prop draggable" src="k21.png" alt="toilet paper" width="88" height="55" style="left: 420px; top: 820px;" data-start-x="420" data-start-y="820" />
+        <img id="heart" class="layer z-prop draggable" src="k15.png" alt="heart" width="60" height="63" style="left: 290px; top: 670px;" data-start-x="290" data-start-y="670" />
+        <img id="exclamation" class="layer z-prop draggable" src="k11.png" alt="exclamation" width="28" height="68" style="left: 230px; top: 670px;" data-start-x="230" data-start-y="670" />
+        <img id="cursor" class="layer z-prop draggable" src="k14.png" alt="cursor" width="49" height="72" style="left: 230px; top: 750px;" data-start-x="230" data-start-y="750" />
+      </div>
     </div>
   </div>
 
 </div>
 
 <script>
-  // --- Offline placeholder art using SVG data URIs ---
-  // This avoids any network requests and won't trigger ERR_NAME_NOT_RESOLVED.
+  const STAGE_W = 634;
+  const STAGE_H = 877;
+  let currentScale = 1;
 
-  function svgDataUri(svgText) {
-    // Encode SVG so it can be used as an <img src="data:image/svg+xml,...">
-    // Using encodeURIComponent keeps it robust across browsers.
-    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svgText);
-  }
-
-  function makeLayerSvg(opts) {
-    const w = opts.w;
-    const h = opts.h;
-    const bg = opts.bg;
-    const fg = opts.fg;
-    const label = opts.label;
-    const note = opts.note || "";
-    const border = opts.border || "rgba(0,0,0,0.35)";
-
-    // Light paper-doll vibes: dashed outline + label block
-    return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <rect x="0" y="0" width="${w}" height="${h}" fill="${bg}" />
-  <rect x="10" y="10" width="${w-20}" height="${h-20}" fill="none" stroke="${border}" stroke-width="3" stroke-dasharray="10 10" opacity="0.8"/>
-  <g font-family="Arial, Helvetica, sans-serif">
-    <rect x="18" y="18" width="${Math.min(260, w-36)}" height="54" rx="8" fill="rgba(0,0,0,0.55)" />
-    <text x="30" y="52" font-size="22" fill="${fg}" font-weight="700">${escapeXml(label)}</text>
-    ${note ? `<text x="30" y="74" font-size="12" fill="rgba(255,255,255,0.85)">${escapeXml(note)}</text>` : ""}
-  </g>
-</svg>`;
-  }
-
-  function makeAccessorySvg(opts) {
-    const w = opts.w;
-    const h = opts.h;
-    const bg = opts.bg;
-    const fg = opts.fg;
-    const label = opts.label;
-    const shape = opts.shape; // "hat" | "megaphone" | etc.
-
-    let art = "";
-    if (shape === "hat") {
-      art = `
-        <path d="M40 ${h-35} C 70 ${h-75}, ${w-70} ${h-75}, ${w-40} ${h-35} L ${w-40} ${h-20} L 40 ${h-20} Z"
-              fill="rgba(0,0,0,0.35)"/>
-        <path d="M70 ${h-45} C 85 ${h-95}, ${w-85} ${h-95}, ${w-70} ${h-45} Z"
-              fill="rgba(0,0,0,0.55)"/>
-      `;
-    } else if (shape === "megaphone") {
-      art = `
-        <rect x="12" y="${Math.floor(h*0.45)}" width="${Math.floor(w*0.35)}" height="${Math.floor(h*0.18)}" rx="10" fill="rgba(0,0,0,0.35)"/>
-        <polygon points="${Math.floor(w*0.38)},${Math.floor(h*0.42)} ${w-18},${Math.floor(h*0.30)} ${w-18},${Math.floor(h*0.78)} ${Math.floor(w*0.38)},${Math.floor(h*0.66)}"
-                 fill="rgba(0,0,0,0.55)"/>
-        <rect x="${Math.floor(w*0.18)}" y="${Math.floor(h*0.63)}" width="${Math.floor(w*0.12)}" height="${Math.floor(h*0.20)}" rx="8" fill="rgba(0,0,0,0.45)"/>
-      `;
-    } else {
-      art = `<circle cx="${Math.floor(w/2)}" cy="${Math.floor(h/2)}" r="${Math.floor(Math.min(w,h)/3)}" fill="rgba(0,0,0,0.35)"/>`;
-    }
-
-    return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <rect x="0" y="0" width="${w}" height="${h}" fill="${bg}" opacity="0.0"/>
-  ${art}
-  <g font-family="Arial, Helvetica, sans-serif">
-    <rect x="10" y="10" width="${Math.min(170, w-20)}" height="42" rx="8" fill="rgba(0,0,0,0.60)" />
-    <text x="22" y="38" font-size="18" fill="${fg}" font-weight="700">${escapeXml(label)}</text>
-  </g>
-</svg>`;
-  }
-
-  function escapeXml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&apos;");
-  }
-
-  function initArt() {
-    // Stage size should match CSS stage default for correct alignment
-    const stage = document.getElementById("stage");
-    const rect = stage.getBoundingClientRect();
-    const w = Math.round(rect.width);
-    const h = Math.round(rect.height);
-
-    // Base body
-    document.getElementById("body").src = svgDataUri(makeLayerSvg({
-      w, h, bg: "#ffe0cc", fg: "#ffffff",
-      label: "BODY",
-      note: "Replace with your PNG later",
-      border: "rgba(0,0,0,0.25)"
-    }));
-
-    // Heads (full-frame overlays in this placeholder version)
-    document.getElementById("head1").src = svgDataUri(makeLayerSvg({
-      w, h, bg: "rgba(160,160,255,0.30)", fg: "#ffffff",
-      label: "HEAD 1",
-      note: "Full overlay placeholder",
-      border: "rgba(30,30,80,0.35)"
-    }));
-
-    document.getElementById("head2").src = svgDataUri(makeLayerSvg({
-      w, h, bg: "rgba(160,255,160,0.30)", fg: "#ffffff",
-      label: "HEAD 2",
-      note: "Full overlay placeholder",
-      border: "rgba(30,80,30,0.35)"
-    }));
-
-    // Outfits
-    document.getElementById("outfit1").src = svgDataUri(makeLayerSvg({
-      w, h, bg: "rgba(255,120,120,0.25)", fg: "#ffffff",
-      label: "OUTFIT A",
-      note: "Full overlay placeholder",
-      border: "rgba(120,30,30,0.40)"
-    }));
-
-    document.getElementById("outfit2").src = svgDataUri(makeLayerSvg({
-      w, h, bg: "rgba(180,180,180,0.35)", fg: "#ffffff",
-      label: "OUTFIT B",
-      note: "Full overlay placeholder",
-      border: "rgba(70,70,70,0.45)"
-    }));
-
-    // Accessories (small, transparent background, drawn shape)
-    const hat = document.getElementById("hat");
-    const meg = document.getElementById("megaphone");
-
-    hat.src = svgDataUri(makeAccessorySvg({
-      w: 180, h: 110, bg: "transparent", fg: "#fff", label: "HAT", shape: "hat"
-    }));
-
-    meg.src = svgDataUri(makeAccessorySvg({
-      w: 190, h: 130, bg: "transparent", fg: "#fff", label: "MEGAPHONE", shape: "megaphone"
-    }));
-
-    setStatus("Ready (offline placeholders active).");
-  }
-
-  // --- Layer toggling + exclusive groups ---
   const groups = {
-    heads: ["head1", "head2"],
-    outfits: ["outfit1", "outfit2"]
+    heads: ["head1", "head2", "head3"],
+    fullOutfits: ["outfitCow", "outfitMesh"]
   };
 
-  function toggleLayer(id) {
-    const el = document.getElementById(id);
-    el.classList.toggle("hidden");
-    setStatus("Toggled: " + id);
-  }
+  const toggleIds = Array.from(new Set([
+    ...groups.heads,
+    ...groups.fullOutfits,
+    "topGreen",
+    "pantsWhite",
+    "hairBlue",
+    "crown",
+    "sunglasses",
+    "necklace",
+    "bat",
+    "megaphone",
+    "suitcase",
+    "money",
+    "toiletPaper",
+    "heart",
+    "exclamation",
+    "cursor"
+  ]));
 
-  function setExclusive(groupName, idToShow) {
-    const ids = groups[groupName] || [];
-    for (const id of ids) {
-      const el = document.getElementById(id);
-      if (id === idToShow) {
-        el.classList.remove("hidden");
-      } else {
-        el.classList.add("hidden");
-      }
-    }
-    setStatus("Selected " + groupName + ": " + idToShow);
-  }
+  function setStageScale() {
+    const container = document.getElementById("stage-container");
+    const wrap = document.getElementById("stage-wrap");
+    const stage = document.getElementById("stage");
 
-  function resetAll() {
-    for (const groupName of Object.keys(groups)) {
-      for (const id of groups[groupName]) {
-        document.getElementById(id).classList.add("hidden");
-      }
-    }
-    document.getElementById("hat").classList.add("hidden");
-    document.getElementById("megaphone").classList.add("hidden");
+    const maxW = Math.max(container.clientWidth - 24, 0);
+    const maxH = Math.max(container.clientHeight - 24, 0);
+    const scale = Math.min(maxW / STAGE_W, maxH / STAGE_H, 1);
 
-    // Reset accessory positions
-    document.getElementById("hat").style.left = "90px";
-    document.getElementById("hat").style.top = "18px";
-    document.getElementById("megaphone").style.left = "90px";
-    document.getElementById("megaphone").style.top = "420px";
-
-    setStatus("Reset all layers.");
-  }
-
-  function randomize() {
-    // 50% chance show head; choose random
-    if (Math.random() < 0.5) {
-      for (const id of groups.heads) document.getElementById(id).classList.add("hidden");
-    } else {
-      const pick = groups.heads[Math.floor(Math.random() * groups.heads.length)];
-      setExclusive("heads", pick);
-    }
-
-    // 70% chance show outfit
-    if (Math.random() < 0.3) {
-      for (const id of groups.outfits) document.getElementById(id).classList.add("hidden");
-    } else {
-      const pick = groups.outfits[Math.floor(Math.random() * groups.outfits.length)];
-      setExclusive("outfits", pick);
-    }
-
-    // Accessories: independent 50%
-    document.getElementById("hat").classList.toggle("hidden", Math.random() < 0.5);
-    document.getElementById("megaphone").classList.toggle("hidden", Math.random() < 0.5);
-
-    setStatus("Randomized.");
+    currentScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    stage.style.transform = "scale(" + currentScale.toFixed(4) + ")";
+    wrap.style.width = Math.round(STAGE_W * currentScale) + "px";
+    wrap.style.height = Math.round(STAGE_H * currentScale) + "px";
   }
 
   function setStatus(msg) {
@@ -418,69 +314,182 @@
     status.textContent = msg;
   }
 
-  // --- Drag logic (works for accessories) ---
+  function toggleLayer(id, silent) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle("hidden");
+    if (!silent) setStatus("Toggled: " + id);
+  }
+
+  function setExclusive(groupName, idToShow, silent) {
+    const ids = groups[groupName] || [];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (id === idToShow) {
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
+    }
+    if (!silent) setStatus("Selected " + groupName + ": " + idToShow);
+  }
+
+  function clearGroup(groupName, silent) {
+    const ids = groups[groupName] || [];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add("hidden");
+    }
+    if (!silent) setStatus("Cleared " + groupName + ".");
+  }
+
+  function resetDraggables() {
+    const draggables = document.querySelectorAll(".draggable");
+    draggables.forEach((el) => {
+      const startX = Number(el.dataset.startX);
+      const startY = Number(el.dataset.startY);
+      if (!Number.isNaN(startX)) el.style.left = startX + "px";
+      if (!Number.isNaN(startY)) el.style.top = startY + "px";
+      el.style.zIndex = "";
+    });
+  }
+
+  function resetAll() {
+    for (const id of toggleIds) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("hidden");
+    }
+    resetDraggables();
+    setStatus("Reset all layers.");
+  }
+
+  function randomizeExclusive(groupName, showChance) {
+    const ids = groups[groupName] || [];
+    if (!ids.length) return;
+    if (Math.random() > showChance) {
+      clearGroup(groupName, true);
+      return;
+    }
+    const pick = ids[Math.floor(Math.random() * ids.length)];
+    setExclusive(groupName, pick, true);
+  }
+
+  function randomizeToggle(id, showChance) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const show = Math.random() < showChance;
+    el.classList.toggle("hidden", !show);
+  }
+
+  function randomize() {
+    randomizeExclusive("heads", 0.6);
+
+    if (Math.random() < 0.45) {
+      randomizeExclusive("fullOutfits", 1);
+      document.getElementById("topGreen").classList.add("hidden");
+      document.getElementById("pantsWhite").classList.add("hidden");
+    } else {
+      clearGroup("fullOutfits", true);
+      randomizeToggle("topGreen", 0.45);
+      randomizeToggle("pantsWhite", 0.45);
+    }
+
+    const extras = [
+      "hairBlue",
+      "crown",
+      "sunglasses",
+      "necklace",
+      "bat",
+      "megaphone",
+      "suitcase",
+      "money",
+      "toiletPaper",
+      "heart",
+      "exclamation",
+      "cursor"
+    ];
+
+    for (const id of extras) {
+      randomizeToggle(id, 0.35);
+    }
+
+    setStatus("Randomized.");
+  }
+
+  // --- Drag logic ---
   let dragTarget = null;
   let offsetX = 0;
   let offsetY = 0;
+  let activePointerId = null;
 
-  document.addEventListener("mousedown", (e) => {
+  document.addEventListener("pointerdown", (e) => {
     const t = e.target;
-    if (t && t.classList && t.classList.contains("draggable")) {
-      dragTarget = t;
-      // Offset relative to stage container
-      const stage = document.getElementById("stage");
-      const stageRect = stage.getBoundingClientRect();
-      const tRect = dragTarget.getBoundingClientRect();
-
-      offsetX = e.clientX - tRect.left;
-      offsetY = e.clientY - tRect.top;
-
-      dragTarget.style.cursor = "grabbing";
-      // Bring dragged item to top visually
-      dragTarget.style.zIndex = "9999";
-      setStatus("Dragging: " + dragTarget.id);
-      e.preventDefault();
-    }
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (!dragTarget) return;
+    if (!t || !t.classList || !t.classList.contains("draggable")) return;
+    dragTarget = t;
+    activePointerId = e.pointerId;
 
     const stage = document.getElementById("stage");
     const stageRect = stage.getBoundingClientRect();
+    const tRect = dragTarget.getBoundingClientRect();
 
-    let x = e.clientX - stageRect.left - offsetX;
-    let y = e.clientY - stageRect.top - offsetY;
+    offsetX = (e.clientX - tRect.left) / currentScale;
+    offsetY = (e.clientY - tRect.top) / currentScale;
 
-    // Clamp inside stage bounds (so it doesn't vanish)
-    const maxX = stageRect.width - dragTarget.offsetWidth;
-    const maxY = stageRect.height - dragTarget.offsetHeight;
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-    if (x > maxX) x = maxX;
-    if (y > maxY) y = maxY;
-
-    dragTarget.style.left = Math.round(x) + "px";
-    dragTarget.style.top = Math.round(y) + "px";
-  });
-
-  document.addEventListener("mouseup", () => {
-    if (dragTarget) {
-      dragTarget.style.cursor = "grab";
-      dragTarget.style.zIndex = "";
-      setStatus("Dropped: " + dragTarget.id);
+    dragTarget.style.cursor = "grabbing";
+    dragTarget.style.zIndex = "9999";
+    if (dragTarget.setPointerCapture) {
+      dragTarget.setPointerCapture(activePointerId);
     }
+    setStatus("Dragging: " + dragTarget.id);
+    e.preventDefault();
+  });
+
+  document.addEventListener("pointermove", (e) => {
+    if (!dragTarget || e.pointerId !== activePointerId) return;
+    const stage = document.getElementById("stage");
+    const stageRect = stage.getBoundingClientRect();
+
+    const x = (e.clientX - stageRect.left) / currentScale - offsetX;
+    const y = (e.clientY - stageRect.top) / currentScale - offsetY;
+
+    const maxX = STAGE_W - dragTarget.offsetWidth;
+    const maxY = STAGE_H - dragTarget.offsetHeight;
+
+    const clampedX = Math.min(Math.max(0, x), maxX);
+    const clampedY = Math.min(Math.max(0, y), maxY);
+
+    dragTarget.style.left = Math.round(clampedX) + "px";
+    dragTarget.style.top = Math.round(clampedY) + "px";
+  });
+
+  function endDrag(e) {
+    if (!dragTarget || (e && e.pointerId !== activePointerId)) return;
+    if (dragTarget.releasePointerCapture && activePointerId !== null) {
+      try {
+        dragTarget.releasePointerCapture(activePointerId);
+      } catch (err) {
+        /* no-op */
+      }
+    }
+    dragTarget.style.cursor = "grab";
+    dragTarget.style.zIndex = "";
+    setStatus("Dropped: " + dragTarget.id);
     dragTarget = null;
-  });
+    activePointerId = null;
+  }
 
-  // Initialize on load
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+
   window.addEventListener("load", () => {
-    initArt();
+    resetDraggables();
+    setStageScale();
+    setStatus("Ready.");
   });
 
-  // Re-init SVG placeholders if the stage size changes (responsive mode)
   window.addEventListener("resize", () => {
-    initArt();
+    setStageScale();
   });
 </script>
 
