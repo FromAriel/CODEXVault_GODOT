@@ -703,6 +703,7 @@
   // ------------------------------
 
   const NL = String.fromCharCode(10);
+  const DEFAULT_JSON_URL = "default.json";
 
   /** Split a string into glyphs (code points) so surrogate pairs behave as one cell.
    *  Note: combining marks still count separately; in most monospace terminals this is complex.
@@ -2166,6 +2167,74 @@ Acceptance Checks (examples)
     }
   }
 
+  function applyTemplateObject(template){
+    if (!template || typeof template !== "object") return;
+    state.templateId = String(template.id ?? state.templateId ?? "default");
+    state.transparentChars = Array.isArray(template.transparent_chars) && template.transparent_chars.length
+      ? template.transparent_chars.map(String)
+      : state.transparentChars;
+    state.useTopCenter = typeof template.useTopCenter === "boolean" ? template.useTopCenter : state.useTopCenter;
+    state.useBottomCenter = typeof template.useBottomCenter === "boolean" ? template.useBottomCenter : state.useBottomCenter;
+    state.useCenterFill = typeof template.useCenterFill === "boolean" ? template.useCenterFill : state.useCenterFill;
+    state.contentInset = Array.isArray(template.content_inset) && template.content_inset.length === 4
+      ? /** @type {[number,number,number,number]} */ (template.content_inset.map(n => parseIntSafe(n, 0)))
+      : state.contentInset;
+
+    if (template.tiles_text && typeof template.tiles_text === "object"){
+      for (const k of Object.keys(state.tilesText)){
+        if (k in template.tiles_text){
+          state.tilesText[k] = String(template.tiles_text[k] ?? "");
+        }
+      }
+    }
+  }
+
+  function applyImportObject(obj){
+    if (!obj || typeof obj !== "object") throw new Error("Invalid JSON root");
+    if (!obj.template || !obj.screen || !Array.isArray(obj.windows)) throw new Error("Missing required fields");
+
+    applyTemplateObject(obj.template);
+
+    state.screenCols = clamp(parseIntSafe(obj.screen.cols, state.screenCols), 10, 240);
+    state.screenRows = clamp(parseIntSafe(obj.screen.rows, state.screenRows), 5, 120);
+    state.bgChar = safeSingleGlyph(obj.screen.bg, state.bgChar);
+
+    state.windows = obj.windows.map(w => ({
+      id: String(w.id ?? uuid()),
+      name: String(w.name ?? "Window"),
+      x: parseIntSafe(w.x, 0),
+      y: parseIntSafe(w.y, 0),
+      w: clamp(parseIntSafe(w.w, 20), 0, 500),
+      h: clamp(parseIntSafe(w.h, 10), 0, 500),
+    }));
+    state.selectedWindowId = state.windows.length ? state.windows[state.windows.length - 1].id : "";
+
+    state.notes = String(obj.notes ?? "");
+  }
+
+  async function loadDefaultJson(){
+    try{
+      const res = await fetch(DEFAULT_JSON_URL, { cache: "no-store" });
+      if (!res.ok) return false;
+      const obj = await res.json();
+      if (obj && obj.template && obj.screen && Array.isArray(obj.windows)){
+        applyImportObject(obj);
+        return true;
+      }
+      if (obj && typeof obj === "object" && obj.template){
+        applyTemplateObject(obj.template);
+        return true;
+      }
+      if (obj && typeof obj === "object" && obj.tiles_text){
+        applyTemplateObject(obj);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   async function exportWindowText(){
     const text = el.screen.textContent ?? "";
     if (!text){
@@ -2186,44 +2255,7 @@ Acceptance Checks (examples)
       if (!text) return;
       const obj = JSON.parse(text);
 
-      if (!obj || typeof obj !== "object") throw new Error("Invalid JSON root");
-      if (!obj.template || !obj.screen || !Array.isArray(obj.windows)) throw new Error("Missing required fields");
-
-      state.templateId = String(obj.template.id ?? "default");
-      state.transparentChars = Array.isArray(obj.template.transparent_chars) && obj.template.transparent_chars.length
-        ? obj.template.transparent_chars.map(String)
-        : [" "];
-      state.useTopCenter = Boolean(obj.template.useTopCenter);
-      state.useBottomCenter = Boolean(obj.template.useBottomCenter);
-      state.useCenterFill = Boolean(obj.template.useCenterFill);
-      state.contentInset = Array.isArray(obj.template.content_inset) && obj.template.content_inset.length === 4
-        ? /** @type {[number,number,number,number]} */ (obj.template.content_inset.map(n => parseIntSafe(n, 0)))
-        : null;
-
-      if (obj.template.tiles_text && typeof obj.template.tiles_text === "object"){
-        for (const k of Object.keys(state.tilesText)){
-          if (k in obj.template.tiles_text){
-            state.tilesText[k] = String(obj.template.tiles_text[k] ?? "");
-          }
-        }
-      }
-
-      state.screenCols = clamp(parseIntSafe(obj.screen.cols, state.screenCols), 10, 240);
-      state.screenRows = clamp(parseIntSafe(obj.screen.rows, state.screenRows), 5, 120);
-      state.bgChar = safeSingleGlyph(obj.screen.bg, state.bgChar);
-
-      state.windows = obj.windows.map(w => ({
-        id: String(w.id ?? uuid()),
-        name: String(w.name ?? "Window"),
-        x: parseIntSafe(w.x, 0),
-        y: parseIntSafe(w.y, 0),
-        w: clamp(parseIntSafe(w.w, 20), 0, 500),
-        h: clamp(parseIntSafe(w.h, 10), 0, 500),
-      }));
-      state.selectedWindowId = state.windows.length ? state.windows[state.windows.length - 1].id : "";
-
-      state.notes = String(obj.notes ?? "");
-
+      applyImportObject(obj);
       loadStateIntoInputs();
       renderWindowsList();
       render();
@@ -2475,25 +2507,34 @@ Acceptance Checks (examples)
   // Init
   // ------------------------------
 
-  loadStateIntoInputs();
-  hookLiveInputs();
-  renderWindowsList();
-
-  requestAnimationFrame(() => {
-    measureCharMetrics();
-    render();
-
-    try{
-      runSelfTests();
-    } catch (err){
-      console.error(err);
-      setStatus("bad", "Self-test failed", String(err));
+  async function init(){
+    const loaded = await loadDefaultJson();
+    if (loaded){
+      setStatus("ok", "Loaded default.json", "Default glyphs applied");
     }
-  });
 
-  window.addEventListener("resize", () => {
-    measureCharMetrics();
-  });
+    loadStateIntoInputs();
+    hookLiveInputs();
+    renderWindowsList();
+
+    requestAnimationFrame(() => {
+      measureCharMetrics();
+      render();
+
+      try{
+        runSelfTests();
+      } catch (err){
+        console.error(err);
+        setStatus("bad", "Self-test failed", String(err));
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      measureCharMetrics();
+    });
+  }
+
+  init();
 
 </script>
 </body>

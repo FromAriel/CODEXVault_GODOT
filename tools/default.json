@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "template": {
+    "id": "default",
+    "transparent_chars": [
+      " "
+    ],
+    "useTopCenter": true,
+    "useBottomCenter": true,
+    "useCenterFill": true,
+    "content_inset": null,
+    "tiles_text": {
+      "corner_tl": "◝╭༺❦༻╮\n╭┴╼┴╾┴",
+      "corner_tr": "╭༺❡༻╮◜\n┴╼┴╾┴╮",
+      "corner_bl": "└═〰〰─═",
+      "corner_br": "═─〰〰═╛",
+      "left_repeat": "┆\n│",
+      "right_repeat": "┆\n│",
+      "top_fill_left": "〰〰─═",
+      "top_fill_right": "═─〰〰",
+      "bottom_fill_left": "━━",
+      "bottom_fill_right": "━━",
+      "top_center": "𓆩❈𓆪\n─⋏─",
+      "bottom_center": "═══",
+      "center_fill": ""
+    }
+  },
+  "screen": {
+    "cols": 150,
+    "rows": 50,
+    "bg": " "
+  },
+  "windows": [
+    {
+      "id": "73ca31a6-8ba3-4b9b-b4e9-384791a8b60a",
+      "name": "Window A",
+      "x": 46,
+      "y": 20,
+      "w": 36,
+      "h": 12
+    },
+    {
+      "id": "9639f521-07e2-4110-b6c2-01bd2b0b56c4",
+      "name": "Window B",
+      "x": 9,
+      "y": 3,
+      "w": 42,
+      "h": 14
+    }
+  ],
+  "notes": ""
+}
