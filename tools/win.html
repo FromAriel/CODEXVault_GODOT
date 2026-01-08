@@ -925,9 +925,15 @@
     if (tile.w <= 0) return;
     if (spanRight <= spanLeft) return;
 
+    const spanClip = rectIntersect(
+      clipRect,
+      {x: spanLeft, y: clipRect.y, w: spanRight - spanLeft, h: clipRect.h}
+    );
+    if (rectIsEmpty(spanClip)) return;
+
     let x = spanLeft;
     while (x < spanRight){
-      drawTile(fb, tile, x, y, clipRect, transparent);
+      drawTile(fb, tile, x, y, spanClip, transparent);
       x += tile.w;
       if (tile.w === 0) break;
     }
@@ -948,9 +954,15 @@
     if (tile.h <= 0) return;
     if (spanBottom <= spanTop) return;
 
+    const spanClip = rectIntersect(
+      clipRect,
+      {x: clipRect.x, y: spanTop, w: clipRect.w, h: spanBottom - spanTop}
+    );
+    if (rectIsEmpty(spanClip)) return;
+
     let y = spanTop;
     while (y < spanBottom){
-      drawTile(fb, tile, x, y, clipRect, transparent);
+      drawTile(fb, tile, x, y, spanClip, transparent);
       y += tile.h;
       if (tile.h === 0) break;
     }
@@ -969,11 +981,14 @@
     if (rectIsEmpty(rect)) return;
     if (tile.w <= 0 || tile.h <= 0) return;
 
+    const fillClip = rectIntersect(clipRect, rect);
+    if (rectIsEmpty(fillClip)) return;
+
     let yy = rect.y;
     while (yy < rect.y + rect.h){
       let xx = rect.x;
       while (xx < rect.x + rect.w){
-        drawTile(fb, tile, xx, yy, clipRect, transparent);
+        drawTile(fb, tile, xx, yy, fillClip, transparent);
         xx += tile.w;
         if (tile.w === 0) break;
       }
