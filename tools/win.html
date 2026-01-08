@@ -1,0 +1,2500 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASCII Window Builder</title>
+  <style>
+    @font-face{
+      font-family: "unscii 16-full";
+      src: url("unscii-16-full.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    :root{
+      --bg: #0b0e14;
+      --panel: #111727;
+      --panel2:#0f1422;
+      --fg: #e6e6e6;
+      --muted:#9aa4b2;
+      --accent:#7c5cff;
+      --accent2:#32d583;
+      --border:#22304a;
+      --danger:#ff4d6d;
+      --mono: "unscii 16-full", "Unifont", "GNU Unifont", "Noto Sans Mono", "Noto Sans Mono CJK JP", "Noto Sans Mono CJK SC", "Noto Sans Mono CJK TC", "Noto Sans Mono CJK KR", "Noto Sans Mono CJK HK", "Noto Sans Mono CJK", "DejaVu Sans Mono", "Cascadia Mono", Consolas, Menlo, Monaco, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans); }
+
+    .app{
+      height:100vh;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .left{
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width: 360px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 10px 12px;
+      border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,0.02);
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .title .h{
+      font-weight:700;
+      letter-spacing:0.2px;
+      font-size: 14px;
+    }
+    .title .s{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .top-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.03);
+      color:var(--fg);
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:12px;
+      transition: 120ms ease;
+    }
+    button:hover{ border-color: rgba(124,92,255,0.65); background: rgba(124,92,255,0.10); }
+    button:active{ transform: translateY(1px); }
+    button.primary{ border-color: rgba(124,92,255,0.8); background: rgba(124,92,255,0.15); }
+    button.danger{ border-color: rgba(255,77,109,0.55); background: rgba(255,77,109,0.10); }
+    button.ghost{ background: transparent; }
+
+    .tabs{
+      display:flex;
+      gap:6px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap:wrap;
+    }
+    .tab{
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size:12px;
+      cursor:pointer;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.02);
+      color:var(--muted);
+      user-select:none;
+    }
+    .tab.active{
+      border-color: rgba(124,92,255,0.8);
+      background: rgba(124,92,255,0.14);
+      color: var(--fg);
+      font-weight:700;
+    }
+
+    .pane{
+      display:none;
+      padding: 12px;
+      overflow:auto;
+      flex:1;
+    }
+    .pane.active{ display:block; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .field label{
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    .field label .mini{
+      font-size:11px;
+      color: var(--muted);
+      font-weight:600;
+    }
+
+    input[type="text"], input[type="number"], textarea, select{
+      width:100%;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,0.18);
+      color:var(--fg);
+      border-radius:10px;
+      padding:8px 10px;
+      font-family: var(--sans);
+      font-size: 13px;
+      outline:none;
+    }
+
+    textarea{
+      min-height: 74px;
+      resize: vertical;
+      font-family: var(--mono);
+      line-height: 1.1em;
+      font-size: 13px;
+      white-space: pre;
+      tab-size: 2;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      line-height: 1.35em;
+    }
+
+    .hr{ height:1px; background:var(--border); margin: 12px 0; }
+
+    .right{
+      border:1px solid var(--border);
+      border-radius: 14px;
+      background: radial-gradient(1200px 600px at 80% 0%, rgba(124,92,255,0.18), transparent 60%),
+                  linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width: 480px;
+    }
+
+    .previewbar{
+      padding: 10px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,0.20);
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .pill b{ color: var(--fg); }
+
+    .previewwrap{
+      position:relative;
+      flex:1;
+      overflow:auto;
+      padding: 12px;
+    }
+
+    .screen{
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.12em;
+      white-space: pre;
+      padding: 12px;
+      border-radius: 12px;
+      border:1px solid rgba(34,48,74,0.8);
+      background: rgba(0,0,0,0.35);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      user-select:none;
+      outline:none;
+    }
+
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--fg);
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .card{
+      border:1px solid var(--border);
+      background: rgba(0,0,0,0.16);
+      border-radius: 12px;
+      padding: 10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .card .head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .card .head .name{
+      font-weight:800;
+      font-size: 13px;
+    }
+
+    .card .head .meta{
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .card.selected{
+      border-color: rgba(124,92,255,0.9);
+      box-shadow: 0 0 0 2px rgba(124,92,255,0.15) inset;
+    }
+
+    .small-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+    }
+
+    .small-grid .field input{ font-family: var(--mono); }
+
+    .footer{
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.16);
+      color: var(--muted);
+      font-size: 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .status-ok{ color: var(--accent2); font-weight: 700; }
+    .status-warn{ color: #ffd166; font-weight: 700; }
+    .status-bad{ color: var(--danger); font-weight: 700; }
+
+    .mono{ font-family: var(--mono); }
+
+    details summary{
+      cursor:pointer;
+      color: var(--fg);
+      font-weight: 700;
+      margin: 6px 0;
+    }
+
+    .help{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45em;
+      white-space: pre-wrap;
+      border: 1px dashed rgba(154,164,178,0.25);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.12);
+    }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,0.65);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 9999;
+    }
+    .modal-backdrop.show{ display:flex; }
+    .modal{
+      width:min(820px, 100%);
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(17,23,39,0.98), rgba(15,20,34,0.98));
+      box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      max-height: 85vh;
+    }
+    .modal-header{
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .modal-header .h{
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+    }
+    .modal-header .s{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .modal-body{ padding: 12px; overflow:auto; }
+    .modal-actions{
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      background: rgba(0,0,0,0.14);
+    }
+    .modal-actions .left-actions, .modal-actions .right-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .export-textarea{ min-height: 240px; }
+
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .left{ min-width: unset; }
+      .right{ min-width: unset; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="left">
+      <div class="topbar">
+        <div class="title">
+          <div class="h">ASCII Window Builder</div>
+          <div class="s">Anchored, overlappable, clipped-bands panel compositor + draggable windows</div>
+        </div>
+        <div class="top-actions">
+          <button class="primary" id="btnExport">Export JSON</button>
+          <button id="btnImport">Import JSON</button>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Editor tabs">
+        <div class="tab active" data-tab="template" role="tab" aria-selected="true">Template</div>
+        <div class="tab" data-tab="windows" role="tab" aria-selected="false">Windows</div>
+        <div class="tab" data-tab="screen" role="tab" aria-selected="false">Screen</div>
+        <div class="tab" data-tab="help" role="tab" aria-selected="false">Help</div>
+      </div>
+
+      <div class="pane active" id="pane-template" role="tabpanel">
+        <div class="field">
+          <label>Template ID <span class="mini mono">(string)</span></label>
+          <input id="tplId" type="text" />
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <div class="field" style="flex:1; min-width:160px;">
+            <label>Transparent chars <span class="mini mono">(list)</span></label>
+            <input id="transparentChars" type="text" placeholder="e.g. ␠ (space)" />
+          </div>
+          <div class="field" style="width:130px;">
+            <label>Use top_center</label>
+            <select id="useTopCenter">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+          <div class="field" style="width:130px;">
+            <label>Use bottom_center</label>
+            <select id="useBottomCenter">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+          <div class="field" style="width:130px;">
+            <label>Use center_fill</label>
+            <select id="useCenterFill">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="hint">
+          Tile fields accept multi-line text. Each line is a row. Width is the longest row; shorter rows are padded with spaces.
+          Transparent chars (default: space) do not draw.
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="grid">
+          <div class="field">
+            <label>corner_tl</label>
+            <textarea id="tile_corner_tl"></textarea>
+          </div>
+          <div class="field">
+            <label>corner_tr</label>
+            <textarea id="tile_corner_tr"></textarea>
+          </div>
+          <div class="field">
+            <label>corner_bl</label>
+            <textarea id="tile_corner_bl"></textarea>
+          </div>
+          <div class="field">
+            <label>corner_br</label>
+            <textarea id="tile_corner_br"></textarea>
+          </div>
+
+          <div class="field">
+            <label>left_repeat <span class="mini mono">repeat y</span></label>
+            <textarea id="tile_left_repeat"></textarea>
+          </div>
+          <div class="field">
+            <label>right_repeat <span class="mini mono">repeat y</span></label>
+            <textarea id="tile_right_repeat"></textarea>
+          </div>
+
+          <div class="field">
+            <label>top_fill_left <span class="mini mono">repeat x</span></label>
+            <textarea id="tile_top_fill_left"></textarea>
+          </div>
+          <div class="field">
+            <label>top_fill_right <span class="mini mono">repeat x</span></label>
+            <textarea id="tile_top_fill_right"></textarea>
+          </div>
+
+          <div class="field">
+            <label>bottom_fill_left <span class="mini mono">repeat x</span></label>
+            <textarea id="tile_bottom_fill_left"></textarea>
+          </div>
+          <div class="field">
+            <label>bottom_fill_right <span class="mini mono">repeat x</span></label>
+            <textarea id="tile_bottom_fill_right"></textarea>
+          </div>
+
+          <div class="field" style="grid-column: 1 / span 2;">
+            <label>top_center <span class="mini mono">(optional, centered)</span></label>
+            <textarea id="tile_top_center"></textarea>
+          </div>
+          <div class="field" style="grid-column: 1 / span 2;">
+            <label>bottom_center <span class="mini mono">(optional, centered)</span></label>
+            <textarea id="tile_bottom_center"></textarea>
+          </div>
+          <div class="field" style="grid-column: 1 / span 2;">
+            <label>center_fill <span class="mini mono">(optional, repeat x+y in interior)</span></label>
+            <textarea id="tile_center_fill"></textarea>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <div class="field" style="flex:1;">
+            <label>content_inset <span class="mini mono">left,top,right,bottom</span></label>
+            <input id="contentInset" type="text" placeholder="e.g. 1,1,1,1" />
+          </div>
+          <button id="btnResetTemplate" class="ghost">Reset template</button>
+        </div>
+
+      </div>
+
+      <div class="pane" id="pane-windows" role="tabpanel">
+        <div class="row" style="justify-content:space-between;">
+          <div class="hint">Add multiple windows. Drag in the preview, or use arrow keys to move by cells.</div>
+          <button class="primary" id="btnAddWindow">+ Add window</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="list" id="windowList"></div>
+
+        <div class="hr"></div>
+
+        <div class="hint">
+          Keyboard: <span class="kbd">Arrow</span> move 1 cell · <span class="kbd">Shift</span>+<span class="kbd">Arrow</span> move 5 · <span class="kbd">Alt</span>+<span class="kbd">Arrow</span> move 10 · <span class="kbd">Tab</span> cycles selection · <span class="kbd">Delete</span> removes selected.
+        </div>
+      </div>
+
+      <div class="pane" id="pane-screen" role="tabpanel">
+        <div class="row">
+          <div class="field" style="width: 140px;">
+            <label>Cols</label>
+            <input id="screenCols" type="number" min="10" max="240" step="1" />
+          </div>
+          <div class="field" style="width: 140px;">
+            <label>Rows</label>
+            <input id="screenRows" type="number" min="5" max="120" step="1" />
+          </div>
+          <div class="field" style="flex:1; min-width: 180px;">
+            <label>Background char <span class="mini mono">(1 glyph)</span></label>
+            <input id="bgChar" type="text" maxlength="4" />
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <button id="btnSnapAll">Snap all windows inside screen</button>
+          <button id="btnCenterSelected">Center selected window</button>
+          <button id="btnBringFront">Bring selected to front</button>
+          <button id="btnSendBack">Send selected to back</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="notes" placeholder="Optional notes…"></textarea>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-help" role="tabpanel">
+        <details open>
+          <summary>How to use</summary>
+          <div class="help">
+1) Define your template tiles in the Template tab.
+   - Corners can be any size.
+   - Edge tiles repeat in their axis.
+   - Optional top_center / bottom_center are horizontally centered.
+   - Optional center_fill repeats inside the interior region.
+
+2) Add windows in the Windows tab.
+   - Each window has (x,y,w,h) in cell coordinates.
+   - Drag windows in the preview to reposition (snaps to cell grid).
+   - Use arrow keys for precise cell movement.
+
+3) Render is clipped to each window's frame rect.
+   - Later windows draw over earlier ones (z-order is list order).
+
+4) Export/Import JSON
+   - Export opens a modal with the JSON and a Download button.
+     (Some sandboxed environments block clipboard APIs, so we avoid auto-copy.)
+   - Import pastes JSON back in.
+          </div>
+        </details>
+
+        <details>
+          <summary>Panel Template Schema (quick reference)</summary>
+          <div class="help" id="schemaText"></div>
+        </details>
+
+        <details>
+          <summary>Rendering rules implemented</summary>
+          <div class="help">
+• Tile normalization: width = max row length; short rows padded with spaces.
+• Band sizing:
+  - top_band_height = max height among {corner_tl, corner_tr, top_fill_left, top_fill_right, top_center}
+  - bottom_band_height = max height among {corner_bl, corner_br, bottom_fill_left, bottom_fill_right, bottom_center}
+  - left_band_width  = max width among {left_repeat, corner_tl, corner_bl}
+  - right_band_width = max width among {right_repeat, corner_tr, corner_br}
+• Alignment:
+  - Top band tiles are bottom-aligned within top band.
+  - Bottom band tiles are top-aligned within bottom band.
+  - Left band is left-aligned; right band is right-aligned.
+  - Corners anchored to edges.
+• Order:
+  1) center_fill over interior
+  2) edge bands (top/bottom fills + left/right repeats + optional centers)
+  3) corners last
+• Clipping: every tile draw is clipped to frame rect.
+• Overlap: later draws overwrite earlier cells.
+          </div>
+        </details>
+      </div>
+
+      <div class="footer">
+        <div>
+          <span class="status-ok" id="status">Ready</span>
+          <span class="mono" id="statusDetails" style="margin-left:10px;"></span>
+        </div>
+        <div class="mono" id="fpsHint">Live render</div>
+      </div>
+    </section>
+
+    <section class="right">
+      <div class="previewbar">
+        <div class="pill" id="selPill">Selected: <b>—</b></div>
+        <div class="row" style="gap:8px;">
+          <div class="pill">Mouse: <b class="mono" id="mousePos">-</b></div>
+          <div class="pill">Drag to move · <span class="kbd">Tab</span> cycle · <span class="kbd">Arrows</span> nudge</div>
+          <button id="btnExportWindow">Export Window</button>
+        </div>
+      </div>
+      <div class="previewwrap">
+        <pre class="screen" id="screen" tabindex="0" aria-label="ASCII preview"></pre>
+      </div>
+    </section>
+  </div>
+
+  <!-- Export Modal (clipboard may be blocked in sandboxed environments) -->
+  <div class="modal-backdrop" id="exportBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Export JSON">
+      <div class="modal-header">
+        <div>
+          <div class="h">Export JSON</div>
+          <div class="s">Download is the most reliable option in sandboxed environments.</div>
+        </div>
+        <button class="ghost" id="btnCloseExport" aria-label="Close">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>JSON</label>
+          <textarea class="export-textarea" id="exportText" spellcheck="false"></textarea>
+        </div>
+        <div class="hint" style="margin-top:8px;">
+          Tip: If “Copy” is blocked, select the text and copy manually.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <div class="left-actions">
+          <button class="primary" id="btnDownloadExport">Download JSON</button>
+          <button id="btnCopyExport">Copy JSON</button>
+        </div>
+        <div class="right-actions">
+          <span class="mono" id="exportMeta"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  "use strict";
+
+  // ------------------------------
+  // Utilities
+  // ------------------------------
+
+  const NL = String.fromCharCode(10);
+
+  /** Split a string into glyphs (code points) so surrogate pairs behave as one cell.
+   *  Note: combining marks still count separately; in most monospace terminals this is complex.
+   *  For ASCII / box drawing, this is usually fine.
+   */
+  function toGlyphs(str){
+    return Array.from(str ?? "");
+  }
+
+  function clamp(n, lo, hi){
+    if (n < lo) return lo;
+    if (n > hi) return hi;
+    return n;
+  }
+
+  function parseIntSafe(v, fallback){
+    const n = Number.parseInt(String(v ?? ""), 10);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function parseInset(str){
+    const parts = String(str ?? "").split(",").map(s => s.trim()).filter(Boolean);
+    if (parts.length !== 4) return null;
+    const nums = parts.map(p => parseIntSafe(p, NaN));
+    if (nums.some(n => !Number.isFinite(n))) return null;
+    return /** @type {[number,number,number,number]} */ ([nums[0], nums[1], nums[2], nums[3]]);
+  }
+
+  function safeSingleGlyph(str, fallback){
+    const g = toGlyphs(String(str ?? ""));
+    if (g.length === 0) return fallback;
+    return g[0];
+  }
+
+  /** UUID helper with fallback for environments where crypto.randomUUID is unavailable. */
+  function uuid(){
+    try{
+      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"){
+        return globalThis.crypto.randomUUID();
+      }
+    } catch {}
+
+    /** @type {Uint8Array} */
+    const bytes = new Uint8Array(16);
+    try{
+      if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === "function"){
+        globalThis.crypto.getRandomValues(bytes);
+      } else {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+      }
+    } catch {
+      for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+
+    // RFC4122 v4-ish
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    return (
+      hex.slice(0, 8) + "-" +
+      hex.slice(8, 12) + "-" +
+      hex.slice(12, 16) + "-" +
+      hex.slice(16, 20) + "-" +
+      hex.slice(20)
+    );
+  }
+
+  // ------------------------------
+  // Framebuffer
+  // ------------------------------
+
+  class Framebuffer {
+    /** @param {number} cols @param {number} rows @param {string} bgGlyph */
+    constructor(cols, rows, bgGlyph){
+      this.cols = cols;
+      this.rows = rows;
+      this.bgGlyph = bgGlyph;
+      /** @type {string[]} */
+      this.cells = new Array(cols * rows);
+      this.clear(bgGlyph);
+    }
+
+    /** @param {string} bgGlyph */
+    clear(bgGlyph){
+      this.bgGlyph = bgGlyph;
+      const g = bgGlyph;
+      for (let i = 0; i < this.cells.length; i++){
+        this.cells[i] = g;
+      }
+    }
+
+    /** @param {number} x @param {number} y @param {string} glyph */
+    set(x, y, glyph){
+      if (x < 0 || y < 0 || x >= this.cols || y >= this.rows) return;
+      this.cells[y * this.cols + x] = glyph;
+    }
+
+    /** @param {number} x @param {number} y */
+    get(x, y){
+      if (x < 0 || y < 0 || x >= this.cols || y >= this.rows) return this.bgGlyph;
+      return this.cells[y * this.cols + x];
+    }
+
+    toString(){
+      const out = [];
+      out.length = this.rows;
+      for (let y = 0; y < this.rows; y++){
+        const start = y * this.cols;
+        out[y] = this.cells.slice(start, start + this.cols).join("");
+      }
+      return out.join(NL);
+    }
+  }
+
+  // ------------------------------
+  // Tile + Template
+  // ------------------------------
+
+  class Tile {
+    /** @param {string[]} rows */
+    constructor(rows){
+      /** @type {string[][]} */
+      this.rows = [];
+      this.w = 0;
+      this.h = 0;
+      this.setRows(rows);
+    }
+
+    /** @param {string[]} rows */
+    setRows(rows){
+      const glyphRows = rows.map(r => toGlyphs(r));
+      let w = 0;
+      for (const gr of glyphRows){
+        if (gr.length > w) w = gr.length;
+      }
+      // Pad to width.
+      for (let i = 0; i < glyphRows.length; i++){
+        while (glyphRows[i].length < w){
+          glyphRows[i].push(" ");
+        }
+      }
+      this.rows = glyphRows;
+      this.w = w;
+      this.h = glyphRows.length;
+    }
+
+    /** @returns {boolean} */
+    isEmpty(){
+      return this.w <= 0 || this.h <= 0;
+    }
+  }
+
+  /** @typedef {{x:number,y:number,w:number,h:number}} Rect */
+
+  /** @param {Rect} a @param {Rect} b */
+  function rectIntersect(a,b){
+    const x0 = Math.max(a.x, b.x);
+    const y0 = Math.max(a.y, b.y);
+    const x1 = Math.min(a.x + a.w, b.x + b.w);
+    const y1 = Math.min(a.y + a.h, b.y + b.h);
+    if (x1 <= x0 || y1 <= y0) return {x:0,y:0,w:0,h:0};
+    return {x:x0,y:y0,w:x1-x0,h:y1-y0};
+  }
+
+  /** @param {Rect} r */
+  function rectIsEmpty(r){ return r.w <= 0 || r.h <= 0; }
+
+  // ------------------------------
+  // Renderer (Panel Template Schema)
+  // ------------------------------
+
+  /**
+   * Draw a tile at (x,y), clipped to clipRect, respecting transparency.
+   * @param {Framebuffer} fb
+   * @param {Tile} tile
+   * @param {number} x
+   * @param {number} y
+   * @param {Rect} clipRect
+   * @param {Set<string>} transparent
+   */
+  function drawTile(fb, tile, x, y, clipRect, transparent){
+    if (tile.isEmpty()) return;
+
+    const tileRect = {x, y, w: tile.w, h: tile.h};
+    const r = rectIntersect(tileRect, clipRect);
+    if (rectIsEmpty(r)) return;
+
+    const xStart = r.x;
+    const yStart = r.y;
+    const xEnd = r.x + r.w;
+    const yEnd = r.y + r.h;
+
+    for (let yy = yStart; yy < yEnd; yy++){
+      const ty = yy - y;
+      const row = tile.rows[ty];
+      for (let xx = xStart; xx < xEnd; xx++){
+        const tx = xx - x;
+        const g = row[tx] ?? " ";
+        if (transparent.has(g)) continue;
+        fb.set(xx, yy, g);
+      }
+    }
+  }
+
+  /**
+   * Repeat draw along X over [spanLeft, spanRight), stepping by tile.w.
+   * Each placement is clipped to clipRect.
+   * @param {Framebuffer} fb
+   * @param {Tile} tile
+   * @param {number} y
+   * @param {number} spanLeft
+   * @param {number} spanRight
+   * @param {Rect} clipRect
+   * @param {Set<string>} transparent
+   */
+  function repeatX(fb, tile, y, spanLeft, spanRight, clipRect, transparent){
+    if (tile.isEmpty()) return;
+    if (tile.w <= 0) return;
+    if (spanRight <= spanLeft) return;
+
+    let x = spanLeft;
+    while (x < spanRight){
+      drawTile(fb, tile, x, y, clipRect, transparent);
+      x += tile.w;
+      if (tile.w === 0) break;
+    }
+  }
+
+  /**
+   * Repeat draw along Y over [spanTop, spanBottom), stepping by tile.h.
+   * @param {Framebuffer} fb
+   * @param {Tile} tile
+   * @param {number} x
+   * @param {number} spanTop
+   * @param {number} spanBottom
+   * @param {Rect} clipRect
+   * @param {Set<string>} transparent
+   */
+  function repeatY(fb, tile, x, spanTop, spanBottom, clipRect, transparent){
+    if (tile.isEmpty()) return;
+    if (tile.h <= 0) return;
+    if (spanBottom <= spanTop) return;
+
+    let y = spanTop;
+    while (y < spanBottom){
+      drawTile(fb, tile, x, y, clipRect, transparent);
+      y += tile.h;
+      if (tile.h === 0) break;
+    }
+  }
+
+  /**
+   * Repeat tile over a rect (x..x+w, y..y+h) stepping by tile.w / tile.h.
+   * @param {Framebuffer} fb
+   * @param {Tile} tile
+   * @param {Rect} rect
+   * @param {Rect} clipRect
+   * @param {Set<string>} transparent
+   */
+  function repeatFill(fb, tile, rect, clipRect, transparent){
+    if (tile.isEmpty()) return;
+    if (rectIsEmpty(rect)) return;
+    if (tile.w <= 0 || tile.h <= 0) return;
+
+    let yy = rect.y;
+    while (yy < rect.y + rect.h){
+      let xx = rect.x;
+      while (xx < rect.x + rect.w){
+        drawTile(fb, tile, xx, yy, clipRect, transparent);
+        xx += tile.w;
+        if (tile.w === 0) break;
+      }
+      yy += tile.h;
+      if (tile.h === 0) break;
+    }
+  }
+
+  /**
+   * @typedef {object} TemplateTiles
+   * @property {Tile} corner_tl
+   * @property {Tile} corner_tr
+   * @property {Tile} corner_bl
+   * @property {Tile} corner_br
+   * @property {Tile} left_repeat
+   * @property {Tile} right_repeat
+   * @property {Tile} top_fill_left
+   * @property {Tile} top_fill_right
+   * @property {Tile} bottom_fill_left
+   * @property {Tile} bottom_fill_right
+   * @property {Tile} top_center
+   * @property {Tile} bottom_center
+   * @property {Tile} center_fill
+   */
+
+  /**
+   * Draw a frame per Panel Template Schema.
+   * @param {Framebuffer} fb
+   * @param {Rect} frameRect
+   * @param {TemplateTiles} tiles
+   * @param {{useTopCenter:boolean,useBottomCenter:boolean,useCenterFill:boolean,contentInset:(null|[number,number,number,number])}} opts
+   * @param {Set<string>} transparent
+   */
+  function getBandSizes(tiles, opts){
+    const topBandHeight = Math.max(
+      tiles.corner_tl.h,
+      tiles.corner_tr.h,
+      tiles.top_fill_left.h,
+      tiles.top_fill_right.h,
+      opts.useTopCenter ? tiles.top_center.h : 0
+    );
+
+    const bottomBandHeight = Math.max(
+      tiles.corner_bl.h,
+      tiles.corner_br.h,
+      tiles.bottom_fill_left.h,
+      tiles.bottom_fill_right.h,
+      opts.useBottomCenter ? tiles.bottom_center.h : 0
+    );
+
+    const leftBandWidth = Math.max(
+      tiles.left_repeat.w,
+      tiles.corner_tl.w,
+      tiles.corner_bl.w
+    );
+    const rightBandWidth = Math.max(
+      tiles.right_repeat.w,
+      tiles.corner_tr.w,
+      tiles.corner_br.w
+    );
+
+    return { topBandHeight, bottomBandHeight, leftBandWidth, rightBandWidth };
+  }
+
+  function getContentInset(tiles, opts, bands){
+    if (opts.contentInset) return opts.contentInset;
+    const b = bands ?? getBandSizes(tiles, opts);
+    return [b.leftBandWidth, b.topBandHeight, b.rightBandWidth, b.bottomBandHeight];
+  }
+
+  function drawFrame(fb, frameRect, tiles, opts, transparent){
+    if (frameRect.w <= 0 || frameRect.h <= 0) return;
+
+    const clipRect = frameRect;
+
+    const bands = getBandSizes(tiles, opts);
+    const topBandHeight = bands.topBandHeight;
+    const bottomBandHeight = bands.bottomBandHeight;
+
+    // Content inset policy
+    const inset = getContentInset(tiles, opts, bands);
+
+    const interior = {
+      x: frameRect.x + inset[0],
+      y: frameRect.y + inset[1],
+      w: frameRect.w - inset[0] - inset[2],
+      h: frameRect.h - inset[1] - inset[3],
+    };
+
+    // 1) Center fill (optional)
+    if (opts.useCenterFill && !tiles.center_fill.isEmpty()){
+      repeatFill(fb, tiles.center_fill, interior, clipRect, transparent);
+    }
+
+    // Helpers for top/bottom centers
+    const hasTopCenter = opts.useTopCenter && !tiles.top_center.isEmpty();
+    const hasBottomCenter = opts.useBottomCenter && !tiles.bottom_center.isEmpty();
+
+    const topLeftInset = Math.max(tiles.left_repeat.w, tiles.corner_tl.w);
+    const topRightInset = Math.max(tiles.right_repeat.w, tiles.corner_tr.w);
+    const bottomLeftInset = Math.max(tiles.left_repeat.w, tiles.corner_bl.w);
+    const bottomRightInset = Math.max(tiles.right_repeat.w, tiles.corner_br.w);
+
+    const topInnerLeft = frameRect.x + topLeftInset;
+    const topInnerRight = frameRect.x + frameRect.w - topRightInset;
+    const topInnerW = topInnerRight - topInnerLeft;
+
+    const bottomInnerLeft = frameRect.x + bottomLeftInset;
+    const bottomInnerRight = frameRect.x + frameRect.w - bottomRightInset;
+    const bottomInnerW = bottomInnerRight - bottomInnerLeft;
+
+    const topCenterX = hasTopCenter
+      ? topInnerLeft + Math.floor((topInnerW - tiles.top_center.w) / 2)
+      : 0;
+    const bottomCenterX = hasBottomCenter
+      ? bottomInnerLeft + Math.floor((bottomInnerW - tiles.bottom_center.w) / 2)
+      : 0;
+
+    // 2) Edge bands
+    // Top band: bottom-aligned within the top band
+    if (topBandHeight > 0){
+      const topY = frameRect.y;
+
+      // Place top_center (if present) horizontally centered
+      if (hasTopCenter){
+        const ty = topY + topBandHeight - tiles.top_center.h;
+        drawTile(fb, tiles.top_center, topCenterX, ty, clipRect, transparent);
+      }
+
+      // Fill left span with top_fill_left repeated
+      let spanLeft = topInnerLeft;
+      let spanRight = hasTopCenter ? topCenterX : topInnerRight;
+      const tflY = topY + topBandHeight - tiles.top_fill_left.h;
+      repeatX(fb, tiles.top_fill_left, tflY, spanLeft, spanRight, clipRect, transparent);
+
+      // Fill right span with top_fill_right repeated
+      spanLeft = hasTopCenter ? (topCenterX + tiles.top_center.w) : topInnerLeft;
+      spanRight = topInnerRight;
+      const tfrY = topY + topBandHeight - tiles.top_fill_right.h;
+      repeatX(fb, tiles.top_fill_right, tfrY, spanLeft, spanRight, clipRect, transparent);
+    }
+
+    // Bottom band: top-aligned within the bottom band
+    if (bottomBandHeight > 0){
+      const bottomY = frameRect.y + frameRect.h - bottomBandHeight;
+
+      if (hasBottomCenter){
+        const by = bottomY;
+        drawTile(fb, tiles.bottom_center, bottomCenterX, by, clipRect, transparent);
+      }
+
+      let spanLeft = bottomInnerLeft;
+      let spanRight = hasBottomCenter ? bottomCenterX : bottomInnerRight;
+      const bflY = bottomY;
+      repeatX(fb, tiles.bottom_fill_left, bflY, spanLeft, spanRight, clipRect, transparent);
+
+      spanLeft = hasBottomCenter ? (bottomCenterX + tiles.bottom_center.w) : bottomInnerLeft;
+      spanRight = bottomInnerRight;
+      const bfrY = bottomY;
+      repeatX(fb, tiles.bottom_fill_right, bfrY, spanLeft, spanRight, clipRect, transparent);
+    }
+
+    // Left band: repeat vertically between top and bottom bands
+    {
+      const spanTop = frameRect.y + topBandHeight;
+      const spanBottom = frameRect.y + frameRect.h - bottomBandHeight;
+      const lx = frameRect.x;
+      repeatY(fb, tiles.left_repeat, lx, spanTop, spanBottom, clipRect, transparent);
+    }
+
+    // Right band
+    {
+      const spanTop = frameRect.y + topBandHeight;
+      const spanBottom = frameRect.y + frameRect.h - bottomBandHeight;
+      const rx = frameRect.x + frameRect.w - tiles.right_repeat.w;
+      repeatY(fb, tiles.right_repeat, rx, spanTop, spanBottom, clipRect, transparent);
+    }
+
+    // 3) Corners last
+    drawTile(fb, tiles.corner_tl, frameRect.x, frameRect.y, clipRect, transparent);
+    drawTile(fb, tiles.corner_tr, frameRect.x + frameRect.w - tiles.corner_tr.w, frameRect.y, clipRect, transparent);
+    drawTile(fb, tiles.corner_bl, frameRect.x, frameRect.y + frameRect.h - tiles.corner_bl.h, clipRect, transparent);
+    drawTile(fb, tiles.corner_br,
+      frameRect.x + frameRect.w - tiles.corner_br.w,
+      frameRect.y + frameRect.h - tiles.corner_br.h,
+      clipRect,
+      transparent
+    );
+  }
+
+  // ------------------------------
+  // App State
+  // ------------------------------
+
+  /** @typedef {{id:string,name:string,x:number,y:number,w:number,h:number}} WindowDef */
+
+  const state = {
+    templateId: "default",
+    transparentChars: [" "],
+    useTopCenter: true,
+    useBottomCenter: false,
+    useCenterFill: false,
+    contentInset: /** @type {null|[number,number,number,number]} */ (null),
+
+    tilesText: /** @type {Record<string,string>} */ ({
+      corner_tl: "┌",
+      corner_tr: "┐",
+      corner_bl: "└",
+      corner_br: "┘",
+      left_repeat: "│",
+      right_repeat: "│",
+      top_fill_left: "─",
+      top_fill_right: "─",
+      bottom_fill_left: "─",
+      bottom_fill_right: "─",
+      top_center: "",
+      bottom_center: "",
+      center_fill: "",
+    }),
+
+    screenCols: 90,
+    screenRows: 32,
+    bgChar: "·",
+    notes: "",
+
+    /** @type {WindowDef[]} */
+    windows: [],
+
+    selectedWindowId: "",
+
+    // Derived
+    tiles: /** @type {TemplateTiles} */ (null),
+
+    // Mouse
+    mouseCellX: -1,
+    mouseCellY: -1,
+
+    // Export
+    lastExportJson: "",
+  };
+
+  function makeDefaultWindows(){
+    const w1 = { id: uuid(), name: "Window A", x: 3, y: 2, w: 36, h: 12 };
+    const w2 = { id: uuid(), name: "Window B", x: 18, y: 10, w: 42, h: 14 };
+    state.windows = [w1, w2];
+    state.selectedWindowId = w2.id;
+  }
+
+  makeDefaultWindows();
+
+  // ------------------------------
+  // DOM
+  // ------------------------------
+
+  const el = {
+    screen: document.getElementById("screen"),
+    mousePos: document.getElementById("mousePos"),
+    selPill: document.getElementById("selPill"),
+    status: document.getElementById("status"),
+    statusDetails: document.getElementById("statusDetails"),
+
+    // Tabs
+    tabs: Array.from(document.querySelectorAll(".tab")),
+    panes: {
+      template: document.getElementById("pane-template"),
+      windows: document.getElementById("pane-windows"),
+      screen: document.getElementById("pane-screen"),
+      help: document.getElementById("pane-help"),
+    },
+
+    // Template inputs
+    tplId: document.getElementById("tplId"),
+    transparentChars: document.getElementById("transparentChars"),
+    useTopCenter: document.getElementById("useTopCenter"),
+    useBottomCenter: document.getElementById("useBottomCenter"),
+    useCenterFill: document.getElementById("useCenterFill"),
+    contentInset: document.getElementById("contentInset"),
+
+    tile_corner_tl: document.getElementById("tile_corner_tl"),
+    tile_corner_tr: document.getElementById("tile_corner_tr"),
+    tile_corner_bl: document.getElementById("tile_corner_bl"),
+    tile_corner_br: document.getElementById("tile_corner_br"),
+    tile_left_repeat: document.getElementById("tile_left_repeat"),
+    tile_right_repeat: document.getElementById("tile_right_repeat"),
+    tile_top_fill_left: document.getElementById("tile_top_fill_left"),
+    tile_top_fill_right: document.getElementById("tile_top_fill_right"),
+    tile_bottom_fill_left: document.getElementById("tile_bottom_fill_left"),
+    tile_bottom_fill_right: document.getElementById("tile_bottom_fill_right"),
+    tile_top_center: document.getElementById("tile_top_center"),
+    tile_bottom_center: document.getElementById("tile_bottom_center"),
+    tile_center_fill: document.getElementById("tile_center_fill"),
+
+    btnResetTemplate: document.getElementById("btnResetTemplate"),
+
+    // Window UI
+    windowList: document.getElementById("windowList"),
+    btnAddWindow: document.getElementById("btnAddWindow"),
+
+    // Screen UI
+    screenCols: document.getElementById("screenCols"),
+    screenRows: document.getElementById("screenRows"),
+    bgChar: document.getElementById("bgChar"),
+    notes: document.getElementById("notes"),
+    btnSnapAll: document.getElementById("btnSnapAll"),
+    btnCenterSelected: document.getElementById("btnCenterSelected"),
+    btnBringFront: document.getElementById("btnBringFront"),
+    btnSendBack: document.getElementById("btnSendBack"),
+
+    // Export/Import
+    btnExport: document.getElementById("btnExport"),
+    btnImport: document.getElementById("btnImport"),
+    btnExportWindow: document.getElementById("btnExportWindow"),
+
+    // Export modal
+    exportBackdrop: document.getElementById("exportBackdrop"),
+    exportText: document.getElementById("exportText"),
+    exportMeta: document.getElementById("exportMeta"),
+    btnCloseExport: document.getElementById("btnCloseExport"),
+    btnDownloadExport: document.getElementById("btnDownloadExport"),
+    btnCopyExport: document.getElementById("btnCopyExport"),
+
+    // Help
+    schemaText: document.getElementById("schemaText"),
+  };
+
+  // Inject the schema text (kept inside this single HTML file)
+  el.schemaText.textContent = `# Panel Template Schema (Anchored, Overlappable, Clipped Bands)
+
+Purpose
+- Define an anchored ASCII frame compositor with variable tile sizes.
+- NOT a uniform 9-slice. Each tile is anchored to an edge/corner and may overlap.
+- All draws are clipped to the frame rectangle.
+
+Coordinate System
+- Origin (0,0) is top-left in cell coordinates.
+- X increases to the right, Y increases downward.
+- Frame rect: (x, y, w, h) in cells; w/h can be 0.
+
+Core Types
+
+Tile
+- A rectangular block of cells represented by rows of text.
+- Rows are strings; height = row count.
+- Width = max character count among rows (counting each glyph as width 1).
+- Short rows are padded on the right with spaces to width.
+- Transparency is per-character, using transparent_chars.
+
+TileStyle
+- Default style used when a tile draws non-transparent glyphs.
+- fg_index: 0..63 (palette index)
+- fg_style: 0..3 (2 bits reserved for shade shift or style)
+- bg_index: 0..63 (palette index)
+- bg_present: bool (if true, background is drawn for tile glyphs)
+- bg_blink: bool (optional flag; rendering system may toggle)
+- alpha: 0..255
+- transparent_chars: list of single-width glyphs treated as transparent (default [" "])
+
+TileOverride (optional)
+- per_cell_style: list of (x, y, TileStyle) overrides, 0-based within tile.
+- per_cell_glyph: list of (x, y, char) overrides.
+
+FrameTemplate (schema)
+- id: string
+- version: integer
+- tiles: Dictionary of tile definitions
+- layout: PanelLayout
+- content_inset: optional [left, top, right, bottom] in cells
+- notes: optional string
+
+PanelLayout
+- Required tiles:
+  - corner_tl, corner_tr, corner_bl, corner_br (TileRef)
+  - left_repeat, right_repeat (TileRef)
+  - top_fill_left, top_fill_right (TileRef)
+  - bottom_fill_left, bottom_fill_right (TileRef)
+- Optional tiles:
+  - top_center, bottom_center (TileRef)
+  - center_fill (TileRef)
+
+TileRef
+- id: string (key into tiles)
+- style: TileStyle
+- overrides: TileOverride (optional)
+- repeat_axis: "x" | "y" | "none" (default "none")
+
+Normalization Rules
+1) Tile width = max row length (in glyphs).
+2) Pad shorter rows with spaces to the max width.
+3) Height = number of rows (can be 0, treated as empty tile).
+4) Empty tiles do not draw, but still participate in band sizing if referenced.
+
+Band Sizing Rules
+- top_band_height = max height of:
+  corner_tl, corner_tr, top_fill_left, top_fill_right, top_center (if present)
+- bottom_band_height = max height of:
+  corner_bl, corner_br, bottom_fill_left, bottom_fill_right, bottom_center (if present)
+- left_band_width = max width of left_repeat, corner_tl, corner_bl
+- right_band_width = max width of right_repeat, corner_tr, corner_br
+- If any tile is missing or empty, its size is treated as 0.
+
+Band Alignment Rules
+- Top-band tiles are bottom-aligned within the top band:
+  tile_y = frame_y + top_band_height - tile_height
+- Bottom-band tiles are top-aligned within the bottom band:
+  tile_y = frame_y + frame_h - bottom_band_height
+- Left-band tiles are left-aligned:
+  tile_x = frame_x
+- Right-band tiles are right-aligned:
+  tile_x = frame_x + frame_w - tile_width
+- Corners anchor to their edges:
+  - TL: (frame_x, frame_y)
+  - TR: (frame_x + frame_w - w, frame_y)
+  - BL: (frame_x, frame_y + frame_h - h)
+  - BR: (frame_x + frame_w - w, frame_y + frame_h - h)
+
+Placement Rules (ordered draw with overlap)
+1) Center fill (optional)
+   - If center_fill exists, repeat it over the interior region.
+   - Interior region is based on content_inset if provided.
+   - Otherwise, interior = frame with:
+     left inset = left_band_width
+     right inset = right_band_width
+     top inset = top_band_height
+     bottom inset = bottom_band_height
+2) Edge bands (repeat tiles and clip)
+   - Top band:
+     - Compute top inner span:
+       top_inner_left = frame_x + max(left_repeat.w, corner_tl.w)
+       top_inner_right = frame_x + frame_w - max(right_repeat.w, corner_tr.w)
+     - Place top_center (if present) centered within top inner span.
+     - Fill left span with top_fill_left repeated (repeat_axis "x"):
+       span_left = top_inner_left
+       span_right = center_left if top_center exists else top_inner_right
+     - Fill right span with top_fill_right repeated:
+       span_left = center_right if top_center exists else top_inner_left
+       span_right = top_inner_right
+   - Bottom band:
+     - Same as top, using bottom corners:
+       bottom_inner_left = frame_x + max(left_repeat.w, corner_bl.w)
+       bottom_inner_right = frame_x + frame_w - max(right_repeat.w, corner_br.w)
+   - Left band:
+     - Repeat left_repeat vertically between:
+       span_top = frame_y + top_band_height
+       span_bottom = frame_y + frame_h - bottom_band_height
+   - Right band:
+     - Repeat right_repeat vertically between:
+       span_top = frame_y + top_band_height
+       span_bottom = frame_y + frame_h - bottom_band_height
+3) Corners last
+   - Draw TL, TR, BL, BR after all other tiles.
+
+Repeat Rules
+- For axis "x": positions increment by tile_width.
+- For axis "y": positions increment by tile_height.
+- The final tile may be partially clipped to fit the span.
+- If tile width/height is 0, skip the repeat.
+
+Clipping Rules
+- Every tile draw is clipped to the frame rect.
+- Overlaps are allowed; later draws overwrite earlier cells.
+- Transparent characters do not draw (leave underlying cells unchanged).
+
+Handling Small Frames
+- If frame width/height is less than tile sizes, tiles still draw anchored and clipped.
+- Spans can be negative; in that case, skip that span’s repeats.
+- Corners may overlap each other; clipping prevents out-of-bounds writes.
+
+Content Inset Policy
+- If content_inset is provided: [left, top, right, bottom] defines interior.
+- If not provided: use band thicknesses:
+  left = left_band_width, right = right_band_width,
+  top = top_band_height, bottom = bottom_band_height.
+- Corners may overlap into the interior; this is allowed.
+
+Edge Cases (explicit)
+- Top-center wider than frame: center tile is clipped but still centered.
+- Top-fill tiles narrower than remaining span: repeated; if span < tile width, only a clipped partial is drawn.
+- left_repeat height > vertical span: drawn once, clipped.
+- Transparent-only tiles: treated as empty, but may still affect band height if referenced.
+- Zero-sized frame: no draws.
+
+Acceptance Checks (examples)
+- Corner width != edge width (corner 6 wide, left edge 1 wide) must still anchor to edges.
+- Small frames where TL overlaps TR must render without errors (overlap allowed).
+- Top tiles with 1 row and corners with 2 rows must align to the bottom of the top band.`;
+
+  // ------------------------------
+  // Sync state <-> inputs
+  // ------------------------------
+
+  function setStatus(kind, text, details){
+    if (kind === "ok"){
+      el.status.textContent = text;
+      el.status.className = "status-ok";
+    } else if (kind === "warn"){
+      el.status.textContent = text;
+      el.status.className = "status-warn";
+    } else {
+      el.status.textContent = text;
+      el.status.className = "status-bad";
+    }
+    el.statusDetails.textContent = details ?? "";
+  }
+
+  function loadStateIntoInputs(){
+    el.tplId.value = state.templateId;
+    el.transparentChars.value = state.transparentChars.join("");
+    el.useTopCenter.value = state.useTopCenter ? "1" : "0";
+    el.useBottomCenter.value = state.useBottomCenter ? "1" : "0";
+    el.useCenterFill.value = state.useCenterFill ? "1" : "0";
+    el.contentInset.value = state.contentInset ? state.contentInset.join(",") : "";
+
+    el.tile_corner_tl.value = state.tilesText.corner_tl;
+    el.tile_corner_tr.value = state.tilesText.corner_tr;
+    el.tile_corner_bl.value = state.tilesText.corner_bl;
+    el.tile_corner_br.value = state.tilesText.corner_br;
+    el.tile_left_repeat.value = state.tilesText.left_repeat;
+    el.tile_right_repeat.value = state.tilesText.right_repeat;
+    el.tile_top_fill_left.value = state.tilesText.top_fill_left;
+    el.tile_top_fill_right.value = state.tilesText.top_fill_right;
+    el.tile_bottom_fill_left.value = state.tilesText.bottom_fill_left;
+    el.tile_bottom_fill_right.value = state.tilesText.bottom_fill_right;
+    el.tile_top_center.value = state.tilesText.top_center;
+    el.tile_bottom_center.value = state.tilesText.bottom_center;
+    el.tile_center_fill.value = state.tilesText.center_fill;
+
+    el.screenCols.value = String(state.screenCols);
+    el.screenRows.value = String(state.screenRows);
+    el.bgChar.value = state.bgChar;
+    el.notes.value = state.notes;
+  }
+
+  function readInputsIntoState(){
+    state.templateId = String(el.tplId.value ?? "default").trim() || "default";
+
+    const tchars = toGlyphs(String(el.transparentChars.value ?? ""));
+    state.transparentChars = tchars.length > 0 ? tchars : [" "];
+
+    state.useTopCenter = el.useTopCenter.value === "1";
+    state.useBottomCenter = el.useBottomCenter.value === "1";
+    state.useCenterFill = el.useCenterFill.value === "1";
+
+    const inset = parseInset(el.contentInset.value);
+    state.contentInset = inset;
+
+    state.tilesText.corner_tl = el.tile_corner_tl.value ?? "";
+    state.tilesText.corner_tr = el.tile_corner_tr.value ?? "";
+    state.tilesText.corner_bl = el.tile_corner_bl.value ?? "";
+    state.tilesText.corner_br = el.tile_corner_br.value ?? "";
+
+    state.tilesText.left_repeat = el.tile_left_repeat.value ?? "";
+    state.tilesText.right_repeat = el.tile_right_repeat.value ?? "";
+
+    state.tilesText.top_fill_left = el.tile_top_fill_left.value ?? "";
+    state.tilesText.top_fill_right = el.tile_top_fill_right.value ?? "";
+
+    state.tilesText.bottom_fill_left = el.tile_bottom_fill_left.value ?? "";
+    state.tilesText.bottom_fill_right = el.tile_bottom_fill_right.value ?? "";
+
+    state.tilesText.top_center = el.tile_top_center.value ?? "";
+    state.tilesText.bottom_center = el.tile_bottom_center.value ?? "";
+
+    state.tilesText.center_fill = el.tile_center_fill.value ?? "";
+
+    state.screenCols = clamp(parseIntSafe(el.screenCols.value, 90), 10, 240);
+    state.screenRows = clamp(parseIntSafe(el.screenRows.value, 32), 5, 120);
+    state.bgChar = safeSingleGlyph(el.bgChar.value, " ");
+    state.notes = String(el.notes.value ?? "");
+  }
+
+  function buildTiles(){
+    const make = (text) => new Tile(String(text ?? "").split(NL));
+    state.tiles = {
+      corner_tl: make(state.tilesText.corner_tl),
+      corner_tr: make(state.tilesText.corner_tr),
+      corner_bl: make(state.tilesText.corner_bl),
+      corner_br: make(state.tilesText.corner_br),
+
+      left_repeat: make(state.tilesText.left_repeat),
+      right_repeat: make(state.tilesText.right_repeat),
+
+      top_fill_left: make(state.tilesText.top_fill_left),
+      top_fill_right: make(state.tilesText.top_fill_right),
+
+      bottom_fill_left: make(state.tilesText.bottom_fill_left),
+      bottom_fill_right: make(state.tilesText.bottom_fill_right),
+
+      top_center: make(state.tilesText.top_center),
+      bottom_center: make(state.tilesText.bottom_center),
+      center_fill: make(state.tilesText.center_fill),
+    };
+  }
+
+  // ------------------------------
+  // Windows list UI
+  // ------------------------------
+
+  function getSelectedWindow(){
+    return state.windows.find(w => w.id === state.selectedWindowId) ?? null;
+  }
+
+  function selectWindow(id){
+    state.selectedWindowId = id;
+    renderWindowsList();
+    render();
+  }
+
+  function deleteSelectedWindow(){
+    if (!state.selectedWindowId) return;
+    const idx = state.windows.findIndex(w => w.id === state.selectedWindowId);
+    if (idx < 0) return;
+    state.windows.splice(idx, 1);
+    state.selectedWindowId = state.windows.length ? state.windows[Math.min(idx, state.windows.length - 1)].id : "";
+    renderWindowsList();
+    render();
+  }
+
+  function cycleSelection(dir){
+    if (state.windows.length === 0) return;
+    const idx = state.windows.findIndex(w => w.id === state.selectedWindowId);
+    const next = (idx < 0)
+      ? 0
+      : (idx + dir + state.windows.length) % state.windows.length;
+    selectWindow(state.windows[next].id);
+  }
+
+  function bringSelectedToFront(){
+    const idx = state.windows.findIndex(w => w.id === state.selectedWindowId);
+    if (idx < 0) return;
+    const w = state.windows.splice(idx, 1)[0];
+    state.windows.push(w);
+    renderWindowsList();
+    render();
+  }
+
+  function sendSelectedToBack(){
+    const idx = state.windows.findIndex(w => w.id === state.selectedWindowId);
+    if (idx < 0) return;
+    const w = state.windows.splice(idx, 1)[0];
+    state.windows.unshift(w);
+    renderWindowsList();
+    render();
+  }
+
+  function snapAllInsideScreen(){
+    for (const w of state.windows){
+      w.x = clamp(w.x, 0, Math.max(0, state.screenCols - 1));
+      w.y = clamp(w.y, 0, Math.max(0, state.screenRows - 1));
+      w.w = clamp(w.w, 0, state.screenCols);
+      w.h = clamp(w.h, 0, state.screenRows);
+    }
+    renderWindowsList();
+    render();
+  }
+
+  function centerSelected(){
+    const w = getSelectedWindow();
+    if (!w) return;
+    w.x = Math.floor((state.screenCols - w.w) / 2);
+    w.y = Math.floor((state.screenRows - w.h) / 2);
+    renderWindowsList();
+    render();
+  }
+
+  function renderWindowsList(){
+    el.windowList.innerHTML = "";
+
+    if (state.windows.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "hint";
+      empty.textContent = "No windows yet. Click + Add window.";
+      el.windowList.appendChild(empty);
+      el.selPill.innerHTML = "Selected: <b>—</b>";
+      return;
+    }
+
+    for (const w of state.windows){
+      const card = document.createElement("div");
+      card.className = "card" + (w.id === state.selectedWindowId ? " selected" : "");
+      card.addEventListener("click", () => selectWindow(w.id));
+
+      const head = document.createElement("div");
+      head.className = "head";
+
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = w.name;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = "x:" + w.x + " y:" + w.y + " w:" + w.w + " h:" + w.h;
+
+      head.appendChild(name);
+      head.appendChild(meta);
+
+      const grid = document.createElement("div");
+      grid.className = "small-grid";
+
+      const mkNum = (label, value, onChange) => {
+        const f = document.createElement("div");
+        f.className = "field";
+        const lab = document.createElement("label");
+        lab.textContent = label;
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.step = "1";
+        inp.value = String(value);
+        inp.addEventListener("input", () => onChange(parseIntSafe(inp.value, value)));
+        f.appendChild(lab);
+        f.appendChild(inp);
+        return f;
+      };
+
+      grid.appendChild(mkNum("x", w.x, (v)=>{ w.x = v; render(); renderWindowsList(); }));
+      grid.appendChild(mkNum("y", w.y, (v)=>{ w.y = v; render(); renderWindowsList(); }));
+      grid.appendChild(mkNum("w", w.w, (v)=>{ w.w = clamp(v, 0, 300); render(); renderWindowsList(); }));
+      grid.appendChild(mkNum("h", w.h, (v)=>{ w.h = clamp(v, 0, 300); render(); renderWindowsList(); }));
+
+      const row = document.createElement("div");
+      row.className = "row";
+      row.style.justifyContent = "space-between";
+
+      const nameField = document.createElement("div");
+      nameField.className = "field";
+      nameField.style.flex = "1";
+      const nameLab = document.createElement("label");
+      nameLab.textContent = "Name";
+      const nameInp = document.createElement("input");
+      nameInp.type = "text";
+      nameInp.value = w.name;
+      nameInp.addEventListener("input", () => {
+        w.name = String(nameInp.value ?? "");
+        renderWindowsList();
+        render();
+      });
+      nameField.appendChild(nameLab);
+      nameField.appendChild(nameInp);
+
+      const controls = document.createElement("div");
+      controls.className = "row";
+      controls.style.gap = "6px";
+
+      const btnDup = document.createElement("button");
+      btnDup.textContent = "Duplicate";
+      btnDup.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const copy = { ...w, id: uuid(), name: w.name + " (copy)", x: w.x + 2, y: w.y + 1 };
+        state.windows.push(copy);
+        selectWindow(copy.id);
+        renderWindowsList();
+        render();
+      });
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent = "Delete";
+      btnDel.className = "danger";
+      btnDel.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (w.id === state.selectedWindowId){
+          deleteSelectedWindow();
+        } else {
+          const i = state.windows.findIndex(z => z.id === w.id);
+          if (i >= 0) state.windows.splice(i, 1);
+          renderWindowsList();
+          render();
+        }
+      });
+
+      controls.appendChild(btnDup);
+      controls.appendChild(btnDel);
+
+      row.appendChild(nameField);
+      row.appendChild(controls);
+
+      card.appendChild(head);
+      card.appendChild(grid);
+      card.appendChild(row);
+
+      el.windowList.appendChild(card);
+    }
+
+    const sel = getSelectedWindow();
+    el.selPill.innerHTML = "Selected: <b>" + (sel ? sel.name : "—") + "</b>";
+  }
+
+  // ------------------------------
+  // Render
+  // ------------------------------
+
+  /** @type {Framebuffer} */
+  let framebuffer = null;
+
+  function render(){
+    readInputsIntoState();
+    buildTiles();
+
+    framebuffer = new Framebuffer(state.screenCols, state.screenRows, state.bgChar);
+    const transparent = new Set(state.transparentChars);
+    const drawOpts = {
+      useTopCenter: state.useTopCenter,
+      useBottomCenter: state.useBottomCenter,
+      useCenterFill: state.useCenterFill,
+      contentInset: state.contentInset,
+    };
+    const bands = getBandSizes(state.tiles, drawOpts);
+    const inset = getContentInset(state.tiles, drawOpts, bands);
+
+    for (const w of state.windows){
+      drawFrame(
+        framebuffer,
+        {x: w.x, y: w.y, w: w.w, h: w.h},
+        state.tiles,
+        drawOpts,
+        transparent
+      );
+
+      // Window name overlay (subtle)
+      const content = {
+        x: w.x + inset[0],
+        y: w.y + inset[1],
+        w: w.w - inset[0] - inset[2],
+        h: w.h - inset[1] - inset[3],
+      };
+      if (content.w > 0 && content.h > 0){
+        const nameGlyphs = toGlyphs(w.name);
+        const nx = content.x;
+        const ny = content.y;
+        for (let i = 0; i < nameGlyphs.length; i++){
+          const xx = nx + i;
+          if (xx >= content.x && xx < content.x + content.w && ny >= content.y && ny < content.y + content.h){
+            if (!transparent.has(nameGlyphs[i])){
+              framebuffer.set(xx, ny, nameGlyphs[i]);
+            }
+          }
+        }
+      }
+
+      // Selected corner markers (drawn last)
+      if (w.id === state.selectedWindowId){
+        const mark = "•";
+        framebuffer.set(w.x, w.y, mark);
+        framebuffer.set(w.x + w.w - 1, w.y, mark);
+        framebuffer.set(w.x, w.y + w.h - 1, mark);
+        framebuffer.set(w.x + w.w - 1, w.y + w.h - 1, mark);
+      }
+    }
+
+    el.screen.textContent = framebuffer.toString();
+
+    const sel = getSelectedWindow();
+    const selInfo = sel ? ("sel(x:" + sel.x + " y:" + sel.y + " w:" + sel.w + " h:" + sel.h + ")") : "no selection";
+    setStatus("ok", "Ready", state.screenCols + "x" + state.screenRows + " · " + state.templateId + " · " + selInfo);
+  }
+
+  // ------------------------------
+  // Tabs
+  // ------------------------------
+
+  function setActiveTab(tabKey){
+    for (const t of el.tabs){
+      const active = t.dataset.tab === tabKey;
+      t.classList.toggle("active", active);
+      t.setAttribute("aria-selected", active ? "true" : "false");
+    }
+    for (const [k, pane] of Object.entries(el.panes)){
+      pane.classList.toggle("active", k === tabKey);
+    }
+  }
+
+  for (const t of el.tabs){
+    t.addEventListener("click", () => {
+      setActiveTab(String(t.dataset.tab));
+    });
+  }
+
+  // ------------------------------
+  // Mouse -> cell mapping
+  // ------------------------------
+
+  let charMetrics = { w: 9, h: 16 };
+
+  function measureCharMetrics(){
+    const probe = document.createElement("span");
+    probe.style.position = "absolute";
+    probe.style.left = "-9999px";
+    probe.style.top = "-9999px";
+    probe.style.whiteSpace = "pre";
+    probe.style.fontFamily = getComputedStyle(el.screen).fontFamily;
+    probe.style.fontSize = getComputedStyle(el.screen).fontSize;
+    probe.style.lineHeight = getComputedStyle(el.screen).lineHeight;
+    probe.textContent = "M" + NL + "M";
+    document.body.appendChild(probe);
+    const rect = probe.getBoundingClientRect();
+    document.body.removeChild(probe);
+
+    const probe2 = document.createElement("span");
+    probe2.style.position = "absolute";
+    probe2.style.left = "-9999px";
+    probe2.style.top = "-9999px";
+    probe2.style.whiteSpace = "pre";
+    probe2.style.fontFamily = getComputedStyle(el.screen).fontFamily;
+    probe2.style.fontSize = getComputedStyle(el.screen).fontSize;
+    probe2.style.lineHeight = getComputedStyle(el.screen).lineHeight;
+    probe2.textContent = "MMMMMMMMMM";
+    document.body.appendChild(probe2);
+    const rect2 = probe2.getBoundingClientRect();
+    document.body.removeChild(probe2);
+
+    const w = rect2.width / 10;
+    const h = rect.height / 2;
+
+    if (Number.isFinite(w) && w > 1) charMetrics.w = w;
+    if (Number.isFinite(h) && h > 1) charMetrics.h = h;
+  }
+
+  function getCellFromPointerEvent(ev){
+    // IMPORTANT: pre has padding and a border; the text grid starts after those.
+    const preRect = el.screen.getBoundingClientRect();
+    const style = getComputedStyle(el.screen);
+
+    const padLeft = parseFloat(style.paddingLeft || "0") || 0;
+    const padTop = parseFloat(style.paddingTop || "0") || 0;
+    const borderLeft = parseFloat(style.borderLeftWidth || "0") || 0;
+    const borderTop = parseFloat(style.borderTopWidth || "0") || 0;
+
+    const xPx = (ev.clientX - preRect.left) - padLeft - borderLeft;
+    const yPx = (ev.clientY - preRect.top) - padTop - borderTop;
+
+    const cx = Math.floor(xPx / charMetrics.w);
+    const cy = Math.floor(yPx / charMetrics.h);
+
+    return { cx, cy };
+  }
+
+  // ------------------------------
+  // Picking windows
+  // ------------------------------
+
+  function pickWindowAtCell(cx, cy){
+    for (let i = state.windows.length - 1; i >= 0; i--){
+      const w = state.windows[i];
+      if (cx >= w.x && cy >= w.y && cx < w.x + w.w && cy < w.y + w.h){
+        return w.id;
+      }
+    }
+    return "";
+  }
+
+  // ------------------------------
+  // Dragging
+  // ------------------------------
+
+  let drag = {
+    active: false,
+    winId: "",
+    offsetX: 0,
+    offsetY: 0,
+  };
+
+  function beginDrag(winId, cx, cy){
+    const w = state.windows.find(z => z.id === winId);
+    if (!w) return;
+    drag.active = true;
+    drag.winId = winId;
+    drag.offsetX = cx - w.x;
+    drag.offsetY = cy - w.y;
+    selectWindow(winId);
+  }
+
+  function updateDrag(cx, cy){
+    if (!drag.active) return;
+    const w = state.windows.find(z => z.id === drag.winId);
+    if (!w) return;
+
+    w.x = cx - drag.offsetX;
+    w.y = cy - drag.offsetY;
+
+    w.x = clamp(w.x, -200, 2000);
+    w.y = clamp(w.y, -200, 2000);
+
+    renderWindowsList();
+    render();
+  }
+
+  function endDrag(){
+    drag.active = false;
+    drag.winId = "";
+  }
+
+  // ------------------------------
+  // Keyboard controls
+  // ------------------------------
+
+  function nudgeSelected(dx, dy, step){
+    const w = getSelectedWindow();
+    if (!w) return;
+    w.x += dx * step;
+    w.y += dy * step;
+    renderWindowsList();
+    render();
+  }
+
+  function onKeyDown(ev){
+    const key = ev.key;
+
+    // If export modal is open, let Escape close it.
+    if (isExportOpen()){
+      if (key === "Escape"){
+        ev.preventDefault();
+        closeExportModal();
+      }
+      return;
+    }
+
+    if (key === "Tab"){
+      ev.preventDefault();
+      cycleSelection(ev.shiftKey ? -1 : 1);
+      return;
+    }
+
+    if (key === "Delete" || key === "Backspace"){
+      const tag = (document.activeElement?.tagName ?? "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      ev.preventDefault();
+      deleteSelectedWindow();
+      return;
+    }
+
+    const step = ev.altKey ? 10 : (ev.shiftKey ? 5 : 1);
+
+    if (key === "ArrowLeft"){
+      ev.preventDefault();
+      nudgeSelected(-1, 0, step);
+      return;
+    }
+    if (key === "ArrowRight"){
+      ev.preventDefault();
+      nudgeSelected(1, 0, step);
+      return;
+    }
+    if (key === "ArrowUp"){
+      ev.preventDefault();
+      nudgeSelected(0, -1, step);
+      return;
+    }
+    if (key === "ArrowDown"){
+      ev.preventDefault();
+      nudgeSelected(0, 1, step);
+      return;
+    }
+  }
+
+  // ------------------------------
+  // Export / Import (clipboard-safe)
+  // ------------------------------
+
+  function getExportObject(){
+    return {
+      version: 1,
+      template: {
+        id: state.templateId,
+        transparent_chars: state.transparentChars,
+        useTopCenter: state.useTopCenter,
+        useBottomCenter: state.useBottomCenter,
+        useCenterFill: state.useCenterFill,
+        content_inset: state.contentInset,
+        tiles_text: { ...state.tilesText },
+      },
+      screen: {
+        cols: state.screenCols,
+        rows: state.screenRows,
+        bg: state.bgChar,
+      },
+      windows: state.windows.map(w => ({...w})),
+      notes: state.notes,
+    };
+  }
+
+  function buildExportJsonString(){
+    readInputsIntoState();
+    const obj = getExportObject();
+    return JSON.stringify(obj, null, 2);
+  }
+
+  function measureUtf8Bytes(text){
+    if (typeof globalThis.TextEncoder === "function"){
+      return new TextEncoder().encode(text).length;
+    }
+    return String(text).length;
+  }
+
+  async function copyTextWithFallback(text){
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function"){
+      try{
+        await navigator.clipboard.writeText(text);
+        return { ok: true, method: "clipboard" };
+      } catch {}
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try{
+      const ok = document.execCommand("copy");
+      return { ok: ok, method: "execCommand" };
+    } catch {
+      return { ok: false, method: "none" };
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  function isExportOpen(){
+    return el.exportBackdrop.classList.contains("show");
+  }
+
+  function openExportModal(json){
+    state.lastExportJson = json;
+    el.exportText.value = json;
+    el.exportMeta.textContent = "bytes:" + String(measureUtf8Bytes(json));
+    el.exportBackdrop.classList.add("show");
+    el.exportBackdrop.setAttribute("aria-hidden", "false");
+
+    // Focus the textarea so manual copy is easy.
+    setTimeout(() => {
+      el.exportText.focus();
+      el.exportText.select();
+    }, 0);
+  }
+
+  function closeExportModal(){
+    el.exportBackdrop.classList.remove("show");
+    el.exportBackdrop.setAttribute("aria-hidden", "true");
+
+    // Return focus to preview for keyboard movement.
+    el.screen.focus();
+  }
+
+  function downloadTextFile(filename, text, mime){
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  async function tryCopyText(text){
+    // Clipboard API is often blocked by sandbox permissions policies.
+    // We attempt it only on explicit user action, and fall back cleanly.
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function"){
+      try{
+        await navigator.clipboard.writeText(text);
+        return { ok: true, method: "clipboard" };
+      } catch (err){
+        // Continue to fallback.
+      }
+    }
+
+    // Fallback: execCommand copy (best-effort)
+    try{
+      el.exportText.focus();
+      el.exportText.select();
+      const ok = document.execCommand("copy");
+      return { ok: ok, method: "execCommand" };
+    } catch {
+      return { ok: false, method: "none" };
+    }
+  }
+
+  async function exportJson(){
+    try{
+      const json = buildExportJsonString();
+      openExportModal(json);
+      setStatus("ok", "Export ready", "Opened export modal" );
+    } catch (err){
+      console.error(err);
+      setStatus("bad", "Export failed", String(err));
+    }
+  }
+
+  async function exportWindowText(){
+    const text = el.screen.textContent ?? "";
+    if (!text){
+      setStatus("warn", "Nothing to export", "Preview is empty");
+      return;
+    }
+    const res = await copyTextWithFallback(text);
+    if (res.ok){
+      setStatus("ok", "Window copied", "Method: " + res.method);
+    } else {
+      setStatus("warn", "Copy blocked", "Select the preview text and copy manually");
+    }
+  }
+
+  async function importJson(){
+    try{
+      const text = window.prompt("Paste JSON to import:");
+      if (!text) return;
+      const obj = JSON.parse(text);
+
+      if (!obj || typeof obj !== "object") throw new Error("Invalid JSON root");
+      if (!obj.template || !obj.screen || !Array.isArray(obj.windows)) throw new Error("Missing required fields");
+
+      state.templateId = String(obj.template.id ?? "default");
+      state.transparentChars = Array.isArray(obj.template.transparent_chars) && obj.template.transparent_chars.length
+        ? obj.template.transparent_chars.map(String)
+        : [" "];
+      state.useTopCenter = Boolean(obj.template.useTopCenter);
+      state.useBottomCenter = Boolean(obj.template.useBottomCenter);
+      state.useCenterFill = Boolean(obj.template.useCenterFill);
+      state.contentInset = Array.isArray(obj.template.content_inset) && obj.template.content_inset.length === 4
+        ? /** @type {[number,number,number,number]} */ (obj.template.content_inset.map(n => parseIntSafe(n, 0)))
+        : null;
+
+      if (obj.template.tiles_text && typeof obj.template.tiles_text === "object"){
+        for (const k of Object.keys(state.tilesText)){
+          if (k in obj.template.tiles_text){
+            state.tilesText[k] = String(obj.template.tiles_text[k] ?? "");
+          }
+        }
+      }
+
+      state.screenCols = clamp(parseIntSafe(obj.screen.cols, state.screenCols), 10, 240);
+      state.screenRows = clamp(parseIntSafe(obj.screen.rows, state.screenRows), 5, 120);
+      state.bgChar = safeSingleGlyph(obj.screen.bg, state.bgChar);
+
+      state.windows = obj.windows.map(w => ({
+        id: String(w.id ?? uuid()),
+        name: String(w.name ?? "Window"),
+        x: parseIntSafe(w.x, 0),
+        y: parseIntSafe(w.y, 0),
+        w: clamp(parseIntSafe(w.w, 20), 0, 500),
+        h: clamp(parseIntSafe(w.h, 10), 0, 500),
+      }));
+      state.selectedWindowId = state.windows.length ? state.windows[state.windows.length - 1].id : "";
+
+      state.notes = String(obj.notes ?? "");
+
+      loadStateIntoInputs();
+      renderWindowsList();
+      render();
+      setStatus("ok", "Imported", "Loaded " + state.windows.length + " window(s)");
+    } catch (err){
+      console.error(err);
+      setStatus("bad", "Import failed", String(err));
+    }
+  }
+
+  // ------------------------------
+  // Template presets
+  // ------------------------------
+
+  function resetTemplate(){
+    state.templateId = "default";
+    state.transparentChars = [" "];
+    state.useTopCenter = true;
+    state.useBottomCenter = false;
+    state.useCenterFill = false;
+    state.contentInset = null;
+
+    state.tilesText.corner_tl = "┌";
+    state.tilesText.corner_tr = "┐";
+    state.tilesText.corner_bl = "└";
+    state.tilesText.corner_br = "┘";
+    state.tilesText.left_repeat = "│";
+    state.tilesText.right_repeat = "│";
+    state.tilesText.top_fill_left = "─";
+    state.tilesText.top_fill_right = "─";
+    state.tilesText.bottom_fill_left = "─";
+    state.tilesText.bottom_fill_right = "─";
+    state.tilesText.top_center = "";
+    state.tilesText.bottom_center = "";
+    state.tilesText.center_fill = "";
+
+    loadStateIntoInputs();
+    renderWindowsList();
+    render();
+    setStatus("ok", "Template reset", "Back to simple box drawing" );
+  }
+
+  // ------------------------------
+  // Event wiring
+  // ------------------------------
+
+  function hookLiveInputs(){
+    const live = [
+      el.tplId,
+      el.transparentChars,
+      el.useTopCenter,
+      el.useBottomCenter,
+      el.useCenterFill,
+      el.contentInset,
+      el.tile_corner_tl,
+      el.tile_corner_tr,
+      el.tile_corner_bl,
+      el.tile_corner_br,
+      el.tile_left_repeat,
+      el.tile_right_repeat,
+      el.tile_top_fill_left,
+      el.tile_top_fill_right,
+      el.tile_bottom_fill_left,
+      el.tile_bottom_fill_right,
+      el.tile_top_center,
+      el.tile_bottom_center,
+      el.tile_center_fill,
+      el.screenCols,
+      el.screenRows,
+      el.bgChar,
+      el.notes,
+    ];
+
+    for (const input of live){
+      input.addEventListener("input", () => {
+        render();
+        renderWindowsList();
+      });
+      input.addEventListener("change", () => {
+        render();
+        renderWindowsList();
+      });
+    }
+  }
+
+  el.screen.addEventListener("pointermove", (ev) => {
+    const { cx, cy } = getCellFromPointerEvent(ev);
+    state.mouseCellX = cx;
+    state.mouseCellY = cy;
+    el.mousePos.textContent = cx + "," + cy;
+
+    if (drag.active){
+      updateDrag(cx, cy);
+    }
+  });
+
+  el.screen.addEventListener("pointerdown", (ev) => {
+    if (isExportOpen()) return;
+
+    el.screen.focus();
+    el.screen.setPointerCapture(ev.pointerId);
+    const { cx, cy } = getCellFromPointerEvent(ev);
+
+    const picked = pickWindowAtCell(cx, cy);
+    if (picked){
+      beginDrag(picked, cx, cy);
+    } else {
+      state.selectedWindowId = "";
+      renderWindowsList();
+      render();
+    }
+  });
+
+  el.screen.addEventListener("pointerup", (ev) => {
+    try{ el.screen.releasePointerCapture(ev.pointerId); } catch {}
+    endDrag();
+  });
+
+  el.screen.addEventListener("pointercancel", () => endDrag());
+
+  document.addEventListener("keydown", onKeyDown);
+
+  el.btnAddWindow.addEventListener("click", () => {
+    const n = state.windows.length + 1;
+    const w = {
+      id: uuid(),
+      name: "Window " + n,
+      x: 2 + (n * 2),
+      y: 2 + (n),
+      w: 34,
+      h: 12,
+    };
+    state.windows.push(w);
+    selectWindow(w.id);
+    renderWindowsList();
+    render();
+  });
+
+  el.btnResetTemplate.addEventListener("click", resetTemplate);
+  el.btnExport.addEventListener("click", exportJson);
+  el.btnImport.addEventListener("click", importJson);
+  el.btnExportWindow.addEventListener("click", exportWindowText);
+
+  el.btnSnapAll.addEventListener("click", () => { snapAllInsideScreen(); setStatus("ok", "Snapped", "Windows clamped to screen bounds"); });
+  el.btnCenterSelected.addEventListener("click", () => { centerSelected(); setStatus("ok", "Centered", "Selected window centered" ); });
+  el.btnBringFront.addEventListener("click", () => { bringSelectedToFront(); setStatus("ok", "Z-order", "Selected brought to front" ); });
+  el.btnSendBack.addEventListener("click", () => { sendSelectedToBack(); setStatus("ok", "Z-order", "Selected sent to back" ); });
+
+  // Export modal actions
+  el.btnCloseExport.addEventListener("click", closeExportModal);
+  el.exportBackdrop.addEventListener("click", (ev) => {
+    if (ev.target === el.exportBackdrop) closeExportModal();
+  });
+
+  el.btnDownloadExport.addEventListener("click", () => {
+    const json = state.lastExportJson || buildExportJsonString();
+    const safeId = (state.templateId || "ascii-window-builder").replaceAll(" ", "-").toLowerCase();
+    const filename = safeId + ".json";
+    downloadTextFile(filename, json, "application/json" );
+    setStatus("ok", "Downloaded", filename);
+  });
+
+  el.btnCopyExport.addEventListener("click", async () => {
+    const json = state.lastExportJson || buildExportJsonString();
+    const res = await tryCopyText(json);
+    if (res.ok){
+      setStatus("ok", "Copied", "Method: " + res.method);
+    } else {
+      setStatus("warn", "Copy blocked", "Select the text and copy manually");
+    }
+  });
+
+  // ------------------------------
+  // Self tests (lightweight)
+  // ------------------------------
+
+  function assertEq(name, actual, expected){
+    if (actual !== expected){
+      throw new Error("Test failed: " + name + " (expected: " + JSON.stringify(expected) + ", got: " + JSON.stringify(actual) + ")");
+    }
+  }
+
+  function runSelfTests(){
+    // 1) Tile normalization / padding
+    {
+      const t = new Tile(["ab", "c"]);
+      assertEq("Tile width", t.w, 2);
+      assertEq("Tile height", t.h, 2);
+      assertEq("Tile pad", t.rows[1].join(""), "c ");
+    }
+
+    // 2) Basic box render
+    {
+      const tiles = {
+        corner_tl: new Tile(["┌"]),
+        corner_tr: new Tile(["┐"]),
+        corner_bl: new Tile(["└"]),
+        corner_br: new Tile(["┘"]),
+        left_repeat: new Tile(["│"]),
+        right_repeat: new Tile(["│"]),
+        top_fill_left: new Tile(["─"]),
+        top_fill_right: new Tile(["─"]),
+        bottom_fill_left: new Tile(["─"]),
+        bottom_fill_right: new Tile(["─"]),
+        top_center: new Tile([]),
+        bottom_center: new Tile([]),
+        center_fill: new Tile([]),
+      };
+
+      const fb = new Framebuffer(5, 3, " ");
+      drawFrame(fb, {x:0,y:0,w:5,h:3}, tiles, {useTopCenter:false,useBottomCenter:false,useCenterFill:false,contentInset:null}, new Set([" "]));
+
+      const got = fb.toString();
+      const expected = ["┌───┐","│   │","└───┘"].join(NL);
+      assertEq("Basic box", got, expected);
+    }
+
+    // 3) Top band bottom-alignment (corners 2-high, top fill 1-high must sit on row 1)
+    {
+      const tiles = {
+        corner_tl: new Tile(["╔","║"]),
+        corner_tr: new Tile(["╗","║"]),
+        corner_bl: new Tile(["╚"]),
+        corner_br: new Tile(["╝"]),
+        left_repeat: new Tile(["║"]),
+        right_repeat: new Tile(["║"]),
+        top_fill_left: new Tile(["═"]),
+        top_fill_right: new Tile(["═"]),
+        bottom_fill_left: new Tile(["═"]),
+        bottom_fill_right: new Tile(["═"]),
+        top_center: new Tile([]),
+        bottom_center: new Tile([]),
+        center_fill: new Tile([]),
+      };
+
+      const fb = new Framebuffer(6, 4, " ");
+      drawFrame(fb, {x:0,y:0,w:6,h:4}, tiles, {useTopCenter:false,useBottomCenter:false,useCenterFill:false,contentInset:null}, new Set([" "]));
+
+      // Row 1, columns 1..4 should be '═'
+      const row1 = fb.cells.slice(1 * 6, 2 * 6);
+      assertEq("Top fill aligned", row1.slice(1,5).join(""), "════");
+    }
+
+    console.log("Self tests passed");
+    return true;
+  }
+
+  // ------------------------------
+  // Init
+  // ------------------------------
+
+  loadStateIntoInputs();
+  hookLiveInputs();
+  renderWindowsList();
+
+  requestAnimationFrame(() => {
+    measureCharMetrics();
+    render();
+
+    try{
+      runSelfTests();
+    } catch (err){
+      console.error(err);
+      setStatus("bad", "Self-test failed", String(err));
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    measureCharMetrics();
+  });
+
+</script>
+</body>
+</html>
