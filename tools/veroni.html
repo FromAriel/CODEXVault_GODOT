@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Shard Splat Explosion (No Dependencies)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #05040a;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #f8ecff;
+    }
+
+    #splatCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #05040a;
+    }
+
+    .controls {
+      position: fixed;
+      top: 0.75rem;
+      right: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(10, 5, 20, 0.94);
+      box-shadow:
+        0 0 18px rgba(255, 120, 200, 0.35),
+        0 0 1px rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .controls span {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .controls button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.32rem 0.8rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: radial-gradient(circle at 25% 0, #ff99dd 0, #ff4fa7 45%, #b12093 100%);
+      color: #180515;
+      box-shadow:
+        0 0 12px rgba(255, 105, 180, 0.7),
+        0 0 0 1px rgba(255, 220, 255, 0.5);
+      transition:
+        transform 0.12s ease-out,
+        box-shadow 0.12s ease-out,
+        filter 0.12s ease-out;
+      white-space: nowrap;
+    }
+
+    .controls button.secondary {
+      background: radial-gradient(circle at 25% 0, #b8a4ff 0, #7e60ff 45%, #4030a0 100%);
+      color: #08010a;
+      box-shadow:
+        0 0 12px rgba(127, 102, 255, 0.7),
+        0 0 0 1px rgba(210, 200, 255, 0.5);
+    }
+
+    .controls button:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow:
+        0 0 18px rgba(255, 105, 180, 0.9),
+        0 0 0 1px rgba(255, 240, 255, 0.7);
+      filter: brightness(1.05);
+    }
+
+    .controls button.secondary:hover {
+      box-shadow:
+        0 0 18px rgba(127, 102, 255, 0.9),
+        0 0 0 1px rgba(235, 230, 255, 0.7);
+    }
+
+    .controls button:active {
+      transform: translateY(0px) scale(0.98);
+      filter: brightness(0.95);
+    }
+
+    @media (max-width: 600px) {
+      .controls {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        padding-inline: 0.5rem;
+      }
+      .controls span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="splatCanvas"></canvas>
+
+  <div class="controls">
+    <span>Shard Splat</span>
+    <button id="replayButton" class="secondary" type="button">Replay</button>
+    <button id="pauseButton" type="button">Pause</button>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /**
+       * Shard = one polygon fragment of the splat.
+       */
+      /**
+       * @typedef {Object} Shard
+       * @property {"core" | "ring" | "outer"} role
+       * @property {Array<[number, number]>} points0
+       * @property {number} cx0
+       * @property {number} cy0
+       * @property {number} dirX
+       * @property {number} dirY
+       * @property {number} baseAlpha
+       * @property {number} fillR
+       * @property {number} fillG
+       * @property {number} fillB
+       * @property {number} strokeR
+       * @property {number} strokeG
+       * @property {number} strokeB
+       * @property {number} lineWidth
+       * @property {boolean} pops
+       * @property {number} explodeDelay
+       * @property {number} maxTravel
+       * @property {number} maxScale
+       * @property {number} spin
+       * @property {number} wobblePhase
+       */
+
+      /** @type {HTMLCanvasElement | null} */
+      var canvas = document.getElementById("splatCanvas");
+      if (!canvas) {
+        throw new Error("Canvas element #splatCanvas not found.");
+      }
+
+      /** @type {CanvasRenderingContext2D | null} */
+      var ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("2D canvas context not available.");
+      }
+
+      var width = 0;
+      var height = 0;
+
+      /** Animation timing (seconds) */
+      var PRE_EXPLODE_TIME = 0.7;
+      var EXPLOSION_TIME = 0.85;
+      var DRIFT_TIME = 1.4;
+      var EXTRA_HOLD_TIME = 0.4;
+      var TOTAL_TIME = PRE_EXPLODE_TIME + EXPLOSION_TIME + DRIFT_TIME + EXTRA_HOLD_TIME;
+
+      /** @type {Shard[]} */
+      var shards = [];
+
+      var animationStartTime = 0;
+      var isPaused = false;
+      var pausedAt = 0;
+
+      /** Utilities **/
+      function randBetween(min, max) {
+        return min + (max - min) * Math.random();
+      }
+
+      function clamp(v, min, max) {
+        if (v < min) {
+          return min;
+        }
+        if (v > max) {
+          return max;
+        }
+        return v;
+      }
+
+      function easeOutCubic(t) {
+        var u = 1 - t;
+        return 1 - u * u * u;
+      }
+
+      function easeInOutCubic(t) {
+        if (t < 0.5) {
+          var p = t * 2;
+          return 0.5 * p * p * p;
+        }
+        var q = (t - 0.5) * 2;
+        var u = 1 - q;
+        return 1 - 0.5 * u * u * u;
+      }
+
+      function hexToRgb(hex) {
+        var clean = hex.replace("#", "");
+        if (clean.length !== 6) {
+          throw new Error("hexToRgb expects a 6-digit hex.");
+        }
+        var num = parseInt(clean, 16);
+        var r = (num >> 16) & 255;
+        var g = (num >> 8) & 255;
+        var b = num & 255;
+        return { r: r, g: g, b: b };
+      }
+
+      function jitterColor(rgb, amount) {
+        var r = clamp(rgb.r + randBetween(-amount, amount), 0, 255);
+        var g = clamp(rgb.g + randBetween(-amount, amount), 0, 255);
+        var b = clamp(rgb.b + randBetween(-amount, amount), 0, 255);
+        return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
+      }
+
+      function makeRgba(r, g, b, a) {
+        return "rgba(" + r + "," + g + "," + b + "," + a.toFixed(3) + ")";
+      }
+
+      function resizeCanvas() {
+        var ratio = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        var displayWidth = Math.floor(width * ratio);
+        var displayHeight = Math.floor(height * ratio);
+        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+          canvas.width = displayWidth;
+          canvas.height = displayHeight;
+        }
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      /**
+       * Create and push a shard with the given polygon + role.
+       */
+      function addShard(points, role, centerX, centerY, coreRadius, outerRadius, colors) {
+        var i;
+        var sumX = 0;
+        var sumY = 0;
+        for (i = 0; i < points.length; i += 1) {
+          sumX += points[i][0];
+          sumY += points[i][1];
+        }
+        var cx0 = sumX / points.length;
+        var cy0 = sumY / points.length;
+
+        var dirX = cx0 - centerX;
+        var dirY = cy0 - centerY;
+        var lenSq = dirX * dirX + dirY * dirY;
+        var distFromCenter;
+        if (lenSq < 1e-6) {
+          var a = randBetween(0, Math.PI * 2);
+          dirX = Math.cos(a);
+          dirY = Math.sin(a);
+          distFromCenter = 1;
+        } else {
+          var len = Math.sqrt(lenSq);
+          dirX = dirX / len;
+          dirY = dirY / len;
+          distFromCenter = len;
+        }
+
+        var pops;
+        var baseAlpha;
+        var lineWidth;
+        var maxTravel;
+        var maxScale;
+        var explodeDelay;
+        var fillRgb;
+        var strokeRgb;
+
+        if (role === "core") {
+          pops = true;
+          baseAlpha = 1.0;
+          lineWidth = 1.2;
+          maxTravel = outerRadius * randBetween(0.42, 0.55);
+          maxScale = randBetween(1.5, 1.9);
+          explodeDelay = randBetween(0.0, 0.12);
+          fillRgb = jitterColor(colors.coreFill, 10);
+          strokeRgb = jitterColor(colors.coreStroke, 8);
+        } else if (role === "ring") {
+          pops = Math.random() < 0.6;
+          baseAlpha = pops ? 0.98 : 0.92;
+          lineWidth = pops ? 1.6 : 1.0;
+          maxTravel = outerRadius * randBetween(0.25, 0.4);
+          maxScale = pops ? randBetween(1.3, 2.0) : randBetween(0.95, 1.25);
+          explodeDelay = randBetween(0.05, 0.32);
+          fillRgb = jitterColor(colors.ringFill, 10);
+          strokeRgb = jitterColor(colors.ringStroke, 8);
+        } else {
+          // outer
+          pops = Math.random() < 0.55;
+          baseAlpha = pops ? 0.94 : 0.88;
+          lineWidth = pops ? 1.3 : 0.9;
+          maxTravel = outerRadius * randBetween(0.18, 0.32);
+          maxScale = pops ? randBetween(1.3, 1.9) : randBetween(0.9, 1.2);
+          explodeDelay = randBetween(0.12, 0.42);
+          fillRgb = jitterColor(colors.outerFill, 12);
+          strokeRgb = jitterColor(colors.outerStroke, 9);
+        }
+
+        if (role !== "core") {
+          var distFactor = clamp(distFromCenter / outerRadius, 0.4, 1.2);
+          maxTravel *= distFactor;
+        }
+
+        var spin = randBetween(-1.8, 1.8);
+
+        /** @type {Shard} */
+        var shard = {
+          role: role,
+          points0: points,
+          cx0: cx0,
+          cy0: cy0,
+          dirX: dirX,
+          dirY: dirY,
+          baseAlpha: baseAlpha,
+          fillR: fillRgb.r,
+          fillG: fillRgb.g,
+          fillB: fillRgb.b,
+          strokeR: strokeRgb.r,
+          strokeG: strokeRgb.g,
+          strokeB: strokeRgb.b,
+          lineWidth: lineWidth,
+          pops: pops,
+          explodeDelay: explodeDelay,
+          maxTravel: maxTravel,
+          maxScale: maxScale,
+          spin: spin,
+          wobblePhase: randBetween(0, Math.PI * 2)
+        };
+
+        shards.push(shard);
+      }
+
+      /**
+       * Build a new splat using hand-made shards (no Voronoi dependency).
+       */
+      function buildSplat() {
+        resizeCanvas();
+        shards = [];
+
+        var centerX = width * 0.5;
+        var centerY = height * 0.5;
+        var minDim = Math.min(width, height);
+
+        var coreRadius = minDim * 0.16;
+        var ringRadius = minDim * 0.26;
+        var ringThickness = minDim * 0.03;
+        var outerRadius = minDim * 0.55;
+
+        var colors = {
+          coreFill: hexToRgb("#ff5fb8"),
+          coreStroke: hexToRgb("#400620"),
+          ringFill: hexToRgb("#ffe2f6"),
+          ringStroke: hexToRgb("#6c1d3c"),
+          outerFill: hexToRgb("#ffc5f6"),
+          outerStroke: hexToRgb("#4b1534")
+        };
+
+        var i;
+
+        // Core: many wedge-like triangles that share almost the same color so
+        // it reads as a single blob before the explosion.
+        var CORE_SEGMENTS = 32;
+        for (i = 0; i < CORE_SEGMENTS; i += 1) {
+          var a0 = (Math.PI * 2 * i) / CORE_SEGMENTS;
+          var a1 = (Math.PI * 2 * (i + 1)) / CORE_SEGMENTS;
+          var aMid = (a0 + a1) * 0.5;
+
+          var rOuterCore = coreRadius * randBetween(0.9, 1.1);
+
+          var x0 = centerX;
+          var y0 = centerY;
+
+          var x1 = centerX + Math.cos(a0) * rOuterCore;
+          var y1 = centerY + Math.sin(a0) * rOuterCore;
+
+          var x2 = centerX + Math.cos(a1) * rOuterCore;
+          var y2 = centerY + Math.sin(a1) * rOuterCore;
+
+          // Slight wobble at the outer edge for irregular contour.
+          var wobble = coreRadius * 0.08 * Math.sin(aMid * 3 + randBetween(-0.8, 0.8));
+          x1 += Math.cos(aMid) * wobble;
+          y1 += Math.sin(aMid) * wobble;
+          x2 += Math.cos(aMid) * wobble;
+          y2 += Math.sin(aMid) * wobble;
+
+          var points = [
+            [x0, y0],
+            [x1, y1],
+            [x2, y2]
+          ];
+          addShard(points, "core", centerX, centerY, coreRadius, outerRadius, colors);
+        }
+
+        // Ring: thin quadrilateral shards around the core.
+        var RING_SEGMENTS = 140;
+        for (i = 0; i < RING_SEGMENTS; i += 1) {
+          var baseAngle = (Math.PI * 2 * i) / RING_SEGMENTS;
+          var span = (Math.PI * 2) / RING_SEGMENTS;
+          var angleOffset = randBetween(-span * 0.25, span * 0.25);
+          var aStart = baseAngle + angleOffset;
+          var aEnd = baseAngle + span + angleOffset;
+          var aMidRing = (aStart + aEnd) * 0.5;
+
+          var rInner = ringRadius - ringThickness + randBetween(-ringThickness * 0.3, ringThickness * 0.3);
+          var rOuter = ringRadius + ringThickness + randBetween(-ringThickness * 0.3, ringThickness * 0.3);
+
+          var xInner1 = centerX + Math.cos(aStart) * rInner;
+          var yInner1 = centerY + Math.sin(aStart) * rInner;
+
+          var xInner2 = centerX + Math.cos(aEnd) * rInner;
+          var yInner2 = centerY + Math.sin(aEnd) * rInner;
+
+          var xOuter2 = centerX + Math.cos(aEnd) * rOuter;
+          var yOuter2 = centerY + Math.sin(aEnd) * rOuter;
+
+          var xOuter1 = centerX + Math.cos(aStart) * rOuter;
+          var yOuter1 = centerY + Math.sin(aStart) * rOuter;
+
+          var bulge = ringThickness * 0.8 * Math.sin(aMidRing * 4 + randBetween(-0.6, 0.6));
+
+          xOuter1 += Math.cos(aMidRing) * bulge;
+          yOuter1 += Math.sin(aMidRing) * bulge;
+          xOuter2 += Math.cos(aMidRing) * bulge;
+          yOuter2 += Math.sin(aMidRing) * bulge;
+
+          var ringPoints = [
+            [xInner1, yInner1],
+            [xInner2, yInner2],
+            [xOuter2, yOuter2],
+            [xOuter1, yOuter1]
+          ];
+          addShard(ringPoints, "ring", centerX, centerY, coreRadius, outerRadius, colors);
+        }
+
+        // Outer droplets: small irregular polygons scattered beyond the ring.
+        var OUTER_SHARDS = 90;
+        for (i = 0; i < OUTER_SHARDS; i += 1) {
+          var angleOuter = randBetween(0, Math.PI * 2);
+          var distOuter = randBetween(ringRadius + ringThickness * 1.2, outerRadius);
+          var dropletRadius = randBetween(minDim * 0.01, minDim * 0.03);
+
+          var dropletCx = centerX + Math.cos(angleOuter) * distOuter;
+          var dropletCy = centerY + Math.sin(angleOuter) * distOuter;
+
+          var vertexCount = 5 + Math.floor(Math.random() * 3); // 5–7-point blob
+          var blobPoints = [];
+          var j;
+          for (j = 0; j < vertexCount; j += 1) {
+            var frac = j / vertexCount;
+            var aBlob = angleOuter + frac * Math.PI * 2 + randBetween(-0.15, 0.15);
+            var rBlob = dropletRadius * randBetween(0.5, 1.2);
+            var bx = dropletCx + Math.cos(aBlob) * rBlob;
+            var by = dropletCy + Math.sin(aBlob) * rBlob;
+            blobPoints.push([bx, by]);
+          }
+          addShard(blobPoints, "outer", centerX, centerY, coreRadius, outerRadius, colors);
+        }
+      }
+
+      /**
+       * Draw a single shard in its current state at time t.
+       */
+      function drawShard(shard, t) {
+        var baseAlpha = shard.baseAlpha;
+
+        var explodeStart = PRE_EXPLODE_TIME + shard.explodeDelay;
+        var explodeEnd = explodeStart + EXPLOSION_TIME;
+        var driftEnd = explodeEnd + DRIFT_TIME;
+
+        var cx = shard.cx0;
+        var cy = shard.cy0;
+        var scale = 1.0;
+        var angle = 0.0;
+        var alpha = baseAlpha;
+
+        if (t < explodeStart) {
+          // Calm phase with slight breathing for core.
+          if (shard.role === "core") {
+            var wobble = 0.04 * Math.sin(t * 3.1 + shard.wobblePhase);
+            scale = 1.0 + wobble;
+          }
+        } else if (t < explodeEnd) {
+          // Main explosion.
+          var p = (t - explodeStart) / EXPLOSION_TIME;
+          p = clamp(p, 0, 1);
+          var eased = easeOutCubic(p);
+
+          var travel = shard.maxTravel * eased;
+          cx = shard.cx0 + shard.dirX * travel;
+          cy = shard.cy0 + shard.dirY * travel;
+
+          var targetScale = shard.maxScale;
+          scale = 1.0 + (targetScale - 1.0) * eased;
+
+          angle = shard.spin * eased;
+        } else if (t < driftEnd) {
+          // Drift phase: continue outward and fade.
+          var d = (t - explodeEnd) / DRIFT_TIME;
+          d = clamp(d, 0, 1);
+          var easedDrift = easeInOutCubic(d);
+
+          var travelDrift = shard.maxTravel * (1.0 + 0.6 * easedDrift);
+          cx = shard.cx0 + shard.dirX * travelDrift;
+          cy = shard.cy0 + shard.dirY * travelDrift;
+
+          var scaleHold = 1.0 + (shard.maxScale - 1.0) * (1.0 - 0.5 * easedDrift);
+          scale = scaleHold;
+
+          angle = shard.spin * (1.0 + 0.7 * easedDrift);
+          alpha = baseAlpha * (1.0 - easedDrift);
+        } else {
+          alpha = 0;
+        }
+
+        if (alpha <= 0.001) {
+          return;
+        }
+
+        // Hide internal core strokes before explosion so it reads as a single blob.
+        var showStroke = true;
+        if (shard.role === "core" && t < explodeStart + 0.06) {
+          showStroke = false;
+        }
+
+        ctx.save();
+        ctx.beginPath();
+
+        var pts = shard.points0;
+        var cosA = Math.cos(angle);
+        var sinA = Math.sin(angle);
+        var i;
+
+        for (i = 0; i < pts.length; i += 1) {
+          var px0 = pts[i][0];
+          var py0 = pts[i][1];
+
+          var dx = px0 - shard.cx0;
+          var dy = py0 - shard.cy0;
+
+          var rdx = dx * cosA - dy * sinA;
+          var rdy = dx * sinA + dy * cosA;
+
+          var px = cx + rdx * scale;
+          var py = cy + rdy * scale;
+
+          if (i === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+        ctx.closePath();
+
+        var fillColor = makeRgba(shard.fillR, shard.fillG, shard.fillB, alpha);
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+
+        if (showStroke && shard.lineWidth > 0.05) {
+          var strokeAlpha = alpha;
+          if (shard.role === "ring" && t >= explodeStart && t <= explodeEnd) {
+            strokeAlpha = clamp(strokeAlpha * 1.3, 0, 1);
+          }
+          if (shard.role === "core" && t < explodeEnd) {
+            strokeAlpha *= 0.6;
+          }
+
+          ctx.lineWidth = shard.lineWidth;
+          var strokeColor = makeRgba(shard.strokeR, shard.strokeG, shard.strokeB, strokeAlpha);
+          ctx.strokeStyle = strokeColor;
+          ctx.lineJoin = "round";
+          ctx.lineCap = "round";
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawFrame(t) {
+        ctx.clearRect(0, 0, width, height);
+
+        // Slight vignette so it doesn't read as flat black,
+        // but no fake sphere lighting.
+        ctx.save();
+        ctx.fillStyle = "#05040a";
+        ctx.fillRect(0, 0, width, height);
+
+        var vignette = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.5,
+          Math.min(width, height) * 0.1,
+          width * 0.5,
+          height * 0.5,
+          Math.min(width, height) * 0.9
+        );
+        vignette.addColorStop(0, "rgba(10, 4, 20, 0.0)");
+        vignette.addColorStop(1, "rgba(0, 0, 0, 0.75)");
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+
+        var i;
+        for (i = 0; i < shards.length; i += 1) {
+          drawShard(shards[i], t);
+        }
+      }
+
+      function animate(now) {
+        if (!animationStartTime) {
+          animationStartTime = now;
+        }
+
+        if (!isPaused) {
+          var elapsedSeconds = (now - animationStartTime) / 1000;
+          if (elapsedSeconds > TOTAL_TIME) {
+            buildSplat();
+            animationStartTime = now;
+            elapsedSeconds = 0;
+          }
+          drawFrame(elapsedSeconds);
+        }
+
+        window.requestAnimationFrame(animate);
+      }
+
+      function setupControls() {
+        var replayButton = document.getElementById("replayButton");
+        var pauseButton = document.getElementById("pauseButton");
+
+        if (replayButton) {
+          replayButton.addEventListener("click", function () {
+            buildSplat();
+            animationStartTime = performance.now();
+            if (isPaused) {
+              isPaused = false;
+              if (pauseButton) {
+                pauseButton.textContent = "Pause";
+              }
+            }
+          });
+        }
+
+        if (pauseButton) {
+          pauseButton.addEventListener("click", function () {
+            isPaused = !isPaused;
+            if (isPaused) {
+              pausedAt = performance.now();
+              pauseButton.textContent = "Play";
+            } else {
+              var now = performance.now();
+              var pausedDuration = now - pausedAt;
+              animationStartTime += pausedDuration;
+              pauseButton.textContent = "Pause";
+            }
+          });
+        }
+      }
+
+      function init() {
+        resizeCanvas();
+        buildSplat();
+        setupControls();
+        animationStartTime = performance.now();
+
+        window.addEventListener("resize", function () {
+          resizeCanvas();
+          buildSplat();
+          animationStartTime = performance.now();
+        });
+
+        window.requestAnimationFrame(animate);
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
