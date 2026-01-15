@@ -1,0 +1,2866 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LootLab — Fantasy Looter Item Generator</title>
+  <style>
+    :root{
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel2: #13161c;
+      --text: #e8e8e8;
+      --muted: #b7bdc8;
+      --faint: #7f8796;
+      --accent: #7aa2ff;
+      --good: #4ade80;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+
+      --common: #c7c7c7;
+      --uncommon: #4ade80;
+      --rare: #60a5fa;
+      --epic: #c084fc;
+      --legendary: #fbbf24;
+
+      --border: rgba(255,255,255,0.08);
+    }
+
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 900px at 25% 20%, rgba(122,162,255,0.12), transparent 55%),
+                  radial-gradient(900px 700px at 90% 40%, rgba(192,132,252,0.10), transparent 55%),
+                  radial-gradient(900px 700px at 50% 110%, rgba(74,222,128,0.08), transparent 50%),
+                  var(--bg);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header{
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    header .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    header h1{
+      font-size: 16px;
+      margin:0;
+      letter-spacing: 0.4px;
+    }
+    header .subtitle{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    header .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    #app{
+      height: calc(100vh - 54px);
+      display:flex;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    #controls{
+      width: 360px;
+      min-width: 320px;
+      max-width: 420px;
+      background: rgba(23,26,33,0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    #controls .section{
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    #controls .section:last-child{ border-bottom: none; }
+    #controls h2{
+      font-size: 13px;
+      margin: 0 0 10px 0;
+      color: var(--text);
+      letter-spacing: 0.2px;
+      font-weight: 650;
+    }
+    #controls label{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    #controls input[type="text"],
+    #controls input[type="number"],
+    #controls select,
+    #controls textarea{
+      width:100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.20);
+      color: var(--text);
+      outline: none;
+    }
+    #controls input[type="range"]{
+      width:100%;
+    }
+    #controls .row{
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+    }
+    #controls .row > *{ flex: 1; }
+    #controls .help{
+      font-size: 11px;
+      color: var(--faint);
+      margin-top: -6px;
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+    #controls .btnrow{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+    }
+    button{
+      cursor:pointer;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+      transition: transform 0.04s ease, background 0.12s ease, border 0.12s ease;
+      user-select: none;
+    }
+    button:hover{ background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.16); }
+    button:active{ transform: translateY(1px); }
+    button.primary{
+      background: rgba(122,162,255,0.16);
+      border-color: rgba(122,162,255,0.35);
+    }
+    button.primary:hover{ background: rgba(122,162,255,0.22); border-color: rgba(122,162,255,0.50); }
+    button.danger{
+      background: rgba(251,113,133,0.14);
+      border-color: rgba(251,113,133,0.30);
+    }
+    button.danger:hover{ background: rgba(251,113,133,0.20); border-color: rgba(251,113,133,0.45); }
+
+    .checkbox{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .checkbox input{ transform: translateY(1px); }
+
+    #main{
+      flex: 1;
+      display:flex;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    #listPanel{
+      width: 440px;
+      min-width: 320px;
+      max-width: 520px;
+      background: rgba(19,22,28,0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+    }
+    #listPanel header{
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      padding: 10px 12px;
+    }
+    #listPanel header .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    #listPanel header .small{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    #searchBox{
+      margin-top: 8px;
+    }
+
+    #itemList{
+      overflow:auto;
+      flex:1;
+    }
+    .itemRow{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+    }
+    .itemRow:hover{ background: rgba(255,255,255,0.03); }
+    .itemRow.selected{ background: rgba(122,162,255,0.10); }
+    .itemRow .topline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+    .itemRow .name{
+      font-weight: 750;
+      font-size: 13px;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .itemRow .meta{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .tagpill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .rarityPill{
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      white-space: nowrap;
+    }
+
+    #detailPanel{
+      flex:1;
+      background: rgba(19,22,28,0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      min-width: 0;
+      display:flex;
+      flex-direction:column;
+    }
+    #detailPanel header{
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+    #detailPanel header .left{
+      min-width: 0;
+    }
+    #detailPanel header .itemTitle{
+      margin:0;
+      font-size: 14px;
+      font-weight: 850;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #detailPanel header .sub{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #detailPanel .content{
+      padding: 12px;
+      overflow:auto;
+      flex: 1;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .card{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 10px;
+      background: rgba(255,255,255,0.02);
+      min-width: 0;
+    }
+    .card h3{
+      margin:0 0 8px 0;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      letter-spacing: 0.25px;
+      text-transform: uppercase;
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 120px 1fr;
+      gap: 6px 10px;
+      font-size: 12px;
+    }
+    .kv .k{ color: var(--faint); }
+    .kv .v{ color: var(--text); overflow-wrap:anywhere; }
+
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(0,0,0,0.20);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      color: #d8d8d8;
+    }
+
+    .affix{
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 8px;
+    }
+    .affix .aTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .affix .aName{
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .affix .aMeta{
+      font-size: 11px;
+      color: var(--muted);
+      display:flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+    .affix .aDesc{
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .score{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .scoreBar{
+      height: 8px;
+      width: 120px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .scoreFill{
+      height:100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(251,113,133,0.9), rgba(251,191,36,0.9), rgba(74,222,128,0.9));
+    }
+    .scoreVal{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .muted{ color: var(--muted); }
+    .faint{ color: var(--faint); }
+
+    .notice{
+      font-size: 11px;
+      color: var(--faint);
+      line-height: 1.35;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.10);
+    }
+
+    @media (max-width: 1100px){
+      #app{ flex-direction: column; overflow:auto; height:auto; }
+      body{ overflow:auto; height:auto; }
+      #controls{ width: 100%; max-width:none; }
+      #main{ flex-direction: column; }
+      #listPanel{ width: 100%; max-width:none; }
+      #detailPanel{ width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <h1>LootLab</h1>
+      <div class="subtitle">Single-file testbed for Borderlands-style fantasy item generation (mount points • elements • affix templates)</div>
+    </div>
+    <div class="pill">Tip: set a seed to reproduce a funny or god-roll.</div>
+  </header>
+
+  <div id="app">
+    <aside id="controls">
+      <div class="section">
+        <h2>Generator</h2>
+
+        <div class="row">
+          <label style="flex:2">
+            Seed
+            <input id="seedInput" type="text" value="lootlab" spellcheck="false" />
+          </label>
+          <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+            <button id="reseedBtn">Reseed</button>
+            <button id="copySeedBtn">Copy</button>
+          </div>
+        </div>
+        <div class="help">Seed is hashed into a 32-bit RNG, so the same seed + same settings = identical rolls.</div>
+
+        <div class="row">
+          <label>
+            Batch
+            <select id="batchSelect">
+              <option value="1">1</option>
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+          <label>
+            Item level
+            <input id="levelInput" type="number" min="1" max="99" value="12" />
+          </label>
+        </div>
+
+        <label>
+          Slot
+          <select id="slotSelect"></select>
+        </label>
+
+        <div class="row">
+          <label>
+            Family
+            <select id="familySelect"></select>
+          </label>
+          <label>
+            Weapon Category
+            <select id="weaponCatSelect"></select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label>
+            Rarity
+            <select id="raritySelect"></select>
+          </label>
+          <label>
+            Build Lean
+            <select id="leanSelect"></select>
+          </label>
+        </div>
+
+        <label>
+          Chaos / “joke roll” chance
+          <input id="goofyRange" type="range" min="0" max="40" value="12" />
+        </label>
+        <div class="help"><span id="goofyLabel"></span> chance to allow a soft-constraint violation (e.g., heavy + silent). Keep low for mostly coherent loot.</div>
+
+        <div class="checkbox">
+          <input id="allowCurses" type="checkbox" checked />
+          <label for="allowCurses" style="margin:0;">Allow cursed rolls (negative affixes may appear)</label>
+        </div>
+        <div class="checkbox">
+          <input id="preferSynergy" type="checkbox" checked />
+          <label for="preferSynergy" style="margin:0;">Prefer element/role synergy (weighted choices)</label>
+        </div>
+
+        <div class="btnrow">
+          <button id="generateBtn" class="primary">Generate</button>
+          <button id="huntBtn">Hunt God-Roll</button>
+          <button id="clearBtn" class="danger">Clear</button>
+        </div>
+        <div class="help" id="huntHelp">“Hunt” rerolls until it finds a high-coherence item (bounded attempts). Great for testing your synergy rules.</div>
+      </div>
+
+      <div class="section">
+        <h2>Export</h2>
+        <div class="btnrow">
+          <button id="downloadJsonBtn">Download JSON</button>
+          <button id="downloadCsvBtn">Download CSV</button>
+        </div>
+        <div class="help">Exports everything in the list. Click an item to copy its JSON from the details panel.</div>
+      </div>
+
+      <div class="notice">
+        This is a <b>test harness</b>: numbers are illustrative and scale with rarity + item level, but you’ll tune them later.
+        The important part is the <b>structure</b>: mount points → tags/caps → element profile → affix templates.
+      </div>
+    </aside>
+
+    <div id="main">
+      <section id="listPanel">
+        <header>
+          <div class="row">
+            <div class="small"><b id="countLabel">0</b> items</div>
+            <div class="small">Click an item to inspect.</div>
+          </div>
+          <input id="searchBox" type="text" placeholder="Search name / slot / tags…" />
+        </header>
+        <div id="itemList"></div>
+      </section>
+
+      <section id="detailPanel">
+        <header>
+          <div class="left">
+            <div class="itemTitle" id="detailTitle">No item selected</div>
+            <div class="sub" id="detailSub">Generate items, then click one.</div>
+          </div>
+          <div class="btnrow">
+            <button id="copyJsonBtn">Copy JSON</button>
+          </div>
+        </header>
+        <div class="content" id="detailContent"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ------------------------------
+  //  RNG (seeded)
+  // ------------------------------
+  function hash32(str){
+    // xmur3
+    let h = 1779033703 ^ str.length;
+    for (let i=0; i<str.length; i++){
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return () => {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return h >>> 0;
+    };
+  }
+  function mulberry32(a){
+    return function(){
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+  }
+  class RNG {
+    constructor(seedStr){
+      this.setSeed(seedStr);
+    }
+    setSeed(seedStr){
+      this.seedStr = String(seedStr ?? "");
+      const seedFn = hash32(this.seedStr);
+      this.seed = seedFn();
+      this.rand = mulberry32(this.seed);
+    }
+    next(){ return this.rand(); }
+    int(min, max){
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(this.next() * (max - min + 1)) + min;
+    }
+    pick(arr){
+      return arr[this.int(0, arr.length - 1)];
+    }
+    chance(p){ return this.next() < p; }
+    weightedPick(arr, weightFn){
+      let total = 0;
+      const weights = arr.map(x => {
+        const w = Math.max(0, Number(weightFn(x)) || 0);
+        total += w;
+        return w;
+      });
+      if (total <= 0) return arr[0];
+      let r = this.next() * total;
+      for (let i=0; i<arr.length; i++){
+        r -= weights[i];
+        if (r <= 0) return arr[i];
+      }
+      return arr[arr.length - 1];
+    }
+  }
+
+  // ------------------------------
+  //  Core data: roles, slots, families
+  // ------------------------------
+  const ROLE_TAGS = {
+    BU: "Bulwark",
+    VA: "Vanguard",
+    BR: "Bruiser",
+    DU: "Duelist",
+    MA: "Marksman",
+    SN: "Sniper",
+    SH: "Shadow",
+    AR: "Arcanist",
+    CO: "Controller",
+    HI: "Hierophant",
+    HE: "Hexer",
+    SU: "Summoner",
+    AT: "Artificer",
+    EX: "Explorer"
+  };
+
+  const ROLE_PREFERENCES = {
+    Any: { want: [], avoid: [] },
+    BU: { want: ["heavy","durable","warding","cap_block","barrier"], avoid: ["fragile","wild"] },
+    VA: { want: ["durable","stagger","retaliate","cap_block","cap_melee"], avoid: ["fragile"] },
+    BR: { want: ["heavy","durable","aoe","on_kill","leech","cap_melee"], avoid: ["fragile"] },
+    DU: { want: ["fast","nimble","precise","cap_parry","on_dodge"], avoid: ["heavy","bulky"] },
+    MA: { want: ["precise","stable","cap_ranged","mark"], avoid: ["wild"] },
+    SN: { want: ["precise","stable","cap_ranged","pierce"], avoid: ["wild","fast"] },
+    SH: { want: ["silent","fast","mark","cap_thrown","cap_parry"], avoid: ["loud","heavy"] },
+    AR: { want: ["arcane","cap_cast","cap_channel","efficient"], avoid: ["loud","wobbly"] },
+    CO: { want: ["control","ground_zone","chain","warding"], avoid: ["wild"] },
+    HI: { want: ["holy","aff_light","cleanse","warding","heal"], avoid: ["occult","aff_dark"] },
+    HE: { want: ["occult","aff_dark","curse_ready","leech","debuff"], avoid: ["holy","aff_light"] },
+    SU: { want: ["summon","cap_summon","binding"], avoid: [] },
+    AT: { want: ["device","cap_device","trapwork","cap_trap","calibration"], avoid: [] },
+    EX: { want: ["delving","utility","silent","stable"], avoid: ["bulky"] }
+  };
+
+  const FAMILIES = [
+    { id: "auto", name: "Auto" },
+    { id: "weapon", name: "Weapon" },
+    { id: "armor", name: "Armor" },
+    { id: "shield", name: "Shield" },
+    { id: "implement", name: "Caster Implement" },
+    { id: "accessory", name: "Accessory / Ring" },
+    { id: "relic", name: "Relic / Sigil / Charm" },
+    { id: "tool", name: "Tool / Trinket" },
+    { id: "consumable", name: "Consumable (Quick Slot)" },
+    { id: "ammo", name: "Ammo / Charge Resource" }
+  ];
+
+  const SLOT_DEFS = [
+    { id: "any", name: "Any Slot", defaultFamily: "auto" },
+
+    { id: "head", name: "Head", defaultFamily: "armor" },
+    { id: "chest", name: "Chest", defaultFamily: "armor" },
+    { id: "hands", name: "Hands", defaultFamily: "armor" },
+    { id: "legs", name: "Legs", defaultFamily: "armor" },
+    { id: "feet", name: "Feet", defaultFamily: "armor" },
+    { id: "back", name: "Back", defaultFamily: "armor" },
+    { id: "waist", name: "Waist", defaultFamily: "armor" },
+
+    { id: "accessory", name: "Accessory", defaultFamily: "accessory" },
+    { id: "ring_left", name: "Ring — Left", defaultFamily: "accessory" },
+    { id: "ring_right", name: "Ring — Right", defaultFamily: "accessory" },
+
+    { id: "main_hand", name: "Main Hand", defaultFamily: "auto" },
+    { id: "off_hand", name: "Off Hand", defaultFamily: "auto" },
+
+    { id: "relic", name: "Relic / Sigil / Charm", defaultFamily: "relic" },
+
+    { id: "quick", name: "Quick Slot (1–3)", defaultFamily: "consumable" },
+
+    { id: "tool", name: "Tool / Trinket Slot", defaultFamily: "tool" },
+    { id: "ammo", name: "Ammo / Charge Resource", defaultFamily: "ammo" }
+  ];
+
+  const WEAPON_CATS = [
+    { id: "auto", name: "Auto" },
+    { id: "swords_blades", name: "Swords & Blades" },
+    { id: "axes", name: "Axes & Choppers" },
+    { id: "blunts", name: "Blunt Weapons" },
+    { id: "polearms", name: "Polearms" },
+    { id: "flails_chains", name: "Flails & Chains" },
+    { id: "exotics", name: "Exotics" },
+    { id: "bows_crossbows", name: "Bows & Crossbows" },
+    { id: "ranged_other", name: "Ranged — Other" },
+    { id: "thrown", name: "Thrown Weapons" },
+    { id: "improvised", name: "Improvised / Tool-Weapons" }
+  ];
+
+  // ------------------------------
+  //  Base type catalogs (trimmed but sizeable; extend freely)
+  // ------------------------------
+  const BASE_TYPES = {
+    head: [
+      "Greathelm","Close Helm","Armet","Bascinet","Sallet","Barbute","Kettle Helm","Burgonet","Morion","Cabasset",
+      "War Cap","Mail Coif","Padded Coif","Leather Coif","Quilted Hood","Shadow Hood","Ranger Hood","Traveler’s Hood",
+      "Circlet","Runed Circlet","Diadem","Crown","Mitre","Veiled Hood","Ritual Cowl","Scholar Cap","Goggles","Rune-Lens Visor"
+    ],
+    chest: [
+      "Linen Shirt","Wool Tunic","Travel Tunic","Jerkin","Leather Jerkin","Padded Gambeson","Brigandine","Mail Shirt","Mail Hauberk",
+      "Scale Cuirass","Lamellar Coat","Coat of Plates","Breastplate","Half-Plate","War Plate","Full Plate Harness (Torso)",
+      "Robe","Scholar Robe","Ritual Robe","Vestments","Battle Cassock","Longcoat","Greatcoat","Oilskin Coat","Wardcoat"
+    ],
+    hands: [
+      "Leather Gloves","Silent Gloves","Scout Gloves","Archer’s Glove","Work Gloves","Utility Gloves","Mail Gloves","Mail Mittens",
+      "Bracers","Leather Bracers","Steel Bracers","Vambraces","Plate Gauntlets","Spiked Gauntlets","Channeling Gloves","Sanctified Gloves"
+    ],
+    legs: [
+      "Travel Trousers","Field Trousers","Breeches","Riding Breeches","Leggings","Tights","Quilted Trousers","Leather Pants",
+      "Studded Leather Leggings","Mail Chausses","Scale Leggings","Lamellar Tassets","Plate Greaves","Half-Plate Legs","War Kilt","Ritual Leggings"
+    ],
+    feet: [
+      "Travel Shoes","Walking Shoes","Soft Boots","Silent Boots","Ranger Boots","Scout Boots","Delver Boots","Work Boots","Waterproof Boots",
+      "Reinforced Boots","Mail Sabatons","Sabatons","Plate Sabatons","Winter Boots","Ritual Slippers","Sanctified Sandals","Hex-Step Boots"
+    ],
+    back: [
+      "Cloak","Travel Cloak","Hooded Cloak","Ranger Cloak","Shadow Cloak","Cape","War Cape","Mantle","Spell Mantle","Wardcloak",
+      "Greatcloak","Fur Cloak","Poncho","Gear Harness","Tool Harness","Quiver Harness","Reliquary Mantle","Occult Shroud"
+    ],
+    waist: [
+      "Leather Belt","Travel Belt","Utility Belt","War Belt","Baldric","Girdle","Sash","Ritual Sash","Tool Belt","Bombardier Belt",
+      "Trapmaker Belt","Scroll Belt","Component Belt","Plated Belt","Fauld","Tassets Belt","Anointed Girdle","Hex Cord"
+    ],
+    accessory: [
+      "Amulet","Pendant","Medallion","Brooch","Charm","Talisman","Satchel","Map Case","Scroll Case","Component Pouch","Field Journal",
+      "Spectacles","Monocle","Spyglass","Goggles","Holy Symbol","Prayer Beads","Sigil Plate","Omen Beads","Clockwork Keyring","Compass"
+    ],
+    ring: [
+      "Plain Band","Engraved Band","Iron Band","Silver Band","Gold Band","Signet Ring","Seal Ring","Gem-set Ring","Onyx Ring","Opal Ring",
+      "Runed Band","Glyph Ring","Ward Ring","Hex Ring","Oath Ring","Compass Ring","Mechanist Ring","Familiar Ring"
+    ],
+    relic: [
+      "Sigil Stone","Rune Seal","Ward Seal","Sanctuary Seal","Oath Plate","Glyph Slate","Rune Tablet","Planar Shard","Void Shard","Ward Core",
+      "Saint Icon","Totem","Circle Anchor","Animus Shard","Construct Core Fragment","Warden Emblem","Wayfinder Stone","Trap Command Tag"
+    ],
+    tool: [
+      "Delver’s Kit","Mapping Kit","Navigation Kit","Repair Kit","Maintenance Kit","Thieves’ Tools","Trap Disarm Kit","Survey Beacon",
+      "Alchemist Kit","Apothecary Kit","Bombardier Kit","Trapmaker Kit","Ritual Kit","Ward Kit","Hex Kit","Familiar Kit","War Horn",
+      "Calibration Kit","Detonator Rig","Rangefinder Device"
+    ],
+    quick: [
+      "Spell Scroll","Ward Scroll","Hex Scroll","Prayer Scroll","Rune Slip","Glyph Card",
+      "Potion Vial","Elixir","Tonic","Antidote","Holy Water Phial",
+      "Alchemical Bomb","Smoke Bomb","Flash Bomb","Acid Flask","Frost Flask","Fire Flask",
+      "Weapon Oil","Armor Oil","Bowstring Wax","Rune Ink","Consecration Oil",
+      "Ward Seal","Barrier Charm","Alarm Ward","Caltrops","Snare Trap","Glue Trap",
+      "Torch","Lantern","Flare","Chalk","Lockpick Set","Skeleton Key","Repair Patch Kit"
+    ],
+    ammo: [
+      "Arrow Bundle","Broadhead Arrows","Bodkin Arrows","Bolt Bundle","Heavy Bolts","Quarrels",
+      "Throwing Darts","Needle Darts","Sling Stones","Lead Sling Shot",
+      "Powder Charge","Fuse Cord","Trap Charges",
+      "Charge Crystal","Mana Crystal","Rune Charge Stone","Wand Charge Capsule","Staff Charge Capsule",
+      "Incense Sticks","Sanctified Chalk","Hex Chalk","Circle Chalk","Binding Cords"
+    ],
+
+    // Weapon categories (for main hand / thrown etc)
+    swords_blades: [
+      "Dagger","Stiletto","Dirk","Rondel Dagger","Kukri","Shortsword","Arming Sword","Longsword","Bastard Sword",
+      "Greatsword","Claymore","Zweihander","Rapier","Smallsword","Saber","Scimitar","Falchion","Messer","Katana"
+    ],
+    axes: [
+      "Hand Axe","Hatchet","War Axe","Battle Axe","Bearded Axe","Double-bit Axe","Greataxe","Dane Axe","Executioner’s Axe",
+      "Boarding Axe","Hooked War Axe","Throwing Hatchet","Francisca","War Cleaver-Axe"
+    ],
+    blunts: [
+      "Club","Cudgel","War Club","Truncheon","Mace","Flanged Mace","Morningstar","Warhammer","Sledgehammer","Maul",
+      "War Pick","Crow’s Beak Hammer","Quarterstaff","Spiked Cestus","Knuckle-Dusters"
+    ],
+    polearms: [
+      "Spear","Winged Spear","Partisan","Spetum","Trident","Ranseur","Pike","Glaive","Guisarme","Billhook",
+      "Halberd","Poleaxe","Lucerne Hammer","Bec de Corbin","Naginata","Guandao","War Scythe"
+    ],
+    flails_chains: [
+      "Flail","Spiked Flail","Morningstar Flail","Great Flail","Chain Maul","Pole Flail","Meteor Hammer","Manriki-Gusari",
+      "Chain Whip","War Whip","Kusarigama","Rope Dart","Weighted Chain"
+    ],
+    exotics: [
+      "Wind-and-Fire Wheels","Chakram","Ring Blade","Macuahuitl","Hook Swords","Tonfa","Sai","Katar","Pata","Urumi",
+      "Lantern Shield (Weapon)","Punch Shield","Tiger Claws","Garrote Wire","War Fan (Tessen)"
+    ],
+    bows_crossbows: [
+      "Shortbow","Longbow","Recurve Bow","Composite Bow","Reflex Bow","Warbow","Greatbow","Lever Bow","Pulley Bow",
+      "Hand Crossbow","Wrist Crossbow","Light Crossbow","Heavy Crossbow","Arbalest","Repeating Crossbow","Magazine Crossbow"
+    ],
+    ranged_other: [
+      "Sling","War Sling","Staff Sling","Blowgun","Reed Blowpipe","Sleeve Blowgun","Atlatl","Javelin Thrower","Net Caster","Snare Launcher"
+    ],
+    thrown: [
+      "Throwing Knife","Throwing Dagger","Shuriken","Kunai","Throwing Spike","Plumbata","Throwing Axe","Throwing Hammer",
+      "Javelin","Harpoon","Bolas","Throwing Net","Chakram (Thrown)","Boomerang","Lead Shot"
+    ],
+    improvised: [
+      "Crowbar","Pickaxe","Miner’s Pick","Shovel","Pitchfork","Frying Pan","Cast-Iron Skillet","Rolling Pin","Meat Cleaver",
+      "Mug","Bottle","Broken Bottle","Chair","Bar Stool","Candelabrum","Iron Poker","Chain (Length)","Pitons (in hand)"
+    ],
+
+    // Implements / shields (off-hand and main-hand)
+    implement: [
+      "Wand","Spell Wand","Channeling Wand","Rod","Scepter","Staff","Runestaff","Crosier","Orb","Focus Crystal",
+      "Spellbook","Grimoire","Codex","Ward Plate","Summoning Bell","Athame"
+    ],
+    shield: [
+      "Buckler","Round Shield","Heater Shield","Kite Shield","Tower Shield","Pavise","Targe","Spiked Shield",
+      "Lantern Shield","Mirror Shield","Shield Gauntlet","Arm-Mounted Shield","Mantlet Shield"
+    ]
+  };
+
+  // ------------------------------
+  //  Mount points and parts
+  // ------------------------------
+  const MOUNT_ORDER = ["FRAME","FUNCTION","CONTROL","AMPLIFIER","FINISH"];
+
+  const PARTS = {
+    FRAME: [
+      { id:"frame_featherweight", name:"Featherweight Frame", tags:["light","fast","fragile","silent"], families:["weapon","armor","implement","accessory","relic","tool","shield","consumable","ammo"] },
+      { id:"frame_balanced", name:"Balanced Frame", tags:["medium","balanced","stable"], families:["weapon","armor","implement","accessory","relic","tool","shield","consumable","ammo"] },
+      { id:"frame_reinforced", name:"Reinforced Frame", tags:["heavy","durable","stable","loud"], families:["weapon","armor","shield","tool"] },
+      { id:"frame_articulated", name:"Articulated Frame", tags:["medium","nimble","stable"], families:["armor","weapon","tool","shield"] },
+      { id:"frame_layered", name:"Layered Frame", tags:["medium","durable","bulky"], families:["armor","shield","tool","relic"] },
+      { id:"frame_compact", name:"Compact Frame", tags:["light","precise","stable"], families:["weapon","implement","accessory","relic","tool","consumable","ammo"] },
+      { id:"frame_overbuilt", name:"Overbuilt Frame", tags:["heavy","durable","slow","stable"], families:["weapon","armor","shield"] },
+      { id:"frame_silent", name:"Silent Frame", tags:["light","silent","fragile"], families:["weapon","armor","tool","accessory","implement"] },
+      { id:"frame_channel_lattice", name:"Channel-Lattice Frame", tags:["arcane","stable","cap_cast","cap_channel"], families:["implement","relic","accessory"] },
+      { id:"frame_sanctified", name:"Sanctified Frame", tags:["holy","warding","durable","aff_light"], families:["armor","implement","relic","accessory","shield"] },
+      { id:"frame_gravebound", name:"Gravebound Frame", tags:["occult","curse_ready","aff_dark"], families:["weapon","implement","relic","accessory"] },
+      { id:"frame_clockwork", name:"Clockwork Frame", tags:["device","stable","durable","cap_device"], families:["weapon","tool","relic","accessory","shield"] },
+      { id:"frame_expedition", name:"Expedition Frame", tags:["delving","durable","balanced"], families:["armor","tool","accessory","relic"] },
+      { id:"frame_ceremonial", name:"Ceremonial Frame", tags:["fine","fragile"], families:["accessory","relic","implement"] }
+    ],
+    FUNCTION: [
+      { id:"func_cleave", name:"Cleaving Function", tags:["slash","wide_arc","cap_melee"], families:["weapon"] },
+      { id:"func_thrust", name:"Thrusting Function", tags:["pierce","reach","cap_melee"], families:["weapon"] },
+      { id:"func_crush", name:"Crushing Function", tags:["crush","stagger","cap_melee"], families:["weapon","improvised"] },
+      { id:"func_guard", name:"Guard Face", tags:["block_profile","cap_block"], families:["shield"] },
+      { id:"func_parry", name:"Parry Function", tags:["parry_profile","cap_parry","precise"], families:["weapon","shield"] },
+      { id:"func_bolt", name:"Bolt Emitter", tags:["cast_mode_bolt","cap_cast"], families:["implement","relic","consumable"] },
+      { id:"func_beam", name:"Beam Emitter", tags:["cast_mode_beam","cap_channel","cap_cast"], families:["implement","relic"] },
+      { id:"func_burst", name:"Burst Emitter", tags:["cast_mode_burst","cap_cast"], families:["implement","relic"] },
+      { id:"func_ward", name:"Ward Projector", tags:["warding","cap_aura"], families:["implement","relic","shield","armor"] },
+      { id:"func_trap_launch", name:"Trap-Launch Function", tags:["trapwork","cap_trap"], families:["tool","relic"] },
+      { id:"func_mark", name:"Marking Function", tags:["mark","cap_control"], families:["weapon","implement","relic"] },
+      { id:"func_precision_release", name:"Precision Release", tags:["ranged_profile","precise","cap_ranged"], families:["weapon"] },
+      { id:"func_scatter_release", name:"Scatter Release", tags:["ranged_profile","wild","multi_projectile","cap_ranged"], families:["weapon"] },
+      { id:"func_sustain", name:"Sustain Function", tags:["heal","cap_heal"], families:["implement","relic","accessory","consumable"] },
+      { id:"func_armor_insulation", name:"Insulated Weave", tags:["resist","durable"], families:["armor"] },
+      { id:"func_armor_mobility", name:"Mobility Weave", tags:["mobility","fast"], families:["armor"] },
+      { id:"func_accessory_sigil", name:"Sigil Charm", tags:["utility","cap_room"], families:["accessory"] },
+      { id:"func_accessory_ward", name:"Ward Charm", tags:["warding"], families:["accessory"] },
+      { id:"func_consumable_volatile", name:"Volatile Mix", tags:["aoe","wild"], families:["consumable"] },
+      { id:"func_ammo_fletch", name:"Fletching Package", tags:["precise","cap_ranged","ammo_payload"], families:["ammo"] },
+      { id:"func_ammo_broadhead", name:"Broadhead Payload", tags:["pierce","ammo_payload"], families:["ammo"] },
+      { id:"func_ammo_explosive", name:"Explosive Payload", tags:["aoe","ammo_payload","wild"], families:["ammo"] },
+      { id:"func_ammo_charge", name:"Charge Capacitor Payload", tags:["cap_charge","arcane","ammo_payload"], families:["ammo"] }
+    ],
+    CONTROL: [
+      { id:"ctrl_counterbalance", name:"Counterbalanced Control", tags:["stable","precise"], families:["weapon","implement","shield","tool"] },
+      { id:"ctrl_quickdraw", name:"Quickdraw Control", tags:["fast","nimble"], families:["weapon","implement","tool","consumable"] },
+      { id:"ctrl_heavy_grip", name:"Heavy Grip", tags:["stable","slow"], families:["weapon","shield","tool"] },
+      { id:"ctrl_silent_rigging", name:"Silent Rigging", tags:["silent","precise"], families:["weapon","armor","tool","implement"] },
+      { id:"ctrl_reinforced_straps", name:"Reinforced Strapping", tags:["durable","bulky"], families:["armor","shield","tool"] },
+      { id:"ctrl_channel_stabilizer", name:"Channel Stabilizer", tags:["cap_channel","stable","arcane"], families:["implement","relic"] },
+      { id:"ctrl_ergonomic_fit", name:"Ergonomic Fit", tags:["nimble","balanced"], families:["armor","accessory","weapon","tool"] },
+      { id:"ctrl_recoil_damper", name:"Recoil Damper", tags:["stable","precise"], families:["weapon","implement","tool"] },
+      { id:"ctrl_rapid_cycling", name:"Rapid Cycling", tags:["fast","wobbly"], families:["weapon","implement","tool"] },
+      { id:"ctrl_stamina_smart", name:"Stamina-Smart Control", tags:["efficient","balanced"], families:["weapon","shield","armor"] },
+      { id:"ctrl_mana_smart", name:"Mana-Smart Control", tags:["efficient","arcane"], families:["implement","relic","accessory","consumable","ammo"] },
+      { id:"ctrl_delver", name:"Delver Control", tags:["delving","stable","utility"], families:["tool","armor","accessory","relic"] }
+    ],
+    AMPLIFIER: [
+      // Element injectors (base elements)
+      { id:"amp_elem_fire", name:"Element Injector (Fire)", tags:["element_infusion","aff_fire"], families:["weapon","implement","relic","shield","consumable","ammo"] },
+      { id:"amp_elem_water", name:"Element Injector (Water)", tags:["element_infusion","aff_water"], families:["weapon","implement","relic","shield","consumable","ammo"] },
+      { id:"amp_elem_earth", name:"Element Injector (Earth)", tags:["element_infusion","aff_earth"], families:["weapon","implement","relic","shield","consumable","ammo"] },
+      { id:"amp_elem_air", name:"Element Injector (Air)", tags:["element_infusion","aff_air"], families:["weapon","implement","relic","shield","consumable","ammo"] },
+      { id:"amp_elem_metal", name:"Element Injector (Metal)", tags:["element_infusion","aff_metal"], families:["weapon","implement","relic","shield","consumable","ammo"] },
+      { id:"amp_elem_plant", name:"Element Injector (Plant)", tags:["element_infusion","aff_plant"], families:["weapon","implement","relic","shield","consumable","ammo"] },
+
+      // Polarity lenses
+      { id:"amp_pol_light", name:"Polarity Lens (Light)", tags:["aff_light","holy"], families:["implement","relic","accessory","armor","shield","consumable"] },
+      { id:"amp_pol_dark", name:"Polarity Lens (Dark)", tags:["aff_dark","occult"], families:["implement","relic","accessory","weapon","armor","shield","consumable"] },
+
+      // Other amplifiers
+      { id:"amp_chain", name:"Chain Module", tags:["chain"], families:["weapon","implement","relic","ammo"] },
+      { id:"amp_pierce", name:"Piercing Module", tags:["pierce","precise"], families:["weapon","implement","ammo"] },
+      { id:"amp_blast", name:"Blast Module", tags:["aoe","wild"], families:["weapon","implement","tool","consumable"] },
+      { id:"amp_status", name:"Status Primer", tags:["status_chance","control"], families:["weapon","implement","armor","accessory","relic","tool","consumable","ammo","shield"] },
+      { id:"amp_leech", name:"Leech Module", tags:["leech"], families:["weapon","implement","accessory","relic","consumable"] },
+      { id:"amp_ward", name:"Ward Module", tags:["warding"], families:["armor","shield","relic","accessory","implement"] },
+      { id:"amp_echo", name:"Echo Module", tags:["echo"], families:["weapon","implement","tool","relic","consumable"] },
+      { id:"amp_summon", name:"Summon Node", tags:["summon","cap_summon"], families:["implement","relic","accessory","consumable"] },
+      { id:"amp_trap", name:"Trap Interface", tags:["trapwork","cap_trap"], families:["tool","relic","consumable"] },
+      { id:"amp_convert", name:"Conversion Module", tags:["convert_resource"], families:["implement","relic","accessory"] },
+      { id:"amp_momentum", name:"Momentum Module", tags:["on_step","mobility"], families:["armor","accessory","weapon","relic"] },
+      { id:"amp_execution", name:"Execution Module", tags:["on_kill","burst"], families:["weapon","implement","tool"] },
+      { id:"amp_ricochet", name:"Ricochet Core", tags:["ricochet","chain"], families:["weapon","implement"] }
+    ],
+    FINISH: [
+      { id:"fin_crude", name:"Crude Finish", tags:["crude"], families:["weapon","armor","shield","implement","accessory","relic","tool","consumable","ammo"] },
+      { id:"fin_field", name:"Field-Worked Finish", tags:["fieldworn","durable","delving"], families:["weapon","armor","shield","tool","relic"] },
+      { id:"fin_masterwork", name:"Masterwork Finish", tags:["masterwork","precise","durable"], families:["weapon","armor","shield","implement","accessory","relic","tool"] },
+      { id:"fin_blackened", name:"Blackened Finish", tags:["silent","dark_tone"], families:["weapon","armor","tool","accessory","implement"] },
+      { id:"fin_mirror", name:"Mirror Finish", tags:["warding","precise"], families:["shield","implement","relic","armor"] },
+      { id:"fin_runed", name:"Runed Finish", tags:["arcane","warding"], families:["implement","armor","relic","accessory","weapon"] },
+      { id:"fin_sanctified", name:"Sanctified Finish", tags:["holy","aff_light","cleanse"], families:["armor","implement","relic","accessory","shield","consumable","ammo"] },
+      { id:"fin_corrupted", name:"Corrupted Finish", tags:["occult","aff_dark","curse_ready"], families:["weapon","implement","relic","accessory","consumable","ammo"] },
+      { id:"fin_lacquered", name:"Lacquered Finish", tags:["durable","resist"], families:["weapon","armor","shield","tool"] },
+      { id:"fin_oiled", name:"Oiled Finish", tags:["fast","silent"], families:["weapon","tool","armor"] },
+      { id:"fin_etched", name:"Etched Finish", tags:["precise","status_chance"], families:["weapon","implement","relic","ammo"] },
+      { id:"fin_gilded", name:"Gilded Finish", tags:["fine","fragile"], families:["accessory","relic","implement"] }
+    ]
+  };
+
+  // ------------------------------
+  //  Elements (profiles + polarity overlays)
+  // ------------------------------
+  const ELEMENTS = {
+    Fire:  { opposite:"Water", signature:"Burn",  secondary:["Ignite","Scorch","Kindle"], favoredShapes:["cone","ground_zone","nova"], affixSynergy:["aoe","on_kill","status_chance"] },
+    Water: { opposite:"Fire",  signature:"Soak",  secondary:["Chill","Freeze","Mendwater"], favoredShapes:["line","ground_zone","splash"], affixSynergy:["control","cleanse","regen"] },
+    Earth: { opposite:"Air",   signature:"Cripple", secondary:["Fortify","Stagger","Rupture"], favoredShapes:["ground_line","wall","nova"], affixSynergy:["block","retaliate","barrier"] },
+    Air:   { opposite:"Earth", signature:"Gust",  secondary:["Static","Lift","Slipstream"], favoredShapes:["chain","bolt","cone"], affixSynergy:["chain","on_step","precision"] },
+    Metal: { opposite:"Plant", signature:"Sunder", secondary:["Rend","Reflect","Magnetize"], favoredShapes:["line","pierce","ricochet"], affixSynergy:["crit","pierce","on_block"] },
+    Plant: { opposite:"Metal", signature:"Poison", secondary:["Regrowth","Root","Bloom"], favoredShapes:["ground_zone","tether","creeping_line"], affixSynergy:["dot","regen","summon","snare"] }
+  };
+
+  const POLARITY = {
+    None: { overlay: [], comboNames: {} },
+    Light: {
+      overlay: ["Reveal","Cleanse","Radiant Ward","Judgment"],
+      comboNames: { Fire:"Solar Flame", Water:"Blessed Tide", Earth:"Hallowed Stone", Air:"Radiant Gale", Metal:"Sanctified Steel", Plant:"Verdant Grace" }
+    },
+    Dark: {
+      overlay: ["Hex","Leech","Dread","Corrupt"],
+      comboNames: { Fire:"Hellfire", Water:"Abyssal Brine", Earth:"Graveclay", Air:"Nightwind", Metal:"Grave Iron", Plant:"Blightbloom" }
+    }
+  };
+
+  const BASE_ELEMENT_LIST = Object.keys(ELEMENTS);
+
+  // ------------------------------
+  //  Materials (flavor + light biasing)
+  // ------------------------------
+  const MATERIALS = [
+    { name:"Iron", tags:["metal"] },
+    { name:"Steel", tags:["metal"] },
+    { name:"Bronze", tags:["metal"] },
+    { name:"Silver", tags:["metal","light_tone"] },
+    { name:"Gold", tags:["metal","light_tone"] },
+    { name:"Obsidian", tags:["earth","dark_tone"] },
+    { name:"Runestone", tags:["earth","arcane"] },
+    { name:"Oak", tags:["plant","wood"] },
+    { name:"Yew", tags:["plant","wood"] },
+    { name:"Ashwood", tags:["plant","wood"] },
+    { name:"Leather", tags:["plant"] },
+    { name:"Silk", tags:["plant","fine"] },
+    { name:"Linen", tags:["plant"] },
+    { name:"Wool", tags:["plant"] },
+    { name:"Bone", tags:["dark_tone","occult"] },
+    { name:"Chitin", tags:["plant","earth"] },
+    { name:"Crystal", tags:["arcane","light_tone"] },
+    { name:"Glass", tags:["air","fragile"] },
+    { name:"Copper", tags:["metal"] },
+    { name:"Brass", tags:["metal"] }
+  ];
+
+  // ------------------------------
+  //  Rarities
+  // ------------------------------
+  const RARITIES = [
+    { id:"any", name:"Any" },
+    { id:"Common", name:"Common", tier:1, affixes:[0,1], polarityChance:0.03, curseChance:0.03 },
+    { id:"Uncommon", name:"Uncommon", tier:2, affixes:[1,2], polarityChance:0.06, curseChance:0.05 },
+    { id:"Rare", name:"Rare", tier:3, affixes:[2,3], polarityChance:0.12, curseChance:0.09 },
+    { id:"Epic", name:"Epic", tier:4, affixes:[3,4], polarityChance:0.22, curseChance:0.14 },
+    { id:"Legendary", name:"Legendary", tier:5, affixes:[4,5], polarityChance:0.35, curseChance:0.20, legendaryHook:true }
+  ];
+  const RARITY_COLOR = {
+    Common: "var(--common)",
+    Uncommon: "var(--uncommon)",
+    Rare: "var(--rare)",
+    Epic: "var(--epic)",
+    Legendary: "var(--legendary)"
+  };
+
+  // ------------------------------
+  //  Affix templates (trigger → payload → proc model)
+  // ------------------------------
+  const AFFIX_TEMPLATES = [
+    // --- Stats / passives ---
+    {
+      id:"STAT_OUTPUT_FLAT",
+      name:"Powerline",
+      group:"Stats",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:[],
+      tags:["output"],
+      render:(inst,item)=>`+${inst.pct}% ${item.family === "armor" || item.family === "shield" ? "Defense" : item.family === "implement" ? "Spell Power" : item.family === "relic" ? "Relic Power" : item.family === "consumable" ? "Potency" : "Damage"} (while equipped)`
+    },
+    {
+      id:"STAT_DEFENSE_FLAT",
+      name:"Fortification",
+      group:"Stats",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:["cap_block","warding"], // soft; we'll still allow on armor/accessory
+      tags:["defense","warding"],
+      render:(inst,item)=>`+${inst.pct}% Ward capacity and +${inst.pct2}% resistance to ${item.baseElement}`
+    },
+    {
+      id:"STAT_HANDLING",
+      name:"Handling",
+      group:"Stats",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:[],
+      tags:["precise","stable"],
+      render:(inst)=>`+${inst.pct}% handling (precision/stability) and -${inst.noise}% noise`
+    },
+    {
+      id:"STAT_RESOURCE_EFF",
+      name:"Economy",
+      group:"Stats",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:[],
+      tags:["efficient"],
+      render:(inst,item)=>`-${inst.pct}% ${item.family === "implement" ? "mana" : "stamina"} cost and +${inst.regen}% resource regen`
+    },
+    {
+      id:"STAT_UTILITY",
+      name:"Delver’s Utility",
+      group:"Stats",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:[],
+      tags:["delving","utility"],
+      render:(inst)=>`+${inst.range}m trap/secret detection and +${inst.speed}% interact speed`
+    },
+
+    // --- Conditionals ---
+    {
+      id:"COND_LOW_HP_DEF",
+      name:"Last Stand",
+      group:"Conditional",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:[],
+      tags:["defense","barrier"],
+      render:(inst)=>`While below ${inst.hp}% HP: gain +${inst.ward}% Ward and +${inst.dr}% damage reduction`
+    },
+    {
+      id:"COND_HIGH_HP_DMG",
+      name:"Momentum",
+      group:"Conditional",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["output"],
+      render:(inst)=>`While above ${inst.hp}% HP: deal +${inst.dmg}% damage`
+    },
+    {
+      id:"AFTER_KILL_HASTE",
+      name:"Runner’s High",
+      group:"Conditional",
+      trigger:"OnKill",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["on_kill","mobility"],
+      render:(inst)=>`On kill: gain +${inst.ms}% move speed for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+    {
+      id:"VS_STATUS_BONUS",
+      name:"Predator",
+      group:"Conditional",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["status_chance"],
+      render:(inst,item)=>`Deal +${inst.dmg}% damage to targets afflicted by ${ELEMENTS[item.baseElement].signature}`
+    },
+
+    // --- Proc damage ---
+    {
+      id:"PROC_ON_HIT_PROJECTILE",
+      name:"Bolt Echo",
+      group:"Proc Damage",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["bolt","chain"],
+      render:(inst,item)=>`On hit (${inst.ppm} PPM): fire a ${item.elementName} bolt dealing ${inst.dmg} ${item.baseElement} damage`
+    },
+    {
+      id:"PROC_ON_CRIT_CHAIN",
+      name:"Arcing Strike",
+      group:"Proc Damage",
+      trigger:"OnCrit",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_ranged","cap_cast","cap_melee"],
+      tags:["chain","precision"],
+      render:(inst,item)=>`On crit: chain ${item.baseElement} damage to ${inst.jumps} nearby targets (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_HIT_NOVA",
+      name:"Impact Nova",
+      group:"Proc Damage",
+      trigger:"OnHit",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_melee","cap_cast"],
+      tags:["aoe"],
+      render:(inst,item)=>`On hit: unleash a ${inst.radius}m nova for ${inst.dmg} ${item.baseElement} damage (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_KILL_EXPLOSION",
+      name:"Execution Burst",
+      group:"Proc Damage",
+      trigger:"OnKill",
+      procModel:"CHANCE",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["on_kill","aoe"],
+      render:(inst,item)=>`${inst.chance}% on kill: target explodes for ${inst.dmg} ${item.baseElement} damage in ${inst.radius}m`
+    },
+    {
+      id:"PROC_ON_HIT_ZONE",
+      name:"Lingering Zone",
+      group:"Proc Damage",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["ground_zone","control"],
+      render:(inst,item)=>`On hit (${inst.ppm} PPM): create a ${inst.radius}m ${item.elementName} zone for ${inst.dur}s (deals ${inst.dps}/s)`
+    },
+
+    // --- Status / control ---
+    {
+      id:"PROC_ON_HIT_STATUS",
+      name:"Primer",
+      group:"Status",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["status_chance","control"],
+      render:(inst,item)=>`On hit (${inst.ppm} PPM): apply ${ELEMENTS[item.baseElement].signature} (${inst.stacks} stacks)`
+    },
+    {
+      id:"PROC_ON_CRIT_HARD_CC",
+      name:"Crippling Finish",
+      group:"Status",
+      trigger:"OnCrit",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["control"],
+      render:(inst,item)=>`On crit: ${inst.cc} the target for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_HIT_MARK",
+      name:"Hunter’s Mark",
+      group:"Status",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_ranged","cap_cast","cap_melee"],
+      tags:["mark"],
+      render:(inst)=>`On hit (${inst.ppm} PPM): mark the target for ${inst.dur}s (+${inst.dmg}% damage taken)`
+    },
+    {
+      id:"PROC_ON_HIT_TETHER",
+      name:"Tether",
+      group:"Status",
+      trigger:"OnHit",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_cast","cap_ranged","cap_melee"],
+      tags:["tether","control"],
+      render:(inst,item)=>`On hit: tether the target for ${inst.dur}s (${inst.slow}% slow). Breaks on ${inst.break}m (CD ${inst.cd}s)`
+    },
+
+    // --- Defensive procs ---
+    {
+      id:"PROC_ON_BLOCK_RETALIATE",
+      name:"Shield Reprisal",
+      group:"Defense",
+      trigger:"OnBlock",
+      procModel:"ICD",
+      requiresAllCaps:["cap_block"],
+      tags:["retaliate","warding"],
+      render:(inst,item)=>`On block: retaliate in a ${inst.cone}° cone for ${inst.dmg} ${item.baseElement} damage (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_DAMAGE_TAKEN_WARD",
+      name:"Reactive Ward",
+      group:"Defense",
+      trigger:"OnDamageTaken",
+      procModel:"ICD",
+      requiresAnyCaps:[],
+      tags:["warding","barrier"],
+      render:(inst)=>`When you take damage: gain ${inst.ward} Ward (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_PARRY_COUNTER",
+      name:"Riposte",
+      group:"Defense",
+      trigger:"OnParry",
+      procModel:"ICD",
+      requiresAllCaps:["cap_parry"],
+      tags:["counter","precision"],
+      render:(inst,item)=>`On parry: counterstrike for ${inst.dmg} ${item.baseElement} damage and stagger (CD ${inst.cd}s)`
+    },
+    {
+      id:"AURA_DEFENSIVE",
+      name:"Warding Aura",
+      group:"Defense",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:["cap_aura","warding"],
+      tags:["warding","aura"],
+      render:(inst)=>`Aura: allies in ${inst.radius}m gain +${inst.ward}% ward regen`
+    },
+
+    // --- Mobility / dungeon feel ---
+    {
+      id:"PROC_ON_STEP_TRAIL",
+      name:"Trail",
+      group:"Mobility",
+      trigger:"OnStep",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_step"], // we will grant cap_step to boots/back/waist by slot
+      tags:["on_step","ground_zone"],
+      render:(inst,item)=>`On step: leave a ${item.elementName} trail (${inst.dps}/s, ${inst.radius}m) for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_DODGE_VEIL",
+      name:"Veilstep",
+      group:"Mobility",
+      trigger:"OnDodge",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_step"],
+      tags:["on_dodge","silent"],
+      render:(inst)=>`On dodge: become veiled for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_ROOM_ENTER_WARD",
+      name:"Threshold Ward",
+      group:"Dungeon",
+      trigger:"OnRoomEnter",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_room"],
+      tags:["cap_room","warding"],
+      render:(inst)=>`On room enter: gain ${inst.ward} Ward and ${inst.res}% resistance for ${inst.dur}s`
+    },
+    {
+      id:"PROC_ON_ROOM_CLEAR_BOON",
+      name:"Clear Reward",
+      group:"Dungeon",
+      trigger:"OnRoomClear",
+      procModel:null,
+      requiresAnyCaps:["cap_room"],
+      tags:["cap_room","utility"],
+      render:(inst)=>`On room clear: restore ${inst.heal}% HP and ${inst.res}% resource`
+    },
+
+    // --- Resource engines ---
+    {
+      id:"PROC_ON_HIT_RESOURCE_GAIN",
+      name:"Siphon",
+      group:"Resource",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["efficient","leech"],
+      render:(inst)=>`On hit (${inst.ppm} PPM): restore ${inst.res} resource`
+    },
+    {
+      id:"STACK_ON_HIT_THEN_SPEND",
+      name:"Overcharge",
+      group:"Resource",
+      trigger:"OnHit",
+      procModel:"STACK_SPEND",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      tags:["stack","burst"],
+      render:(inst,item)=>`Hits build Overcharge (max ${inst.max}). At ${inst.max}: unleash ${inst.dmg} ${item.baseElement} damage and consume stacks`
+    },
+    {
+      id:"CONVERT_RESOURCE",
+      name:"Transmutation",
+      group:"Resource",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:[],
+      tags:["convert_resource"],
+      render:(inst)=>`Convert ${inst.pct}% ${inst.from} spend into ${inst.to} (net efficiency)`
+    },
+    {
+      id:"CHARGED_PROC",
+      name:"Charge Capacitor",
+      group:"Resource",
+      trigger:"OnCast",
+      procModel:"CHARGES",
+      requiresAnyCaps:["cap_cast"],
+      tags:["charges","burst"],
+      render:(inst,item)=>`On cast: gain 1 charge. At ${inst.max} charges: release a ${inst.radius}m burst for ${inst.dmg} ${item.baseElement} damage`
+    },
+
+    // --- Summon / devices / traps ---
+    {
+      id:"PROC_ON_KILL_SUMMON",
+      name:"Death Servitor",
+      group:"Summon",
+      trigger:"OnKill",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_summon"],
+      tags:["summon","on_kill"],
+      render:(inst)=>`On kill: summon a servitor for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_HIT_SENTRY",
+      name:"Sentry Deployment",
+      group:"Device",
+      trigger:"OnHit",
+      procModel:"ICD",
+      requiresAnyCaps:["cap_device"],
+      tags:["device"],
+      render:(inst)=>`On hit: deploy a sentry for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+    {
+      id:"PROC_ON_TRAP_TRIGGER_ECHO",
+      name:"Trap Echo",
+      group:"Device",
+      trigger:"OnTrapTrigger",
+      procModel:null,
+      requiresAnyCaps:["cap_trap"],
+      tags:["trapwork","echo"],
+      render:(inst)=>`When your trap triggers: echo its effect at ${inst.pct}% strength`
+    },
+    {
+      id:"PROC_ON_INTERACT_UTILITY",
+      name:"Survey Pulse",
+      group:"Dungeon",
+      trigger:"OnInteract",
+      procModel:"ICD",
+      requiresAnyCaps:["utility","delving"],
+      tags:["utility"],
+      render:(inst)=>`On interact: reveal secrets/traps in ${inst.radius}m for ${inst.dur}s (CD ${inst.cd}s)`
+    },
+
+    // --- Polarity identity affixes ---
+    {
+      id:"LIGHT_CLEANSE_ON_PROC",
+      name:"Benediction",
+      group:"Polarity",
+      trigger:"OnDamageTaken",
+      procModel:"ICD",
+      requiresAnyCaps:[],
+      requiresTags:["aff_light"],
+      tags:["cleanse","aff_light"],
+      render:(inst)=>`When you take damage: cleanse ${inst.cleanse} debuff(s) (CD ${inst.cd}s)`
+    },
+    {
+      id:"LIGHT_REVEAL_MARK",
+      name:"Revelation",
+      group:"Polarity",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      requiresTags:["aff_light"],
+      tags:["reveal","mark","aff_light"],
+      render:(inst)=>`On hit (${inst.ppm} PPM): reveal + mark target for ${inst.dur}s`
+    },
+    {
+      id:"DARK_LEECH_ON_PROC",
+      name:"Hunger",
+      group:"Polarity",
+      trigger:"OnHit",
+      procModel:"PPM",
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      requiresTags:["aff_dark"],
+      tags:["leech","aff_dark"],
+      render:(inst)=>`On hit (${inst.ppm} PPM): leech ${inst.pct}% of damage as HP`
+    },
+    {
+      id:"DARK_HEX_AURA",
+      name:"Malison",
+      group:"Polarity",
+      trigger:"Always",
+      procModel:null,
+      requiresAnyCaps:["cap_aura","warding"],
+      requiresTags:["aff_dark"],
+      tags:["hex","aff_dark"],
+      render:(inst)=>`Aura: enemies in ${inst.radius}m deal -${inst.pct}% damage`
+    },
+
+    // --- Consumable-specific ---
+    {
+      id:"CONSUME_ON_USE_BLAST",
+      name:"Volatile Payload",
+      group:"Consumable",
+      trigger:"OnUseConsumable",
+      procModel:null,
+      requiresAnyCaps:["cap_use"],
+      tags:["aoe"],
+      render:(inst,item)=>`On use: explode in ${inst.radius}m for ${inst.dmg} ${item.baseElement} damage and apply ${ELEMENTS[item.baseElement].signature}`
+    },
+    {
+      id:"AMMO_REFUND",
+      name:"Conservation",
+      group:"Ammo",
+      trigger:"OnSpendResource",
+      procModel:"CHANCE",
+      requiresAnyCaps:["cap_ammo","cap_charge"],
+      tags:["efficient"],
+      render:(inst)=>`${inst.chance}% chance to not consume ammo/charge`
+    }
+  ];
+
+  const CURSE_TEMPLATES = [
+    {
+      id:"CURSE_FRAGILE",
+      name:"Curse: Fragile",
+      trigger:"Always",
+      tags:["curse","fragile"],
+      render:(inst)=>`Durability -${inst.pct}% (but the item rolls hotter affixes)`
+    },
+    {
+      id:"CURSE_LOUD",
+      name:"Curse: Loud",
+      trigger:"Always",
+      tags:["curse","loud"],
+      render:(inst)=>`Noise +${inst.pct}% and stealth effectiveness reduced`
+    },
+    {
+      id:"CURSE_GREED",
+      name:"Curse: Greed",
+      trigger:"Always",
+      tags:["curse"],
+      render:(inst,item)=>`Take +${inst.pct}% damage from ${ELEMENTS[item.baseElement].opposite} effects`
+    },
+    {
+      id:"CURSE_HUNGER",
+      name:"Curse: Hunger",
+      trigger:"Always",
+      tags:["curse","leech"],
+      render:(inst)=>`Resource drain: -${inst.pct}% regen (but procs are stronger)`
+    }
+  ];
+
+  const LEGENDARY_HOOKS = [
+    {
+      id:"LEG_ECHO_OF_ECHOES",
+      name:"Legendary: Echo of Echoes",
+      tags:["legendary","echo"],
+      requiresAnyCaps:["cap_melee","cap_ranged","cap_cast"],
+      render:(inst,item)=>`Every ${inst.n}th hit repeats your last proc at ${inst.pct}% strength (${item.elementName})`
+    },
+    {
+      id:"LEG_WARD_ENGINE",
+      name:"Legendary: Ward Engine",
+      tags:["legendary","warding"],
+      requiresAnyCaps:[],
+      render:(inst)=>`Ward never fully decays while in combat; at full Ward, gain +${inst.pct}% damage`
+    },
+    {
+      id:"LEG_CIRCLE_OF_COMMAND",
+      name:"Legendary: Circle of Command",
+      tags:["legendary","summon"],
+      requiresAnyCaps:["cap_summon"],
+      render:(inst)=>`Summons gain +${inst.pct}% damage and inherit your ${inst.inherit} element`
+    },
+    {
+      id:"LEG_TRAP_CONDUCTOR",
+      name:"Legendary: Trap Conductor",
+      tags:["legendary","trapwork"],
+      requiresAnyCaps:["cap_trap"],
+      render:(inst)=>`Traps trigger a chain pulse to ${inst.jumps} targets (CD ${inst.cd}s)`
+    }
+  ];
+
+  // ------------------------------
+  //  Soft constraints & scoring
+  // ------------------------------
+  const CONFLICT_PAIRS = [
+    ["heavy","silent"],
+    ["light","bulky"],
+    ["fast","slow"],
+    ["precise","wild"],
+    ["stable","wobbly"],
+    ["durable","fragile"],
+    ["holy","occult"],
+    ["aff_light","aff_dark"]
+  ];
+
+  const SYNERGY_PAIRS = [
+    ["heavy","durable"],
+    ["light","fast"],
+    ["precise","stable"],
+    ["arcane","cap_cast"],
+    ["warding","cap_block"],
+    ["trapwork","cap_trap"],
+    ["device","cap_device"],
+    ["summon","cap_summon"],
+    ["silent","mark"],
+    ["on_step","mobility"]
+  ];
+
+  function countPairs(tags, pairs){
+    const set = new Set(tags);
+    let n = 0;
+    for (const [a,b] of pairs){
+      if (set.has(a) && set.has(b)) n++;
+    }
+    return n;
+  }
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function coherenceScore(item, leanKey){
+    const tags = item.tags;
+    let score = 50;
+    score += countPairs(tags, SYNERGY_PAIRS) * 6;
+    score -= countPairs(tags, CONFLICT_PAIRS) * 10;
+
+    // element synergy bumps: if item has tags that match element preferences
+    const elem = ELEMENTS[item.baseElement];
+    for (const t of elem.affixSynergy){
+      if (item.tags.includes(t)) score += 2;
+    }
+
+    // lean preference bumps
+    const pref = ROLE_PREFERENCES[leanKey] || ROLE_PREFERENCES.Any;
+    const set = new Set(tags);
+    let wantHits = 0;
+    for (const w of pref.want){
+      if (set.has(w)) wantHits++;
+    }
+    let avoidHits = 0;
+    for (const a of pref.avoid){
+      if (set.has(a)) avoidHits++;
+    }
+    score += wantHits * 2;
+    score -= avoidHits * 3;
+
+    return clamp(Math.round(score), 0, 100);
+  }
+
+  // ------------------------------
+  //  Generator helpers
+  // ------------------------------
+  function uniq(arr){
+    return Array.from(new Set(arr));
+  }
+
+  function getSlotById(id){
+    return SLOT_DEFS.find(s => s.id === id) || SLOT_DEFS[0];
+  }
+
+  function getRarityById(id){
+    return RARITIES.find(r => r.id === id) || RARITIES[1];
+  }
+
+  function chooseBaseType(slotId, family, weaponCatId, rng){
+    if (slotId === "ring_left" || slotId === "ring_right") return rng.pick(BASE_TYPES.ring);
+    if (slotId === "main_hand" || slotId === "off_hand"){
+      if (family === "shield") return rng.pick(BASE_TYPES.shield);
+      if (family === "implement") return rng.pick(BASE_TYPES.implement);
+      if (family === "weapon"){
+        const cat = weaponCatId === "auto" ? rng.pick(WEAPON_CATS.filter(c=>c.id!=="auto")).id : weaponCatId;
+        const pool = BASE_TYPES[cat] || BASE_TYPES.swords_blades;
+        return rng.pick(pool);
+      }
+      if (family === "tool") return rng.pick(BASE_TYPES.tool);
+      // fallback
+      return rng.pick(BASE_TYPES.swords_blades);
+    }
+    // non-hand slots
+    const pool = BASE_TYPES[slotId] || BASE_TYPES.accessory;
+    return rng.pick(pool);
+  }
+
+  function determineFamily(slotId, selectedFamily, rng){
+    if (selectedFamily && selectedFamily !== "auto") return selectedFamily;
+
+    const slot = getSlotById(slotId);
+    if (slot.defaultFamily && slot.defaultFamily !== "auto") return slot.defaultFamily;
+
+    // main/off hand auto selection
+    if (slotId === "main_hand"){
+      // bias toward weapons, but allow implements
+      return rng.weightedPick(
+        ["weapon","implement"],
+        x => x === "weapon" ? 0.72 : 0.28
+      );
+    }
+    if (slotId === "off_hand"){
+      // shield, implement(offhand focus), or tool
+      return rng.weightedPick(
+        ["shield","implement","tool"],
+        x => ({ shield: 0.58, implement: 0.26, tool: 0.16 }[x] || 1)
+      );
+    }
+
+    // any slot fallback
+    return slot.defaultFamily || "armor";
+  }
+
+  function baseCapabilitiesForItem(slotId, family, weaponCatId){
+    const caps = [];
+    if (family === "armor"){
+      caps.push("cap_step"); // armor pieces can reference movement hooks in this looter (boots/back/waist especially)
+    }
+    if (family === "weapon"){
+      // map weapon category to melee/ranged/thrown
+      const cat = weaponCatId;
+      if (["bows_crossbows","ranged_other"].includes(cat)) caps.push("cap_ranged");
+      else if (cat === "thrown") caps.push("cap_thrown");
+      else caps.push("cap_melee");
+    }
+    if (family === "shield") caps.push("cap_block");
+    if (family === "implement") { caps.push("cap_cast"); caps.push("cap_channel"); }
+    if (family === "relic") { caps.push("cap_room"); caps.push("cap_aura"); }
+    if (family === "tool") { caps.push("cap_device"); caps.push("cap_trap"); caps.push("utility"); }
+    if (family === "consumable") caps.push("cap_use");
+    if (family === "ammo") { caps.push("cap_ammo"); caps.push("cap_charge"); }
+    // slot-based extras
+    if (["feet","back","waist"].includes(slotId)) caps.push("cap_step");
+    return uniq(caps);
+  }
+
+  function chooseMaterial(rng, family, baseElement, polarity, preferSynergy){
+    // We weight materials by element lean. This is intentionally light-touch.
+    const elemTagMap = {
+      Fire: ["metal","earth"],
+      Water:["plant","metal"],
+      Earth:["earth"],
+      Air:["air","light_tone"],
+      Metal:["metal"],
+      Plant:["plant","wood"]
+    };
+    const desired = elemTagMap[baseElement] || [];
+    const polDesired = polarity === "Light" ? ["light_tone","fine"] : polarity === "Dark" ? ["dark_tone","occult"] : [];
+    const want = preferSynergy ? uniq([...desired, ...polDesired]) : [];
+
+    const candidates = MATERIALS;
+    return rng.weightedPick(candidates, m => {
+      let w = 1;
+      if (family === "armor" && m.tags.includes("wood")) w *= 0.6;
+      if (family === "shield" && m.tags.includes("cloth")) w *= 0.3;
+      if (family === "implement" && m.tags.includes("metal")) w *= 0.9;
+      if (family === "ammo" && m.tags.includes("glass")) w *= 0.4;
+      for (const t of want){
+        if (m.tags.includes(t)) w += 0.9;
+      }
+      return w;
+    });
+  }
+
+  function chooseBaseElementFromTags(tags, rng){
+    const elementTags = [
+      { tag:"aff_fire", el:"Fire" },
+      { tag:"aff_water", el:"Water" },
+      { tag:"aff_earth", el:"Earth" },
+      { tag:"aff_air", el:"Air" },
+      { tag:"aff_metal", el:"Metal" },
+      { tag:"aff_plant", el:"Plant" }
+    ];
+    const hits = elementTags.filter(x => tags.includes(x.tag)).map(x=>x.el);
+    if (hits.length) return rng.pick(hits);
+    return rng.pick(BASE_ELEMENT_LIST);
+  }
+
+  function choosePolarityFromTags(tags, rarity, rng){
+    // If tags explicitly include aff_light/aff_dark, honor it.
+    if (tags.includes("aff_light") && !tags.includes("aff_dark")) return "Light";
+    if (tags.includes("aff_dark") && !tags.includes("aff_light")) return "Dark";
+    // If both are present, pick one (rare chaotic), or None.
+    if (tags.includes("aff_light") && tags.includes("aff_dark")) return rng.pick(["Light","Dark"]);
+    // Otherwise, roll based on rarity chance.
+    if (rarity && rarity.polarityChance && rng.chance(rarity.polarityChance)){
+      return rng.pick(["Light","Dark"]);
+    }
+    return "None";
+  }
+
+  function elementDisplayName(baseElement, polarity){
+    if (polarity && polarity !== "None") return POLARITY[polarity].comboNames[baseElement] || `${polarity} ${baseElement}`;
+    return baseElement;
+  }
+
+  function partPickWeight(part, item, leanKey, preferSynergy){
+    let w = 1;
+    if (!preferSynergy) return w;
+
+    const pref = ROLE_PREFERENCES[leanKey] || ROLE_PREFERENCES.Any;
+    const tagSet = new Set(part.tags);
+
+    for (const t of pref.want){
+      if (tagSet.has(t)) w += 0.9;
+    }
+    for (const t of pref.avoid){
+      if (tagSet.has(t)) w *= 0.6;
+    }
+
+    // Element synergy: prefer parts that match the eventual element tags if already known
+    if (item && item.baseElement){
+      const map = {
+        Fire:"aff_fire", Water:"aff_water", Earth:"aff_earth", Air:"aff_air", Metal:"aff_metal", Plant:"aff_plant"
+      };
+      const wantTag = map[item.baseElement];
+      if (wantTag && tagSet.has(wantTag)) w += 0.8;
+    }
+    if (item && item.polarity && item.polarity !== "None"){
+      const polTag = item.polarity === "Light" ? "aff_light" : "aff_dark";
+      if (tagSet.has(polTag)) w += 0.7;
+    }
+
+    return w;
+  }
+
+  function pickPartsForItem(rng, family, leanKey, preferSynergy, goofyChance){
+    // We do rejection sampling to reduce conflict rate, but still allow it sometimes.
+    const maxAttempts = 60;
+
+    for (let attempt=0; attempt<maxAttempts; attempt++){
+      const picked = {};
+      const tagBag = [];
+
+      for (const mount of MOUNT_ORDER){
+        const pool = PARTS[mount].filter(p => p.families.includes(family));
+        const pick = rng.weightedPick(pool, p => partPickWeight(p, { baseElement: null, polarity: null }, leanKey, preferSynergy));
+        picked[mount] = pick;
+        tagBag.push(...pick.tags);
+      }
+
+      const tags = uniq(tagBag);
+      const conflicts = countPairs(tags, CONFLICT_PAIRS);
+
+      // accept criteria
+      if (conflicts === 0) return { parts: picked, tags };
+      if (conflicts === 1){
+        // allow some single-conflict items depending on goofyChance
+        const allow = rng.chance(goofyChance);
+        if (allow) return { parts: picked, tags };
+      }
+      // conflicts >1: only allow if very goofy
+      if (conflicts > 1 && rng.chance(goofyChance * 0.35)) return { parts: picked, tags };
+    }
+
+    // fall back: just pick without filtering
+    const fallback = {};
+    const tagBag = [];
+    for (const mount of MOUNT_ORDER){
+      const pool = PARTS[mount].filter(p => p.families.includes(family));
+      const pick = rng.pick(pool);
+      fallback[mount] = pick;
+      tagBag.push(...pick.tags);
+    }
+    return { parts: fallback, tags: uniq(tagBag) };
+  }
+
+  function templateEligible(tpl, item){
+    const caps = new Set(item.capabilities);
+    const tags = new Set(item.tags);
+
+    const hasReq = (req) => {
+      // Convention: requirements starting with cap_ are capabilities; everything else is treated as a tag.
+      return String(req).startsWith("cap_") ? caps.has(req) : tags.has(req);
+    };
+
+    // requiresTags (strict tag-only)
+    if (tpl.requiresTags){
+      for (const t of tpl.requiresTags){
+        if (!tags.has(t)) return false;
+      }
+    }
+    // forbidsTags
+    if (tpl.forbidsTags){
+      for (const t of tpl.forbidsTags){
+        if (tags.has(t)) return false;
+      }
+    }
+
+    // requiresAllCaps (cap_ or tag requirements; despite the name we allow tag requirements here too)
+    if (tpl.requiresAllCaps){
+      for (const req of tpl.requiresAllCaps){
+        if (!hasReq(req)) return false;
+      }
+    }
+
+    // requiresAnyCaps (cap_ or tag requirements; despite the name we allow tag requirements here too)
+    if (tpl.requiresAnyCaps && tpl.requiresAnyCaps.length){
+      let ok = false;
+      for (const req of tpl.requiresAnyCaps){
+        if (hasReq(req)) { ok = true; break; }
+      }
+      if (!ok) return false;
+    }
+
+    return true;
+  }
+
+  function affixWeight(tpl, item, leanKey, preferSynergy){
+    let w = 1;
+
+    if (!preferSynergy) return w;
+
+    // element synergy
+    const elem = ELEMENTS[item.baseElement];
+    for (const st of elem.affixSynergy){
+      if (tpl.tags && tpl.tags.includes(st)) w += 0.8;
+    }
+
+    // polarity synergy
+    if (item.polarity === "Light" && tpl.tags?.includes("aff_light")) w += 1.0;
+    if (item.polarity === "Dark" && tpl.tags?.includes("aff_dark")) w += 1.0;
+
+    // role preference
+    const pref = ROLE_PREFERENCES[leanKey] || ROLE_PREFERENCES.Any;
+    for (const t of pref.want){
+      if (tpl.tags?.includes(t)) w += 0.4;
+    }
+    for (const t of pref.avoid){
+      if (tpl.tags?.includes(t)) w *= 0.7;
+    }
+
+    // slot/family nudges
+    if (item.slotId === "feet" || item.slotId === "back" || item.slotId === "waist"){
+      if (tpl.trigger === "OnStep" || tpl.tags?.includes("on_step")) w += 0.6;
+    }
+    if (item.family === "shield" && tpl.trigger === "OnBlock") w += 0.8;
+    if (item.family === "consumable" && tpl.trigger === "OnUseConsumable") w += 2.0;
+    if (item.family === "ammo" && tpl.group === "Ammo") w += 2.0;
+
+    return w;
+  }
+
+  function instantiateAffix(tpl, item, rarity, rng){
+    const tier = rarity.tier || 1;
+    // helpers
+    const rollPct = (a,b)=>Math.round(a + (b-a)*rng.next());
+    const rollInt = (a,b)=>rng.int(a,b);
+    const rollFloat = (a,b)=>Number((a + (b-a)*rng.next()).toFixed(1));
+
+    const inst = {
+      templateId: tpl.id,
+      name: tpl.name,
+      group: tpl.group,
+      trigger: tpl.trigger,
+      procModel: tpl.procModel,
+      tags: tpl.tags ? [...tpl.tags] : [],
+      description: "",
+      params: {}
+    };
+
+    // A light param rig per template id
+    switch (tpl.id){
+      case "STAT_OUTPUT_FLAT":
+        inst.pct = rollPct(3 + tier*2, 7 + tier*3);
+        inst.params = { pct: inst.pct };
+        break;
+      case "STAT_DEFENSE_FLAT":
+        inst.pct = rollPct(2 + tier*2, 6 + tier*3);
+        inst.pct2 = rollPct(1 + tier, 3 + tier*2);
+        inst.params = { wardPct: inst.pct, resistPct: inst.pct2 };
+        break;
+      case "STAT_HANDLING":
+        inst.pct = rollPct(2 + tier, 5 + tier*2);
+        inst.noise = rollPct(3 + tier, 8 + tier*2);
+        inst.params = { handlingPct: inst.pct, noiseReducePct: inst.noise };
+        break;
+      case "STAT_RESOURCE_EFF":
+        inst.pct = rollPct(2 + tier, 4 + tier*2);
+        inst.regen = rollPct(1 + tier, 3 + tier*2);
+        inst.params = { costReducePct: inst.pct, regenPct: inst.regen };
+        break;
+      case "STAT_UTILITY":
+        inst.range = rollFloat(1.5 + tier*0.5, 2.5 + tier*0.9);
+        inst.speed = rollPct(2 + tier, 6 + tier*2);
+        inst.params = { detectRangeM: inst.range, interactSpeedPct: inst.speed };
+        break;
+      case "COND_LOW_HP_DEF":
+        inst.hp = rollInt(35, 55);
+        inst.ward = rollPct(8 + tier*4, 12 + tier*6);
+        inst.dr = rollPct(4 + tier*2, 6 + tier*3);
+        inst.params = { hpThresholdPct: inst.hp, wardGainPct: inst.ward, damageReductionPct: inst.dr };
+        break;
+      case "COND_HIGH_HP_DMG":
+        inst.hp = rollInt(70, 90);
+        inst.dmg = rollPct(4 + tier*2, 7 + tier*3);
+        inst.params = { hpThresholdPct: inst.hp, damagePct: inst.dmg };
+        break;
+      case "AFTER_KILL_HASTE":
+        inst.ms = rollPct(6 + tier*2, 10 + tier*3);
+        inst.dur = rollFloat(2.5, 5.0);
+        inst.cd = rollFloat(6.0, 12.0);
+        inst.params = { moveSpeedPct: inst.ms, durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "VS_STATUS_BONUS":
+        inst.dmg = rollPct(5 + tier*2, 9 + tier*3);
+        inst.params = { damagePct: inst.dmg, status: ELEMENTS[item.baseElement].signature };
+        break;
+      case "PROC_ON_HIT_PROJECTILE":
+        inst.ppm = rollFloat(0.8 + tier*0.3, 1.6 + tier*0.6);
+        inst.dmg = rollInt(8 + tier*6, 16 + tier*10) + (item.level||1);
+        inst.params = { ppm: inst.ppm, damage: inst.dmg };
+        break;
+      case "PROC_ON_CRIT_CHAIN":
+        inst.jumps = rollInt(2, 2 + Math.floor(tier/2) + 2);
+        inst.cd = rollFloat(6.0 - tier*0.4, 10.0 - tier*0.3);
+        inst.params = { jumps: inst.jumps, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_HIT_NOVA":
+        inst.radius = rollFloat(1.8 + tier*0.2, 2.6 + tier*0.35);
+        inst.dmg = rollInt(10 + tier*7, 18 + tier*12) + (item.level||1);
+        inst.cd = rollFloat(5.0, 10.0);
+        inst.params = { radiusM: inst.radius, damage: inst.dmg, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_KILL_EXPLOSION":
+        inst.chance = rollPct(12 + tier*3, 22 + tier*4);
+        inst.radius = rollFloat(1.8 + tier*0.15, 2.8 + tier*0.25);
+        inst.dmg = rollInt(14 + tier*8, 24 + tier*14) + (item.level||1);
+        inst.params = { chancePct: inst.chance, radiusM: inst.radius, damage: inst.dmg };
+        break;
+      case "PROC_ON_HIT_ZONE":
+        inst.ppm = rollFloat(0.6 + tier*0.25, 1.2 + tier*0.5);
+        inst.radius = rollFloat(1.2 + tier*0.15, 2.1 + tier*0.25);
+        inst.dur = rollFloat(3.0, 6.0);
+        inst.dps = rollInt(3 + tier*2, 6 + tier*3);
+        inst.params = { ppm: inst.ppm, radiusM: inst.radius, durationS: inst.dur, dps: inst.dps };
+        break;
+      case "PROC_ON_HIT_STATUS":
+        inst.ppm = rollFloat(1.0 + tier*0.4, 2.0 + tier*0.65);
+        inst.stacks = rollInt(1, 1 + Math.floor(tier/2) + 1);
+        inst.params = { ppm: inst.ppm, stacks: inst.stacks, status: ELEMENTS[item.baseElement].signature };
+        break;
+      case "PROC_ON_CRIT_HARD_CC":
+        inst.cc = rng.pick(["stagger","stun","fear","knockback"]);
+        inst.dur = rollFloat(0.6 + tier*0.1, 1.2 + tier*0.15);
+        inst.cd = rollFloat(8.0, 16.0);
+        inst.params = { cc: inst.cc, durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_HIT_MARK":
+        inst.ppm = rollFloat(0.8 + tier*0.25, 1.6 + tier*0.4);
+        inst.dur = rollFloat(3.0, 8.0);
+        inst.dmg = rollPct(4 + tier*2, 8 + tier*3);
+        inst.params = { ppm: inst.ppm, durationS: inst.dur, damageTakenPct: inst.dmg };
+        break;
+      case "PROC_ON_HIT_TETHER":
+        inst.dur = rollFloat(1.8, 4.2);
+        inst.slow = rollPct(15 + tier*3, 25 + tier*4);
+        inst.break = rollFloat(3.0, 6.0);
+        inst.cd = rollFloat(8.0, 16.0);
+        inst.params = { durationS: inst.dur, slowPct: inst.slow, breakM: inst.break, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_BLOCK_RETALIATE":
+        inst.cone = rollInt(60, 120);
+        inst.dmg = rollInt(8 + tier*7, 16 + tier*12) + (item.level||1);
+        inst.cd = rollFloat(4.0, 10.0);
+        inst.params = { coneDeg: inst.cone, damage: inst.dmg, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_DAMAGE_TAKEN_WARD":
+        inst.ward = rollInt(8 + tier*5, 14 + tier*8);
+        inst.cd = rollFloat(6.0, 14.0);
+        inst.params = { ward: inst.ward, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_PARRY_COUNTER":
+        inst.dmg = rollInt(10 + tier*6, 16 + tier*12) + (item.level||1);
+        inst.cd = rollFloat(5.0, 12.0);
+        inst.params = { damage: inst.dmg, cooldownS: inst.cd };
+        break;
+      case "AURA_DEFENSIVE":
+        inst.radius = rollFloat(2.2 + tier*0.2, 4.0 + tier*0.25);
+        inst.ward = rollPct(4 + tier*2, 8 + tier*3);
+        inst.params = { radiusM: inst.radius, wardRegenPct: inst.ward };
+        break;
+      case "PROC_ON_STEP_TRAIL":
+        inst.dps = rollInt(2 + tier*2, 4 + tier*3);
+        inst.radius = rollFloat(0.7 + tier*0.05, 1.1 + tier*0.1);
+        inst.dur = rollFloat(1.8, 3.5);
+        inst.cd = rollFloat(0.25, 0.7);
+        inst.params = { dps: inst.dps, radiusM: inst.radius, durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_DODGE_VEIL":
+        inst.dur = rollFloat(0.8, 2.2);
+        inst.cd = rollFloat(8.0, 16.0);
+        inst.params = { durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_ROOM_ENTER_WARD":
+        inst.ward = rollInt(10 + tier*6, 18 + tier*10);
+        inst.res = rollPct(3 + tier, 5 + tier*2);
+        inst.dur = rollFloat(6.0, 14.0);
+        inst.params = { ward: inst.ward, resistPct: inst.res, durationS: inst.dur };
+        break;
+      case "PROC_ON_ROOM_CLEAR_BOON":
+        inst.heal = rollPct(4 + tier, 7 + tier*2);
+        inst.res = rollPct(6 + tier, 10 + tier*2);
+        inst.params = { healPct: inst.heal, resourcePct: inst.res };
+        break;
+      case "PROC_ON_HIT_RESOURCE_GAIN":
+        inst.ppm = rollFloat(1.0 + tier*0.4, 2.2 + tier*0.7);
+        inst.res = rollInt(3 + tier*2, 6 + tier*3);
+        inst.params = { ppm: inst.ppm, resource: inst.res };
+        break;
+      case "STACK_ON_HIT_THEN_SPEND":
+        inst.max = rollInt(5, 7 + tier);
+        inst.dmg = rollInt(18 + tier*10, 28 + tier*15) + (item.level||1);
+        inst.params = { maxStacks: inst.max, burstDamage: inst.dmg };
+        break;
+      case "CONVERT_RESOURCE":
+        inst.pct = rollPct(8 + tier*3, 14 + tier*4);
+        inst.from = rng.pick(["stamina","mana","charges"]);
+        inst.to = inst.from === "mana" ? "stamina" : "mana";
+        inst.params = { pct: inst.pct, from: inst.from, to: inst.to };
+        break;
+      case "CHARGED_PROC":
+        inst.max = rollInt(3, 4 + Math.floor(tier/2));
+        inst.radius = rollFloat(1.8, 3.4);
+        inst.dmg = rollInt(18 + tier*8, 30 + tier*12) + (item.level||1);
+        inst.params = { maxCharges: inst.max, radiusM: inst.radius, damage: inst.dmg };
+        break;
+      case "PROC_ON_KILL_SUMMON":
+        inst.dur = rollFloat(6.0, 14.0);
+        inst.cd = rollFloat(18.0, 35.0);
+        inst.params = { durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_HIT_SENTRY":
+        inst.dur = rollFloat(6.0, 14.0);
+        inst.cd = rollFloat(20.0, 40.0);
+        inst.params = { durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "PROC_ON_TRAP_TRIGGER_ECHO":
+        inst.pct = rollPct(25 + tier*8, 35 + tier*10);
+        inst.params = { echoPct: inst.pct };
+        break;
+      case "PROC_ON_INTERACT_UTILITY":
+        inst.radius = rollFloat(4.0, 10.0);
+        inst.dur = rollFloat(4.0, 10.0);
+        inst.cd = rollFloat(18.0, 40.0);
+        inst.params = { radiusM: inst.radius, durationS: inst.dur, cooldownS: inst.cd };
+        break;
+      case "LIGHT_CLEANSE_ON_PROC":
+        inst.cleanse = rollInt(1, tier >= 4 ? 2 : 1);
+        inst.cd = rollFloat(10.0, 22.0);
+        inst.params = { cleanse: inst.cleanse, cooldownS: inst.cd };
+        break;
+      case "LIGHT_REVEAL_MARK":
+        inst.ppm = rollFloat(0.8 + tier*0.2, 1.6 + tier*0.35);
+        inst.dur = rollFloat(4.0, 10.0);
+        inst.params = { ppm: inst.ppm, durationS: inst.dur };
+        break;
+      case "DARK_LEECH_ON_PROC":
+        inst.ppm = rollFloat(0.9 + tier*0.25, 1.6 + tier*0.4);
+        inst.pct = rollPct(3 + tier, 6 + tier*2);
+        inst.params = { ppm: inst.ppm, leechPct: inst.pct };
+        break;
+      case "DARK_HEX_AURA":
+        inst.radius = rollFloat(2.2 + tier*0.2, 4.2 + tier*0.35);
+        inst.pct = rollPct(4 + tier, 7 + tier*2);
+        inst.params = { radiusM: inst.radius, dmgDownPct: inst.pct };
+        break;
+      case "CONSUME_ON_USE_BLAST":
+        inst.radius = rollFloat(1.8 + tier*0.2, 3.0 + tier*0.35);
+        inst.dmg = rollInt(18 + tier*10, 30 + tier*16) + (item.level||1);
+        inst.params = { radiusM: inst.radius, damage: inst.dmg };
+        break;
+      case "AMMO_REFUND":
+        inst.chance = rollPct(6 + tier*2, 10 + tier*3);
+        inst.params = { chancePct: inst.chance };
+        break;
+      default:
+        // safe default
+        inst.params = {};
+        break;
+    }
+
+    inst.description = tpl.render(inst, item);
+    return inst;
+  }
+
+  function instantiateCurse(tpl, item, rarity, rng){
+    const tier = rarity.tier || 1;
+    const rollPct = (a,b)=>Math.round(a + (b-a)*rng.next());
+    const inst = {
+      templateId: tpl.id,
+      name: tpl.name,
+      trigger: tpl.trigger,
+      tags: tpl.tags ? [...tpl.tags] : [],
+      params: {},
+      description: ""
+    };
+    inst.pct = rollPct(10 + tier*3, 18 + tier*4);
+    inst.params = { pct: inst.pct };
+    inst.description = tpl.render(inst, item);
+    return inst;
+  }
+
+  // ------------------------------
+  //  Name generation
+  // ------------------------------
+  const ELEMENT_PREFIX = {
+    Fire: ["Ember","Cinder","Flame","Pyre","Scorch"],
+    Water:["Tide","Frost","Brine","Rill","Undertow"],
+    Earth:["Stone","Rift","Granite","Bastion","Ruin"],
+    Air:  ["Gale","Zephyr","Storm","Sirocco","Skylance"],
+    Metal:["Steel","Razor","Alloy","Iron","Edge"],
+    Plant:["Verdant","Thorn","Bloom","Briar","Spore"]
+  };
+  const POL_PREFIX = {
+    Light:["Radiant","Hallowed","Sanctified","Luminous"],
+    Dark:["Umbral","Grave","Blighted","Dread"]
+  };
+  const FINISH_PREFIX = {
+    crude:["Rough","Crude","Scabbed"],
+    fieldworn:["Fieldworn","Worn","Weathered"],
+    masterwork:["Masterwork","Fine","Tempered"],
+    fine:["Gilded","Elegant","Noble"]
+  };
+  const SUFFIX_POOL = [
+    { id:"ward", name:"of Warding", tags:["warding"] },
+    { id:"echo", name:"of Echoes", tags:["echo"] },
+    { id:"hunger", name:"of Hunger", tags:["leech","aff_dark"] },
+    { id:"clearing", name:"of Clearing", tags:["cleanse","aff_light"] },
+    { id:"chains", name:"of Chains", tags:["chain"] },
+    { id:"thorns", name:"of Thorns", tags:["aff_plant","dot"] },
+    { id:"cinders", name:"of Cinders", tags:["aff_fire","aoe"] },
+    { id:"tides", name:"of Tides", tags:["aff_water","control"] },
+    { id:"stone", name:"of Stone", tags:["aff_earth","barrier"] },
+    { id:"wind", name:"of Wind", tags:["aff_air","precision"] },
+    { id:"steel", name:"of Steel", tags:["aff_metal","pierce"] },
+    { id:"delving", name:"of Delving", tags:["delving","utility"] }
+  ];
+
+  function buildName(item, rng){
+    const words = [];
+
+    // Polarity prefix sometimes
+    if (item.polarity !== "None" && rng.chance(0.85)){
+      words.push(rng.pick(POL_PREFIX[item.polarity]));
+    }
+
+    // Element prefix
+    words.push(rng.pick(ELEMENT_PREFIX[item.baseElement]));
+
+    // Finish prefix derived from finish tags
+    const fTags = item.parts.FINISH.tags;
+    if (fTags.includes("masterwork") && rng.chance(0.7)) words.push(rng.pick(FINISH_PREFIX.masterwork));
+    else if (fTags.includes("crude") && rng.chance(0.7)) words.push(rng.pick(FINISH_PREFIX.crude));
+    else if (fTags.includes("fieldworn") && rng.chance(0.6)) words.push(rng.pick(FINISH_PREFIX.fieldworn));
+    else if (fTags.includes("fine") && rng.chance(0.6)) words.push(rng.pick(FINISH_PREFIX.fine));
+
+    // Trim to 2–3 adjectives
+    const adj = uniq(words).slice(0, rng.int(2, 3));
+
+    // Choose suffix based on tags
+    const tagSet = new Set(item.tags);
+    const suffix = rng.weightedPick(SUFFIX_POOL, s => {
+      let w = 1;
+      for (const t of s.tags){
+        if (tagSet.has(t)) w += 1.2;
+      }
+      return w;
+    });
+
+    return `${adj.join(" ")} ${item.baseType} ${suffix.name}`;
+  }
+
+  // ------------------------------
+  //  Main item generator
+  // ------------------------------
+  let itemCounter = 0;
+
+  function generateItem(rng, opts){
+    const {
+      slotId,
+      selectedFamily,
+      weaponCatId,
+      rarityId,
+      leanKey,
+      goofyChance,
+      allowCurses,
+      preferSynergy,
+      level
+    } = opts;
+
+    // Decide slot
+    const slot = (slotId === "any")
+      ? rng.pick(SLOT_DEFS.filter(s => s.id !== "any"))
+      : getSlotById(slotId);
+
+    // Decide family
+    const family = determineFamily(slot.id, selectedFamily, rng);
+
+    // Decide weapon category (only relevant for weapons)
+    let cat = weaponCatId || "auto";
+    if (family !== "weapon") cat = "auto";
+    if (family === "weapon" && cat === "auto"){
+      cat = rng.pick(WEAPON_CATS.filter(c=>c.id!=="auto")).id;
+    }
+
+    // Decide rarity
+    let rarity = getRarityById(rarityId);
+    if (rarityId === "any" || !rarity.tier){
+      rarity = rng.weightedPick(
+        RARITIES.filter(r=>r.tier),
+        r => ({ Common: 0.46, Uncommon: 0.28, Rare: 0.16, Epic: 0.075, Legendary: 0.025 }[r.id] || 0.1)
+      );
+    }
+
+    // Base capabilities (slot/family)
+    const baseCaps = baseCapabilitiesForItem(slot.id, family, cat);
+
+    // Pick parts
+    const partResult = pickPartsForItem(rng, family, leanKey, preferSynergy, goofyChance);
+    const parts = partResult.parts;
+
+    // Compose tags from parts + base caps
+    let tags = uniq([...partResult.tags, ...baseCaps]);
+
+    // Determine element & polarity
+    const baseElement = chooseBaseElementFromTags(tags, rng);
+    const polarity = choosePolarityFromTags(tags, rarity, rng);
+
+    // Make element + polarity explicit tags (so templates can require them even if no part rolled the tag).
+    const baseAffTag = `aff_${baseElement.toLowerCase()}`;
+    tags = uniq([...tags, baseAffTag]);
+    if (polarity === "Light") tags = uniq([...tags, "aff_light"]);
+    if (polarity === "Dark") tags = uniq([...tags, "aff_dark"]);
+
+    const elementName = elementDisplayName(baseElement, polarity);
+
+    // Materials (flavor + mild tags)
+    const mat1 = chooseMaterial(rng, family, baseElement, polarity, preferSynergy);
+    const mat2 = chooseMaterial(rng, family, baseElement, polarity, preferSynergy);
+    const materials = { primary: mat1.name, secondary: mat2.name };
+    tags = uniq([...tags, ...mat1.tags, ...mat2.tags]);
+
+    // Capabilities can also come from parts (cap_cast, cap_block, etc.)
+    const partCaps = tags.filter(t=>t.startsWith("cap_"));
+    const capabilities = uniq([...baseCaps, ...partCaps]);
+
+    // Build skeleton item object (affixes later)
+    const baseType = chooseBaseType(slot.id, family, cat, rng);
+
+    const item = {
+      id: `I${(++itemCounter).toString().padStart(5,"0")}`,
+      slotId: slot.id,
+      slotName: slot.name,
+      family,
+      weaponCategory: cat,
+      rarity: rarity.id,
+      rarityTier: rarity.tier,
+      level: clamp(Number(level)||1, 1, 99),
+      baseType,
+      baseElement,
+      polarity,
+      elementName,
+      materials,
+      parts,
+      tags: [],
+      capabilities: [],
+      affixes: [],
+      curse: null,
+      legendaryHook: null,
+      coherence: 0
+    };
+
+    // finalize tags/caps
+    item.tags = tags;
+    item.capabilities = capabilities;
+
+    // Decide affix counts
+    const [aMin, aMax] = rarity.affixes;
+    let affixCount = rng.int(aMin, aMax);
+
+    // Consumables & ammo: focus on their template groups a bit more
+    const eligibleAffixes = AFFIX_TEMPLATES.filter(t => templateEligible(t, item));
+
+    // instantiate affixes without duplicates
+    const pickedAffixes = [];
+    const used = new Set();
+
+    for (let i=0; i<affixCount; i++){
+      const pool = eligibleAffixes.filter(t => !used.has(t.id));
+      if (!pool.length) break;
+      const tpl = rng.weightedPick(pool, t => affixWeight(t, item, leanKey, preferSynergy));
+      used.add(tpl.id);
+      pickedAffixes.push(instantiateAffix(tpl, item, rarity, rng));
+    }
+
+    item.affixes = pickedAffixes;
+
+    // Curses (optional)
+    if (allowCurses && rng.chance(rarity.curseChance)){
+      const curseTpl = rng.pick(CURSE_TEMPLATES);
+      item.curse = instantiateCurse(curseTpl, item, rarity, rng);
+      item.tags = uniq([...item.tags, ...item.curse.tags]);
+    }
+
+    // Legendary hook
+    if (rarity.legendaryHook){
+      // only if eligible; also small chance to skip to keep variety
+      if (rng.chance(0.92)){
+        const candidates = LEGENDARY_HOOKS.filter(h => {
+          if (!h.requiresAnyCaps || !h.requiresAnyCaps.length) return true;
+          const capSet = new Set(item.capabilities);
+          return h.requiresAnyCaps.some(c => capSet.has(c));
+        });
+        if (candidates.length){
+          const hook = rng.pick(candidates);
+          const inst = {
+            id: hook.id,
+            name: hook.name,
+            tags: hook.tags,
+            description: ""
+          };
+          // params for hooks
+          const tier = rarity.tier;
+          if (hook.id === "LEG_ECHO_OF_ECHOES"){
+            const n = rng.int(4, 7);
+            const pct = Math.round(35 + tier*8 + rng.int(0,10));
+            inst.description = hook.render({ n, pct }, item);
+          } else if (hook.id === "LEG_WARD_ENGINE"){
+            const pct = Math.round(10 + tier*4 + rng.int(0,6));
+            inst.description = hook.render({ pct }, item);
+          } else if (hook.id === "LEG_CIRCLE_OF_COMMAND"){
+            const pct = Math.round(12 + tier*6 + rng.int(0,8));
+            const inherit = rng.pick(["base","polarity","signature status"]);
+            inst.description = hook.render({ pct, inherit }, item);
+          } else if (hook.id === "LEG_TRAP_CONDUCTOR"){
+            const jumps = rng.int(2, 4);
+            const cd = Number((12 - tier*0.7 + rng.next()*4).toFixed(1));
+            inst.description = hook.render({ jumps, cd }, item);
+          } else {
+            inst.description = hook.render({}, item);
+          }
+          item.legendaryHook = inst;
+          item.tags = uniq([...item.tags, ...inst.tags]);
+        }
+      }
+    }
+
+    // Coherence score
+    item.coherence = coherenceScore(item, leanKey);
+
+    // Generate name
+    item.name = buildName(item, rng);
+
+    return item;
+  }
+
+  // ------------------------------
+  //  UI wiring
+  // ------------------------------
+  const state = {
+    rng: new RNG("lootlab"),
+    items: [],
+    selectedId: null
+  };
+
+  // DOM
+  const seedInput = document.getElementById("seedInput");
+  const reseedBtn = document.getElementById("reseedBtn");
+  const copySeedBtn = document.getElementById("copySeedBtn");
+  const batchSelect = document.getElementById("batchSelect");
+  const levelInput = document.getElementById("levelInput");
+  const slotSelect = document.getElementById("slotSelect");
+  const familySelect = document.getElementById("familySelect");
+  const weaponCatSelect = document.getElementById("weaponCatSelect");
+  const raritySelect = document.getElementById("raritySelect");
+  const leanSelect = document.getElementById("leanSelect");
+  const goofyRange = document.getElementById("goofyRange");
+  const goofyLabel = document.getElementById("goofyLabel");
+  const allowCursesEl = document.getElementById("allowCurses");
+  const preferSynergyEl = document.getElementById("preferSynergy");
+  const generateBtn = document.getElementById("generateBtn");
+  const huntBtn = document.getElementById("huntBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const downloadJsonBtn = document.getElementById("downloadJsonBtn");
+  const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+  const itemList = document.getElementById("itemList");
+  const countLabel = document.getElementById("countLabel");
+  const searchBox = document.getElementById("searchBox");
+  const detailTitle = document.getElementById("detailTitle");
+  const detailSub = document.getElementById("detailSub");
+  const detailContent = document.getElementById("detailContent");
+  const copyJsonBtn = document.getElementById("copyJsonBtn");
+
+  function setOptions(selectEl, items, getLabel){
+    selectEl.innerHTML = "";
+    for (const it of items){
+      const opt = document.createElement("option");
+      opt.value = it.id;
+      opt.textContent = getLabel ? getLabel(it) : it.name;
+      selectEl.appendChild(opt);
+    }
+  }
+
+  function initDropdowns(){
+    setOptions(slotSelect, SLOT_DEFS, s => s.name);
+    setOptions(familySelect, FAMILIES, f => f.name);
+    setOptions(weaponCatSelect, WEAPON_CATS, w => w.name);
+    setOptions(raritySelect, RARITIES, r => r.name);
+
+    const leanItems = [{id:"Any", name:"Any"}, ...Object.entries(ROLE_TAGS).map(([id,name])=>({id,name}))];
+    setOptions(leanSelect, leanItems, x => x.id === "Any" ? "Any" : `${x.id} — ${x.name}`);
+
+    slotSelect.value = "any";
+    familySelect.value = "auto";
+    weaponCatSelect.value = "auto";
+    raritySelect.value = "any";
+    leanSelect.value = "Any";
+    updateGoofyLabel();
+    updateWeaponCatEnabled();
+  }
+
+  function updateGoofyLabel(){
+    const v = Number(goofyRange.value)||0;
+    goofyLabel.textContent = `${v}%`;
+  }
+
+  function updateWeaponCatEnabled(){
+    const family = familySelect.value;
+    const slot = slotSelect.value;
+    const autoFamily = (family === "auto");
+    const resolvedFamily = autoFamily ? getSlotById(slot).defaultFamily : family;
+
+    const show =
+      family === "weapon" ||
+      (autoFamily && (slot === "main_hand" || slot === "off_hand" || slot === "any"));
+
+    weaponCatSelect.disabled = !show;
+    weaponCatSelect.style.opacity = show ? "1" : "0.45";
+  }
+
+  function rarityPillHtml(rarity){
+    const color = RARITY_COLOR[rarity] || "var(--common)";
+    return `<span class="rarityPill" style="color:${color}; border-color:${color};">${rarity}</span>`;
+  }
+
+  function renderList(){
+    const q = (searchBox.value || "").trim().toLowerCase();
+    itemList.innerHTML = "";
+    let shown = 0;
+
+    for (const it of state.items){
+      const hay = [
+        it.name, it.rarity, it.slotName, it.family, it.weaponCategory, it.baseElement, it.polarity, it.elementName,
+        it.tags.join(" ")
+      ].join(" ").toLowerCase();
+
+      if (q && !hay.includes(q)) continue;
+
+      shown++;
+      const row = document.createElement("div");
+      row.className = "itemRow" + (it.id === state.selectedId ? " selected" : "");
+      row.dataset.itemId = it.id;
+
+      const top = document.createElement("div");
+      top.className = "topline";
+      top.innerHTML = `<div class="name">${escapeHtml(it.name)}</div>${rarityPillHtml(it.rarity)}`;
+      row.appendChild(top);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = `
+        <span class="tagpill">${escapeHtml(it.slotName)}</span>
+        <span class="tagpill">${escapeHtml(it.family)}${it.family === "weapon" ? ` • ${escapeHtml(it.weaponCategory)}` : ""}</span>
+        <span class="tagpill">${escapeHtml(it.elementName)}</span>
+        <span class="tagpill">Lv ${it.level}</span>
+        <span class="tagpill">Coherence ${it.coherence}</span>
+      `;
+      row.appendChild(meta);
+
+      row.addEventListener("click", () => {
+        state.selectedId = it.id;
+        renderList();
+        renderDetails();
+      });
+
+      itemList.appendChild(row);
+    }
+
+    countLabel.textContent = String(shown);
+  }
+
+  function renderDetails(){
+    const it = state.items.find(x=>x.id === state.selectedId);
+    if (!it){
+      detailTitle.textContent = "No item selected";
+      detailSub.textContent = "Generate items, then click one.";
+      detailContent.innerHTML = "";
+      return;
+    }
+
+    detailTitle.textContent = it.name;
+    detailSub.textContent = `${it.rarity} • ${it.slotName} • ${it.family}${it.family === "weapon" ? ` (${it.weaponCategory})` : ""} • Lv ${it.level} • ${it.elementName}`;
+
+    const elem = ELEMENTS[it.baseElement];
+    const pol = POLARITY[it.polarity] || POLARITY.None;
+
+    const partCards = MOUNT_ORDER.map(m => {
+      const p = it.parts[m];
+      return `
+        <div class="card">
+          <h3>${m}</h3>
+          <div class="kv">
+            <div class="k">Part</div><div class="v"><b>${escapeHtml(p.name)}</b></div>
+            <div class="k">Tags</div><div class="v">${escapeHtml(p.tags.join(", "))}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const affixHtml = [
+      ...it.affixes.map(a => `
+        <div class="affix">
+          <div class="aTop">
+            <div class="aName">${escapeHtml(a.name)}</div>
+            <div class="aMeta">
+              <span class="tagpill">${escapeHtml(a.group)}</span>
+              <span class="tagpill">${escapeHtml(a.trigger)}</span>
+              ${a.procModel ? `<span class="tagpill">${escapeHtml(a.procModel)}</span>` : ""}
+            </div>
+          </div>
+          <div class="aDesc">${escapeHtml(a.description)}</div>
+        </div>
+      `),
+      it.curse ? `
+        <div class="affix" style="border-color: rgba(251,113,133,0.35);">
+          <div class="aTop">
+            <div class="aName" style="color: var(--bad);">${escapeHtml(it.curse.name)}</div>
+            <div class="aMeta"><span class="tagpill">Curse</span><span class="tagpill">${escapeHtml(it.curse.trigger)}</span></div>
+          </div>
+          <div class="aDesc">${escapeHtml(it.curse.description)}</div>
+        </div>
+      ` : "",
+      it.legendaryHook ? `
+        <div class="affix" style="border-color: rgba(251,191,36,0.35);">
+          <div class="aTop">
+            <div class="aName" style="color: var(--warn);">${escapeHtml(it.legendaryHook.name)}</div>
+            <div class="aMeta"><span class="tagpill">Legendary Hook</span></div>
+          </div>
+          <div class="aDesc">${escapeHtml(it.legendaryHook.description)}</div>
+        </div>
+      ` : ""
+    ].join("");
+
+    const tagsSorted = [...it.tags].sort((a,b)=>a.localeCompare(b));
+
+    const score = it.coherence;
+    const scoreColor = score >= 80 ? "var(--good)" : score >= 55 ? "var(--warn)" : "var(--bad)";
+
+    detailContent.innerHTML = `
+      <div class="grid2" style="margin-bottom:10px;">
+        <div class="card">
+          <h3>Identity</h3>
+          <div class="kv">
+            <div class="k">Slot</div><div class="v">${escapeHtml(it.slotName)}</div>
+            <div class="k">Family</div><div class="v">${escapeHtml(it.family)}${it.family === "weapon" ? ` • ${escapeHtml(it.weaponCategory)}` : ""}</div>
+            <div class="k">Rarity</div><div class="v">${rarityPillHtml(it.rarity)}</div>
+            <div class="k">Level</div><div class="v">${it.level}</div>
+            <div class="k">Materials</div><div class="v">${escapeHtml(it.materials.primary)} + ${escapeHtml(it.materials.secondary)}</div>
+            <div class="k">Coherence</div>
+            <div class="v">
+              <div class="score">
+                <div class="scoreBar"><div class="scoreFill" style="width:${score}%;"></div></div>
+                <div class="scoreVal" style="color:${scoreColor};">${score}/100</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Element Profile</h3>
+          <div class="kv">
+            <div class="k">Base</div><div class="v"><b>${escapeHtml(it.baseElement)}</b> (opp: ${escapeHtml(elem.opposite)})</div>
+            <div class="k">Polarity</div><div class="v">${escapeHtml(it.polarity)}</div>
+            <div class="k">Display</div><div class="v"><b>${escapeHtml(it.elementName)}</b></div>
+            <div class="k">Signature</div><div class="v">${escapeHtml(elem.signature)}</div>
+            <div class="k">Secondary</div><div class="v">${escapeHtml(elem.secondary.join(", "))}</div>
+            <div class="k">Favored</div><div class="v">${escapeHtml(elem.favoredShapes.join(", "))}</div>
+            <div class="k">Synergy</div><div class="v">${escapeHtml(elem.affixSynergy.join(", "))}</div>
+            ${it.polarity !== "None" ? `<div class="k">Overlay</div><div class="v">${escapeHtml(pol.overlay.join(", "))}</div>` : ""}
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:10px;">
+        <h3>Mount Points</h3>
+        <div class="grid2">
+          ${partCards}
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-bottom:10px;">
+        <div class="card">
+          <h3>Capabilities</h3>
+          <div class="kv">
+            <div class="k">Caps</div><div class="v">${escapeHtml(it.capabilities.join(", "))}</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Tags</h3>
+          <div class="mono">${escapeHtml(tagsSorted.join("\n"))}</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:10px;">
+        <h3>Affixes</h3>
+        ${affixHtml || `<div class="muted">(none)</div>`}
+      </div>
+
+      <div class="card">
+        <h3>Raw JSON</h3>
+        <div class="mono" id="jsonBox">${escapeHtml(JSON.stringify(it, null, 2))}</div>
+      </div>
+    `;
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+
+  function getOpts(){
+    return {
+      slotId: slotSelect.value,
+      selectedFamily: familySelect.value,
+      weaponCatId: weaponCatSelect.value,
+      rarityId: raritySelect.value,
+      leanKey: leanSelect.value,
+      goofyChance: (Number(goofyRange.value)||0) / 100,
+      allowCurses: allowCursesEl.checked,
+      preferSynergy: preferSynergyEl.checked,
+      level: Number(levelInput.value)||1
+    };
+  }
+
+  function addGenerated(items){
+    state.items.unshift(...items); // newest on top
+    if (items.length) state.selectedId = items[0].id;
+    renderList();
+    renderDetails();
+  }
+
+  function generateBatch(){
+    state.rng.setSeed(seedInput.value);
+    const opts = getOpts();
+    const n = Number(batchSelect.value)||1;
+    const out = [];
+    for (let i=0; i<n; i++){
+      out.push(generateItem(state.rng, opts));
+    }
+    addGenerated(out);
+  }
+
+  function huntGodRoll(){
+    state.rng.setSeed(seedInput.value);
+    const opts = getOpts();
+    const target = 85;
+    const maxTries = 500;
+    let best = null;
+    for (let i=0; i<maxTries; i++){
+      const it = generateItem(state.rng, opts);
+      if (!best || it.coherence > best.coherence) best = it;
+      if (it.coherence >= target){
+        addGenerated([it]);
+        return;
+      }
+    }
+    // didn't hit target; add the best we found
+    if (best) addGenerated([best]);
+  }
+
+  function clearAll(){
+    state.items = [];
+    state.selectedId = null;
+    renderList();
+    renderDetails();
+  }
+
+  function download(filename, text, mime){
+    const blob = new Blob([text], { type: mime || "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadJson(){
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      count: state.items.length,
+      items: state.items
+    };
+    download(`lootlab_export_${Date.now()}.json`, JSON.stringify(payload, null, 2), "application/json");
+  }
+
+  function itemsToCsv(items){
+    const header = [
+      "id","name","rarity","tier","level","slot","family","weaponCategory",
+      "baseElement","polarity","elementName",
+      "primaryMaterial","secondaryMaterial",
+      "coherence",
+      "tags",
+      "affixes",
+      "curse",
+      "legendaryHook"
+    ];
+
+    const rows = [header];
+
+    for (const it of items){
+      const aff = it.affixes.map(a => `[${a.trigger}${a.procModel?"/"+a.procModel:""}] ${a.description}`).join(" | ");
+      const tags = it.tags.join(" ");
+      const curse = it.curse ? it.curse.description : "";
+      const hook = it.legendaryHook ? it.legendaryHook.description : "";
+      const row = [
+        it.id,
+        it.name,
+        it.rarity,
+        it.rarityTier,
+        it.level,
+        it.slotName,
+        it.family,
+        it.weaponCategory,
+        it.baseElement,
+        it.polarity,
+        it.elementName,
+        it.materials.primary,
+        it.materials.secondary,
+        it.coherence,
+        tags,
+        aff,
+        curse,
+        hook
+      ].map(csvEscape);
+      rows.push(row);
+    }
+
+    return rows.map(r => r.join(",")).join("\n");
+  }
+
+  function csvEscape(v){
+    const s = String(v ?? "");
+    if (s.includes(",") || s.includes("\n") || s.includes('"')){
+      return '"' + s.replaceAll('"','""') + '"';
+    }
+    return s;
+  }
+
+  function downloadCsv(){
+    download(`lootlab_export_${Date.now()}.csv`, itemsToCsv(state.items), "text/csv" );
+  }
+
+  async function copyText(text){
+    // clipboard API often fails on file:// so we provide a fallback.
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try{
+        document.execCommand("copy");
+        ta.remove();
+        return true;
+      }catch(err){
+        ta.remove();
+        return false;
+      }
+    }
+  }
+
+  // Event wiring
+  reseedBtn.addEventListener("click", () => {
+    const randomSeed = `seed-${Math.random().toString(16).slice(2)}-${Date.now().toString(16)}`;
+    seedInput.value = randomSeed;
+    state.rng.setSeed(seedInput.value);
+  });
+
+  copySeedBtn.addEventListener("click", async () => {
+    await copyText(seedInput.value);
+    copySeedBtn.textContent = "Copied";
+    setTimeout(()=>copySeedBtn.textContent="Copy", 900);
+  });
+
+  generateBtn.addEventListener("click", generateBatch);
+  huntBtn.addEventListener("click", huntGodRoll);
+  clearBtn.addEventListener("click", clearAll);
+  downloadJsonBtn.addEventListener("click", downloadJson);
+  downloadCsvBtn.addEventListener("click", downloadCsv);
+
+  searchBox.addEventListener("input", renderList);
+
+  slotSelect.addEventListener("change", updateWeaponCatEnabled);
+  familySelect.addEventListener("change", updateWeaponCatEnabled);
+  goofyRange.addEventListener("input", updateGoofyLabel);
+
+  copyJsonBtn.addEventListener("click", async () => {
+    const it = state.items.find(x=>x.id === state.selectedId);
+    if (!it) return;
+    const ok = await copyText(JSON.stringify(it, null, 2));
+    copyJsonBtn.textContent = ok ? "Copied" : "Copy failed";
+    setTimeout(()=>copyJsonBtn.textContent="Copy JSON", 900);
+  });
+
+  // Init
+  initDropdowns();
+  renderList();
+  renderDetails();
+})();
+</script>
+</body>
+</html>
