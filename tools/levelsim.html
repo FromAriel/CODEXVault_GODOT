@@ -1,0 +1,1772 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loot RPG Level & Combat Simulator (v1)</title>
+  <style>
+    :root{
+      --bg:#0b0e14;
+      --panel:#121827;
+      --panel2:#0f1523;
+      --text:#e7eaf1;
+      --muted:#a9b1c6;
+      --accent:#7aa2f7;
+      --accent2:#9ece6a;
+      --warn:#f7768e;
+      --line:#24304d;
+      --chip:#1b2440;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background: radial-gradient(1200px 600px at 10% 0%, #111a33, var(--bg));
+      color: var(--text);
+    }
+    header{
+      padding: 18px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18,24,39,0.9), rgba(18,24,39,0.2));
+      position: sticky;
+      top:0;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    header h1{
+      font-size: 16px;
+      margin: 0 0 6px;
+      letter-spacing: 0.2px;
+    }
+    header .sub{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    main{
+      padding: 18px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .grid{
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background: rgba(18,24,39,0.92);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .panel h2{
+      font-size: 13px;
+      margin: 0 0 10px;
+      color: var(--text);
+      letter-spacing: 0.2px;
+    }
+
+    .row{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .row3{
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    label{
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select, button, textarea{
+      font-family: inherit;
+    }
+
+    input[type="number"], select, textarea{
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(15,21,35,0.8);
+      color: var(--text);
+      outline: none;
+    }
+
+    input[type="number"]:focus, select:focus, textarea:focus{
+      border-color: rgba(122,162,247,0.7);
+      box-shadow: 0 0 0 3px rgba(122,162,247,0.12);
+    }
+
+    .checks{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 2px 0 0;
+    }
+
+    .check{
+      display:flex;
+      gap: 8px;
+      align-items: center;
+      background: rgba(27,36,64,0.55);
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(36,48,77,0.9);
+      user-select: none;
+    }
+
+    .check input{ transform: translateY(1px); }
+
+    .btns{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    button{
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      background: rgba(122,162,247,0.12);
+      color: var(--text);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: transform .06s ease, background .2s ease;
+    }
+
+    button:hover{
+      background: rgba(122,162,247,0.18);
+    }
+
+    button:active{
+      transform: translateY(1px);
+    }
+
+    button.primary{
+      background: rgba(158,206,106,0.16);
+    }
+
+    button.primary:hover{
+      background: rgba(158,206,106,0.22);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(27,36,64,0.7);
+      border: 1px solid rgba(36,48,77,0.95);
+      font-size: 11px;
+      color: var(--muted);
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .pill strong{ color: var(--text); font-weight: 600; }
+
+    .mono{ font-family: var(--mono); }
+
+    .results{
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .card{
+      background: rgba(15,21,35,0.7);
+      border: 1px solid rgba(36,48,77,0.95);
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .card .big{
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .card .small{
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .warn{ color: var(--warn); }
+    .good{ color: var(--accent2); }
+
+    details{
+      border: 1px solid rgba(36,48,77,0.95);
+      border-radius: 14px;
+      background: rgba(15,21,35,0.55);
+      padding: 10px;
+    }
+
+    details summary{
+      cursor: pointer;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      list-style: none;
+    }
+
+    details summary::-webkit-details-marker{ display:none; }
+
+    .hist{
+      display:flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .barrow{
+      display:grid;
+      grid-template-columns: 40px 1fr 56px;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .bar{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(36,48,77,0.7);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(36,48,77,0.95);
+    }
+
+    .bar > span{
+      position:absolute;
+      left:0;
+      top:0;
+      bottom:0;
+      width: 0%;
+      background: rgba(122,162,247,0.65);
+    }
+
+    .tabs{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0 0 12px;
+    }
+
+    .tab{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(36,48,77,0.95);
+      background: rgba(15,21,35,0.55);
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .tab.active{
+      color: var(--text);
+      background: rgba(122,162,247,0.18);
+      border-color: rgba(122,162,247,0.45);
+    }
+
+    .muted{
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      color: var(--text);
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid rgba(36,48,77,0.95);
+    }
+    th, td{
+      padding: 8px 8px;
+      border-bottom: 1px solid rgba(36,48,77,0.7);
+      text-align: right;
+      white-space: nowrap;
+    }
+    th{
+      text-align: right;
+      color: var(--muted);
+      background: rgba(15,21,35,0.75);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+    td:first-child, th:first-child{ text-align: left; }
+
+    .scroll{
+      max-height: 380px;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(36,48,77,0.95);
+    }
+
+    .progress{
+      width:100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(36,48,77,0.95);
+      background: rgba(36,48,77,0.4);
+      overflow: hidden;
+    }
+
+    .progress > span{
+      display:block;
+      height:100%;
+      width:0%;
+      background: rgba(158,206,106,0.65);
+    }
+
+    .note{
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Level & Combat Simulator (Progression Spec v1)</h1>
+    <div class="sub">
+      100 levels · 5-level tiers · ARPG scaling · Skill cap 10 + Mastery · TierΔ applies to <strong>combat & hazards</strong>.<br/>
+      Dice: d6 pool — 6=+2, 5=+1, 2–4=0, 1=−1. Net = max(0, sum). Clean roll ⇒ 6s may explode (cap configurable).
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-tab="single">Single Encounter</div>
+      <div class="tab" data-tab="sweep">Level Sweep</div>
+      <div class="tab" data-tab="rules">Rules Reference</div>
+    </div>
+
+    <!-- SINGLE ENCOUNTER -->
+    <section id="tab-single">
+      <div class="grid">
+        <div class="panel">
+          <h2>Setup</h2>
+
+          <div class="row">
+            <div>
+              <label>Trials (Monte Carlo)</label>
+              <input id="trials" type="number" min="100" max="500000" step="100" value="20000" />
+            </div>
+            <div>
+              <label>Flat Success Mods (optional)</label>
+              <input id="flatSuccess" type="number" min="-20" max="20" step="1" value="0" />
+            </div>
+          </div>
+
+          <details open style="margin-top:12px;">
+            <summary>Player</summary>
+            <div style="margin-top:10px;">
+              <div class="row3">
+                <div>
+                  <label>Player Level</label>
+                  <input id="pLevel" type="number" min="1" max="200" step="1" value="25" />
+                </div>
+                <div>
+                  <label>Role (for auto HP)</label>
+                  <select id="pRole">
+                    <option value="Bulwark">Bulwark</option>
+                    <option value="Vanguard">Vanguard</option>
+                    <option value="Bruiser" selected>Bruiser</option>
+                    <option value="Duelist">Duelist</option>
+                    <option value="Marksman">Marksman</option>
+                    <option value="Sniper">Sniper</option>
+                    <option value="Shadow">Shadow</option>
+                    <option value="Arcanist">Arcanist</option>
+                    <option value="Controller">Controller</option>
+                    <option value="Hierophant">Hierophant</option>
+                    <option value="Hexer">Hexer</option>
+                    <option value="Summoner">Summoner</option>
+                    <option value="Artificer">Artificer</option>
+                    <option value="Explorer">Explorer</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Player HP (override)</label>
+                  <input id="pHP" type="number" min="1" max="999999" step="1" value="" placeholder="(auto)" />
+                </div>
+              </div>
+
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Player Defense Target # (EV)</label>
+                  <input id="pEV" type="number" min="1" max="10" step="1" value="4" />
+                </div>
+                <div>
+                  <label>Player Armor (AR)</label>
+                  <input id="pAR" type="number" min="0" max="9999" step="1" value="" placeholder="(auto)" />
+                </div>
+                <div>
+                  <label>Armor Type (for auto AR)</label>
+                  <select id="pArmorType">
+                    <option value="Cloth">Cloth</option>
+                    <option value="Leather">Leather</option>
+                    <option value="Chain" selected>Chain</option>
+                    <option value="Plate">Plate</option>
+                    <option value="Tower">Tower</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div>
+                  <label>Attack Attribute (for dice pool)</label>
+                  <input id="pAttr" type="number" min="0" max="12" step="1" value="4" />
+                </div>
+                <div>
+                  <label>Attack Skill (0–10)</label>
+                  <input id="pSkill" type="number" min="0" max="10" step="1" value="6" />
+                </div>
+              </div>
+
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Dice Mod (+/− dice)</label>
+                  <input id="pDiceMod" type="number" min="-20" max="20" step="1" value="0" />
+                </div>
+                <div>
+                  <label>Luck Rating (0–3)</label>
+                  <input id="luck" type="number" min="0" max="3" step="1" value="1" />
+                </div>
+                <div>
+                  <label>Luck applies? (domain)</label>
+                  <select id="luckApplies">
+                    <option value="yes" selected>Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="checks" style="margin-top:10px;">
+                <div class="check"><input id="cancelOnes" type="checkbox" checked /><span>Luck cancels 1s</span></div>
+                <div class="check"><input id="cleanRelax" type="checkbox" checked /><span>Clean relaxation (allow 1 rolled 1)</span></div>
+                <div class="check"><input id="allowExplosions" type="checkbox" checked /><span>Explosions enabled</span></div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div>
+                  <label>Explosion cap mode</label>
+                  <select id="explosionCapMode">
+                    <option value="luck" selected>Cap = Luck rating</option>
+                    <option value="fixed">Fixed cap</option>
+                    <option value="none">No cap (all 6s explode)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Fixed explosion cap (only if Fixed cap)</label>
+                  <input id="explosionCapFixed" type="number" min="0" max="50" step="1" value="2" />
+                </div>
+              </div>
+
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Weapon baseline (Tier 0)</label>
+                  <select id="weaponBase">
+                    <option value="6">Dagger / Wand (6)</option>
+                    <option value="8" selected>Sword / Bow (8)</option>
+                    <option value="10">Great weapon / Heavy bow (10)</option>
+                    <option value="7">Staff / Rod (7)</option>
+                    <option value="12">Huge / boss-slayer (12)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Weapon rarity multiplier</label>
+                  <select id="weaponRarity">
+                    <option value="1.0">Common (1.00)</option>
+                    <option value="1.1">Magic (1.10)</option>
+                    <option value="1.25" selected>Rare (1.25)</option>
+                    <option value="1.45">Epic (1.45)</option>
+                    <option value="1.7">Legendary (1.70)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Weapon level (override)</label>
+                  <input id="weaponLevel" type="number" min="1" max="200" step="1" value="" placeholder="(same as player)" />
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:12px;" open>
+            <summary>Enemy</summary>
+            <div style="margin-top:10px;">
+              <div class="row3">
+                <div>
+                  <label>Enemy Level</label>
+                  <input id="eLevel" type="number" min="1" max="200" step="1" value="25" />
+                </div>
+                <div>
+                  <label>Archetype</label>
+                  <select id="eType">
+                    <option value="Skirmisher">Skirmisher</option>
+                    <option value="Bruiser" selected>Bruiser</option>
+                    <option value="Brute">Brute</option>
+                    <option value="Caster">Caster</option>
+                    <option value="Controller">Controller</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Rank</label>
+                  <select id="eRank">
+                    <option value="Normal" selected>Normal</option>
+                    <option value="Elite">Elite</option>
+                    <option value="Boss">Boss</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Enemy Defense Target # (EV)</label>
+                  <input id="eEV" type="number" min="1" max="10" step="1" value="" placeholder="(auto)" />
+                </div>
+                <div>
+                  <label>Enemy Armor (AR)</label>
+                  <input id="eAR" type="number" min="0" max="9999" step="1" value="" placeholder="(auto)" />
+                </div>
+                <div>
+                  <label>Enemy HP (override)</label>
+                  <input id="eHP" type="number" min="1" max="999999" step="1" value="" placeholder="(auto)" />
+                </div>
+              </div>
+
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Enemy Attack Attribute</label>
+                  <input id="eAttr" type="number" min="0" max="12" step="1" value="4" />
+                </div>
+                <div>
+                  <label>Enemy Attack Skill</label>
+                  <input id="eSkill" type="number" min="0" max="10" step="1" value="5" />
+                </div>
+                <div>
+                  <label>Enemy Dice Mod (+/− dice)</label>
+                  <input id="eDiceMod" type="number" min="-20" max="20" step="1" value="0" />
+                </div>
+              </div>
+
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Enemy weapon baseline (Tier 0)</label>
+                  <select id="enemyWeaponBase">
+                    <option value="4">Controller (4)</option>
+                    <option value="5">Caster (5)</option>
+                    <option value="6">Skirmisher (6)</option>
+                    <option value="7" selected>Bruiser (7)</option>
+                    <option value="8">Brute (8)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Enemy damage scalar</label>
+                  <select id="enemyThreat">
+                    <option value="1.0" selected>Standard (×1.0)</option>
+                    <option value="1.15">Threatening (×1.15)</option>
+                    <option value="1.3">Nasty (×1.3)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Enemy level (for weapon scaling)</label>
+                  <input id="enemyWeaponLevel" type="number" min="1" max="200" step="1" value="" placeholder="(same as enemy)" />
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:12px;" open>
+            <summary>Hazard Check (TierΔ applies)</summary>
+            <div style="margin-top:10px;">
+              <div class="row3">
+                <div>
+                  <label>Hazard Level</label>
+                  <input id="hLevel" type="number" min="1" max="200" step="1" value="25" />
+                </div>
+                <div>
+                  <label>Hazard DC (1–6)</label>
+                  <input id="hDC" type="number" min="1" max="10" step="1" value="3" />
+                </div>
+                <div>
+                  <label>Hazard Dice Pool</label>
+                  <div class="row" style="gap:8px;">
+                    <input id="hAttr" type="number" min="0" max="12" step="1" value="4" placeholder="Attr" />
+                    <input id="hSkill" type="number" min="0" max="10" step="1" value="5" placeholder="Skill" />
+                  </div>
+                </div>
+              </div>
+              <div class="row3" style="margin-top:10px;">
+                <div>
+                  <label>Hazard Dice Mod</label>
+                  <input id="hDiceMod" type="number" min="-20" max="20" step="1" value="0" />
+                </div>
+                <div>
+                  <label>Use same Luck settings?</label>
+                  <select id="hUseLuck">
+                    <option value="yes" selected>Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Hazard Flat Success Mods</label>
+                  <input id="hFlat" type="number" min="-20" max="20" step="1" value="0" />
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div class="btns">
+            <button class="primary" id="btnSim">Run Monte Carlo</button>
+            <button id="btnOne">Roll Once (debug)</button>
+            <button id="btnReset">Reset autos</button>
+          </div>
+
+          <div class="note">
+            Tip: leave HP/AR/EV overrides blank to use the auto baselines + tier scaling.
+            TierΔ applies only to combat and hazards in this simulator.
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Results</h2>
+          <div id="pillRow"></div>
+
+          <div class="results">
+            <div class="kpi">
+              <div class="card">
+                <div class="big" id="k_hit">—</div>
+                <div class="small">Player hit chance vs enemy (EV target #)</div>
+              </div>
+              <div class="card">
+                <div class="big" id="k_dpa">—</div>
+                <div class="small">Player expected damage per attack (incl. misses)</div>
+              </div>
+              <div class="card">
+                <div class="big" id="k_ttk">—</div>
+                <div class="small">Enemy expected attacks-to-kill (TTK)</div>
+              </div>
+              <div class="card">
+                <div class="big" id="k_surv">—</div>
+                <div class="small">Player expected attacks-to-die (if enemy attacks)</div>
+              </div>
+            </div>
+
+            <details open>
+              <summary>Combat breakdown</summary>
+              <div class="muted" id="combatText" style="margin-top:10px;"></div>
+              <div id="histNet" class="hist"></div>
+              <div id="histDmg" class="hist"></div>
+            </details>
+
+            <details>
+              <summary>Hazard breakdown</summary>
+              <div class="muted" id="hazardText" style="margin-top:10px;"></div>
+              <div id="histHaz" class="hist"></div>
+            </details>
+
+            <details>
+              <summary>Last single-roll (debug)</summary>
+              <textarea id="debugOut" rows="10" spellcheck="false" class="mono" placeholder="Click ‘Roll Once (debug)’"></textarea>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEVEL SWEEP -->
+    <section id="tab-sweep" style="display:none;">
+      <div class="grid">
+        <div class="panel">
+          <h2>Level Sweep</h2>
+          <div class="muted" style="margin-bottom:10px;">
+            Generates a table across level bands (default: every 5 levels). Uses the same roll rules as Single Encounter.
+            Sweeps are Monte Carlo-based, so results are approximate.
+          </div>
+
+          <div class="row3">
+            <div>
+              <label>Start level</label>
+              <input id="swStart" type="number" min="1" max="200" step="1" value="1" />
+            </div>
+            <div>
+              <label>End level</label>
+              <input id="swEnd" type="number" min="1" max="200" step="1" value="100" />
+            </div>
+            <div>
+              <label>Step</label>
+              <input id="swStep" type="number" min="1" max="25" step="1" value="5" />
+            </div>
+          </div>
+
+          <div class="row3" style="margin-top:10px;">
+            <div>
+              <label>Enemy level offset (relative)</label>
+              <input id="swEnemyOffset" type="number" min="-100" max="100" step="1" value="0" />
+            </div>
+            <div>
+              <label>Hazard level offset (relative)</label>
+              <input id="swHazOffset" type="number" min="-100" max="100" step="1" value="0" />
+            </div>
+            <div>
+              <label>Trials per row</label>
+              <input id="swTrials" type="number" min="200" max="50000" step="100" value="2000" />
+            </div>
+          </div>
+
+          <div class="row3" style="margin-top:10px;">
+            <div>
+              <label>Enemy EV target #</label>
+              <input id="swEnemyEV" type="number" min="1" max="10" step="1" value="4" />
+            </div>
+            <div>
+              <label>Hazard DC</label>
+              <input id="swHazDC" type="number" min="1" max="10" step="1" value="3" />
+            </div>
+            <div>
+              <label>Include enemy attacks back?</label>
+              <select id="swIncludeEnemy">
+                <option value="yes" selected>Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="btns">
+            <button class="primary" id="btnSweep">Run Sweep</button>
+            <button id="btnSweepStop">Stop</button>
+          </div>
+
+          <div class="progress" style="margin-top:10px;"><span id="swProg"></span></div>
+          <div class="note" id="swStatus">—</div>
+        </div>
+
+        <div class="panel">
+          <h2>Sweep output</h2>
+          <div class="scroll">
+            <table id="swTable">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Tier</th>
+                  <th>Enemy</th>
+                  <th>TierΔ</th>
+                  <th>Hit%</th>
+                  <th>Dmg/Atk</th>
+                  <th>EnemyHP</th>
+                  <th>TTK</th>
+                  <th>Haz%</th>
+                  <th>Haz Comp%</th>
+                  <th>Die Pool</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="note">
+            Hit% and Dmg/Atk are for player attacking enemy (EV). Haz% is success rate vs DC.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RULES -->
+    <section id="tab-rules" style="display:none;">
+      <div class="panel">
+        <h2>Rules Reference (as implemented here)</h2>
+
+        <div class="pill"><strong>Tier</strong> <span class="mono">floor((Level−1)/5)</span></div>
+        <div class="pill"><strong>TierΔ</strong> <span class="mono">ActorTier − TargetTier</span></div>
+        <div class="pill"><strong>PowerScale</strong> <span class="mono">1.15^((Level−1)/5)</span></div>
+        <div class="pill"><strong>ArmorScale</strong> <span class="mono">1.14^((Level−1)/5)</span></div>
+
+        <details open style="margin-top:12px;">
+          <summary>Dice</summary>
+          <div class="muted" style="margin-top:10px;">
+            Dice pool: <span class="mono">N = Attribute + Skill + DiceMods</span> (min 1). Roll N d6.
+            Each die scores: 6→+2, 5→+1, 2–4→0, 1→−1.
+            RollNet = max(0, sum).
+          </div>
+        </details>
+
+        <details open style="margin-top:12px;">
+          <summary>Luck + Clean + Explosions</summary>
+          <div class="muted" style="margin-top:10px;">
+            Luck (when it applies): cancels up to LuckRating rolled 1s (treated as 0 instead of −1).<br/>
+            Clean roll normally means <span class="mono">no 1s in the initial roll</span>. If clean relaxation is enabled and Luck applies, one rolled 1 can still count as clean.<br/>
+            Explosions: on a clean roll, 6s may explode (reroll + add, chaining allowed). Explosion cap is configurable.
+          </div>
+        </details>
+
+        <details open style="margin-top:12px;">
+          <summary>Combat & Hazards (TierΔ applies)</summary>
+          <div class="muted" style="margin-top:10px;">
+            EffectiveNet = max(0, RollNet + TierΔ + FlatSuccessMods).<br/>
+            Hit/success if EffectiveNet ≥ TargetNumber (EV or DC). Margin = EffectiveNet − TargetNumber.<br/>
+            Damage = max(0, BaseDamage + Margin − Armor).<br/>
+            Complication: occurs when EffectiveNet = 0 and at least one <em>unmitigated</em> 1 was rolled on the initial roll.
+          </div>
+        </details>
+
+        <details style="margin-top:12px;">
+          <summary>Progression cadence (for the design spec)</summary>
+          <div class="muted" style="margin-top:10px;">
+            Every level: +1 skill point (skills cap at 10; then Mastery).<br/>
+            Every 2 levels: +1 ability point. Every 5 levels: +1 talent point. Every 10 levels: +1 attribute point.
+          </div>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ------------------------------
+    // Core progression helpers
+    // ------------------------------
+    function tierFromLevel(level){
+      const L = Math.max(1, Math.floor(level));
+      return Math.floor((L - 1) / 5);
+    }
+
+    function powerScaleFromLevel(level){
+      // Continuous within tier: ~2.8% per level, 15% per 5 levels
+      const L = Math.max(1, level);
+      return Math.pow(1.15, (L - 1) / 5);
+    }
+
+    function armorScaleFromLevel(level){
+      const L = Math.max(1, level);
+      return Math.pow(1.14, (L - 1) / 5);
+    }
+
+    function dangerBand(tierDelta){
+      if (tierDelta >= 2) return {label:"Predator", cls:"good"};
+      if (tierDelta === 1) return {label:"Advantaged", cls:"good"};
+      if (tierDelta === 0) return {label:"Even", cls:""};
+      if (tierDelta === -1) return {label:"Danger", cls:"warn"};
+      if (tierDelta === -2) return {label:"Deadly", cls:"warn"};
+      return {label:"Skull", cls:"warn"};
+    }
+
+    // ------------------------------
+    // Auto baselines (tune freely)
+    // ------------------------------
+    const ROLE_HP0 = {
+      Bulwark: 140,
+      Vanguard: 125,
+      Bruiser: 120,
+      Duelist: 105,
+      Marksman: 105,
+      Sniper: 100,
+      Shadow: 100,
+      Arcanist: 95,
+      Controller: 100,
+      Hierophant: 110,
+      Hexer: 95,
+      Summoner: 95,
+      Artificer: 100,
+      Explorer: 100,
+    };
+
+    const ARMOR_BASE0 = {
+      Cloth: 0,
+      Leather: 1,
+      Chain: 2,
+      Plate: 3,
+      Tower: 4,
+    };
+
+    const ENEMY_BASE = {
+      Skirmisher: { hp0: 28, dmg0: 6, ar0: 0, ev: 5 },
+      Bruiser:    { hp0: 36, dmg0: 7, ar0: 1, ev: 3 },
+      Brute:      { hp0: 44, dmg0: 8, ar0: 2, ev: 2 },
+      Caster:     { hp0: 24, dmg0: 5, ar0: 0, ev: 4 },
+      Controller: { hp0: 26, dmg0: 4, ar0: 1, ev: 3 },
+    };
+
+    const ENEMY_RANK = {
+      Normal: { hp: 1.0, dmg: 1.0, ar: 1.0, defBoost: 0 },
+      Elite:  { hp: 1.8, dmg: 1.3, ar: 1.1, defBoost: 1 },
+      Boss:   { hp: 4.0, dmg: 1.7, ar: 1.25, defBoost: 1 },
+    };
+
+    // ------------------------------
+    // Dice + roll simulation
+    // ------------------------------
+    function rand1to6(){
+      return (Math.random() * 6 | 0) + 1;
+    }
+
+    /**
+     * Roll according to system.
+     * Returns:
+     * - net: RollNet (after clamp)
+     * - rawTotal: signed total before clamp
+     * - clean: whether initial roll was clean (or relaxed-clean)
+     * - rawInitialOnes: # of 1s in initial roll
+     * - unmitigatedInitialOnes: # of initial 1s not canceled by Luck cancels
+     * - diceRolled: total dice rolled including explosions
+     * - explosionsUsed: number of 6s that actually exploded (including chains)
+     */
+    function rollOnce(cfg){
+      const dice = Math.max(1, Math.floor(cfg.dice));
+
+      const luckApplies = !!cfg.luckApplies;
+      const cancelOnes = !!cfg.cancelOnes;
+      const cleanRelax = !!cfg.cleanRelax;
+      const allowExplosions = !!cfg.allowExplosions;
+      const luckRating = luckApplies ? Math.max(0, Math.min(50, Math.floor(cfg.luckRating))) : 0;
+
+      let remainingCancels = (luckApplies && cancelOnes) ? luckRating : 0;
+
+      let total = 0;
+      let rawInitialOnes = 0;
+      let mitigatedInitialOnes = 0;
+      let initialSixes = 0;
+
+      // Initial roll
+      for (let i=0;i<dice;i++){
+        const r = rand1to6();
+        if (r === 1){
+          rawInitialOnes++;
+          if (remainingCancels > 0){
+            remainingCancels--;
+            mitigatedInitialOnes++;
+            // counts as 0
+          } else {
+            total -= 1;
+          }
+        } else if (r === 5){
+          total += 1;
+        } else if (r === 6){
+          total += 2;
+          initialSixes++;
+        }
+      }
+
+      // Clean check (based on initial roll only)
+      const clean = (rawInitialOnes === 0) || (luckApplies && cleanRelax && luckRating > 0 && rawInitialOnes === 1);
+
+      // Explosion allowance
+      let allowance = 0;
+      if (allowExplosions && clean){
+        if (cfg.explosionCapMode === 'none'){
+          allowance = 999999;
+        } else if (cfg.explosionCapMode === 'fixed'){
+          allowance = Math.max(0, Math.floor(cfg.explosionCapFixed || 0));
+        } else {
+          // 'luck'
+          allowance = luckRating;
+        }
+      }
+
+      let diceRolled = dice;
+      let explosionsUsed = 0;
+
+      // Seed explosion queue from initial 6s
+      let queue = 0;
+      if (allowance > 0 && initialSixes > 0){
+        queue = Math.min(initialSixes, allowance);
+        allowance -= queue;
+        explosionsUsed += queue;
+      }
+
+      // Explode chain
+      while (queue > 0){
+        queue--;
+        diceRolled++;
+        const r = rand1to6();
+        if (r === 1){
+          if (remainingCancels > 0){
+            remainingCancels--;
+            // 0
+          } else {
+            total -= 1;
+          }
+        } else if (r === 5){
+          total += 1;
+        } else if (r === 6){
+          total += 2;
+          if (allowance > 0){
+            queue++;
+            allowance--;
+            explosionsUsed++;
+          }
+        }
+      }
+
+      const net = total > 0 ? total : 0;
+      const unmitigatedInitialOnes = rawInitialOnes - mitigatedInitialOnes;
+
+      return { net, rawTotal: total, clean, rawInitialOnes, unmitigatedInitialOnes, diceRolled, explosionsUsed };
+    }
+
+    function runTrials(opts){
+      // opts: { trials, rollCfg, tierDelta, flatSuccessMods, targetNumber, baseDamage, armor }
+      const trials = Math.max(1, Math.floor(opts.trials));
+      const tierDelta = Math.floor(opts.tierDelta || 0);
+      const flatSuccessMods = Math.floor(opts.flatSuccessMods || 0);
+      const targetNumber = Math.floor(opts.targetNumber || 0);
+      const baseDamage = +opts.baseDamage || 0;
+      const armor = +opts.armor || 0;
+
+      let hits = 0;
+      let sumRollNet = 0;
+      let sumEffNet = 0;
+      let sumMarginOnHit = 0;
+      let sumDmgOnHit = 0;
+      let sumDmgAll = 0;
+      let complications = 0;
+      let cleans = 0;
+      let explosions = 0;
+
+      const netHist = new Map();
+      const dmgHist = new Map();
+
+      for (let i=0;i<trials;i++){
+        const r = rollOnce(opts.rollCfg);
+        if (r.clean) cleans++;
+        if (r.explosionsUsed > 0) explosions++;
+
+        sumRollNet += r.net;
+
+        const effRaw = r.net + tierDelta + flatSuccessMods;
+        const effNet = effRaw > 0 ? effRaw : 0;
+        sumEffNet += effNet;
+
+        // complication uses EffectiveNet (combat/hazards only)
+        if (effNet === 0 && r.unmitigatedInitialOnes > 0) complications++;
+
+        // hit check
+        const hit = effNet >= targetNumber;
+        if (hit){
+          hits++;
+          const margin = effNet - targetNumber;
+          sumMarginOnHit += margin;
+
+          const dmg = Math.max(0, (baseDamage + margin) - armor);
+          sumDmgOnHit += dmg;
+          sumDmgAll += dmg;
+
+          // dmg histogram
+          const bucket = dmg >= 30 ? '30+' : String(Math.floor(dmg));
+          dmgHist.set(bucket, (dmgHist.get(bucket) || 0) + 1);
+        } else {
+          // miss = 0 damage
+          dmgHist.set('0', (dmgHist.get('0') || 0) + 1);
+        }
+
+        // net histogram
+        const nb = effNet >= 14 ? '14+' : String(Math.floor(effNet));
+        netHist.set(nb, (netHist.get(nb) || 0) + 1);
+      }
+
+      const hitRate = hits / trials;
+      const avgRollNet = sumRollNet / trials;
+      const avgEffNet = sumEffNet / trials;
+      const avgMarginOnHit = hits > 0 ? sumMarginOnHit / hits : 0;
+      const avgDmgOnHit = hits > 0 ? sumDmgOnHit / hits : 0;
+      const avgDmgAll = sumDmgAll / trials;
+      const compRate = complications / trials;
+      const cleanRate = cleans / trials;
+      const explodeRate = explosions / trials;
+
+      return {
+        trials,
+        hitRate,
+        avgRollNet,
+        avgEffNet,
+        avgMarginOnHit,
+        avgDmgOnHit,
+        avgDmgAll,
+        compRate,
+        cleanRate,
+        explodeRate,
+        netHist,
+        dmgHist,
+      };
+    }
+
+    function pct(x){ return (x*100).toFixed(1) + '%'; }
+
+    function fmt(x, digits=2){
+      if (!isFinite(x)) return '∞';
+      return (+x).toFixed(digits);
+    }
+
+    function fmtInt(x){
+      if (!isFinite(x)) return '∞';
+      return String(Math.round(x));
+    }
+
+    function clamp(n, lo, hi){
+      return Math.max(lo, Math.min(hi, n));
+    }
+
+    // ------------------------------
+    // UI: reading settings + autos
+    // ------------------------------
+    function getPlayer(){
+      const level = +document.getElementById('pLevel').value || 1;
+      const tier = tierFromLevel(level);
+      const role = document.getElementById('pRole').value;
+
+      const hpOverride = document.getElementById('pHP').value.trim();
+      const arOverride = document.getElementById('pAR').value.trim();
+
+      const armorType = document.getElementById('pArmorType').value;
+
+      const hpAuto = ROLE_HP0[role] * powerScaleFromLevel(level);
+      const arAuto = ARMOR_BASE0[armorType] * armorScaleFromLevel(level) * 1.0;
+
+      const hp = hpOverride === '' ? Math.round(hpAuto) : Math.max(1, Math.floor(+hpOverride));
+      const ar = arOverride === '' ? Math.round(arAuto) : Math.max(0, Math.floor(+arOverride));
+
+      const ev = Math.max(1, Math.floor(+document.getElementById('pEV').value || 4));
+
+      // Dice pool
+      const attr = Math.max(0, Math.floor(+document.getElementById('pAttr').value || 0));
+      const skill = Math.max(0, Math.floor(+document.getElementById('pSkill').value || 0));
+      const diceMod = Math.floor(+document.getElementById('pDiceMod').value || 0);
+      const dice = Math.max(1, attr + skill + diceMod);
+
+      // Weapon base damage
+      const weaponBase0 = +document.getElementById('weaponBase').value;
+      const rarityMul = +document.getElementById('weaponRarity').value;
+      const weaponLevelOverride = document.getElementById('weaponLevel').value.trim();
+      const weaponLevel = weaponLevelOverride === '' ? level : Math.max(1, Math.floor(+weaponLevelOverride));
+      const baseDamage = weaponBase0 * powerScaleFromLevel(weaponLevel) * rarityMul;
+
+      // Luck
+      const luckRating = Math.max(0, Math.min(3, Math.floor(+document.getElementById('luck').value || 0)));
+      const luckApplies = document.getElementById('luckApplies').value === 'yes';
+      const cancelOnes = document.getElementById('cancelOnes').checked;
+      const cleanRelax = document.getElementById('cleanRelax').checked;
+      const allowExplosions = document.getElementById('allowExplosions').checked;
+      const explosionCapMode = document.getElementById('explosionCapMode').value;
+      const explosionCapFixed = Math.max(0, Math.floor(+document.getElementById('explosionCapFixed').value || 0));
+
+      return {
+        level, tier, role,
+        hp, ar, ev,
+        attr, skill, diceMod, dice,
+        weaponBase0, rarityMul, weaponLevel, baseDamage,
+        luckRating, luckApplies, cancelOnes, cleanRelax, allowExplosions, explosionCapMode, explosionCapFixed,
+      };
+    }
+
+    function getEnemy(){
+      const level = +document.getElementById('eLevel').value || 1;
+      const tier = tierFromLevel(level);
+      const type = document.getElementById('eType').value;
+      const rank = document.getElementById('eRank').value;
+
+      const base = ENEMY_BASE[type];
+      const r = ENEMY_RANK[rank];
+
+      const hpOverride = document.getElementById('eHP').value.trim();
+      const arOverride = document.getElementById('eAR').value.trim();
+      const evOverride = document.getElementById('eEV').value.trim();
+
+      // Auto stats
+      const hpAuto = base.hp0 * powerScaleFromLevel(level) * r.hp;
+      const arAuto = base.ar0 * armorScaleFromLevel(level) * r.ar;
+
+      // Auto defense target number (EV)
+      let evAuto = base.ev + r.defBoost;
+      // Keep defense target numbers in a readable band (2–6 typical)
+      evAuto = clamp(evAuto, 1, 10);
+
+      const hp = hpOverride === '' ? Math.round(hpAuto) : Math.max(1, Math.floor(+hpOverride));
+      const ar = arOverride === '' ? Math.round(arAuto) : Math.max(0, Math.floor(+arOverride));
+      const ev = evOverride === '' ? Math.floor(evAuto) : Math.max(1, Math.floor(+evOverride));
+
+      // Enemy attack dice pool
+      const attr = Math.max(0, Math.floor(+document.getElementById('eAttr').value || 0));
+      const skill = Math.max(0, Math.floor(+document.getElementById('eSkill').value || 0));
+      const diceMod = Math.floor(+document.getElementById('eDiceMod').value || 0);
+      const dice = Math.max(1, attr + skill + diceMod);
+
+      // Enemy base damage
+      const weap0 = +document.getElementById('enemyWeaponBase').value;
+      const threat = +document.getElementById('enemyThreat').value;
+      const enemyWeaponLevelOverride = document.getElementById('enemyWeaponLevel').value.trim();
+      const weaponLevel = enemyWeaponLevelOverride === '' ? level : Math.max(1, Math.floor(+enemyWeaponLevelOverride));
+      const baseDamage = weap0 * powerScaleFromLevel(weaponLevel) * threat * r.dmg;
+
+      return {
+        level, tier, type, rank,
+        hp, ar, ev,
+        attr, skill, diceMod, dice,
+        baseDamage,
+      };
+    }
+
+    function getRollCfgFromPlayer(p){
+      return {
+        dice: p.dice,
+        luckApplies: p.luckApplies,
+        luckRating: p.luckRating,
+        cancelOnes: p.cancelOnes,
+        cleanRelax: p.cleanRelax,
+        allowExplosions: p.allowExplosions,
+        explosionCapMode: p.explosionCapMode,
+        explosionCapFixed: p.explosionCapFixed,
+      };
+    }
+
+    function getRollCfgFromEnemy(e, p){
+      // Enemy doesn't necessarily have luck; use same luck settings only if player says it applies.
+      // For now: enemy has no luck.
+      return {
+        dice: e.dice,
+        luckApplies: false,
+        luckRating: 0,
+        cancelOnes: false,
+        cleanRelax: false,
+        allowExplosions: false,
+        explosionCapMode: 'luck',
+        explosionCapFixed: 0,
+      };
+    }
+
+    function getHazardCfg(p){
+      const hLevel = +document.getElementById('hLevel').value || 1;
+      const hDC = Math.max(1, Math.floor(+document.getElementById('hDC').value || 3));
+      const hAttr = Math.max(0, Math.floor(+document.getElementById('hAttr').value || 0));
+      const hSkill = Math.max(0, Math.floor(+document.getElementById('hSkill').value || 0));
+      const hDiceMod = Math.floor(+document.getElementById('hDiceMod').value || 0);
+      const hDice = Math.max(1, hAttr + hSkill + hDiceMod);
+
+      const hFlat = Math.floor(+document.getElementById('hFlat').value || 0);
+
+      const useLuck = document.getElementById('hUseLuck').value === 'yes';
+      const rollCfg = useLuck ? {
+        dice: hDice,
+        luckApplies: p.luckApplies,
+        luckRating: p.luckRating,
+        cancelOnes: p.cancelOnes,
+        cleanRelax: p.cleanRelax,
+        allowExplosions: p.allowExplosions,
+        explosionCapMode: p.explosionCapMode,
+        explosionCapFixed: p.explosionCapFixed,
+      } : {
+        dice: hDice,
+        luckApplies: false,
+        luckRating: 0,
+        cancelOnes: false,
+        cleanRelax: false,
+        allowExplosions: false,
+        explosionCapMode: 'luck',
+        explosionCapFixed: 0,
+      };
+
+      return { hLevel, hDC, hDice, hAttr, hSkill, hDiceMod, hFlat, rollCfg };
+    }
+
+    function renderPills(p, e, tierDelta){
+      const band = dangerBand(tierDelta);
+      const pillRow = document.getElementById('pillRow');
+      pillRow.innerHTML = '';
+
+      const pills = [
+        {k:'Player', v:`L${p.level} (Tier ${p.tier})`},
+        {k:'Enemy', v:`L${e.level} (Tier ${e.tier})`},
+        {k:'TierΔ', v:`${tierDelta} (${band.label})`, cls: band.cls},
+        {k:'Dice pool', v:`${p.dice}d6`},
+        {k:'Enemy EV', v:`${e.ev}`},
+        {k:'Base dmg', v:`${fmt(p.baseDamage,1)}`},
+        {k:'Enemy AR', v:`${e.ar}`},
+      ];
+
+      for (const it of pills){
+        const div = document.createElement('div');
+        div.className = 'pill ' + (it.cls || '');
+        div.innerHTML = `<strong>${it.k}:</strong> <span class="mono">${it.v}</span>`;
+        pillRow.appendChild(div);
+      }
+    }
+
+    function renderHist(containerId, histMap, title){
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      // Convert to sorted buckets
+      const entries = Array.from(histMap.entries());
+      entries.sort((a,b)=>{
+        const ak = a[0];
+        const bk = b[0];
+        const an = ak.endsWith('+') ? parseInt(ak) : parseInt(ak);
+        const bn = bk.endsWith('+') ? parseInt(bk) : parseInt(bk);
+        return an - bn;
+      });
+
+      const total = entries.reduce((s,[,v])=>s+v,0) || 1;
+      const max = entries.reduce((m,[,v])=>Math.max(m,v),0) || 1;
+
+      const head = document.createElement('div');
+      head.className = 'muted';
+      head.style.marginTop = '8px';
+      head.textContent = title;
+      container.appendChild(head);
+
+      for (const [bucket, count] of entries){
+        const row = document.createElement('div');
+        row.className = 'barrow';
+        const pctv = (count/total)*100;
+        const w = (count/max)*100;
+        row.innerHTML = `
+          <div class="mono">${bucket}</div>
+          <div class="bar"><span style="width:${w.toFixed(1)}%"></span></div>
+          <div class="mono" style="text-align:right;">${pctv.toFixed(1)}%</div>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function computeAutos(){
+      const p = getPlayer();
+      const e = getEnemy();
+      const tierDelta = p.tier - e.tier;
+      renderPills(p, e, tierDelta);
+
+      // Preview numbers
+      const band = dangerBand(tierDelta);
+      document.getElementById('k_hit').textContent = '—';
+      document.getElementById('k_dpa').textContent = '—';
+      document.getElementById('k_ttk').textContent = '—';
+      document.getElementById('k_surv').textContent = '—';
+
+      document.getElementById('combatText').textContent =
+        `TierΔ = ${tierDelta} (${band.label}). Player HP ${p.hp}, AR ${p.ar}, EV ${p.ev}. Enemy HP ${e.hp}, AR ${e.ar}, EV ${e.ev}.`;
+
+      document.getElementById('hazardText').textContent = 'Run a simulation to see hazard odds.';
+
+      // Clear hists
+      document.getElementById('histNet').innerHTML = '';
+      document.getElementById('histDmg').innerHTML = '';
+      document.getElementById('histHaz').innerHTML = '';
+    }
+
+    // ------------------------------
+    // Simulation run
+    // ------------------------------
+    function runSingleMonteCarlo(){
+      const trials = Math.max(100, Math.floor(+document.getElementById('trials').value || 20000));
+      const flatSuccessMods = Math.floor(+document.getElementById('flatSuccess').value || 0);
+
+      const p = getPlayer();
+      const e = getEnemy();
+      const tierDelta = p.tier - e.tier;
+      renderPills(p, e, tierDelta);
+
+      // Player attacks enemy
+      const combat = runTrials({
+        trials,
+        rollCfg: getRollCfgFromPlayer(p),
+        tierDelta,
+        flatSuccessMods,
+        targetNumber: e.ev,
+        baseDamage: p.baseDamage,
+        armor: e.ar,
+      });
+
+      const enemyTTK = combat.avgDmgAll > 0 ? (e.hp / combat.avgDmgAll) : Infinity;
+
+      // Enemy attacks player (optional, always calculated here)
+      const enemyCombat = runTrials({
+        trials,
+        rollCfg: getRollCfgFromEnemy(e,p),
+        tierDelta: e.tier - p.tier,
+        flatSuccessMods: 0,
+        targetNumber: p.ev,
+        baseDamage: e.baseDamage,
+        armor: p.ar,
+      });
+
+      const playerSurv = enemyCombat.avgDmgAll > 0 ? (p.hp / enemyCombat.avgDmgAll) : Infinity;
+
+      // Hazard check
+      const hz = getHazardCfg(p);
+      const hazardTierDelta = p.tier - tierFromLevel(hz.hLevel);
+      const hazard = runTrials({
+        trials,
+        rollCfg: hz.rollCfg,
+        tierDelta: hazardTierDelta,
+        flatSuccessMods: hz.hFlat,
+        targetNumber: hz.hDC,
+        baseDamage: 0,
+        armor: 0,
+      });
+
+      // KPI
+      document.getElementById('k_hit').textContent = pct(combat.hitRate);
+      document.getElementById('k_dpa').textContent = fmt(combat.avgDmgAll, 2);
+      document.getElementById('k_ttk').textContent = fmt(enemyTTK, 1);
+      document.getElementById('k_surv').textContent = fmt(playerSurv, 1);
+
+      // Combat text
+      const band = dangerBand(tierDelta);
+      const combatText = `
+Player vs Enemy (EV=${e.ev}):
+- Player dice pool: ${p.dice}d6 (Attr ${p.attr} + Skill ${p.skill} + Mod ${p.diceMod})
+- Player base damage (scaled): ${fmt(p.baseDamage,2)} (weapon0=${p.weaponBase0}, rarity×${p.rarityMul}, weaponLvl=${p.weaponLevel})
+- Enemy HP ${e.hp}, AR ${e.ar}, EV ${e.ev}
+- TierΔ = ${tierDelta} (${band.label}), FlatSuccessMods = ${flatSuccessMods}
+
+Results (${trials} trials):
+- Hit rate: ${pct(combat.hitRate)}
+- Avg RollNet: ${fmt(combat.avgRollNet,2)}
+- Avg EffectiveNet: ${fmt(combat.avgEffNet,2)}
+- Avg Margin (on hit): ${fmt(combat.avgMarginOnHit,2)}
+- Avg Damage (on hit): ${fmt(combat.avgDmgOnHit,2)}
+- Avg Damage per attack (incl misses): ${fmt(combat.avgDmgAll,2)}
+- Clean rolls: ${pct(combat.cleanRate)}
+- Explosions triggered: ${pct(combat.explodeRate)}
+- Complications: ${pct(combat.compRate)}
+
+TTK estimate:
+- Expected attacks to kill enemy: ${fmt(enemyTTK,2)}
+
+Enemy attacking player (EV=${p.ev}):
+- Enemy dice pool: ${e.dice}d6 (Attr ${e.attr} + Skill ${e.skill} + Mod ${e.diceMod})
+- Enemy base damage (scaled): ${fmt(e.baseDamage,2)}
+- Player HP ${p.hp}, AR ${p.ar}
+- Expected attacks until player drops: ${fmt(playerSurv,2)}
+      `.trim();
+
+      document.getElementById('combatText').textContent = combatText;
+
+      // Hazard text
+      const hzBand = dangerBand(hazardTierDelta);
+      const hazardText = `
+Hazard check (DC=${hz.hDC}, hazardLvl=${hz.hLevel} / tier ${tierFromLevel(hz.hLevel)}):
+- Dice pool: ${hz.rollCfg.dice}d6 (Attr ${hz.hAttr} + Skill ${hz.hSkill} + Mod ${hz.hDiceMod})
+- TierΔ = ${hazardTierDelta} (${hzBand.label}), FlatSuccessMods = ${hz.hFlat}
+
+Results (${trials} trials):
+- Success rate: ${pct(hazard.hitRate)}
+- Avg EffectiveNet: ${fmt(hazard.avgEffNet,2)}
+- Avg Margin (on success): ${fmt(hazard.avgMarginOnHit,2)}
+- Complications: ${pct(hazard.compRate)}
+- Clean rolls: ${pct(hazard.cleanRate)}
+- Explosions triggered: ${pct(hazard.explodeRate)}
+      `.trim();
+
+      document.getElementById('hazardText').textContent = hazardText;
+
+      // Hists
+      renderHist('histNet', combat.netHist, 'EffectiveNet distribution (bucketed; 14+ grouped)');
+      renderHist('histDmg', combat.dmgHist, 'Damage distribution (bucketed; 30+ grouped)');
+      renderHist('histHaz', hazard.netHist, 'Hazard EffectiveNet distribution (bucketed; 14+ grouped)');
+    }
+
+    function rollOnceDebug(){
+      const p = getPlayer();
+      const e = getEnemy();
+
+      const tierDelta = p.tier - e.tier;
+      const flatSuccessMods = Math.floor(+document.getElementById('flatSuccess').value || 0);
+
+      const cfg = getRollCfgFromPlayer(p);
+      const r = rollOnce(cfg);
+      const effRaw = r.net + tierDelta + flatSuccessMods;
+      const effNet = effRaw > 0 ? effRaw : 0;
+      const hit = effNet >= e.ev;
+      const margin = hit ? (effNet - e.ev) : 0;
+      const dmg = hit ? Math.max(0, (p.baseDamage + margin) - e.ar) : 0;
+      const complication = (effNet === 0 && r.unmitigatedInitialOnes > 0);
+
+      const out = {
+        playerLevel: p.level,
+        enemyLevel: e.level,
+        playerTier: p.tier,
+        enemyTier: e.tier,
+        tierDelta,
+        flatSuccessMods,
+        rollConfig: cfg,
+        roll: r,
+        effectiveNet: effNet,
+        targetEV: e.ev,
+        hit,
+        margin,
+        baseDamage: +p.baseDamage.toFixed(3),
+        enemyArmor: e.ar,
+        damage: +dmg.toFixed(3),
+        complication,
+      };
+
+      document.getElementById('debugOut').value = JSON.stringify(out, null, 2);
+    }
+
+    function resetAutos(){
+      // Clear override fields
+      ['pHP','pAR','weaponLevel','eEV','eAR','eHP','enemyWeaponLevel'].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      computeAutos();
+    }
+
+    // ------------------------------
+    // Sweep
+    // ------------------------------
+    let sweepStop = false;
+
+    async function runSweep(){
+      sweepStop = false;
+      const start = Math.max(1, Math.floor(+document.getElementById('swStart').value || 1));
+      const end = Math.max(start, Math.floor(+document.getElementById('swEnd').value || 100));
+      const step = Math.max(1, Math.floor(+document.getElementById('swStep').value || 5));
+      const enemyOffset = Math.floor(+document.getElementById('swEnemyOffset').value || 0);
+      const hazOffset = Math.floor(+document.getElementById('swHazOffset').value || 0);
+      const trials = Math.max(200, Math.floor(+document.getElementById('swTrials').value || 2000));
+      const enemyEV = Math.max(1, Math.floor(+document.getElementById('swEnemyEV').value || 4));
+      const hazDC = Math.max(1, Math.floor(+document.getElementById('swHazDC').value || 3));
+      const includeEnemy = document.getElementById('swIncludeEnemy').value === 'yes';
+
+      const tbody = document.querySelector('#swTable tbody');
+      tbody.innerHTML = '';
+
+      // Base settings from current Single Encounter UI
+      const pBase = getPlayer();
+      const eBase = getEnemy();
+      const hzBase = getHazardCfg(pBase);
+
+      const rows = [];
+      for (let L = start; L <= end; L += step){
+        rows.push(L);
+      }
+
+      const totalRows = rows.length;
+      const prog = document.getElementById('swProg');
+      const status = document.getElementById('swStatus');
+
+      for (let idx=0; idx<rows.length; idx++){
+        if (sweepStop) break;
+        const L = rows[idx];
+
+        // Build player copy at level L
+        const p = {...pBase, level: L, tier: tierFromLevel(L)};
+        // Update auto-scaled HP/AR/base damage using same logic as getPlayer but with overrides preserved
+        // We'll reconstruct from UI defaults: if overrides are blank in single panel, treat as auto.
+        {
+          const role = document.getElementById('pRole').value;
+          const armorType = document.getElementById('pArmorType').value;
+          const hpOverride = document.getElementById('pHP').value.trim();
+          const arOverride = document.getElementById('pAR').value.trim();
+          const weaponLevelOverride = document.getElementById('weaponLevel').value.trim();
+
+          const hpAuto = ROLE_HP0[role] * powerScaleFromLevel(L);
+          const arAuto = ARMOR_BASE0[armorType] * armorScaleFromLevel(L);
+          p.hp = hpOverride === '' ? Math.round(hpAuto) : Math.max(1, Math.floor(+hpOverride));
+          p.ar = arOverride === '' ? Math.round(arAuto) : Math.max(0, Math.floor(+arOverride));
+
+          const weaponLevel = weaponLevelOverride === '' ? L : Math.max(1, Math.floor(+weaponLevelOverride));
+          p.weaponLevel = weaponLevel;
+          p.baseDamage = p.weaponBase0 * powerScaleFromLevel(weaponLevel) * p.rarityMul;
+        }
+
+        // Enemy level relative
+        const eL = Math.max(1, L + enemyOffset);
+        const eTier = tierFromLevel(eL);
+        const tierDelta = p.tier - eTier;
+
+        // Enemy HP scaling: use enemy type/rank from Single panel, but EV fixed by sweep input
+        const e = {...eBase, level: eL, tier: eTier, ev: enemyEV};
+        {
+          const type = document.getElementById('eType').value;
+          const rank = document.getElementById('eRank').value;
+          const base = ENEMY_BASE[type];
+          const r = ENEMY_RANK[rank];
+
+          const hpOverride = document.getElementById('eHP').value.trim();
+          const arOverride = document.getElementById('eAR').value.trim();
+          const weaponLevelOverride = document.getElementById('enemyWeaponLevel').value.trim();
+
+          const hpAuto = base.hp0 * powerScaleFromLevel(eL) * r.hp;
+          const arAuto = base.ar0 * armorScaleFromLevel(eL) * r.ar;
+
+          e.hp = hpOverride === '' ? Math.round(hpAuto) : Math.max(1, Math.floor(+hpOverride));
+          e.ar = arOverride === '' ? Math.round(arAuto) : Math.max(0, Math.floor(+arOverride));
+
+          const eWeaponLevel = weaponLevelOverride === '' ? eL : Math.max(1, Math.floor(+weaponLevelOverride));
+          e.baseDamage = (+document.getElementById('enemyWeaponBase').value) * powerScaleFromLevel(eWeaponLevel) * (+document.getElementById('enemyThreat').value) * r.dmg;
+        }
+
+        // Player roll config
+        const rollCfg = getRollCfgFromPlayer(pBase);
+        rollCfg.dice = p.dice; // dice pool fixed unless user changes it manually; for sweep we keep it fixed.
+
+        const flatSuccessMods = Math.floor(+document.getElementById('flatSuccess').value || 0);
+
+        const combat = runTrials({
+          trials,
+          rollCfg,
+          tierDelta,
+          flatSuccessMods,
+          targetNumber: e.ev,
+          baseDamage: p.baseDamage,
+          armor: e.ar,
+        });
+
+        const ttk = combat.avgDmgAll > 0 ? (e.hp / combat.avgDmgAll) : Infinity;
+
+        // Hazard
+        const hL = Math.max(1, L + hazOffset);
+        const hTierDelta = p.tier - tierFromLevel(hL);
+
+        const hCfg = {
+          hLevel: hL,
+          hDC: hazDC,
+          hAttr: hzBase.hAttr,
+          hSkill: hzBase.hSkill,
+          hDiceMod: hzBase.hDiceMod,
+          hFlat: hzBase.hFlat,
+          rollCfg: {...hzBase.rollCfg},
+        };
+        hCfg.rollCfg.dice = hzBase.hDice;
+
+        const hz = runTrials({
+          trials,
+          rollCfg: hCfg.rollCfg,
+          tierDelta: hTierDelta,
+          flatSuccessMods: hCfg.hFlat,
+          targetNumber: hCfg.hDC,
+          baseDamage: 0,
+          armor: 0,
+        });
+
+        // Add row
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="mono">L${L}</td>
+          <td class="mono">${p.tier}</td>
+          <td class="mono">L${eL}</td>
+          <td class="mono">${tierDelta}</td>
+          <td class="mono">${(combat.hitRate*100).toFixed(1)}</td>
+          <td class="mono">${combat.avgDmgAll.toFixed(2)}</td>
+          <td class="mono">${e.hp}</td>
+          <td class="mono">${isFinite(ttk)? ttk.toFixed(1) : '∞'}</td>
+          <td class="mono">${(hz.hitRate*100).toFixed(1)}</td>
+          <td class="mono">${(hz.compRate*100).toFixed(1)}</td>
+          <td class="mono">${p.dice}d6</td>
+        `;
+        tbody.appendChild(tr);
+
+        // Update progress
+        const pval = ((idx+1)/totalRows)*100;
+        prog.style.width = pval.toFixed(1) + '%';
+        status.textContent = `Row ${idx+1}/${totalRows}: Player L${L} vs Enemy L${eL} (TierΔ ${tierDelta})`;
+
+        // Yield to UI every row
+        await new Promise(res=>setTimeout(res, 0));
+      }
+
+      if (sweepStop){
+        status.textContent = 'Sweep stopped.';
+      } else {
+        status.textContent = 'Sweep complete.';
+      }
+    }
+
+    function stopSweep(){
+      sweepStop = true;
+    }
+
+    // ------------------------------
+    // Tabs
+    // ------------------------------
+    function setTab(tab){
+      document.querySelectorAll('.tab').forEach(t=>{
+        t.classList.toggle('active', t.dataset.tab === tab);
+      });
+      document.getElementById('tab-single').style.display = (tab === 'single') ? '' : 'none';
+      document.getElementById('tab-sweep').style.display = (tab === 'sweep') ? '' : 'none';
+      document.getElementById('tab-rules').style.display = (tab === 'rules') ? '' : 'none';
+    }
+
+    // ------------------------------
+    // Wire up
+    // ------------------------------
+    document.querySelectorAll('.tab').forEach(t=>{
+      t.addEventListener('click', ()=> setTab(t.dataset.tab));
+    });
+
+    document.getElementById('btnSim').addEventListener('click', ()=>{
+      runSingleMonteCarlo();
+    });
+
+    document.getElementById('btnOne').addEventListener('click', ()=>{
+      rollOnceDebug();
+    });
+
+    document.getElementById('btnReset').addEventListener('click', ()=>{
+      resetAutos();
+    });
+
+    document.getElementById('btnSweep').addEventListener('click', ()=>{
+      runSweep();
+    });
+
+    document.getElementById('btnSweepStop').addEventListener('click', ()=>{
+      stopSweep();
+    });
+
+    // Recompute pills/preview when inputs change
+    const watchedIds = [
+      'pLevel','pRole','pHP','pEV','pAR','pArmorType','pAttr','pSkill','pDiceMod','luck','luckApplies','cancelOnes','cleanRelax','allowExplosions','explosionCapMode','explosionCapFixed',
+      'weaponBase','weaponRarity','weaponLevel',
+      'eLevel','eType','eRank','eEV','eAR','eHP','eAttr','eSkill','eDiceMod','enemyWeaponBase','enemyThreat','enemyWeaponLevel',
+      'hLevel','hDC','hAttr','hSkill','hDiceMod','hUseLuck','hFlat',
+      'flatSuccess','trials'
+    ];
+
+    for (const id of watchedIds){
+      const el = document.getElementById(id);
+      if (el){
+        el.addEventListener('input', ()=> computeAutos());
+        el.addEventListener('change', ()=> computeAutos());
+      }
+    }
+
+    // Init
+    computeAutos();
+  </script>
+</body>
+</html>
