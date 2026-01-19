@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1b261d" />
+  <title>Swords | Jeetah Studios</title>
+
+  <!-- Iconify "iconify-icon" web component (icons from https://icon-sets.iconify.design/) -->
+  <script src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js"></script>
+
+  <style>
+    :root {
+      /* --- Core palette (keeps your forest/parchment vibe) --- */
+      --forest-0: #0d1410;  /* deeper than original for stronger contrast */
+      --forest-1: #1b261d;  /* Deep Moss */
+      --forest-2: #2d452f;  /* Leaf Green */
+      --earth-1: #3e2723;   /* Dark Wood */
+      --earth-2: #5d4037;   /* Lighter Bark */
+      --paper-1: #f0f2e8;   /* Pale Sage Parchment */
+      --paper-2: #e6eadc;   /* Slightly darker parchment */
+      --ink: #1a1c1a;
+      --accent: #8bc34a;    /* Vibrant Nature Glow */
+      --accent-2: #c5e1a5;  /* Softer glow */
+      --border-wood: #4e342e;
+
+      --shadow-strong: rgba(0,0,0,0.60);
+      --shadow-soft: rgba(0,0,0,0.35);
+
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+
+      /* Cursor spotlight position (updated by JS) */
+      --mx: 50%;
+      --my: 30%;
+
+      /* Layout */
+      --container: 1100px;
+      --nav-h: 72px;
+
+      /* Motion */
+      --ease: cubic-bezier(.2,.8,.2,1);
+    }
+
+    /* Dawn theme (toggle button) */
+    html[data-theme="dawn"] {
+      --forest-0: #172018;
+      --forest-1: #223126;
+      --forest-2: #35523a;
+      --paper-1: #f6f6ee;
+      --paper-2: #ecefe0;
+      --accent: #9ccc65;
+      --accent-2: #dcedc8;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      color: #f7f7f0;
+
+      /* “To 11” background stack: vignette + moss glow + depth */
+      background:
+        radial-gradient(1200px circle at var(--mx) var(--my), rgba(139,195,74,0.16), transparent 55%),
+        radial-gradient(900px circle at 18% 22%, rgba(45,69,47,0.30), transparent 60%),
+        radial-gradient(900px circle at 86% 78%, rgba(62,39,35,0.26), transparent 58%),
+        linear-gradient(180deg, var(--forest-0), var(--forest-1) 45%, #0b100d);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grain overlay (no external textures) */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.10;
+      mix-blend-mode: overlay;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+    }
+
+    a { color: inherit; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Better keyboard UX */
+    :focus-visible {
+      outline: 3px solid rgba(139,195,74,0.8);
+      outline-offset: 3px;
+      border-radius: 10px;
+    }
+
+    /* Screen-reader-only helper */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Skip link */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 12px;
+      z-index: 9999;
+      background: var(--paper-1);
+      color: var(--ink);
+      border: 2px solid var(--border-wood);
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px var(--shadow-soft);
+      text-decoration: none;
+    }
+    .skip-link:focus { left: 12px; }
+
+    /* Iconify baseline sizing (prevents layout shift) */
+    iconify-icon {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.125em;
+    }
+
+    /* ------------------------------
+       Top Navigation
+    ------------------------------ */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(139,195,74,0.20);
+      background: rgba(13, 20, 16, 0.62);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-inner {
+      width: min(var(--container), calc(100% - 32px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(139,195,74,0.25);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      text-decoration: none;
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-icon {
+      font-size: 1.2rem;
+      color: var(--accent);
+      filter: drop-shadow(0 0 10px rgba(139,195,74,0.35));
+    }
+    .brand-text {
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.16);
+    }
+    .nav-links a {
+      opacity: 0.92;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.82rem;
+      text-decoration: none;
+      position: relative;
+      padding: 8px 8px;
+      border-radius: 999px;
+    }
+    .nav-links a:hover {
+      opacity: 1;
+      background: rgba(139,195,74,0.12);
+      text-decoration: none;
+    }
+
+    .nav-toggle {
+      display: none;
+      height: 44px;
+      width: 48px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      color: inherit;
+      cursor: pointer;
+    }
+    .nav-toggle-lines {
+      display: inline-block;
+      width: 22px;
+      height: 14px;
+      position: relative;
+    }
+    .nav-toggle-lines::before,
+    .nav-toggle-lines::after,
+    .nav-toggle-lines span {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 999px;
+      transition: transform 220ms var(--ease), top 220ms var(--ease), opacity 220ms var(--ease);
+    }
+    .nav-toggle-lines::before { top: 0; }
+    .nav-toggle-lines span { top: 6px; }
+    .nav-toggle-lines::after { top: 12px; }
+
+    .theme-toggle {
+      height: 44px;
+      width: 44px;
+      border-radius: 14px;
+      border: 1px solid rgba(139,195,74,0.25);
+      background: rgba(0,0,0,0.18);
+      color: var(--accent);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.28);
+    }
+    .theme-toggle:hover { filter: brightness(1.12); }
+    .theme-icon {
+      font-size: 1.2rem;
+      filter: drop-shadow(0 0 10px rgba(139,195,74,0.35));
+    }
+
+    /* Mobile nav */
+    @media (max-width: 860px) {
+      .nav-inner { grid-template-columns: 1fr auto auto; }
+      .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+      .nav-links {
+        position: absolute;
+        top: calc(var(--nav-h) - 6px);
+        left: 16px;
+        right: 16px;
+        margin: 0 auto;
+        max-width: var(--container);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+        border-radius: var(--radius-lg);
+        background: rgba(13, 20, 16, 0.92);
+        border: 1px solid rgba(255,255,255,0.14);
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-6px);
+        transition: max-height 280ms var(--ease), opacity 280ms var(--ease), transform 280ms var(--ease);
+      }
+      html.nav-open .nav-links {
+        max-height: 420px;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .nav-links a {
+        padding: 12px 12px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+      .nav-links a:hover { background: rgba(139,195,74,0.14); }
+    }
+
+    /* ------------------------------
+       Hero
+    ------------------------------ */
+    .hero {
+      position: relative;
+      padding: 88px 16px 70px;
+      overflow: hidden;
+      border-bottom: 5px solid var(--earth-1);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      background:
+        radial-gradient(900px circle at 50% 20%, rgba(139,195,74,0.20), transparent 60%),
+        radial-gradient(700px circle at 15% 60%, rgba(93,64,55,0.25), transparent 55%),
+        radial-gradient(700px circle at 85% 70%, rgba(45,69,47,0.22), transparent 58%),
+        linear-gradient(180deg, rgba(27,38,29,0.88), rgba(27,38,29,0.88));
+      z-index: 0;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 52px;
+      background:
+        linear-gradient(90deg, transparent, rgba(139,195,74,0.22), transparent);
+      opacity: 0.55;
+      filter: blur(8px);
+      z-index: 0;
+    }
+
+    .hero-inner {
+      width: min(var(--container), calc(100% - 32px));
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 4px;
+      font-weight: 700;
+      opacity: 0.92;
+      color: rgba(255,255,255,0.92);
+      text-transform: uppercase;
+      margin: 0 0 10px;
+    }
+
+    .main-title {
+      font-size: clamp(3rem, 6vw, 5.2rem);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: clamp(6px, 1.4vw, 14px);
+      font-weight: 900;
+      color: var(--accent);
+      text-shadow:
+        0 0 28px rgba(139,195,74,0.45),
+        0 18px 55px rgba(0,0,0,0.55);
+      animation: pulse-leaf 3.8s infinite ease-in-out;
+    }
+
+    @keyframes pulse-leaf {
+      0% { transform: translateY(0) scale(1); filter: brightness(1); }
+      50% { transform: translateY(-2px) scale(1.03); filter: brightness(1.25); }
+      100% { transform: translateY(0) scale(1); filter: brightness(1); }
+    }
+
+    .hero-subtitle {
+      max-width: 860px;
+      margin: 16px auto 0;
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      line-height: 1.6;
+      color: rgba(255,255,255,0.90);
+    }
+
+    .hero-ctas {
+      margin: 26px auto 0;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.88rem;
+      transition: transform 180ms var(--ease), filter 180ms var(--ease), box-shadow 180ms var(--ease), background 180ms var(--ease);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, rgba(139,195,74,0.28), rgba(139,195,74,0.12));
+      border-color: rgba(139,195,74,0.55);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+    }
+
+    .btn.ghost {
+      background: rgba(0,0,0,0.14);
+    }
+
+    .btn:hover {
+      text-decoration: none;
+      transform: translateY(-2px);
+      filter: brightness(1.12);
+      box-shadow: 0 22px 55px rgba(0,0,0,0.45);
+    }
+
+    .btn iconify-icon {
+      font-size: 1.05rem;
+      color: var(--accent-2);
+      filter: drop-shadow(0 0 10px rgba(139,195,74,0.30));
+    }
+
+    .hero-stats {
+      margin: 36px auto 0;
+      max-width: 980px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+      text-align: left;
+    }
+
+    .stat iconify-icon {
+      font-size: 1.8rem;
+      color: var(--accent);
+      filter: drop-shadow(0 0 12px rgba(139,195,74,0.35));
+      flex: 0 0 auto;
+    }
+
+    .stat-value {
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+    }
+    .stat-label {
+      opacity: 0.90;
+      font-size: 0.92rem;
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+
+    .scroll-hint {
+      margin-top: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.9;
+    }
+    .scroll-hint a {
+      height: 46px;
+      width: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(139,195,74,0.35);
+      background: rgba(0,0,0,0.18);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.30);
+      text-decoration: none;
+      animation: bob 1.8s infinite ease-in-out;
+    }
+    .scroll-hint a:hover { animation-play-state: paused; }
+    .scroll-hint iconify-icon { font-size: 1.2rem; color: var(--accent); }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+
+    /* Atmospheric particles */
+    .hero-atmo {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .hero-atmo .particle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(139,195,74,0.85), rgba(139,195,74,0));
+      opacity: 0.55;
+      filter: blur(0.2px);
+      animation: drift 14s infinite linear;
+    }
+    @keyframes drift {
+      0% { transform: translateY(18px) translateX(0) scale(1); opacity: 0.35; }
+      20% { opacity: 0.75; }
+      50% { transform: translateY(-38px) translateX(14px) scale(1.15); opacity: 0.55; }
+      100% { transform: translateY(-96px) translateX(-8px) scale(0.9); opacity: 0.0; }
+    }
+    /* Hand-placed particle positions */
+    .hero-atmo .particle:nth-child(1) { left: 10%; top: 70%; animation-delay: -2s; }
+    .hero-atmo .particle:nth-child(2) { left: 22%; top: 35%; width: 16px; height: 16px; animation-delay: -7s; }
+    .hero-atmo .particle:nth-child(3) { left: 35%; top: 78%; width: 10px; height: 10px; animation-delay: -4s; }
+    .hero-atmo .particle:nth-child(4) { left: 48%; top: 25%; width: 18px; height: 18px; animation-delay: -10s; }
+    .hero-atmo .particle:nth-child(5) { left: 62%; top: 68%; width: 13px; height: 13px; animation-delay: -6s; }
+    .hero-atmo .particle:nth-child(6) { left: 74%; top: 40%; width: 11px; height: 11px; animation-delay: -9s; }
+    .hero-atmo .particle:nth-child(7) { left: 86%; top: 74%; width: 16px; height: 16px; animation-delay: -3s; }
+    .hero-atmo .particle:nth-child(8) { left: 92%; top: 30%; width: 10px; height: 10px; animation-delay: -11s; }
+    .hero-atmo .particle:nth-child(9) { left: 6%; top: 28%; width: 14px; height: 14px; animation-delay: -5s; }
+    .hero-atmo .particle:nth-child(10) { left: 58%; top: 18%; width: 12px; height: 12px; animation-delay: -8s; }
+
+    @media (max-width: 860px) {
+      .hero { padding-top: 70px; }
+      .hero-stats { grid-template-columns: 1fr; }
+      .stat { text-align: left; }
+    }
+
+    /* ------------------------------
+       Main scroll container (parchment)
+    ------------------------------ */
+    main { padding: 0 16px; }
+
+    .scroll-container {
+      width: min(var(--container), calc(100% - 32px));
+      margin: -44px auto 56px;
+      position: relative;
+      background:
+        linear-gradient(180deg, var(--paper-1), var(--paper-2)),
+        repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0 6px, rgba(0,0,0,0.00) 6px 14px);
+      color: var(--ink);
+      padding: 62px;
+      border: 12px solid var(--border-wood);
+      border-radius: 8px;
+      box-shadow: 0 26px 70px var(--shadow-strong);
+      isolation: isolate;
+    }
+
+    /* Inner “inked” border + grain */
+    .scroll-container::before {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(45,69,47,0.22);
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,0.35),
+        inset 0 0 40px rgba(0,0,0,0.06);
+      pointer-events: none;
+    }
+    .scroll-container::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0.07;
+      mix-blend-mode: multiply;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)' opacity='.55'/%3E%3C/svg%3E");
+    }
+
+    .section { padding: 18px 0 10px; }
+    .section + .section { margin-top: 26px; }
+
+    .section-title {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 14px;
+      text-align: center;
+      color: var(--earth-1);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 0;
+      padding-bottom: 14px;
+    }
+    .section-title::before,
+    .section-title::after {
+      content: "";
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(45,69,47,0.55), transparent);
+    }
+
+    .section-lede {
+      margin: 14px auto 0;
+      max-width: 900px;
+      text-align: center;
+      color: rgba(26,28,26,0.82);
+      line-height: 1.7;
+      font-size: 1.06rem;
+    }
+
+    /* Reveal animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 520ms var(--ease), transform 520ms var(--ease);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ------------------------------
+       Feature cards
+    ------------------------------ */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin: 32px 0 0;
+    }
+
+    .feature-item {
+      position: relative;
+      padding: 22px 18px 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(45,69,47,0.35);
+      background:
+        radial-gradient(600px circle at 30% 20%, rgba(139,195,74,0.14), transparent 50%),
+        linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.62));
+      box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+      transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), filter 220ms var(--ease);
+      overflow: hidden;
+    }
+
+    .feature-item::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      background:
+        radial-gradient(420px circle at 20% 0%, rgba(139,195,74,0.22), transparent 50%);
+      opacity: 0;
+      transition: opacity 220ms var(--ease);
+      pointer-events: none;
+    }
+
+    .feature-item:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 26px 60px rgba(0,0,0,0.24);
+      filter: brightness(1.02);
+    }
+    .feature-item:hover::before { opacity: 1; }
+
+    .feature-icon-wrap {
+      height: 54px;
+      width: 54px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(62,39,35,0.08);
+      border: 1px solid rgba(62,39,35,0.18);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+      margin-bottom: 10px;
+    }
+
+    .feature-icon {
+      font-size: 1.8rem;
+      color: var(--earth-2);
+      filter: drop-shadow(0 0 10px rgba(93,64,55,0.15));
+    }
+
+    .feature-item h3 {
+      margin: 8px 0 8px;
+      color: var(--earth-1);
+      letter-spacing: 0.5px;
+    }
+
+    .feature-item p {
+      margin: 0;
+      color: rgba(26,28,26,0.84);
+      line-height: 1.6;
+    }
+
+    .feature-bullets {
+      margin: 14px 0 0;
+      padding: 0 0 0 18px;
+      color: rgba(26,28,26,0.82);
+      line-height: 1.55;
+    }
+
+    @media (max-width: 980px) {
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ------------------------------
+       The Loop (extra “to 11” section)
+    ------------------------------ */
+    .loop {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .loop-step {
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(62,39,35,0.22);
+      background: rgba(255,255,255,0.62);
+      padding: 16px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      box-shadow: 0 16px 34px rgba(0,0,0,0.12);
+    }
+    .loop-step iconify-icon {
+      font-size: 1.6rem;
+      color: var(--accent);
+      filter: drop-shadow(0 0 10px rgba(139,195,74,0.18));
+      flex: 0 0 auto;
+    }
+    .loop-step strong {
+      display: block;
+      color: var(--earth-1);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .loop-step span {
+      color: rgba(26,28,26,0.82);
+      line-height: 1.45;
+      display: block;
+    }
+    @media (max-width: 980px) { .loop { grid-template-columns: 1fr; } }
+
+    /* ------------------------------
+       Inventory Focus (revamped)
+    ------------------------------ */
+    .inventory-focus {
+      margin: 44px -62px 6px;
+      padding: 44px 62px;
+      border-top: 6px solid var(--forest-2);
+      border-bottom: 6px solid var(--forest-2);
+      background:
+        radial-gradient(900px circle at 20% 30%, rgba(139,195,74,0.12), transparent 55%),
+        linear-gradient(135deg, #2a1815, var(--earth-1));
+      color: var(--paper-1);
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 26px;
+      align-items: center;
+      border-radius: 14px;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .inventory-focus::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(600px circle at 80% 10%, rgba(139,195,74,0.18), transparent 55%),
+        radial-gradient(600px circle at 10% 90%, rgba(45,69,47,0.18), transparent 55%);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .inventory-left, .inventory-right { position: relative; z-index: 1; }
+
+    .inventory-title {
+      margin: 0 0 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 1.55rem;
+    }
+    .inventory-left p {
+      margin: 0;
+      line-height: 1.7;
+      color: rgba(240,242,232,0.92);
+      font-size: 1.02rem;
+    }
+
+    .inventory-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.16);
+    }
+    .pill::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+      opacity: 0.85;
+    }
+    .pill.common { color: #cfd8dc; }
+    .pill.rare { color: #81d4fa; }
+    .pill.epic { color: #ce93d8; }
+    .pill.legendary { color: #ffd54f; }
+
+    .inventory-note {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.14);
+    }
+    .inventory-note iconify-icon { font-size: 1.2rem; color: var(--accent-2); }
+    .inventory-note p { margin: 0; color: rgba(240,242,232,0.90); line-height: 1.5; font-size: 0.95rem; }
+
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 92px);
+      gap: 14px;
+      justify-content: start;
+      margin-bottom: 16px;
+    }
+
+    .item-slot {
+      position: relative;
+      height: 92px;
+      width: 92px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.22);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      cursor: pointer;
+      box-shadow:
+        inset 0 0 0 2px rgba(0,0,0,0.15),
+        0 14px 28px rgba(0,0,0,0.28);
+      transition: transform 200ms var(--ease), filter 200ms var(--ease), box-shadow 200ms var(--ease);
+    }
+
+    .item-slot iconify-icon {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 0 12px rgba(139,195,74,0.26));
+    }
+
+    .item-slot .slot-label {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      right: 8px;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(240,242,232,0.88);
+      text-align: center;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .item-slot:hover,
+    .item-slot:focus-visible {
+      transform: translateY(-3px);
+      filter: brightness(1.08);
+      box-shadow:
+        inset 0 0 0 2px rgba(0,0,0,0.15),
+        0 22px 40px rgba(0,0,0,0.36);
+    }
+
+    /* Rarity borders */
+    .item-slot.common { border-color: rgba(207,216,220,0.55); }
+    .item-slot.rare { border-color: rgba(129,212,250,0.70); }
+    .item-slot.epic { border-color: rgba(206,147,216,0.70); }
+    .item-slot.legendary { border-color: rgba(255,213,79,0.75); }
+    .item-slot.locked {
+      border-style: dotted;
+      border-color: rgba(240,242,232,0.45);
+      color: rgba(240,242,232,0.70);
+    }
+
+    /* Tooltip on slots */
+    .item-slot::after {
+      content: attr(data-item) "\A" attr(data-detail);
+      white-space: pre-line;
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      transform: translateX(-50%) translateY(6px);
+      opacity: 0;
+      pointer-events: none;
+      width: max-content;
+      max-width: 240px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(13,20,16,0.92);
+      color: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+      font-size: 0.86rem;
+      line-height: 1.25;
+      transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+      z-index: 10;
+    }
+    .item-slot::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 4px);
+      transform: translateX(-50%);
+      opacity: 0;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid rgba(13,20,16,0.92);
+      transition: opacity 180ms var(--ease);
+      z-index: 10;
+    }
+
+    .item-slot:hover::after,
+    .item-slot:hover::before,
+    .item-slot:focus-visible::after,
+    .item-slot:focus-visible::before {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .loadout-card {
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.16);
+      padding: 14px 14px;
+    }
+    .loadout-card h3 {
+      margin: 0 0 8px;
+      color: rgba(240,242,232,0.95);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 1rem;
+    }
+    .loadout-card p { margin: 0; color: rgba(240,242,232,0.90); line-height: 1.55; }
+
+    @media (max-width: 980px) {
+      .inventory-focus {
+        margin: 34px 0 6px;
+        padding: 26px 18px;
+        grid-template-columns: 1fr;
+      }
+      .inventory-grid { grid-template-columns: repeat(3, 86px); justify-content: center; }
+      .item-slot { width: 86px; height: 86px; }
+      .scroll-container { padding: 34px; }
+    }
+
+    /* ------------------------------
+       Video
+    ------------------------------ */
+    .video-wrapper {
+      margin: 26px 0 0;
+      border-radius: 16px;
+      border: 10px solid var(--earth-1);
+      overflow: hidden;
+      box-shadow: 0 20px 55px rgba(0,0,0,0.28);
+      background: #000;
+    }
+    .video-wrapper iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+    }
+
+    .video-caption {
+      margin: 14px auto 0;
+      max-width: 880px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      color: rgba(26,28,26,0.82);
+      background: rgba(255,255,255,0.62);
+      border: 1px solid rgba(62,39,35,0.18);
+      border-radius: var(--radius-md);
+      padding: 12px 12px;
+      box-shadow: 0 16px 34px rgba(0,0,0,0.12);
+    }
+    .video-caption iconify-icon { font-size: 1.3rem; color: var(--earth-2); }
+    .video-caption p { margin: 0; line-height: 1.55; }
+
+    /* ------------------------------
+       CTA
+    ------------------------------ */
+    .cta {
+      margin-top: 18px;
+      padding-top: 6px;
+    }
+
+    .cta-card {
+      border-radius: var(--radius-lg);
+      border: 2px solid rgba(45,69,47,0.25);
+      background:
+        radial-gradient(700px circle at 20% 20%, rgba(139,195,74,0.14), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.62));
+      padding: 22px 18px;
+      box-shadow: 0 22px 55px rgba(0,0,0,0.16);
+      text-align: center;
+    }
+
+    .cta-card h2 {
+      margin: 0;
+      color: var(--earth-1);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .cta-card p {
+      margin: 10px auto 0;
+      max-width: 860px;
+      color: rgba(26,28,26,0.82);
+      line-height: 1.65;
+    }
+
+    .cta-form {
+      margin: 16px auto 0;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-form input {
+      width: min(380px, 92vw);
+      height: 46px;
+      border-radius: 999px;
+      border: 1px solid rgba(62,39,35,0.22);
+      padding: 0 16px;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.85);
+      color: var(--ink);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.40);
+    }
+
+    .cta-form button.btn {
+      border: 1px solid rgba(45,69,47,0.32);
+      background: linear-gradient(180deg, rgba(139,195,74,0.22), rgba(139,195,74,0.10));
+      color: var(--earth-1);
+    }
+
+    .cta-fineprint {
+      margin-top: 10px;
+      font-size: 0.88rem;
+      color: rgba(26,28,26,0.70);
+    }
+
+    /* ------------------------------
+       Footer
+    ------------------------------ */
+    .footer {
+      padding: 56px 16px;
+      background: rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(139,195,74,0.16);
+      color: rgba(240,242,232,0.86);
+    }
+
+    .footer-inner {
+      width: min(var(--container), calc(100% - 32px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .footer-brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .footer-brand iconify-icon {
+      font-size: 1.6rem;
+      color: var(--accent);
+      filter: drop-shadow(0 0 12px rgba(139,195,74,0.35));
+    }
+    .footer-brand p { margin: 0; line-height: 1.5; }
+
+    .footer-links {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .footer-links a {
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.12);
+      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      opacity: 0.92;
+    }
+    .footer-links a:hover { opacity: 1; background: rgba(139,195,74,0.12); }
+
+    .footer-attrib {
+      grid-column: 1 / -1;
+      margin: 10px 0 0;
+      font-size: 0.9rem;
+      opacity: 0.78;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 860px) {
+      .footer-inner { grid-template-columns: 1fr; }
+      .footer-links { justify-content: flex-start; }
+    }
+
+    /* ------------------------------
+       Back-to-top
+    ------------------------------ */
+    .to-top {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      height: 52px;
+      width: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(139,195,74,0.25);
+      background: rgba(0,0,0,0.22);
+      color: var(--accent);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 220ms var(--ease), transform 220ms var(--ease), filter 220ms var(--ease);
+      z-index: 90;
+    }
+    .to-top iconify-icon { font-size: 1.25rem; }
+    .to-top.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .to-top:hover { filter: brightness(1.12); }
+
+    /* ------------------------------
+       Reduced motion respect
+    ------------------------------ */
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .main-title { animation: none; }
+      .scroll-hint a { animation: none; }
+      .hero-atmo .particle { animation: none; opacity: 0.25; }
+      .reveal { transition: none; transform: none; opacity: 1; }
+      .feature-item, .btn, .item-slot { transition: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="top-nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <iconify-icon class="brand-icon" icon="game-icons:crossed-swords" aria-hidden="true"></iconify-icon>
+        <span class="brand-text">Jeetah Studios</span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+        <span class="nav-toggle-lines" aria-hidden="true"><span aria-hidden="true"></span></span>
+        <span class="sr-only">Menu</span>
+      </button>
+
+      <div class="nav-links" id="nav-links">
+        <a href="#features">Features</a>
+        <a href="#inventory">Inventory</a>
+        <a href="#preview">Preview</a>
+        <a href="#cta">Get Updates</a>
+      </div>
+
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">
+        <iconify-icon class="theme-icon" icon="game-icons:moon" aria-hidden="true"></iconify-icon>
+      </button>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-inner">
+      <p class="kicker">A JEETAH STUDIOS ADVENTURE</p>
+      <h1 class="main-title">SWORDS</h1>
+      <p class="hero-subtitle">
+        Step into a living wilderness where timing, positioning, and the gear on your belt decide whether you become legend—or leaf litter.
+      </p>
+
+      <div class="hero-ctas">
+        <a class="btn primary" href="#preview">
+          <iconify-icon icon="game-icons:open-treasure-chest" aria-hidden="true"></iconify-icon>
+          Watch Preview
+        </a>
+        <a class="btn ghost" href="#inventory">
+          <iconify-icon icon="game-icons:scroll-unfurled" aria-hidden="true"></iconify-icon>
+          View Gear
+        </a>
+      </div>
+
+      <div class="hero-stats" aria-label="Highlights">
+        <div class="stat">
+          <iconify-icon icon="game-icons:pointy-sword" aria-hidden="true"></iconify-icon>
+          <div>
+            <div class="stat-value">Precision</div>
+            <div class="stat-label">Timing-based swordplay</div>
+          </div>
+        </div>
+        <div class="stat">
+          <iconify-icon icon="game-icons:treasure-map" aria-hidden="true"></iconify-icon>
+          <div>
+            <div class="stat-value">Wilderness</div>
+            <div class="stat-label">Secrets off the path</div>
+          </div>
+        </div>
+        <div class="stat">
+          <iconify-icon icon="game-icons:padlock" aria-hidden="true"></iconify-icon>
+          <div>
+            <div class="stat-value">Loot</div>
+            <div class="stat-label">Items define your build</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-hint">
+        <a href="#features" aria-label="Scroll to features">
+          <iconify-icon icon="game-icons:upgrade" aria-hidden="true"></iconify-icon>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-atmo" aria-hidden="true">
+      <span class="particle"></span><span class="particle"></span><span class="particle"></span><span class="particle"></span><span class="particle"></span>
+      <span class="particle"></span><span class="particle"></span><span class="particle"></span><span class="particle"></span><span class="particle"></span>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="scroll-container">
+      <section class="section" id="features">
+        <h2 class="section-title">Journey Through the Wilds</h2>
+        <p class="section-lede">
+          Everything is deliberate: your stamina, your spacing, your timing—and the strange artifacts you drag back from the green dark.
+        </p>
+
+        <div class="feature-grid">
+          <article class="feature-item reveal">
+            <div class="feature-icon-wrap">
+              <iconify-icon class="feature-icon" icon="game-icons:pointy-sword" aria-hidden="true"></iconify-icon>
+            </div>
+            <h3>Precision Blade</h3>
+            <p>Strategic swordplay where every swing counts. Read your opponent, commit, and make it clean.</p>
+            <ul class="feature-bullets">
+              <li>Perfect-timed parries and ripostes</li>
+              <li>Stamina-driven risk vs reward</li>
+              <li>Animation reads you can learn and master</li>
+            </ul>
+          </article>
+
+          <article class="feature-item reveal">
+            <div class="feature-icon-wrap">
+              <iconify-icon class="feature-icon" icon="game-icons:scroll-unfurled" aria-hidden="true"></iconify-icon>
+            </div>
+            <h3>NPC Contracts</h3>
+            <p>Meet wanderers, outcasts, and hunters. Their trials become your reputation.</p>
+            <ul class="feature-bullets">
+              <li>Hidden encounters & branching objectives</li>
+              <li>Contracts that change the world state</li>
+              <li>Rewards that reshape your loadout</li>
+            </ul>
+          </article>
+
+          <article class="feature-item reveal">
+            <div class="feature-icon-wrap">
+              <iconify-icon class="feature-icon" icon="game-icons:open-treasure-chest" aria-hidden="true"></iconify-icon>
+            </div>
+            <h3>Relic Hunting</h3>
+            <p>The wilderness keeps old teeth. Defeat guardians, crack seals, claim the strange.</p>
+            <ul class="feature-bullets">
+              <li>Treasure rooms and keyed shortcuts</li>
+              <li>Artifacts with build-defining modifiers</li>
+              <li>Rare drops that feel mythic</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="loop">
+          <div class="loop-step reveal">
+            <iconify-icon icon="game-icons:treasure-map" aria-hidden="true"></iconify-icon>
+            <div>
+              <strong>Explore</strong>
+              <span>Follow trails, listen for cues, find places that look wrong in the right way.</span>
+            </div>
+          </div>
+          <div class="loop-step reveal">
+            <iconify-icon icon="game-icons:crossed-swords" aria-hidden="true"></iconify-icon>
+            <div>
+              <strong>Fight</strong>
+              <span>Commit to strikes, punish openings, and learn enemy patterns like a language.</span>
+            </div>
+          </div>
+          <div class="loop-step reveal">
+            <iconify-icon icon="game-icons:open-chest" aria-hidden="true"></iconify-icon>
+            <div>
+              <strong>Loot</strong>
+              <span>Build identity through gear—your inventory is your story, not just storage.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="inventory-focus" id="inventory">
+        <div class="inventory-left reveal">
+          <h2 class="inventory-title">The Gear Defines You</h2>
+          <p>
+            In the world of <strong>Swords</strong>, items aren’t a side system—they’re the main feature.
+            Your inventory is a survival kit and a build sheet. Every relic you carry changes how you move, fight, and endure.
+          </p>
+
+          <div class="inventory-legend" aria-label="Rarity legend">
+            <span class="pill common">Common</span>
+            <span class="pill rare">Rare</span>
+            <span class="pill epic">Epic</span>
+            <span class="pill legendary">Legendary</span>
+          </div>
+
+          <div class="inventory-note">
+            <iconify-icon icon="game-icons:scroll-unfurled" aria-hidden="true"></iconify-icon>
+            <p><strong>Tip:</strong> Hover (or keyboard-focus) a slot to see its tooltip. That’s your “inventory as character sheet” moment.</p>
+          </div>
+        </div>
+
+        <div class="inventory-right reveal">
+          <div class="inventory-grid" role="list" aria-label="Sample inventory">
+            <button class="item-slot common" type="button" data-item="Verdant Leaf" data-detail="+ Stamina regen">
+              <iconify-icon icon="game-icons:zigzag-leaf" aria-hidden="true"></iconify-icon>
+              <span class="slot-label">Leaf</span>
+            </button>
+
+            <button class="item-slot rare" type="button" data-item="Pine Totem" data-detail="+ Poison resist">
+              <iconify-icon icon="game-icons:pine-tree" aria-hidden="true"></iconify-icon>
+              <span class="slot-label">Totem</span>
+            </button>
+
+            <button class="item-slot epic" type="button" data-item="Gale Charm" data-detail="+ Dodge distance">
+              <iconify-icon icon="game-icons:wind-slap" aria-hidden="true"></iconify-icon>
+              <span class="slot-label">Charm</span>
+            </button>
+
+            <button class="item-slot rare" type="button" data-item="Stoneward Sigil" data-detail="+ Guard stability">
+              <iconify-icon icon="game-icons:mountains" aria-hidden="true"></iconify-icon>
+              <span class="slot-label">Sigil</span>
+            </button>
+
+            <button class="item-slot common" type="button" data-item="Spring Vial" data-detail="+ Slow heal">
+              <iconify-icon icon="game-icons:water-drop" aria-hidden="true"></iconify-icon>
+              <span class="slot-label">Vial</span>
+            </button>
+
+            <button class="item-slot locked" type="button" data-item="Sealed Slot" data-detail="Requires a key relic">
+              <iconify-icon icon="game-icons:padlock" aria-hidden="true"></iconify-icon>
+              <span class="slot-label">Locked</span>
+            </button>
+          </div>
+
+          <div class="loadout-card">
+            <h3>Loadout Synergy</h3>
+            <p>
+              Mix mobility relics with guard-stability items to control tempo: dodge to bait, parry to punish, loot to evolve.
+              Your build should feel like a personal fighting style.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="preview">
+        <h2 class="section-title">Gameplay Preview</h2>
+
+        <div class="video-wrapper reveal">
+          <iframe
+            src="https://www.youtube.com/embed/d2zGD4IxDAg"
+            title="Swords gameplay preview"
+            frameborder="0"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+          ></iframe>
+        </div>
+
+        <div class="video-caption reveal">
+          <iconify-icon icon="game-icons:crossed-swords" aria-hidden="true"></iconify-icon>
+          <p>
+            Watch for the rhythm: commit, recover, reposition. The “win” isn’t faster clicks—it’s cleaner decisions.
+          </p>
+        </div>
+      </section>
+
+      <section class="section cta" id="cta">
+        <div class="cta-card reveal">
+          <h2>Join the Trail</h2>
+          <p>
+            Get devlogs, early playtest calls, and lore drops. (Front-end placeholder form—wire it to your backend when ready.)
+          </p>
+
+          <form class="cta-form" action="#" method="get">
+            <label class="sr-only" for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@domain.com" autocomplete="email" />
+            <button class="btn" type="submit">
+              <iconify-icon icon="game-icons:contract" aria-hidden="true"></iconify-icon>
+              Notify Me
+            </button>
+          </form>
+
+          <p class="cta-fineprint">No spam. Ever. Just blades and breadcrumbs.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <iconify-icon icon="game-icons:crossed-swords" aria-hidden="true"></iconify-icon>
+        <p>Explore. Fight. Loot. &copy; 2026 Jeetah Studios</p>
+      </div>
+
+      <div class="footer-links" aria-label="Footer navigation">
+        <a href="#top">Top</a>
+        <a href="#features">Features</a>
+        <a href="#inventory">Inventory</a>
+        <a href="#preview">Preview</a>
+      </div>
+
+      <p class="footer-attrib">
+        Icons are rendered via Iconify’s <code>&lt;iconify-icon&gt;</code> component; the “Game Icons” set is CC BY 3.0 (so include proper attribution in shipped products).
+      </p>
+    </div>
+  </footer>
+
+  <button class="to-top" type="button" aria-label="Back to top">
+    <iconify-icon icon="game-icons:upgrade" aria-hidden="true"></iconify-icon>
+  </button>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+
+      // --- Theme toggle (night <-> dawn) ---
+      const THEME_KEY = "swordsTheme";
+      const themeBtn = document.querySelector(".theme-toggle");
+      const themeIcon = document.querySelector(".theme-icon");
+
+      const applyTheme = (t) => {
+        root.dataset.theme = t;
+        // Flip icon so it shows what you're *in* (or what you're toggling to). Here: shows current.
+        themeIcon.setAttribute("icon", t === "night" ? "game-icons:moon" : "game-icons:sun");
+      };
+
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "night" || saved === "dawn") applyTheme(saved);
+      else applyTheme(root.dataset.theme || "night");
+
+      themeBtn?.addEventListener("click", () => {
+        const next = root.dataset.theme === "night" ? "dawn" : "night";
+        applyTheme(next);
+        try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+      });
+
+      // --- Mobile nav toggle ---
+      const navToggle = document.querySelector(".nav-toggle");
+      const navLinks = document.getElementById("nav-links");
+
+      navToggle?.addEventListener("click", () => {
+        const open = root.classList.toggle("nav-open");
+        navToggle.setAttribute("aria-expanded", String(open));
+      });
+
+      navLinks?.querySelectorAll("a")?.forEach((a) => {
+        a.addEventListener("click", () => {
+          root.classList.remove("nav-open");
+          navToggle?.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          root.classList.remove("nav-open");
+          navToggle?.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      // --- Spotlight background follows pointer (subtle) ---
+      let raf = null;
+      window.addEventListener("pointermove", (e) => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          const x = (e.clientX / window.innerWidth) * 100;
+          const y = (e.clientY / window.innerHeight) * 100;
+          root.style.setProperty("--mx", x.toFixed(2) + "%");
+          root.style.setProperty("--my", y.toFixed(2) + "%");
+          raf = null;
+        });
+      }, { passive: true });
+
+      // --- Scroll reveal ---
+      const reveal = document.querySelectorAll(".reveal");
+      if (!("IntersectionObserver" in window)) {
+        reveal.forEach((el) => el.classList.add("is-visible"));
+      } else {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12 });
+
+        reveal.forEach((el) => io.observe(el));
+      }
+
+      // --- Back to top button ---
+      const toTop = document.querySelector(".to-top");
+      const syncToTop = () => {
+        if (!toTop) return;
+        if (window.scrollY > 700) toTop.classList.add("show");
+        else toTop.classList.remove("show");
+      };
+
+      window.addEventListener("scroll", syncToTop, { passive: true });
+      syncToTop();
+
+      toTop?.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    })();
+  </script>
+</body>
+</html>
