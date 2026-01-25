@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UNSCII SHMUP — ASCII R-Type / Gradius-ish</title>
+  <style>
+    :root{
+      --bg:#05060a;
+      --panel:#0b0d14;
+      --fg:#d9d9d9;
+      --hud:#9cff9c;
+      --warn:#ffcf5c;
+      --muted:#9aa3b2;
+      --border:#202435;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      overflow:hidden;
+      font-family:
+        "unscii-16-full",
+        "unscii",
+        "unscii-16",
+        "Unifont",
+        "Cascadia Mono",
+        "Consolas",
+        monospace;
+    }
+    #wrap{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:12px;
+      box-sizing:border-box;
+    }
+    #screen{
+      background:#000;
+      border:1px solid var(--border);
+      image-rendering:pixelated;
+      image-rendering:crisp-edges;
+      /* for some browsers */
+      -ms-interpolation-mode:nearest-neighbor;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.03) inset;
+    }
+    #help{
+      width:min(980px, 92vw);
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      box-sizing:border-box;
+      font-size:12px;
+      line-height:1.35;
+      color:var(--muted);
+      text-align:center;
+    }
+    #help b{ color:var(--hud); font-weight:700; }
+    #fontStatus{ margin-top:6px; }
+    .warn{ color:var(--warn); }
+    kbd{
+      display:inline-block;
+      padding:1px 7px;
+      margin:0 2px;
+      border:1px solid #2a2f44;
+      border-bottom-color:#1b2032;
+      border-radius:6px;
+      background:var(--panel);
+      color:var(--fg);
+      font-family:inherit;
+      font-size:12px;
+      line-height:1.45;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+      user-select:none;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="screen" aria-label="ASCII shmup canvas"></canvas>
+    <div id="help">
+      <div>
+        <b>Controls:</b>
+        <kbd>Arrow Keys</kbd>/<kbd>WASD</kbd> move ·
+        <kbd>Space</kbd> fire ·
+        <kbd>Shift</kbd> slow ·
+        <kbd>Enter</kbd> start/pause ·
+        <kbd>R</kbd> restart
+      </div>
+      <div id="fontStatus"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Core grid + UNSCII intent (8×16)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const COLS = 120;
+  const ROWS = 36;
+
+  // HUD + borders
+  const HUD_ROWS = 3;
+  const BORDER_TOP = HUD_ROWS;          // border line row
+  const BORDER_BOTTOM = ROWS - 1;       // border line row
+  const PLAY_Y0 = BORDER_TOP + 1;       // inclusive
+  const PLAY_Y1 = BORDER_BOTTOM - 1;    // inclusive
+
+  const FONT_STACK =
+    `"unscii-16-full","unscii","unscii-16","Unifont","Cascadia Mono","Consolas",monospace`;
+
+  const cell = { w: 8, h: 16 }; // target; we will measure & adapt if needed.
+
+  const canvas = document.getElementById("screen");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const fontStatusEl = document.getElementById("fontStatus");
+
+  const palette = {
+    bg: "#000000",
+    hud: "#9cff9c",
+    dim: "#8a93a4",
+    faint: "#495065",
+    star1: "#2b3040",
+    star2: "#434b66",
+    star3: "#6a74a5",
+    player: "#7de9ff",
+    playerInv: "#c8ffff",
+    option: "#ffd36e",
+    bullet: "#ffe66d",
+    bullet2: "#b5ff9f",
+    ebullet: "#ff4d88",
+    enemy1: "#ff6b6b",
+    enemy2: "#ffb86b",
+    enemy3: "#b28dff",
+    pickup: "#9cff9c",
+    boom: "#ffffff",
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const irnd = (a, b) => Math.floor(rnd(a, b + 1));
+  const chance = (p) => Math.random() < p;
+
+  function codepointLen(str) {
+    // counts glyphs more correctly for Unicode than .length
+    return Array.from(str).length;
+  }
+
+  function spriteDims(lines) {
+    let w = 0;
+    for (const row of lines) w = Math.max(w, codepointLen(row));
+    return { w, h: lines.length };
+  }
+
+  function aabb(ax, ay, aw, ah, bx, by, bw, bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+  }
+
+  // Draw in grid units (cell coords)
+  function drawText(x, y, text, color) {
+    ctx.fillStyle = color || palette.hud;
+    ctx.fillText(text, Math.round(x * cell.w), Math.round(y * cell.h));
+  }
+
+  function drawGlyph(x, y, ch, color) {
+    ctx.fillStyle = color || palette.fg;
+    ctx.fillText(ch, Math.round(x * cell.w), Math.round(y * cell.h));
+  }
+
+  function drawSprite(x, y, lines, color) {
+    ctx.fillStyle = color;
+    const ix = Math.round(x);
+    const iy = Math.round(y);
+    for (let r = 0; r < lines.length; r++) {
+      const rowY = iy + r;
+      if (rowY < 0 || rowY >= ROWS) continue;
+      ctx.fillText(lines[r], ix * cell.w, rowY * cell.h);
+    }
+  }
+
+  function centerX(line) {
+    return Math.floor((COLS - codepointLen(line)) / 2);
+  }
+
+  function boxLines(widthInner, title) {
+    const inner = widthInner;
+    const top = "╔" + "═".repeat(inner) + "╗";
+    const midTitle = title
+      ? "║" + title.padEnd(inner, " ").slice(0, inner) + "║"
+      : null;
+    const sep = "╠" + "═".repeat(inner) + "╣";
+    const bot = "╚" + "═".repeat(inner) + "╝";
+    return { top, midTitle, sep, bot };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Font + canvas sizing
+  // ─────────────────────────────────────────────────────────────────────────────
+  function applyCanvasSizing() {
+    const dpr = window.devicePixelRatio || 1;
+
+    // Provisional canvas based on current cell.w/h
+    canvas.width = Math.floor(COLS * cell.w * dpr);
+    canvas.height = Math.floor(ROWS * cell.h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+
+    ctx.font = `${cell.h}px ${FONT_STACK}`;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    // Measure actual monospace width
+    const m = ctx.measureText("M").width;
+    const rounded = Math.max(6, Math.min(32, Math.round(m)));
+
+    // If it differs, adopt the measured width so alignment stays clean even on fallback fonts.
+    if (Math.abs(rounded - cell.w) >= 1) {
+      cell.w = rounded;
+      // Re-apply size after adopting measured width
+      canvas.width = Math.floor(COLS * cell.w * dpr);
+      canvas.height = Math.floor(ROWS * cell.h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+
+      ctx.font = `${cell.h}px ${FONT_STACK}`;
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+    }
+
+    // Fit to viewport using an integer CSS scale (keeps glyph edges sharp)
+    const baseW = COLS * cell.w;
+    const baseH = ROWS * cell.h;
+
+    const pad = 24;
+    const maxW = Math.max(320, window.innerWidth - pad);
+    const maxH = Math.max(240, window.innerHeight - 140); // leave room for help panel
+
+    const scale = Math.max(1, Math.floor(Math.min(maxW / baseW, maxH / baseH)));
+
+    canvas.style.width = (baseW * scale) + "px";
+    canvas.style.height = (baseH * scale) + "px";
+
+    // Font status message
+    const isTarget = (cell.w === 8 && cell.h === 16);
+    const approx = (Math.abs(cell.w - 8) <= 1 && cell.h === 16);
+
+    let msg = `Grid: ${COLS}×${ROWS} • Cell: ${cell.w}×${cell.h}px • Font stack: ${FONT_STACK}`;
+    if (isTarget) {
+      msg = `<b>UNSCII mode:</b> cell is exactly <b>8×16</b>.`;
+    } else if (approx) {
+      msg = `<b>Near-UNSCII:</b> cell is <b>${cell.w}×${cell.h}</b>. For authentic 8×16, install “unscii-16-full” locally.`;
+    } else {
+      msg = `<span class="warn"><b>Fallback font detected:</b></span> cell is <b>${cell.w}×${cell.h}</b>. Game still runs aligned, but the “true” 8×16 look needs a local UNSCII install.`;
+    }
+    fontStatusEl.innerHTML = msg;
+  }
+
+  window.addEventListener("resize", applyCanvasSizing);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sprites (grid-aligned, UNSCII-friendly glyphs)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const SPR_PLAYER = [
+    "  ▸►",
+    "═╫═►",
+    "  ▸►",
+  ];
+  const SPR_OPTION = ["✦"];
+
+  const SPR_ENEMY_SCOUT = [
+    "◄◂ ",
+    "◄■◄",
+    "◄◃ ",
+  ];
+
+  const SPR_ENEMY_BOMBER = [
+    "╔═╦═╗",
+    "╣◄█►╠",
+    "╚═╩═╝",
+  ];
+
+  const SPR_ENEMY_TURRET = [
+    "┌─┐",
+    "│█│",
+    "└╥┘",
+  ];
+
+  const D_PLAYER = spriteDims(SPR_PLAYER);
+  const D_OPTION = spriteDims(SPR_OPTION);
+
+  const D_SCOUT  = spriteDims(SPR_ENEMY_SCOUT);
+  const D_BOMBER = spriteDims(SPR_ENEMY_BOMBER);
+  const D_TURRET = spriteDims(SPR_ENEMY_TURRET);
+
+  const BOOM_FRAMES = ["·", "✧", "✦", "✼", "⁂", " "];
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Input
+  // ─────────────────────────────────────────────────────────────────────────────
+  const keys = new Set();
+  let lastFireDown = false;
+
+  function isDown(code) { return keys.has(code); }
+
+  window.addEventListener("keydown", (e) => {
+    const code = e.code;
+    keys.add(code);
+
+    // Prevent page scroll on arrows/space.
+    if (code.startsWith("Arrow") || code === "Space") e.preventDefault();
+
+    // One-shot actions
+    if (code === "Enter") {
+      if (state === "title" || state === "gameover") {
+        startGame();
+      } else if (state === "playing") {
+        state = "paused";
+      } else if (state === "paused") {
+        state = "playing";
+      }
+    }
+    if (code === "KeyR") {
+      resetGame();
+      state = "title";
+    }
+  }, { passive:false });
+
+  window.addEventListener("keyup", (e) => {
+    keys.delete(e.code);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // World state
+  // ─────────────────────────────────────────────────────────────────────────────
+  let state = "title"; // title | playing | paused | gameover
+
+  const stars = [];
+  const enemies = [];
+  const bullets = [];
+  const ebullets = [];
+  const explosions = [];
+  const pickups = [];
+
+  let spawnTimer = 0;
+  let difficulty = 1;
+
+  const player = {
+    x: 8,
+    y: Math.floor((PLAY_Y0 + PLAY_Y1) / 2) - 1,
+    vx: 0,
+    vy: 0,
+    speed: 22,
+    lives: 3,
+    invuln: 0,
+    cooldown: 0,
+    fireLevel: 1,     // 1..3
+    options: 0,       // 0..2
+    optionSpacing: 14,
+    trail: [],
+    score: 0,
+    streak: 0,
+  };
+
+  function initStars() {
+    stars.length = 0;
+    const N = 220;
+    for (let i = 0; i < N; i++) {
+      const layerPick = Math.random();
+      let speed, ch, color;
+      if (layerPick < 0.60) {
+        speed = rnd(6, 12);
+        ch = chance(0.85) ? "." : "·";
+        color = palette.star1;
+      } else if (layerPick < 0.90) {
+        speed = rnd(12, 20);
+        ch = chance(0.70) ? "·" : "✧";
+        color = palette.star2;
+      } else {
+        speed = rnd(20, 32);
+        ch = chance(0.65) ? "✧" : "⋆";
+        color = palette.star3;
+      }
+      stars.push({
+        x: rnd(0, COLS - 1),
+        y: rnd(PLAY_Y0, PLAY_Y1),
+        speed,
+        ch,
+        color,
+      });
+    }
+  }
+
+  function resetGame() {
+    enemies.length = 0;
+    bullets.length = 0;
+    ebullets.length = 0;
+    explosions.length = 0;
+    pickups.length = 0;
+
+    player.x = 8;
+    player.y = Math.floor((PLAY_Y0 + PLAY_Y1) / 2) - 1;
+    player.vx = 0;
+    player.vy = 0;
+    player.speed = 22;
+    player.lives = 3;
+    player.invuln = 0;
+    player.cooldown = 0;
+    player.fireLevel = 1;
+    player.options = 0;
+    player.trail.length = 0;
+    player.score = 0;
+    player.streak = 0;
+
+    spawnTimer = 0.8;
+    difficulty = 1;
+  }
+
+  function startGame() {
+    resetGame();
+    state = "playing";
+  }
+
+  function spawnExplosion(x, y, big=false) {
+    const count = big ? 6 : 3;
+    for (let i = 0; i < count; i++) {
+      explosions.push({
+        x: x + rnd(-1.2, 1.2),
+        y: y + rnd(-0.6, 0.6),
+        frame: 0,
+        t: 0,
+        rate: rnd(0.04, 0.07),
+      });
+    }
+  }
+
+  function spawnPickup(x, y) {
+    pickups.push({
+      x, y,
+      vx: -10,
+      vy: rnd(-2, 2),
+      ttl: 10,
+      ch: "✦",
+    });
+  }
+
+  function fireBullet(x, y, vx, vy, friendly, ch, color, damage=1) {
+    const arr = friendly ? bullets : ebullets;
+    arr.push({ x, y, vx, vy, friendly, ch, color, damage, w: 1, h: 1, ttl: 5 });
+  }
+
+  function fireFrom(x0, y0, level, friendly=true) {
+    // A Gradius-ish progression:
+    // L1: straight
+    // L2: two parallel
+    // L3: straight + diagonal up/down
+    if (level <= 1) {
+      fireBullet(x0, y0, 60, 0, true, "─", palette.bullet, 1);
+    } else if (level === 2) {
+      fireBullet(x0, y0 - 1, 60, 0, true, "─", palette.bullet, 1);
+      fireBullet(x0, y0 + 1, 60, 0, true, "─", palette.bullet, 1);
+    } else {
+      fireBullet(x0, y0,     62,  0, true, "─", palette.bullet, 1);
+      fireBullet(x0, y0 - 1, 56, -12, true, "╱", palette.bullet2, 1);
+      fireBullet(x0, y0 + 1, 56,  12, true, "╲", palette.bullet2, 1);
+    }
+  }
+
+  function spawnEnemy() {
+    // Increase difficulty slowly with score
+    difficulty = 1 + Math.floor(player.score / 600);
+
+    const roll = Math.random();
+
+    if (roll < 0.65) {
+      // Scout
+      const y = rnd(PLAY_Y0, PLAY_Y1 - D_SCOUT.h + 1);
+      enemies.push({
+        kind: "scout",
+        x: COLS + 2,
+        y,
+        baseY: y,
+        vx: -rnd(14, 18) - difficulty * 0.8,
+        vy: 0,
+        hp: 1 + Math.floor(difficulty / 3),
+        fire: 0,
+        phase: rnd(0, Math.PI * 2),
+        amp: rnd(0.4, 2.8),
+        freq: rnd(1.2, 2.2),
+        w: D_SCOUT.w,
+        h: D_SCOUT.h,
+      });
+    } else if (roll < 0.90) {
+      // Bomber
+      const y = rnd(PLAY_Y0, PLAY_Y1 - D_BOMBER.h + 1);
+      enemies.push({
+        kind: "bomber",
+        x: COLS + 3,
+        y,
+        vx: -rnd(8, 12) - difficulty * 0.6,
+        vy: 0,
+        hp: 3 + Math.floor(difficulty / 2),
+        fire: rnd(0.6, 1.4),
+        w: D_BOMBER.w,
+        h: D_BOMBER.h,
+      });
+    } else {
+      // Turret attached near top/bottom (gives a “stage” feel)
+      const atTop = chance(0.5);
+      const y = atTop ? PLAY_Y0 : (PLAY_Y1 - D_TURRET.h + 1);
+      enemies.push({
+        kind: "turret",
+        x: COLS + 4,
+        y,
+        vx: -rnd(6, 9) - difficulty * 0.4,
+        vy: 0,
+        hp: 2 + Math.floor(difficulty / 2),
+        fire: rnd(0.5, 1.1),
+        w: D_TURRET.w,
+        h: D_TURRET.h,
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Update
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateStars(dt) {
+    for (const s of stars) {
+      s.x -= (s.speed * dt);
+      if (s.x < -1) {
+        s.x = COLS + rnd(0, 12);
+        s.y = rnd(PLAY_Y0, PLAY_Y1);
+        // occasional sparkle swap
+        if (chance(0.08)) s.ch = chance(0.6) ? "✧" : "⋆";
+        else if (chance(0.2)) s.ch = chance(0.85) ? "." : "·";
+      }
+    }
+  }
+
+  function update(dt) {
+    updateStars(dt);
+
+    if (state !== "playing") return;
+
+    // Player invulnerability + cooldown
+    player.invuln = Math.max(0, player.invuln - dt);
+    player.cooldown = Math.max(0, player.cooldown - dt);
+
+    // Movement
+    const slow = isDown("ShiftLeft") || isDown("ShiftRight");
+    const spd = player.speed * (slow ? 0.55 : 1);
+
+    const left  = isDown("ArrowLeft")  || isDown("KeyA");
+    const right = isDown("ArrowRight") || isDown("KeyD");
+    const up    = isDown("ArrowUp")    || isDown("KeyW");
+    const down  = isDown("ArrowDown")  || isDown("KeyS");
+
+    const dx = (right ? 1 : 0) - (left ? 1 : 0);
+    const dy = (down  ? 1 : 0) - (up   ? 1 : 0);
+
+    player.x += dx * spd * dt;
+    player.y += dy * spd * dt;
+
+    // R-Type/Gradius-ish: constrained forward movement
+    const minX = 2;
+    const maxX = Math.floor(COLS * 0.55) - D_PLAYER.w;
+    player.x = clamp(player.x, minX, maxX);
+
+    player.y = clamp(player.y, PLAY_Y0, PLAY_Y1 - D_PLAYER.h + 1);
+
+    // Trail for OPTIONS
+    player.trail.push({ x: player.x, y: player.y });
+    if (player.trail.length > 300) player.trail.shift();
+
+    // Fire (space)
+    const fireDown = isDown("Space");
+    if (fireDown && player.cooldown <= 0) {
+      // fire from nose
+      const px = Math.round(player.x);
+      const py = Math.round(player.y);
+      const shotX = px + D_PLAYER.w;
+      const shotY = py + 1;
+
+      fireFrom(shotX, shotY, player.fireLevel, true);
+
+      // Fire from options (Gradius-ish)
+      for (let i = 0; i < player.options; i++) {
+        const idx = player.trail.length - 1 - ((i + 1) * player.optionSpacing);
+        const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
+        const ox = Math.round(pos.x);
+        const oy = Math.round(pos.y);
+        fireFrom(ox + 1, oy + 0, player.fireLevel, true);
+      }
+
+      player.cooldown = 0.12;
+    }
+
+    // Spawn cadence
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnEnemy();
+      const base = Math.max(0.35, 1.0 - (difficulty * 0.06));
+      spawnTimer = rnd(base * 0.55, base * 1.1);
+    }
+
+    // Update enemies
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i];
+      e.x += e.vx * dt;
+
+      if (e.kind === "scout") {
+        // sine drift
+        e.phase += e.freq * dt;
+        e.y = e.baseY + Math.sin(e.phase) * e.amp;
+        e.y = clamp(e.y, PLAY_Y0, PLAY_Y1 - e.h + 1);
+
+        // occasional pot-shots
+        e.fire -= dt;
+        if (e.fire <= 0 && chance(0.25 + Math.min(0.25, difficulty * 0.02))) {
+          const speed = 34 + difficulty * 1.4;
+          const fromX = e.x - 1;
+          const fromY = e.y + 1;
+          // aim slightly toward player
+          const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
+          const vx = Math.cos(ang) * speed;
+          const vy = Math.sin(ang) * speed;
+          fireBullet(fromX, fromY, vx, vy, false, "•", palette.ebullet, 1);
+          e.fire = rnd(0.9, 1.6);
+        }
+      } else {
+        // bomber/turret: slower drift
+        e.fire -= dt;
+        if (e.fire <= 0) {
+          const speed = (e.kind === "turret") ? (38 + difficulty * 1.3) : (34 + difficulty * 1.1);
+          const fromX = e.x - 1;
+          const fromY = e.y + Math.floor(e.h / 2);
+          const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
+          const vx = Math.cos(ang) * speed;
+          const vy = Math.sin(ang) * speed;
+          fireBullet(fromX, fromY, vx, vy, false, "•", palette.ebullet, 1);
+          e.fire = rnd(0.55, (e.kind === "turret" ? 1.0 : 1.4));
+        }
+      }
+
+      // Despawn if fully off-screen
+      if (e.x < -e.w - 2) enemies.splice(i, 1);
+    }
+
+    // Update bullets
+    function updBul(arr) {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const b = arr[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.ttl -= dt;
+
+        if (
+          b.ttl <= 0 ||
+          b.x < -2 || b.x > COLS + 2 ||
+          b.y < PLAY_Y0 - 2 || b.y > PLAY_Y1 + 2
+        ) {
+          arr.splice(i, 1);
+        }
+      }
+    }
+    updBul(bullets);
+    updBul(ebullets);
+
+    // Update pickups
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const p = pickups[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.ttl -= dt;
+      // tiny bob
+      p.vy += Math.sin((performance.now() / 220) + i) * 0.02;
+      p.y = clamp(p.y, PLAY_Y0, PLAY_Y1);
+
+      if (p.ttl <= 0 || p.x < -2) pickups.splice(i, 1);
+    }
+
+    // Update explosions
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      const ex = explosions[i];
+      ex.t += dt;
+      if (ex.t >= ex.rate) {
+        ex.t = 0;
+        ex.frame++;
+        if (ex.frame >= BOOM_FRAMES.length) {
+          explosions.splice(i, 1);
+        }
+      }
+    }
+
+    // ───────────────── collisions ─────────────────
+
+    // Player bullets -> enemies
+    for (let bi = bullets.length - 1; bi >= 0; bi--) {
+      const b = bullets[bi];
+      let hitSomething = false;
+
+      for (let ei = enemies.length - 1; ei >= 0; ei--) {
+        const e = enemies[ei];
+        if (aabb(b.x, b.y, 1, 1, e.x, e.y, e.w, e.h)) {
+          e.hp -= b.damage;
+          hitSomething = true;
+
+          // hit spark
+          spawnExplosion(b.x, b.y, false);
+
+          if (e.hp <= 0) {
+            const cx = e.x + e.w * 0.5;
+            const cy = e.y + e.h * 0.5;
+            spawnExplosion(cx, cy, true);
+
+            // score + streak
+            player.streak++;
+            const bonus = 10 * (1 + Math.min(6, Math.floor(player.streak / 6)));
+            player.score += (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35) + bonus;
+
+            // power-up chance
+            if (chance(0.18)) spawnPickup(cx, cy);
+
+            enemies.splice(ei, 1);
+          }
+          break;
+        }
+      }
+
+      if (hitSomething) bullets.splice(bi, 1);
+    }
+
+    // Enemy bullets -> player
+    if (player.invuln <= 0) {
+      for (let bi = ebullets.length - 1; bi >= 0; bi--) {
+        const b = ebullets[bi];
+        if (aabb(b.x, b.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
+          ebullets.splice(bi, 1);
+          player.lives--;
+          player.invuln = 2.0;
+          player.streak = 0;
+          spawnExplosion(player.x + 1.5, player.y + 1, true);
+          break;
+        }
+      }
+    }
+
+    // Enemy body -> player
+    if (player.invuln <= 0) {
+      for (let ei = enemies.length - 1; ei >= 0; ei--) {
+        const e = enemies[ei];
+        if (aabb(player.x, player.y, D_PLAYER.w, D_PLAYER.h, e.x, e.y, e.w, e.h)) {
+          player.lives--;
+          player.invuln = 2.0;
+          player.streak = 0;
+          spawnExplosion(player.x + 1.5, player.y + 1, true);
+          // destroy the enemy too
+          spawnExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, true);
+          enemies.splice(ei, 1);
+          break;
+        }
+      }
+    }
+
+    // Pickups -> player
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const p = pickups[i];
+      if (aabb(p.x, p.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
+        pickups.splice(i, 1);
+
+        // Gradius-ish upgrades: OPTIONS first, then fire level
+        if (player.options < 2) player.options++;
+        else player.fireLevel = Math.min(3, player.fireLevel + 1);
+
+        player.score += 120;
+        spawnExplosion(p.x, p.y, false);
+      }
+    }
+
+    // Game over
+    if (player.lives <= 0) {
+      state = "gameover";
+    }
+
+    lastFireDown = fireDown;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────────
+  function renderBorders() {
+    // Top HUD separator
+    const topLine = "╚" + "═".repeat(COLS - 2) + "╝";
+    const botLine = "╔" + "═".repeat(COLS - 2) + "╗";
+    drawText(0, BORDER_TOP, topLine, palette.faint);
+    drawText(0, BORDER_BOTTOM, botLine, palette.faint);
+  }
+
+  function renderHUD() {
+    const lives = "♥".repeat(Math.max(0, player.lives));
+    const opt = player.options > 0 ? ("✦".repeat(player.options)) : " ";
+    const level = player.fireLevel;
+
+    const left = `SCORE ${String(player.score).padStart(7, "0")}  `;
+    const mid  = `LIVES ${lives.padEnd(6, " ")}  `;
+    const right= `OPTIONS ${opt.padEnd(2, " ")}  FIRE-LV ${level}`;
+
+    const line0 = (left + mid + right).padEnd(COLS, " ").slice(0, COLS);
+
+    // streak meter
+    const meterW = 22;
+    const streakTier = Math.min(meterW, Math.floor(player.streak / 2));
+    const meter = "▮".repeat(streakTier) + "▯".repeat(meterW - streakTier);
+    const line1 = (`STREAK ${meter}   DIFF ${difficulty}`).padEnd(COLS, " ").slice(0, COLS);
+
+    // help hint
+    const line2 = (`[ENTER] pause   [R] restart   SPACE fire   SHIFT slow`).padEnd(COLS, " ").slice(0, COLS);
+
+    drawText(0, 0, line0, palette.hud);
+    drawText(0, 1, line1, palette.dim);
+    drawText(0, 2, line2, palette.dim);
+  }
+
+  function renderTitle() {
+    const { top, sep, bot } = boxLines(72, "");
+    const lines = [
+      top,
+      "║   ⋆·˚ ༘ *  UNSCII SHMUP  * ༘ ˚·⋆                           ║",
+      "║   R‑Type / Gradius / 1942 vibes — side‑scrolling glyph war  ║",
+      sep,
+      "║   Move: Arrows/WASD     Fire: Space     Slow: Shift         ║",
+      "║   Start/Pause: Enter    Restart: R                          ║",
+      "║                                                                ║",
+      "║   Grab ✦ to add OPTIONS + upgrade FIRE‑LV.                     ║",
+      "║   Keep a streak for bigger score ticks.                        ║",
+      bot,
+    ];
+
+    const y0 = 7;
+    for (let i = 0; i < lines.length; i++) {
+      drawText(centerX(lines[i]), y0 + i, lines[i], palette.hud);
+    }
+
+    const prompt = "≪  PRESS ENTER TO LAUNCH  ≫";
+    drawText(centerX(prompt), y0 + lines.length + 3, prompt, palette.option);
+
+    // small “demo ship”
+    drawSprite(Math.floor(COLS/2) - 14, y0 + lines.length + 6, SPR_PLAYER, palette.player);
+    drawText(Math.floor(COLS/2) - 8, y0 + lines.length + 7, "➤➤➤", palette.bullet);
+    drawSprite(Math.floor(COLS/2) + 6, y0 + lines.length + 6, SPR_ENEMY_SCOUT, palette.enemy1);
+  }
+
+  function renderOverlayText(textLines) {
+    // dim overlay box
+    const innerW = 52;
+    const box = boxLines(innerW, "");
+    const lines = [
+      box.top,
+      ...textLines.map(t => "║" + t.padEnd(innerW, " ").slice(0, innerW) + "║"),
+      box.bot,
+    ];
+    const y0 = 12;
+    for (let i = 0; i < lines.length; i++) {
+      drawText(centerX(lines[i]), y0 + i, lines[i], palette.hud);
+    }
+  }
+
+  function renderGameOver() {
+    renderOverlayText([
+      "              GAME OVER               ",
+      "",
+      `  FINAL SCORE: ${String(player.score).padStart(7,"0")}          `,
+      "",
+      "  Press ENTER to restart             ",
+      "  Press R to return to title         ",
+    ]);
+  }
+
+  function renderPaused() {
+    renderOverlayText([
+      "                PAUSED               ",
+      "",
+      "  Press ENTER to continue            ",
+      "  Press R to restart (title)         ",
+    ]);
+  }
+
+  function render() {
+    // clear
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, COLS * cell.w, ROWS * cell.h);
+
+    // starfield
+    for (const s of stars) {
+      // keep stars inside play area visually
+      if (s.y < PLAY_Y0 || s.y > PLAY_Y1) continue;
+      drawGlyph(s.x, s.y, s.ch, s.color);
+    }
+
+    renderHUD();
+    renderBorders();
+
+    if (state === "title") {
+      renderTitle();
+      return;
+    }
+
+    // pickups
+    for (const p of pickups) {
+      drawGlyph(p.x, p.y, p.ch, palette.pickup);
+    }
+
+    // bullets
+    for (const b of bullets) {
+      drawGlyph(b.x, b.y, b.ch, b.color);
+    }
+    for (const b of ebullets) {
+      drawGlyph(b.x, b.y, b.ch, b.color);
+    }
+
+    // enemies
+    for (const e of enemies) {
+      if (e.kind === "scout") {
+        drawSprite(e.x, e.y, SPR_ENEMY_SCOUT, palette.enemy1);
+      } else if (e.kind === "bomber") {
+        drawSprite(e.x, e.y, SPR_ENEMY_BOMBER, palette.enemy2);
+      } else {
+        drawSprite(e.x, e.y, SPR_ENEMY_TURRET, palette.enemy3);
+      }
+    }
+
+    // player + options
+    const blink = player.invuln > 0 && (Math.floor(performance.now() / 90) % 2 === 0);
+    const pColor = blink ? palette.playerInv : palette.player;
+    drawSprite(player.x, player.y, SPR_PLAYER, pColor);
+
+    // options trailing
+    for (let i = 0; i < player.options; i++) {
+      const idx = player.trail.length - 1 - ((i + 1) * player.optionSpacing);
+      const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
+      drawSprite(pos.x, pos.y, SPR_OPTION, palette.option);
+    }
+
+    // explosions
+    for (const ex of explosions) {
+      const ch = BOOM_FRAMES[Math.min(BOOM_FRAMES.length - 1, ex.frame)];
+      if (ch !== " ") drawGlyph(ex.x, ex.y, ch, palette.boom);
+    }
+
+    if (state === "paused") renderPaused();
+    if (state === "gameover") renderGameOver();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Main loop
+  // ─────────────────────────────────────────────────────────────────────────────
+  let lastT = performance.now();
+
+  function loop(t) {
+    const dt = Math.min(0.033, Math.max(0, (t - lastT) / 1000));
+    lastT = t;
+
+    update(dt);
+    render();
+
+    requestAnimationFrame(loop);
+  }
+
+  // Boot
+  applyCanvasSizing();
+  initStars();
+  resetGame();
+
+  // Try resizing once fonts settle (helps if UNSCII loads late locally)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      applyCanvasSizing();
+    }).catch(() => {});
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
