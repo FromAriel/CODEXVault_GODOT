@@ -14,6 +14,16 @@
       --muted:#9aa3b2;
       --border:#202435;
     }
+    @font-face{
+      font-family:"unscii 16-full";
+      src:
+        url("./unscii-16-full.ttf") format("truetype"),
+        local("unscii 16-full"),
+        local("unscii-16-full");
+      font-weight:normal;
+      font-style:normal;
+      font-display:swap;
+    }
     html,body{
       height:100%;
       margin:0;
@@ -21,9 +31,11 @@
       color:var(--fg);
       overflow:hidden;
       font-family:
-        "unscii-16-full",
+        "unscii 16-full",
         "unscii",
-        "unscii-16",
+        "unscii 16",
+        "Noto Sans Mono",
+        "Noto Mono",
         "Unifont",
         "Cascadia Mono",
         "Consolas",
@@ -88,9 +100,11 @@
         <b>Controls:</b>
         <kbd>Arrow Keys</kbd>/<kbd>WASD</kbd> move ·
         <kbd>Space</kbd> fire ·
+        <kbd>X</kbd> bomb ·
         <kbd>Shift</kbd> slow ·
         <kbd>Enter</kbd> start/pause ·
-        <kbd>R</kbd> restart
+        <kbd>R</kbd> restart ·
+        <kbd>F1</kbd> stats
       </div>
       <div id="fontStatus"></div>
     </div>
@@ -114,7 +128,7 @@
   const PLAY_Y1 = BORDER_BOTTOM - 1;    // inclusive
 
   const FONT_STACK =
-    `"unscii-16-full","unscii","unscii-16","Unifont","Cascadia Mono","Consolas",monospace`;
+    `"unscii 16-full","unscii-16-full","unscii","unscii 16","unscii-16","Noto Sans Mono","Noto Mono","Unifont","Cascadia Mono","Consolas",monospace`;
 
   const cell = { w: 8, h: 16 }; // target; we will measure & adapt if needed.
 
@@ -139,6 +153,12 @@
     enemy1: "#ff6b6b",
     enemy2: "#ffb86b",
     enemy3: "#b28dff",
+    bomb: "#ffcf5c",
+    shield: "#6cf2ff",
+    wpnSpread: "#ffe66d",
+    wpnLaser: "#b5ff9f",
+    wpnMissile: "#ffb86b",
+    wpnCluster: "#b28dff",
     pickup: "#9cff9c",
     boom: "#ffffff",
   };
@@ -150,6 +170,7 @@
   const rnd = (a, b) => a + Math.random() * (b - a);
   const irnd = (a, b) => Math.floor(rnd(a, b + 1));
   const chance = (p) => Math.random() < p;
+  const lerp = (a, b, t) => a + (b - a) * t;
 
   function codepointLen(str) {
     // counts glyphs more correctly for Unicode than .length
@@ -258,9 +279,9 @@
     if (isTarget) {
       msg = `<b>UNSCII mode:</b> cell is exactly <b>8×16</b>.`;
     } else if (approx) {
-      msg = `<b>Near-UNSCII:</b> cell is <b>${cell.w}×${cell.h}</b>. For authentic 8×16, install “unscii-16-full” locally.`;
+      msg = `<b>Near-UNSCII:</b> cell is <b>${cell.w}×${cell.h}</b>. For authentic 8×16, keep <code>unscii-16-full.ttf</code> next to this HTML or install “unscii 16-full” locally.`;
     } else {
-      msg = `<span class="warn"><b>Fallback font detected:</b></span> cell is <b>${cell.w}×${cell.h}</b>. Game still runs aligned, but the “true” 8×16 look needs a local UNSCII install.`;
+      msg = `<span class="warn"><b>Fallback font detected:</b></span> cell is <b>${cell.w}×${cell.h}</b>. Game still runs aligned, but the “true” 8×16 look needs <code>unscii-16-full.ttf</code> or an installed UNSCII font.`;
     }
     fontStatusEl.innerHTML = msg;
   }
@@ -302,13 +323,26 @@
   const D_BOMBER = spriteDims(SPR_ENEMY_BOMBER);
   const D_TURRET = spriteDims(SPR_ENEMY_TURRET);
 
-  const BOOM_FRAMES = ["·", "✧", "✦", "✼", "⁂", " "];
+  const BOOM_FRAMES = ["", "", "", "", "", "", "", " "];
+  const PWR_FRAMES = ["", "", "", ""];
+  const MAX_BOMBS = 3;
+  const MAX_WEAPON_LEVEL = 3;
+
+  const WEAPONS = ["basic", "spread", "laser", "missile", "cluster"];
+  const WEAPON_NAME = {
+    basic: "BASIC",
+    spread: "SPREAD",
+    laser: "LASER",
+    missile: "MISSILE",
+    cluster: "CLUSTER",
+  };
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Input
   // ─────────────────────────────────────────────────────────────────────────────
   const keys = new Set();
   let lastFireDown = false;
+  let lastBombDown = false;
 
   function isDown(code) { return keys.has(code); }
 
@@ -333,6 +367,10 @@
       resetGame();
       state = "title";
     }
+    if (code === "F1") {
+      debugHUD = !debugHUD;
+      e.preventDefault();
+    }
   }, { passive:false });
 
   window.addEventListener("keyup", (e) => {
@@ -348,11 +386,31 @@
   const enemies = [];
   const bullets = [];
   const ebullets = [];
+  const beams = []; // transient per-frame beam segments (laser)
   const explosions = [];
   const pickups = [];
 
   let spawnTimer = 0;
   let difficulty = 1;
+  let runTime = 0;          // seconds in current run (pauses don't advance)
+  let directorPhase = "INTRO";
+  let wavePhase = "INTRO";
+  let waveIndex = 0;
+  let enemyCap = 6;
+  let enemyBulletCap = 14;
+  const playerBulletCap = 240;
+  let screenFlash = 0;
+  let laserSpark = 0;
+  let spawnedSurvivability = false;
+  let spawnedWeapon = false;
+
+  const telemetry = {
+    peakEnemies: 0,
+    peakBullets: 0,
+    peakEBullets: 0,
+  };
+
+  let debugHUD = true;
 
   const player = {
     x: 8,
@@ -361,8 +419,11 @@
     vy: 0,
     speed: 22,
     lives: 3,
+    bombs: 1,
+    shield: 0,
     invuln: 0,
     cooldown: 0,
+    weapon: "basic",
     fireLevel: 1,     // 1..3
     options: 0,       // 0..2
     optionSpacing: 14,
@@ -370,6 +431,90 @@
     score: 0,
     streak: 0,
   };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Spawn director (fair ramp)
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 3-phase time-based curve, tuned for readability and ~120s median first death.
+  // TODO: add mild “rank” scaling (no-hit streak / score) once bombs+shields land.
+  const DIRECTOR_PHASES = [
+    {
+      name: "INTRO",
+      t0: 0,
+      t1: 25,
+      diff0: 1.0,
+      diff1: 1.6,
+      spawn: [1.35, 1.85],
+      caps: { enemies: 6, ebullets: 14 },
+      mix: { scout: 1.0, bomber: 0.0, turret: 0.0 },
+      bulletSpeed0: 24,
+      scoutFireChance: 0.10,
+      scoutFireCd: [1.6, 2.4],
+      bomberFireCd: [1.4, 2.1],
+      turretFireCd: [1.2, 1.9],
+    },
+    {
+      name: "CORE",
+      t0: 25,
+      t1: 90,
+      diff0: 1.6,
+      diff1: 3.0,
+      spawn: [0.90, 1.35],
+      caps: { enemies: 10, ebullets: 22 },
+      mix: { scout: 0.72, bomber: 0.26, turret: 0.02 },
+      bulletSpeed0: 28,
+      scoutFireChance: 0.14,
+      scoutFireCd: [1.2, 2.0],
+      bomberFireCd: [1.1, 1.8],
+      turretFireCd: [0.95, 1.5],
+    },
+    {
+      name: "PRESSURE",
+      t0: 90,
+      t1: 240,
+      diff0: 3.0,
+      diff1: 5.0,
+      spawn: [0.55, 0.95],
+      caps: { enemies: 14, ebullets: 30 },
+      mix: { scout: 0.55, bomber: 0.30, turret: 0.15 },
+      bulletSpeed0: 32,
+      scoutFireChance: 0.20,
+      scoutFireCd: [0.9, 1.6],
+      bomberFireCd: [0.75, 1.35],
+      turretFireCd: [0.65, 1.10],
+    },
+  ];
+
+  function computeDirector(t, score) {
+    let phase = DIRECTOR_PHASES[DIRECTOR_PHASES.length - 1];
+    for (const p of DIRECTOR_PHASES) {
+      if (t < p.t1) { phase = p; break; }
+    }
+
+    const phaseT = clamp((t - phase.t0) / (phase.t1 - phase.t0), 0, 1);
+    let diff = lerp(phase.diff0, phase.diff1, phaseT);
+
+    // Gentle performance nudge (kept small so the early game stays learnable).
+    diff += Math.min(0.8, score / 7000);
+
+    return {
+      phase: phase.name,
+      difficulty: diff,
+      maxEnemies: phase.caps.enemies,
+      maxEBullets: phase.caps.ebullets,
+      spawnMin: phase.spawn[0],
+      spawnMax: phase.spawn[1],
+      mix: phase.mix,
+      bulletSpeed: phase.bulletSpeed0 + diff * 1.0,
+      scoutFireChance: phase.scoutFireChance,
+      scoutFireCdMin: phase.scoutFireCd[0],
+      scoutFireCdMax: phase.scoutFireCd[1],
+      bomberFireCdMin: phase.bomberFireCd[0],
+      bomberFireCdMax: phase.bomberFireCd[1],
+      turretFireCdMin: phase.turretFireCd[0],
+      turretFireCdMax: phase.turretFireCd[1],
+    };
+  }
 
   function initStars() {
     stars.length = 0;
@@ -379,15 +524,15 @@
       let speed, ch, color;
       if (layerPick < 0.60) {
         speed = rnd(6, 12);
-        ch = chance(0.85) ? "." : "·";
+        ch = chance(0.96) ? "⸰" : "⸱";
         color = palette.star1;
       } else if (layerPick < 0.90) {
         speed = rnd(12, 20);
-        ch = chance(0.70) ? "·" : "✧";
+        ch = chance(0.92) ? "⸰" : "⸱";
         color = palette.star2;
       } else {
         speed = rnd(20, 32);
-        ch = chance(0.65) ? "✧" : "⋆";
+        ch = chance(0.86) ? "⸰" : "⸱";
         color = palette.star3;
       }
       stars.push({
@@ -413,16 +558,35 @@
     player.vy = 0;
     player.speed = 22;
     player.lives = 3;
+    player.bombs = 1;
+    player.shield = 0;
     player.invuln = 0;
     player.cooldown = 0;
+    player.weapon = "basic";
     player.fireLevel = 1;
     player.options = 0;
     player.trail.length = 0;
     player.score = 0;
     player.streak = 0;
 
-    spawnTimer = 0.8;
-    difficulty = 1;
+    runTime = 0;
+    telemetry.peakEnemies = 0;
+    telemetry.peakBullets = 0;
+    telemetry.peakEBullets = 0;
+    screenFlash = 0;
+    spawnedSurvivability = false;
+    spawnedWeapon = false;
+    lastBombDown = false;
+
+    const dir0 = computeDirector(0, 0);
+    directorPhase = dir0.phase;
+    wavePhase = dir0.phase;
+    waveIndex = 0;
+    difficulty = dir0.difficulty;
+    enemyCap = dir0.maxEnemies;
+    enemyBulletCap = dir0.maxEBullets;
+    // give players a small “breathing window” at the start
+    spawnTimer = rnd(dir0.spawnMin, dir0.spawnMax) + 0.9;
   }
 
   function startGame() {
@@ -443,92 +607,452 @@
     }
   }
 
-  function spawnPickup(x, y) {
+  function detonateBomb() {
+    if (player.bombs <= 0) return;
+    player.bombs--;
+    player.streak = 0;
+    player.invuln = Math.max(player.invuln, 0.6);
+    screenFlash = 0.65;
+
+    // Clear bullets (both sides)
+    bullets.length = 0;
+    ebullets.length = 0;
+
+    // Wipe enemies (leave pickups); award reduced score without streak bonus.
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i];
+      const cx = e.x + e.w * 0.5;
+      const cy = e.y + e.h * 0.5;
+      spawnExplosion(cx, cy, true);
+      const base = (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35);
+      player.score += Math.floor(base * 0.6);
+      enemies.splice(i, 1);
+    }
+  }
+
+  function pickWeaponPickup() {
+    const specials = ["spread", "laser", "missile", "cluster"];
+    const choices = specials.filter(w => w !== player.weapon);
+    const w = (choices.length > 0)
+      ? choices[irnd(0, choices.length - 1)]
+      : specials[irnd(0, specials.length - 1)];
+    if (w === "spread") return "wpnSpread";
+    if (w === "laser") return "wpnLaser";
+    if (w === "missile") return "wpnMissile";
+    return "wpnCluster";
+  }
+
+  function pickPickupType(t) {
+    // OPTIONS are intentionally rare; weapon swaps show up occasionally.
+    let wFire, wWeapon, wOption, wShield, wBomb;
+    if (t < 60) {
+      wFire = 0.56;
+      wWeapon = 0.12;
+      wOption = 0.02;
+      wShield = 0.20;
+      wBomb = 0.10;
+    } else if (t < 150) {
+      wFire = 0.50;
+      wWeapon = 0.16;
+      wOption = 0.03;
+      wShield = 0.18;
+      wBomb = 0.13;
+    } else {
+      wFire = 0.46;
+      wWeapon = 0.20;
+      wOption = 0.03;
+      wShield = 0.16;
+      wBomb = 0.15;
+    }
+
+    // Options: 2nd is much rarer; none after cap.
+    if (player.options >= 2) { wFire += wOption; wOption = 0; }
+    else if (player.options >= 1) { wOption *= 0.35; }
+
+    // If already protected / stocked, push weight back into fire/weapons.
+    if (player.shield > 0) { wFire += wShield; wShield = 0; }
+    if (player.bombs >= MAX_BOMBS) { wFire += wBomb; wBomb = 0; }
+
+    // If current weapon is capped, nudge toward weapon pickups instead of redundant FIRE.
+    if (player.fireLevel >= MAX_WEAPON_LEVEL) {
+      const shift = wFire * 0.35;
+      wFire -= shift;
+      wWeapon += shift;
+    }
+
+    const total = wFire + wWeapon + wOption + wShield + wBomb;
+    let r = Math.random() * total;
+    if ((r -= wFire) < 0) return "fire";
+    if ((r -= wWeapon) < 0) return pickWeaponPickup();
+    if ((r -= wOption) < 0) return "option";
+    if ((r -= wShield) < 0) return "shield";
+    return "bomb";
+  }
+
+  function spawnPickup(x, y, type="fire") {
     pickups.push({
       x, y,
       vx: -10,
       vy: rnd(-2, 2),
       ttl: 10,
-      ch: "✦",
+      type,
+      frame: irnd(0, PWR_FRAMES.length - 1),
+      anim: 0,
     });
+
+    if (type === "bomb" || type === "shield") spawnedSurvivability = true;
+    if (type.startsWith("wpn")) spawnedWeapon = true;
   }
 
-  function fireBullet(x, y, vx, vy, friendly, ch, color, damage=1) {
+  function fireBullet(x, y, vx, vy, friendly, ch, color, damage=1, extra=null) {
     const arr = friendly ? bullets : ebullets;
-    arr.push({ x, y, vx, vy, friendly, ch, color, damage, w: 1, h: 1, ttl: 5 });
+    if (friendly) {
+      if (arr.length >= playerBulletCap) return;
+    } else {
+      if (arr.length >= enemyBulletCap) return;
+    }
+    const b = { x, y, vx, vy, friendly, ch, color, damage, w: 1, h: 1, ttl: 5 };
+    if (extra) Object.assign(b, extra);
+    arr.push(b);
   }
 
-  function fireFrom(x0, y0, level, friendly=true) {
-    // A Gradius-ish progression:
-    // L1: straight
-    // L2: two parallel
-    // L3: straight + diagonal up/down
-    if (level <= 1) {
-      fireBullet(x0, y0, 60, 0, true, "─", palette.bullet, 1);
-    } else if (level === 2) {
-      fireBullet(x0, y0 - 1, 60, 0, true, "─", palette.bullet, 1);
-      fireBullet(x0, y0 + 1, 60, 0, true, "─", palette.bullet, 1);
-    } else {
-      fireBullet(x0, y0,     62,  0, true, "─", palette.bullet, 1);
-      fireBullet(x0, y0 - 1, 56, -12, true, "╱", palette.bullet2, 1);
-      fireBullet(x0, y0 + 1, 56,  12, true, "╲", palette.bullet2, 1);
+  function weaponCooldown(weapon) {
+    if (weapon === "basic") return 0.12;
+    if (weapon === "spread") return 0.15;
+    if (weapon === "missile") return 0.22;
+    if (weapon === "cluster") return 0.22;
+    return 0.12;
+  }
+
+  function killEnemyAtIndex(ei) {
+    const e = enemies[ei];
+    const cx = e.x + e.w * 0.5;
+    const cy = e.y + e.h * 0.5;
+    spawnExplosion(cx, cy, true);
+
+    player.streak++;
+    const bonus = 10 * (1 + Math.min(6, Math.floor(player.streak / 6)));
+    player.score += (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35) + bonus;
+
+    if (chance(0.18)) spawnPickup(cx, cy, pickPickupType(runTime));
+    enemies.splice(ei, 1);
+  }
+
+  function fireWeaponBurst(x0, y0, weapon, level, dmgMul=1) {
+    const lv = clamp(level, 1, MAX_WEAPON_LEVEL);
+
+    if (weapon === "basic") {
+      const speed = (lv === 1) ? 62 : 74;
+      const ch = (lv === 3) ? "⁍" : "•";
+      const dmg = (lv === 3) ? 2 : 1;
+      fireBullet(x0, y0, speed, 0, true, ch, palette.bullet, dmg * dmgMul, { kind: "basic" });
+      return;
+    }
+
+    if (weapon === "spread") {
+      const speed = (lv === 1) ? 54 : 66;
+      const pellet = "･";
+      const angles = (lv === 3)
+        ? [-0.36, -0.18, 0, 0.18, 0.36]
+        : [-0.26, 0, 0.26];
+      for (const a of angles) {
+        fireBullet(
+          x0,
+          y0,
+          Math.cos(a) * speed,
+          Math.sin(a) * speed,
+          true,
+          pellet,
+          palette.wpnSpread,
+          1 * dmgMul,
+          { kind: "spread" },
+        );
+      }
+      return;
+    }
+
+    if (weapon === "missile") {
+      const speed = (lv === 1) ? 44 : 56;
+      const big = (lv === 3);
+      const radius = big ? 5.0 : 3.2;
+      const head = big ? "❥" : "➳";
+      fireBullet(
+        x0,
+        y0,
+        speed,
+        0,
+        true,
+        head,
+        palette.wpnMissile,
+        2 * dmgMul,
+        { kind: "missile", big, radius, ttl: 6.4 },
+      );
+      return;
+    }
+
+    if (weapon === "cluster") {
+      const speed = (lv === 1) ? 42 : 54;
+      const fragCount = (lv === 1) ? 3 : (lv === 2) ? 5 : 9;
+      const fragSpeed = (lv === 1) ? 56 : 66;
+      fireBullet(
+        x0,
+        y0,
+        speed,
+        0,
+        true,
+        "⁂",
+        palette.wpnCluster,
+        1 * dmgMul,
+        { kind: "clusterShell", startX: x0, splitDist: 14, fragCount, fragSpeed, ttl: 6.2 },
+      );
     }
   }
 
-  function spawnEnemy() {
-    // Increase difficulty slowly with score
-    difficulty = 1 + Math.floor(player.score / 600);
+  function clusterAngles(n) {
+    if (n <= 3) return [-0.26, 0, 0.26];
+    if (n <= 5) return [-0.42, -0.21, 0, 0.21, 0.42];
+    // 9-way forward fan
+    return [-0.62, -0.46, -0.31, -0.15, 0, 0.15, 0.31, 0.46, 0.62];
+  }
 
-    const roll = Math.random();
+  function splitClusterShell(shell) {
+    const angles = clusterAngles(shell.fragCount);
+    for (const a of angles) {
+      fireBullet(
+        shell.x,
+        shell.y,
+        Math.cos(a) * shell.fragSpeed,
+        Math.sin(a) * shell.fragSpeed,
+        true,
+        "⸱",
+        palette.wpnCluster,
+        1,
+        { kind: "clusterFrag" },
+      );
+    }
+    spawnExplosion(shell.x, shell.y, false);
+  }
 
-    if (roll < 0.65) {
-      // Scout
-      const y = rnd(PLAY_Y0, PLAY_Y1 - D_SCOUT.h + 1);
+  function explodeMissile(missile) {
+    spawnExplosion(missile.x, missile.y, true);
+    const r2 = missile.radius * missile.radius;
+    for (let ei = enemies.length - 1; ei >= 0; ei--) {
+      const e = enemies[ei];
+      const cx = e.x + e.w * 0.5;
+      const cy = e.y + e.h * 0.5;
+      const dx = cx - missile.x;
+      const dy = cy - missile.y;
+      if (dx * dx + dy * dy <= r2) {
+        e.hp -= missile.damage;
+        if (e.hp <= 0) killEnemyAtIndex(ei);
+      }
+    }
+  }
+
+  function findLaserTarget(x0, yRows) {
+    let best = -1;
+    let bestX = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.x + e.w < x0) continue;
+      let yOk = false;
+      for (const y of yRows) {
+        if (y >= e.y && y < e.y + e.h) { yOk = true; break; }
+      }
+      if (!yOk) continue;
+      if (e.x < bestX) { bestX = e.x; best = i; }
+    }
+    return best;
+  }
+
+  function emitLaserFrom(x0, y0, level, dt, dmgMul=1) {
+    const lv = clamp(level, 1, MAX_WEAPON_LEVEL);
+    const color = palette.wpnLaser;
+    const dps = (lv === 1) ? 6 : 10;
+    const yRows = (lv >= 3)
+      ? [clamp(y0 - 1, PLAY_Y0, PLAY_Y1), clamp(y0, PLAY_Y0, PLAY_Y1), clamp(y0 + 1, PLAY_Y0, PLAY_Y1)]
+      : [clamp(y0, PLAY_Y0, PLAY_Y1)];
+
+    const targetIdx = findLaserTarget(x0, yRows);
+    const hitX = (targetIdx >= 0) ? Math.floor(enemies[targetIdx].x) : (COLS - 2);
+    const endX = (targetIdx >= 0) ? Math.max(x0, hitX - 1) : hitX;
+
+    // render beam segments (laser stops at first hit)
+    for (const y of yRows) {
+      const beamCh = (lv === 1) ? "-" : "=";
+      const topCh = (lv >= 3) ? "¯" : beamCh;
+      const botCh = (lv >= 3) ? "_" : beamCh;
+      const ch = (lv >= 3)
+        ? (y < y0 ? topCh : (y > y0 ? botCh : beamCh))
+        : beamCh;
+
+      for (let x = x0; x <= endX; x++) {
+        beams.push({ x, y, ch, color });
+      }
+    }
+
+    if (targetIdx >= 0) {
+      const e = enemies[targetIdx];
+      e.hp -= (dps * dmgMul) * dt;
+      if (laserSpark <= 0) {
+        laserSpark = 0.06;
+        spawnExplosion(hitX, y0, false);
+      }
+      if (e.hp <= 0) killEnemyAtIndex(targetIdx);
+    }
+  }
+
+  function spawnEnemy(dir, kindOverride=null, yOverride=null, xOverride=null) {
+    const mix = dir.mix;
+    const total = mix.scout + mix.bomber + mix.turret;
+    const kind = kindOverride ?? (() => {
+      const r = Math.random() * total;
+      return (r < mix.scout) ? "scout" :
+        (r < mix.scout + mix.bomber) ? "bomber" :
+        "turret";
+    })();
+
+    const diff = dir.difficulty;
+
+    if (kind === "scout") {
+      const y = (yOverride ?? rnd(PLAY_Y0, PLAY_Y1 - D_SCOUT.h + 1));
       enemies.push({
         kind: "scout",
-        x: COLS + 2,
+        x: (xOverride ?? (COLS + 2)),
         y,
         baseY: y,
-        vx: -rnd(14, 18) - difficulty * 0.8,
+        vx: -rnd(12, 16) - diff * 0.6,
         vy: 0,
-        hp: 1 + Math.floor(difficulty / 3),
-        fire: 0,
+        hp: 1 + Math.floor(diff / 3),
+        fire: rnd(dir.scoutFireCdMin, dir.scoutFireCdMax),
         phase: rnd(0, Math.PI * 2),
-        amp: rnd(0.4, 2.8),
+        amp: rnd(0.4, 2.6),
         freq: rnd(1.2, 2.2),
         w: D_SCOUT.w,
         h: D_SCOUT.h,
       });
-    } else if (roll < 0.90) {
-      // Bomber
-      const y = rnd(PLAY_Y0, PLAY_Y1 - D_BOMBER.h + 1);
+      return;
+    }
+
+    if (kind === "bomber") {
+      const y = (yOverride ?? rnd(PLAY_Y0, PLAY_Y1 - D_BOMBER.h + 1));
       enemies.push({
         kind: "bomber",
-        x: COLS + 3,
+        x: (xOverride ?? (COLS + 3)),
         y,
-        vx: -rnd(8, 12) - difficulty * 0.6,
+        vx: -rnd(7, 10) - diff * 0.45,
         vy: 0,
-        hp: 3 + Math.floor(difficulty / 2),
-        fire: rnd(0.6, 1.4),
+        hp: 3 + Math.floor(diff / 2),
+        fire: rnd(dir.bomberFireCdMin, dir.bomberFireCdMax),
         w: D_BOMBER.w,
         h: D_BOMBER.h,
       });
-    } else {
-      // Turret attached near top/bottom (gives a “stage” feel)
-      const atTop = chance(0.5);
-      const y = atTop ? PLAY_Y0 : (PLAY_Y1 - D_TURRET.h + 1);
-      enemies.push({
-        kind: "turret",
-        x: COLS + 4,
-        y,
-        vx: -rnd(6, 9) - difficulty * 0.4,
-        vy: 0,
-        hp: 2 + Math.floor(difficulty / 2),
-        fire: rnd(0.5, 1.1),
-        w: D_TURRET.w,
-        h: D_TURRET.h,
-      });
+      return;
     }
+
+    // Turret attached near top/bottom (gives a “stage” feel)
+    const atTop = chance(0.5);
+    const y = (yOverride ?? (atTop ? PLAY_Y0 : (PLAY_Y1 - D_TURRET.h + 1)));
+    enemies.push({
+      kind: "turret",
+      x: (xOverride ?? (COLS + 4)),
+      y,
+      vx: -rnd(5, 8) - diff * 0.35,
+      vy: 0,
+      hp: 2 + Math.floor(diff / 2),
+      fire: rnd(dir.turretFireCdMin, dir.turretFireCdMax),
+      w: D_TURRET.w,
+      h: D_TURRET.h,
+    });
+  }
+
+  function spawnWave(dir) {
+    const slots = enemyCap - enemies.length;
+    if (slots <= 0) return Math.max(0.35, rnd(dir.spawnMin, dir.spawnMax));
+
+    if (dir.phase !== wavePhase) {
+      wavePhase = dir.phase;
+      waveIndex = 0;
+    }
+    waveIndex++;
+
+    const spawnScoutLine = (count, stepY=5, xStep=4) => {
+      const req = (count - 1) * stepY + D_SCOUT.h;
+      const y0 = rnd(PLAY_Y0, PLAY_Y1 - req + 1);
+      const n = Math.min(count, enemyCap - enemies.length);
+      for (let i = 0; i < n; i++) {
+        spawnEnemy(dir, "scout", y0 + i * stepY, COLS + 2 + i * xStep);
+      }
+      return n;
+    };
+
+    const spawnBomberEscort = () => {
+      const stepY = 5;
+      const req = (2 * stepY) + D_SCOUT.h;
+      const y0 = rnd(PLAY_Y0, PLAY_Y1 - req + 1);
+      spawnEnemy(dir, "scout",  y0,           COLS + 2);
+      spawnEnemy(dir, "bomber", y0 + stepY,   COLS + 5);
+      spawnEnemy(dir, "scout",  y0 + stepY*2, COLS + 3);
+      return 3;
+    };
+
+    const spawnTurretEdge = () => {
+      const atTop = (waveIndex % 2 === 0);
+      const y = atTop ? PLAY_Y0 : (PLAY_Y1 - D_TURRET.h + 1);
+      spawnEnemy(dir, "turret", y, COLS + 4);
+      return 1;
+    };
+
+    let spawned = 0;
+
+    if (dir.phase === "INTRO") {
+      if (runTime < 8) {
+        spawnEnemy(dir, "scout");
+        return rnd(1.65, 2.25);
+      }
+
+      if (waveIndex % 5 === 0 && slots >= 2) {
+        spawned = spawnScoutLine(2, 6, 4);
+        return rnd(1.35, 1.85) + (spawned - 1) * 0.25;
+      }
+
+      spawnEnemy(dir, "scout");
+      return rnd(dir.spawnMin, dir.spawnMax);
+    }
+
+    if (dir.phase === "CORE") {
+      if (waveIndex < 3) {
+        spawnEnemy(dir, "scout");
+        return rnd(dir.spawnMin, dir.spawnMax) + 0.15;
+      }
+
+      if (waveIndex % 9 === 0 && slots >= 1) {
+        spawned = spawnTurretEdge();
+        return rnd(1.05, 1.45);
+      }
+
+      if (waveIndex % 7 === 0 && slots >= 3) {
+        spawned = spawnBomberEscort();
+        return rnd(1.25, 1.75) + 0.2;
+      }
+
+      if (waveIndex % 4 === 0 && slots >= 3) {
+        spawned = spawnScoutLine(3, 5, 3);
+        return rnd(dir.spawnMin, dir.spawnMax) + 0.35 + (spawned - 1) * 0.22;
+      }
+
+      if (waveIndex % 2 === 0 && slots >= 2) {
+        spawned = spawnScoutLine(2, 5, 4);
+        return rnd(dir.spawnMin, dir.spawnMax) + 0.2 + (spawned - 1) * 0.2;
+      }
+
+      spawnEnemy(dir, "scout");
+      return rnd(dir.spawnMin, dir.spawnMax);
+    }
+
+    // PRESSURE: go back to mixed spawns, but keep caps.
+    spawnEnemy(dir);
+    return rnd(dir.spawnMin, dir.spawnMax);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -540,9 +1064,8 @@
       if (s.x < -1) {
         s.x = COLS + rnd(0, 12);
         s.y = rnd(PLAY_Y0, PLAY_Y1);
-        // occasional sparkle swap
-        if (chance(0.08)) s.ch = chance(0.6) ? "✧" : "⋆";
-        else if (chance(0.2)) s.ch = chance(0.85) ? "." : "·";
+        // occasional twinkle
+        if (chance(0.2)) s.ch = chance(0.92) ? "⸰" : "⸱";
       }
     }
   }
@@ -551,6 +1074,21 @@
     updateStars(dt);
 
     if (state !== "playing") return;
+
+    runTime += dt;
+    const dir = computeDirector(runTime, player.score);
+    difficulty = dir.difficulty;
+    directorPhase = dir.phase;
+    enemyCap = dir.maxEnemies;
+    enemyBulletCap = dir.maxEBullets;
+    screenFlash = Math.max(0, screenFlash - dt * 2.6);
+    laserSpark = Math.max(0, laserSpark - dt);
+    beams.length = 0;
+
+    if (directorPhase !== wavePhase) {
+      wavePhase = directorPhase;
+      waveIndex = 0;
+    }
 
     // Player invulnerability + cooldown
     player.invuln = Math.max(0, player.invuln - dt);
@@ -582,16 +1120,49 @@
     player.trail.push({ x: player.x, y: player.y });
     if (player.trail.length > 300) player.trail.shift();
 
+    // Pity timers: guarantee early survivability + first weapon swap.
+    if (!spawnedSurvivability && runTime >= 18) {
+      const type = (player.shield <= 0) ? "shield"
+        : (player.bombs < MAX_BOMBS) ? "bomb"
+        : "shield";
+      spawnPickup(
+        clamp(player.x + 30, 18, COLS - 8),
+        clamp(player.y + 1, PLAY_Y0, PLAY_Y1),
+        type,
+      );
+    }
+    if (!spawnedWeapon && runTime >= 28) {
+      spawnPickup(
+        clamp(player.x + 32, 18, COLS - 8),
+        clamp(player.y + rnd(-2, 2), PLAY_Y0, PLAY_Y1),
+        pickWeaponPickup(),
+      );
+    }
+
     // Fire (space)
     const fireDown = isDown("Space");
-    if (fireDown && player.cooldown <= 0) {
-      // fire from nose
-      const px = Math.round(player.x);
-      const py = Math.round(player.y);
-      const shotX = px + D_PLAYER.w;
-      const shotY = py + 1;
+    // fire from nose
+    const px = Math.round(player.x);
+    const py = Math.round(player.y);
+    const shotX = px + D_PLAYER.w;
+    const shotY = py + 1;
 
-      fireFrom(shotX, shotY, player.fireLevel, true);
+    const OPTION_DMG_MUL = 0.75;
+
+    if (player.weapon === "laser") {
+      if (fireDown) {
+        emitLaserFrom(shotX, shotY, player.fireLevel, dt, 1.0);
+
+        for (let i = 0; i < player.options; i++) {
+          const idx = player.trail.length - 1 - ((i + 1) * player.optionSpacing);
+          const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
+          const ox = Math.round(pos.x);
+          const oy = Math.round(pos.y);
+          emitLaserFrom(ox + 1, oy + 0, player.fireLevel, dt, OPTION_DMG_MUL);
+        }
+      }
+    } else if (fireDown && player.cooldown <= 0) {
+      fireWeaponBurst(shotX, shotY, player.weapon, player.fireLevel, 1.0);
 
       // Fire from options (Gradius-ish)
       for (let i = 0; i < player.options; i++) {
@@ -599,18 +1170,23 @@
         const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
         const ox = Math.round(pos.x);
         const oy = Math.round(pos.y);
-        fireFrom(ox + 1, oy + 0, player.fireLevel, true);
+        fireWeaponBurst(ox + 1, oy + 0, player.weapon, player.fireLevel, OPTION_DMG_MUL);
       }
 
-      player.cooldown = 0.12;
+      player.cooldown = weaponCooldown(player.weapon);
+    }
+
+    // Bomb (X) — emergency screen wipe
+    const bombDown = isDown("KeyX");
+    if (bombDown && !lastBombDown) {
+      detonateBomb();
     }
 
     // Spawn cadence
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      spawnEnemy();
-      const base = Math.max(0.35, 1.0 - (difficulty * 0.06));
-      spawnTimer = rnd(base * 0.55, base * 1.1);
+      spawnTimer = spawnWave(dir);
+      if (enemies.length >= enemyCap) spawnTimer = Math.max(spawnTimer, 0.35);
     }
 
     // Update enemies
@@ -626,29 +1202,33 @@
 
         // occasional pot-shots
         e.fire -= dt;
-        if (e.fire <= 0 && chance(0.25 + Math.min(0.25, difficulty * 0.02))) {
-          const speed = 34 + difficulty * 1.4;
-          const fromX = e.x - 1;
-          const fromY = e.y + 1;
-          // aim slightly toward player
-          const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
-          const vx = Math.cos(ang) * speed;
-          const vy = Math.sin(ang) * speed;
-          fireBullet(fromX, fromY, vx, vy, false, "•", palette.ebullet, 1);
-          e.fire = rnd(0.9, 1.6);
+        if (e.fire <= 0) {
+          if (chance(dir.scoutFireChance)) {
+            const speed = dir.bulletSpeed;
+            const fromX = e.x - 1;
+            const fromY = e.y + 1;
+            // aim slightly toward player
+            const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
+            const vx = Math.cos(ang) * speed;
+            const vy = Math.sin(ang) * speed;
+            fireBullet(fromX, fromY, vx, vy, false, "○", palette.ebullet, 1);
+          }
+          e.fire = rnd(dir.scoutFireCdMin, dir.scoutFireCdMax);
         }
       } else {
         // bomber/turret: slower drift
         e.fire -= dt;
         if (e.fire <= 0) {
-          const speed = (e.kind === "turret") ? (38 + difficulty * 1.3) : (34 + difficulty * 1.1);
+          const speed = dir.bulletSpeed + (e.kind === "turret" ? 6 : 2);
           const fromX = e.x - 1;
           const fromY = e.y + Math.floor(e.h / 2);
           const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
           const vx = Math.cos(ang) * speed;
           const vy = Math.sin(ang) * speed;
-          fireBullet(fromX, fromY, vx, vy, false, "•", palette.ebullet, 1);
-          e.fire = rnd(0.55, (e.kind === "turret" ? 1.0 : 1.4));
+          fireBullet(fromX, fromY, vx, vy, false, "○", palette.ebullet, 1);
+          e.fire = (e.kind === "turret")
+            ? rnd(dir.turretFireCdMin, dir.turretFireCdMax)
+            : rnd(dir.bomberFireCdMin, dir.bomberFireCdMax);
         }
       }
 
@@ -664,6 +1244,12 @@
         b.y += b.vy * dt;
         b.ttl -= dt;
 
+        if (b.kind === "clusterShell" && (b.x - b.startX) >= b.splitDist) {
+          splitClusterShell(b);
+          arr.splice(i, 1);
+          continue;
+        }
+
         if (
           b.ttl <= 0 ||
           b.x < -2 || b.x > COLS + 2 ||
@@ -676,12 +1262,21 @@
     updBul(bullets);
     updBul(ebullets);
 
+    telemetry.peakEnemies = Math.max(telemetry.peakEnemies, enemies.length);
+    telemetry.peakBullets = Math.max(telemetry.peakBullets, bullets.length);
+    telemetry.peakEBullets = Math.max(telemetry.peakEBullets, ebullets.length);
+
     // Update pickups
     for (let i = pickups.length - 1; i >= 0; i--) {
       const p = pickups[i];
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.ttl -= dt;
+      p.anim += dt;
+      if (p.anim >= 0.12) {
+        p.anim = 0;
+        p.frame = (p.frame + 1) % PWR_FRAMES.length;
+      }
       // tiny bob
       p.vy += Math.sin((performance.now() / 220) + i) * 0.02;
       p.y = clamp(p.y, PLAY_Y0, PLAY_Y1);
@@ -712,26 +1307,15 @@
       for (let ei = enemies.length - 1; ei >= 0; ei--) {
         const e = enemies[ei];
         if (aabb(b.x, b.y, 1, 1, e.x, e.y, e.w, e.h)) {
-          e.hp -= b.damage;
           hitSomething = true;
 
-          // hit spark
-          spawnExplosion(b.x, b.y, false);
-
-          if (e.hp <= 0) {
-            const cx = e.x + e.w * 0.5;
-            const cy = e.y + e.h * 0.5;
-            spawnExplosion(cx, cy, true);
-
-            // score + streak
-            player.streak++;
-            const bonus = 10 * (1 + Math.min(6, Math.floor(player.streak / 6)));
-            player.score += (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35) + bonus;
-
-            // power-up chance
-            if (chance(0.18)) spawnPickup(cx, cy);
-
-            enemies.splice(ei, 1);
+          if (b.kind === "missile") {
+            explodeMissile(b);
+          } else {
+            e.hp -= b.damage;
+            // hit spark
+            spawnExplosion(b.x, b.y, false);
+            if (e.hp <= 0) killEnemyAtIndex(ei);
           }
           break;
         }
@@ -746,10 +1330,17 @@
         const b = ebullets[bi];
         if (aabb(b.x, b.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
           ebullets.splice(bi, 1);
-          player.lives--;
-          player.invuln = 2.0;
-          player.streak = 0;
-          spawnExplosion(player.x + 1.5, player.y + 1, true);
+          if (player.shield > 0) {
+            player.shield = 0;
+            player.invuln = 0.6;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, false);
+          } else {
+            player.lives--;
+            player.invuln = 2.0;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, true);
+          }
           break;
         }
       }
@@ -760,13 +1351,22 @@
       for (let ei = enemies.length - 1; ei >= 0; ei--) {
         const e = enemies[ei];
         if (aabb(player.x, player.y, D_PLAYER.w, D_PLAYER.h, e.x, e.y, e.w, e.h)) {
-          player.lives--;
-          player.invuln = 2.0;
-          player.streak = 0;
-          spawnExplosion(player.x + 1.5, player.y + 1, true);
-          // destroy the enemy too
-          spawnExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, true);
-          enemies.splice(ei, 1);
+          if (player.shield > 0) {
+            player.shield = 0;
+            player.invuln = 0.8;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, false);
+            spawnExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, true);
+            enemies.splice(ei, 1);
+          } else {
+            player.lives--;
+            player.invuln = 2.0;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, true);
+            // destroy the enemy too
+            spawnExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, true);
+            enemies.splice(ei, 1);
+          }
           break;
         }
       }
@@ -778,11 +1378,37 @@
       if (aabb(p.x, p.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
         pickups.splice(i, 1);
 
-        // Gradius-ish upgrades: OPTIONS first, then fire level
-        if (player.options < 2) player.options++;
-        else player.fireLevel = Math.min(3, player.fireLevel + 1);
-
-        player.score += 120;
+        if (p.type === "bomb") {
+          player.bombs = Math.min(MAX_BOMBS, player.bombs + 1);
+          player.score += 90;
+        } else if (p.type === "shield") {
+          if (player.shield <= 0) player.shield = 1;
+          else player.score += 60;
+          player.score += 90;
+        } else if (p.type === "option") {
+          if (player.options < 2) player.options++;
+          else player.score += 60;
+          player.score += 110;
+        } else if (p.type.startsWith("wpn")) {
+          const newWeapon =
+            (p.type === "wpnSpread") ? "spread" :
+            (p.type === "wpnLaser") ? "laser" :
+            (p.type === "wpnMissile") ? "missile" :
+            "cluster";
+          if (player.weapon !== newWeapon) {
+            player.weapon = newWeapon;
+            player.fireLevel = 1;
+            player.cooldown = 0;
+          } else {
+            player.score += 80;
+          }
+          player.score += 140;
+        } else {
+          // Fire upgrade
+          if (player.fireLevel < 3) player.fireLevel++;
+          else player.score += 60;
+          player.score += 110;
+        }
         spawnExplosion(p.x, p.y, false);
       }
     }
@@ -793,6 +1419,7 @@
     }
 
     lastFireDown = fireDown;
+    lastBombDown = bombDown;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -806,14 +1433,24 @@
     drawText(0, BORDER_BOTTOM, botLine, palette.faint);
   }
 
+  function formatTime(t) {
+    const s = Math.max(0, Math.floor(t));
+    const m = Math.floor(s / 60);
+    const ss = String(s % 60).padStart(2, "0");
+    return `${String(m).padStart(2, "0")}:${ss}`;
+  }
+
   function renderHUD() {
     const lives = "♥".repeat(Math.max(0, player.lives));
     const opt = player.options > 0 ? ("✦".repeat(player.options)) : " ";
     const level = player.fireLevel;
+    const timeStr = formatTime(runTime);
+    const shieldStr = player.shield > 0 ? "S" : " ";
+    const wpn = WEAPON_NAME[player.weapon] || "BASIC";
 
     const left = `SCORE ${String(player.score).padStart(7, "0")}  `;
     const mid  = `LIVES ${lives.padEnd(6, " ")}  `;
-    const right= `OPTIONS ${opt.padEnd(2, " ")}  FIRE-LV ${level}`;
+    const right= `B ${player.bombs}/${MAX_BOMBS}  ${shieldStr}  OPTIONS ${opt.padEnd(2, " ")}  WPN ${wpn} LV ${level}  TIME ${timeStr}`;
 
     const line0 = (left + mid + right).padEnd(COLS, " ").slice(0, COLS);
 
@@ -821,10 +1458,14 @@
     const meterW = 22;
     const streakTier = Math.min(meterW, Math.floor(player.streak / 2));
     const meter = "▮".repeat(streakTier) + "▯".repeat(meterW - streakTier);
-    const line1 = (`STREAK ${meter}   DIFF ${difficulty}`).padEnd(COLS, " ").slice(0, COLS);
+
+    const line1 = (debugHUD
+      ? `STREAK ${meter}  T ${timeStr}  PH ${directorPhase.padEnd(8," ")}  EN ${String(enemies.length).padStart(2,"0")}/${enemyCap}  EB ${String(ebullets.length).padStart(2,"0")}/${enemyBulletCap}  PK E${telemetry.peakEnemies} B${telemetry.peakEBullets}  DIFF ${difficulty.toFixed(1)}`
+      : `STREAK ${meter}   DIFF ${Math.round(difficulty)}`
+    ).padEnd(COLS, " ").slice(0, COLS);
 
     // help hint
-    const line2 = (`[ENTER] pause   [R] restart   SPACE fire   SHIFT slow`).padEnd(COLS, " ").slice(0, COLS);
+    const line2 = (`[ENTER] pause   [R] restart   SPACE fire   X bomb   SHIFT slow   F1 stats`).padEnd(COLS, " ").slice(0, COLS);
 
     drawText(0, 0, line0, palette.hud);
     drawText(0, 1, line1, palette.dim);
@@ -835,14 +1476,14 @@
     const { top, sep, bot } = boxLines(72, "");
     const lines = [
       top,
-      "║   ⋆·˚ ༘ *  UNSCII SHMUP  * ༘ ˚·⋆                           ║",
-      "║   R‑Type / Gradius / 1942 vibes — side‑scrolling glyph war  ║",
+      "║       ⋆·˚ ༘ *  UNSCII SHMUP  * ༘ ˚·⋆                                   ║",
+      "║   R‑Type / Gradius / 1942 vibes — side‑scrolling glyph war             ║",
       sep,
-      "║   Move: Arrows/WASD     Fire: Space     Slow: Shift         ║",
-      "║   Start/Pause: Enter    Restart: R                          ║",
-      "║                                                                ║",
-      "║   Grab ✦ to add OPTIONS + upgrade FIRE‑LV.                     ║",
-      "║   Keep a streak for bigger score ticks.                        ║",
+      "║   Move: Arrows/WASD     Fire: Space     Slow: Shift                    ║",
+      "║   Bomb: X               Start/Pause: Enter    Restart: R               ║",
+      "║                                                                        ║",
+      "║   Powerups: FIRE · WEAPON · OPTION · SHIELD · BOMB (color-coded)       ║",
+      "║   Keep a streak for bigger score ticks.                                ║",
       bot,
     ];
 
@@ -856,7 +1497,7 @@
 
     // small “demo ship”
     drawSprite(Math.floor(COLS/2) - 14, y0 + lines.length + 6, SPR_PLAYER, palette.player);
-    drawText(Math.floor(COLS/2) - 8, y0 + lines.length + 7, "➤➤➤", palette.bullet);
+    drawText(Math.floor(COLS/2) - 8, y0 + lines.length + 7, "•••", palette.bullet);
     drawSprite(Math.floor(COLS/2) + 6, y0 + lines.length + 6, SPR_ENEMY_SCOUT, palette.enemy1);
   }
 
@@ -917,12 +1558,40 @@
 
     // pickups
     for (const p of pickups) {
-      drawGlyph(p.x, p.y, p.ch, palette.pickup);
+      const ch = PWR_FRAMES[p.frame];
+      const color =
+        (p.type === "bomb") ? palette.bomb :
+        (p.type === "shield") ? palette.shield :
+        (p.type === "option") ? palette.option :
+        (p.type === "wpnSpread") ? palette.wpnSpread :
+        (p.type === "wpnLaser") ? palette.wpnLaser :
+        (p.type === "wpnMissile") ? palette.wpnMissile :
+        (p.type === "wpnCluster") ? palette.wpnCluster :
+        palette.pickup;
+      drawGlyph(p.x, p.y, ch, color);
+    }
+
+    // beams (laser)
+    for (const seg of beams) {
+      drawGlyph(seg.x, seg.y, seg.ch, seg.color);
     }
 
     // bullets
     for (const b of bullets) {
-      drawGlyph(b.x, b.y, b.ch, b.color);
+      if (b.kind === "missile") {
+        if (b.big) {
+          drawGlyph(b.x - 3, b.y, "┈", b.color);
+          drawGlyph(b.x - 2, b.y, "┉", b.color);
+          drawGlyph(b.x - 1, b.y, "➳", b.color);
+          drawGlyph(b.x,     b.y, "❥", b.color);
+        } else {
+          drawGlyph(b.x - 2, b.y, "┈", b.color);
+          drawGlyph(b.x - 1, b.y, "┉", b.color);
+          drawGlyph(b.x,     b.y, "➳", b.color);
+        }
+      } else {
+        drawGlyph(b.x, b.y, b.ch, b.color);
+      }
     }
     for (const b of ebullets) {
       drawGlyph(b.x, b.y, b.ch, b.color);
@@ -942,6 +1611,16 @@
     // player + options
     const blink = player.invuln > 0 && (Math.floor(performance.now() / 90) % 2 === 0);
     const pColor = blink ? palette.playerInv : palette.player;
+
+    if (player.shield > 0) {
+      drawSprite(player.x - 1, player.y - 1, [
+        " ╱¯¯¯╲ ",
+        "╱     ╲",
+        "│     │",
+        "╲     ╱",
+        " ╲▁▁▁╱ ",
+      ], palette.shield);
+    }
     drawSprite(player.x, player.y, SPR_PLAYER, pColor);
 
     // options trailing
@@ -955,6 +1634,12 @@
     for (const ex of explosions) {
       const ch = BOOM_FRAMES[Math.min(BOOM_FRAMES.length - 1, ex.frame)];
       if (ch !== " ") drawGlyph(ex.x, ex.y, ch, palette.boom);
+    }
+
+    // screen flash (bomb)
+    if (screenFlash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${(0.18 * screenFlash).toFixed(3)})`;
+      ctx.fillRect(0, 0, COLS * cell.w, ROWS * cell.h);
     }
 
     if (state === "paused") renderPaused();
