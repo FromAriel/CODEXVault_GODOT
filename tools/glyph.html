@@ -3,2049 +3,1687 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UNSCII Glyph Browser + Editor (Single File)</title>
+  <title>UNSCII SHMUP — ASCII R-Type / Gradius-ish</title>
   <style>
-    :root {
-      --bg: #0f1117;
-      --panel: #151a22;
-      --panel2: #10141b;
-      --text: #e6e6e6;
-      --muted: #a7b0c0;
-      --accent: #8a7dff;
-      --accent2: #5eead4;
-      --border: #2a3140;
-      --danger: #ff5c7a;
-      --ok: #43d19e;
-      --shadow: 0 8px 30px rgba(0,0,0,.35);
-      --radius: 14px;
-
-      --split-left: 25%;
-      --tile: 84px; /* dynamic; JS also uses */
-      --tilePad: 10px;
-      --glyphSize: 56px;
-      --labelSize: 11px;
+    :root{
+      --bg:#05060a;
+      --panel:#0b0d14;
+      --fg:#d9d9d9;
+      --hud:#9cff9c;
+      --warn:#ffcf5c;
+      --muted:#9aa3b2;
+      --border:#202435;
     }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 700px at 10% 0%, rgba(138,125,255,.18), transparent 60%),
-                  radial-gradient(1100px 800px at 100% 30%, rgba(94,234,212,.12), transparent 55%),
-                  var(--bg);
-      color: var(--text);
-      overflow: hidden;
+    @font-face{
+      font-family:"unscii 16-full";
+      src:
+        url("./unscii-16-full.ttf") format("truetype"),
+        local("unscii 16-full"),
+        local("unscii-16-full");
+      font-weight:normal;
+      font-style:normal;
+      font-display:swap;
     }
-
-    /* Top bar */
-    .topbar {
-      height: 64px;
-      padding: 10px 14px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(21,26,34,.98), rgba(16,20,27,.96));
-      backdrop-filter: blur(10px);
-      position: relative;
-      z-index: 10;
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      overflow:hidden;
+      font-family:
+        "unscii 16-full",
+        "unscii",
+        "unscii 16",
+        "Noto Sans Mono",
+        "Noto Mono",
+        "Unifont",
+        "Cascadia Mono",
+        "Consolas",
+        monospace;
     }
-
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.06);
-      box-shadow: 0 0 0 1px rgba(138,125,255,.12) inset;
-      user-select: none;
-      white-space: nowrap;
+    #wrap{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:12px;
+      box-sizing:border-box;
     }
-    .brand b {
-      font-weight: 800;
-      letter-spacing: .2px;
-      color: #ffffff;
+    #screen{
+      background:#000;
+      border:1px solid var(--border);
+      image-rendering:pixelated;
+      image-rendering:crisp-edges;
+      /* for some browsers */
+      -ms-interpolation-mode:nearest-neighbor;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.03) inset;
     }
-    .brand small {
-      color: var(--muted);
-      font-size: 12px;
+    #help{
+      width:min(980px, 92vw);
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      box-sizing:border-box;
+      font-size:12px;
+      line-height:1.35;
+      color:var(--muted);
+      text-align:center;
     }
-
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.06);
-      min-width: 0;
-    }
-
-    .group.compact { padding: 6px; }
-    .group .label {
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-      user-select: none;
-    }
-
-    input[type="file"] { display: none; }
-
-    .btn {
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      padding: 8px 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 650;
-      font-size: 13px;
-      transition: transform .06s ease, background .12s ease, border-color .12s ease;
-      user-select: none;
-      white-space: nowrap;
-    }
-    .btn:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); }
-    .btn:active { transform: translateY(1px); }
-    .btn.primary {
-      border-color: rgba(138,125,255,.45);
-      background: rgba(138,125,255,.18);
-      box-shadow: 0 0 0 1px rgba(138,125,255,.22) inset;
-    }
-    .btn.danger {
-      border-color: rgba(255,92,122,.35);
-      background: rgba(255,92,122,.12);
-    }
-    .btn.ghost {
-      background: transparent;
-      border-color: rgba(255,255,255,.09);
-    }
-
-    .pill {
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-      user-select: none;
-      max-width: 360px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .search {
-      width: min(560px, 42vw);
-      max-width: 100%;
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(255,255,255,.10);
-      color: var(--text);
-      padding: 9px 12px;
-      border-radius: 12px;
-      outline: none;
-      font-size: 13px;
-      min-width: 180px;
-    }
-    .search::placeholder { color: rgba(167,176,192,.75); }
-
-    .range {
-      width: 150px;
-      accent-color: var(--accent);
-    }
-    .num {
-      width: 64px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
-      outline: none;
-      font-weight: 650;
-      font-size: 13px;
-    }
-
-    .toggle {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      user-select: none;
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    .toggle input { accent-color: var(--accent); }
-
-    .select {
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(255,255,255,.10);
-      color: var(--text);
-      padding: 8px 10px;
-      border-radius: 12px;
-      outline: none;
-      font-size: 13px;
-      min-width: 160px;
-    }
-
-    /* Main split */
-    .main {
-      height: calc(100% - 64px);
-      display: flex;
-      width: 100%;
-      position: relative;
-    }
-
-    .pane {
-      height: 100%;
-      overflow: hidden;
-      position: relative;
-      min-width: 220px;
-    }
-
-    .left {
-      width: var(--split-left);
-      border-right: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(21,26,34,.85), rgba(16,20,27,.90));
-    }
-    .right {
-      flex: 1;
-      background: linear-gradient(180deg, rgba(16,20,27,.92), rgba(15,17,23,.96));
-    }
-
-    .divider {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: var(--split-left);
-      width: 10px;
-      transform: translateX(-5px);
-      cursor: col-resize;
-      z-index: 8;
-    }
-    .divider::before {
-      content: "";
-      position: absolute;
-      top: 10px;
-      bottom: 10px;
-      left: 50%;
-      width: 2px;
-      transform: translateX(-50%);
-      border-radius: 999px;
-      background: rgba(255,255,255,.10);
-      box-shadow: 0 0 0 1px rgba(138,125,255,.10);
-      opacity: .7;
-    }
-    .divider:hover::before { opacity: 1; background: rgba(138,125,255,.55); }
-
-    /* Left editor area */
-    .editorWrap {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 12px;
-    }
-
-    .editorHeader {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.14);
-      box-shadow: var(--shadow);
-    }
-
-    .editorHeader .mini {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .editorHeader .title {
-      font-weight: 800;
-      letter-spacing: .2px;
-    }
-    .editorHeader .sub {
-      color: var(--muted);
-      font-size: 12px;
-      margin-left: 8px;
-    }
-
-    .editor {
-      flex: 1;
-      border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.14);
-      box-shadow: var(--shadow);
-      overflow: auto;
-      padding: 14px;
-      outline: none;
-      line-height: 1.35;
-      font-size: 18px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      caret-color: var(--accent2);
-      position: relative;
-    }
-
-    .dropHint {
-      position: absolute;
-      inset: 14px;
-      border-radius: 12px;
-      border: 1px dashed rgba(138,125,255,.35);
-      background: rgba(138,125,255,.08);
-      display: none;
-      pointer-events: none;
-    }
-    .editor.dragOver .dropHint { display: block; }
-
-    .status {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.10);
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    /* Right glyph area */
-    .glyphWrap {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      padding: 12px;
-      gap: 10px;
-    }
-
-    .glyphHeader {
-      display: flex;
-      gap: 10px;
-      align-items: stretch;
-      flex-wrap: wrap;
-    }
-
-    .card {
-      border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.14);
-      box-shadow: var(--shadow);
-      padding: 10px;
-    }
-
-    .infoGrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px 12px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .infoGrid b {
-      color: var(--text);
-      font-weight: 750;
-    }
-    .infoRow {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    .glyphScroller {
-      flex: 1;
-      position: relative;
-      border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.10);
-      box-shadow: var(--shadow);
-      overflow: auto;
-    }
-
-    .spacer {
-      position: relative;
-      width: 100%;
-    }
-
-    .tileLayer {
-      position: absolute;
-      left: 0;
-      top: 0;
-      right: 0;
-      will-change: transform;
-      padding: 10px;
-    }
-
-    .tile {
-      position: absolute;
-      width: var(--tile);
-      height: var(--tile);
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.03);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
-      user-select: none;
-      transition: transform .06s ease, border-color .12s ease, background .12s ease;
-      overflow: hidden;
-    }
-    .tile:hover {
-      background: rgba(255,255,255,.05);
-      border-color: rgba(138,125,255,.28);
-      transform: translateY(-1px);
-    }
-    .tile.selected {
-      border-color: rgba(94,234,212,.55);
-      box-shadow: 0 0 0 1px rgba(94,234,212,.20) inset;
-      background: rgba(94,234,212,.06);
-    }
-
-    .glyph {
-      font-size: var(--glyphSize);
-      line-height: 1;
-      color: #fff;
-      text-shadow: 0 1px 0 rgba(0,0,0,.35);
-      transform: translateY(1px);
-    }
-    .glabel {
-      font-size: var(--labelSize);
-      color: rgba(167,176,192,.92);
-      font-weight: 650;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.16);
-    }
-
-    .star {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 24px;
-      height: 24px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.22);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      color: rgba(255,255,255,.75);
-      opacity: .95;
-    }
-    .star.on {
-      color: #fff;
-      border-color: rgba(138,125,255,.45);
-      background: rgba(138,125,255,.18);
-      box-shadow: 0 0 0 1px rgba(138,125,255,.22) inset;
-    }
-
-    .badge {
-      display: inline-flex;
-      gap: 6px;
-      align-items: center;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size: 12px;
-      user-select: none;
-      white-space: nowrap;
-    }
-    .badge strong { color: var(--text); font-weight: 800; }
-
-    .toast {
-      position: fixed;
-      bottom: 14px;
-      left: 14px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(0,0,0,.55);
-      border: 1px solid rgba(255,255,255,.10);
-      color: var(--text);
-      box-shadow: var(--shadow);
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity .16s ease, transform .16s ease;
-      pointer-events: none;
-      z-index: 999;
-      font-size: 13px;
-    }
-    .toast.show { opacity: 1; transform: translateY(0); }
-
-    .muted { color: var(--muted); }
-
-    .kbd {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.85);
-    }
-
-    @media (max-width: 1100px) {
-      .pill { display: none; }
-      .search { width: 36vw; }
-    }
-    @media (max-width: 900px) {
-      .main { flex-direction: column; }
-      .left { width: 100% !important; height: 45%; border-right: 0; border-bottom: 1px solid var(--border); }
-      .right { height: 55%; }
-      .divider { display: none; }
+    #help b{ color:var(--hud); font-weight:700; }
+    #fontStatus{ margin-top:6px; }
+    .warn{ color:var(--warn); }
+    kbd{
+      display:inline-block;
+      padding:1px 7px;
+      margin:0 2px;
+      border:1px solid #2a2f44;
+      border-bottom-color:#1b2032;
+      border-radius:6px;
+      background:var(--panel);
+      color:var(--fg);
+      font-family:inherit;
+      font-size:12px;
+      line-height:1.45;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+      user-select:none;
     }
   </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="brand">
-      <b>GlyphLab</b>
-      <small>TTF cmap + drag/drop editor</small>
-    </div>
-
-    <div class="controls">
-      <div class="group">
-        <label class="btn primary" for="fontFile">Load TTF…</label>
-        <input id="fontFile" type="file" accept=".ttf,.otf,.ttc" />
-        <span id="fontPill" class="pill">No font loaded (open a .ttf)</span>
+  <div id="wrap">
+    <canvas id="screen" aria-label="ASCII shmup canvas"></canvas>
+    <div id="help">
+      <div>
+        <b>Controls:</b>
+        <kbd>Arrow Keys</kbd>/<kbd>WASD</kbd> move ·
+        <kbd>Space</kbd> fire ·
+        <kbd>X</kbd> bomb ·
+        <kbd>Shift</kbd> slow ·
+        <kbd>Enter</kbd> start/pause ·
+        <kbd>R</kbd> restart ·
+        <kbd>F1</kbd> stats
       </div>
-
-      <div class="group">
-        <input id="search" class="search" placeholder="Search: U+2588, 2588, 2500-257F, or paste a glyph…" />
-        <button id="clearSearch" class="btn ghost" title="Clear search">✕</button>
-      </div>
-
-      <div class="group compact">
-        <span class="label">Glyph size</span>
-        <input id="glyphSize" class="range" type="range" min="18" max="140" value="56" />
-        <input id="glyphSizeNum" class="num" type="number" min="10" max="220" value="56" />
-      </div>
-
-      <div class="group compact">
-        <span class="label">Tiles</span>
-        <span class="toggle"><input id="showLabels" type="checkbox" checked /> Labels</span>
-        <span class="toggle"><input id="showWhitespace" type="checkbox" /> Whitespace</span>
-        <span class="toggle"><input id="showCombining" type="checkbox" checked /> Combining</span>
-        <span class="toggle"><input id="showControls" type="checkbox" /> Controls</span>
-      </div>
-
-      <div class="group compact">
-        <span class="label">Block</span>
-        <select id="blockFilter" class="select" title="Quick range filters">
-          <option value="all">All codepoints</option>
-          <option value="favorites">★ Favorites</option>
-          <option value="recent">⟲ Recent</option>
-          <option value="ascii">ASCII (0020–007E)</option>
-          <option value="latin1">Latin-1 Supplement (00A0–00FF)</option>
-          <option value="box">Box Drawing (2500–257F)</option>
-          <option value="block">Block Elements (2580–259F)</option>
-          <option value="geom">Geometric Shapes (25A0–25FF)</option>
-          <option value="braille">Braille Patterns (2800–28FF)</option>
-          <option value="misc">Misc Symbols (2600–26FF)</option>
-          <option value="pua_bmp">Private Use Area (E000–F8FF)</option>
-          <option value="pua_p15">PUA Plane 15 (F0000–FFFFD)</option>
-          <option value="pua_p16">PUA Plane 16 (100000–10FFFD)</option>
-        </select>
-      </div>
-
-      <div class="group compact">
-        <button id="copySelected" class="btn">Copy glyph</button>
-        <button id="insertSelected" class="btn">Insert</button>
-        <button id="starSelected" class="btn">★</button>
-      </div>
+      <div id="fontStatus"></div>
     </div>
   </div>
-
-  <div class="main" id="main">
-    <div class="pane left" id="leftPane">
-      <div class="editorWrap">
-        <div class="editorHeader">
-          <div>
-            <span class="title">Editor</span>
-            <span class="sub">Double-click or drag glyphs here</span>
-          </div>
-          <div class="mini">
-            <button id="newDoc" class="btn ghost" title="New document">New</button>
-            <button id="copyAll" class="btn ghost" title="Copy all text">Copy all</button>
-            <button id="downloadText" class="btn primary" title="Download editor text">Download</button>
-            <button id="clearEditor" class="btn danger" title="Clear editor">Clear</button>
-          </div>
-        </div>
-
-        <div id="editor" class="editor" contenteditable="true" spellcheck="false">
-          <div class="dropHint"></div>
-          Type here… then drag or double-click glyphs from the grid on the right.
-        </div>
-
-        <div class="status">
-          <div id="editorStats">Chars: 0 • Lines: 1</div>
-          <div class="muted">
-            Tips: <span class="kbd">Ctrl</span>+<span class="kbd">F</span> search •
-            <span class="kbd">Ctrl</span>+<span class="kbd">S</span> download •
-            <span class="kbd">Enter</span> insert selected glyph
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="divider" id="divider" title="Drag to resize"></div>
-
-    <div class="pane right" id="rightPane">
-      <div class="glyphWrap">
-        <div class="glyphHeader">
-          <div class="card" style="flex: 1; min-width: 340px;">
-            <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom: 10px;">
-              <div class="badge"><strong id="glyphCount">0</strong> glyphs</div>
-              <div class="badge">Selected: <strong id="selLabel">—</strong></div>
-              <div class="badge">Font: <strong id="fontShort">—</strong></div>
-            </div>
-            <div class="infoGrid">
-              <div class="infoRow"><span>Character</span><b id="infoChar" class="mono">—</b></div>
-              <div class="infoRow"><span>Codepoint</span><b id="infoCode" class="mono">—</b></div>
-              <div class="infoRow"><span>UTF-16</span><b id="infoUtf16" class="mono">—</b></div>
-              <div class="infoRow"><span>UTF-8 bytes</span><b id="infoUtf8" class="mono">—</b></div>
-              <div class="infoRow"><span>JS escape</span><b id="infoJs" class="mono">—</b></div>
-              <div class="infoRow"><span>Python escape</span><b id="infoPy" class="mono">—</b></div>
-              <div class="infoRow"><span>HTML entity</span><b id="infoHtml" class="mono">—</b></div>
-              <div class="infoRow"><span>Category</span><b id="infoCat" class="mono">—</b></div>
-            </div>
-          </div>
-
-          <div class="card" style="width: 360px; min-width: 300px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-              <div class="badge">★ Favorites: <strong id="favCount">0</strong></div>
-              <div class="badge">⟲ Recent: <strong id="recentCount">0</strong></div>
-            </div>
-
-            <div style="display:flex; gap:10px; flex-wrap: wrap;">
-              <button id="clearFavs" class="btn ghost" title="Clear favorites for this font">Clear favorites</button>
-              <button id="clearRecents" class="btn ghost" title="Clear recent insert history">Clear recents</button>
-              <button id="copyInfo" class="btn" title="Copy the selected glyph's info block">Copy info</button>
-            </div>
-
-            <div style="margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.35;">
-              This app reads your TTF locally, extracts supported Unicode codepoints from <span class="mono">cmap</span>, and renders
-              a fast virtualized grid. It does not upload anything.
-            </div>
-          </div>
-        </div>
-
-        <div id="glyphScroller" class="glyphScroller">
-          <div id="spacer" class="spacer"></div>
-          <div id="tileLayer" class="tileLayer"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast"></div>
 
 <script>
 (() => {
   "use strict";
 
-  // ---------------------------
-  // Utilities
-  // ---------------------------
-  function clamp(n, lo, hi) {
-    if (n < lo) return lo;
-    if (n > hi) return hi;
-    return n;
-  }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Core grid + UNSCII intent (8×16)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const COLS = 120;
+  const ROWS = 36;
 
-  function hex4(cp) {
-    if (cp <= 0xFFFF) return cp.toString(16).toUpperCase().padStart(4, "0");
-    return cp.toString(16).toUpperCase().padStart(6, "0");
-  }
+  // HUD + borders
+  const HUD_ROWS = 3;
+  const BORDER_TOP = HUD_ROWS;          // border line row
+  const BORDER_BOTTOM = ROWS - 1;       // border line row
+  const PLAY_Y0 = BORDER_TOP + 1;       // inclusive
+  const PLAY_Y1 = BORDER_BOTTOM - 1;    // inclusive
 
-  function codepointToString(cp) {
-    try {
-      return String.fromCodePoint(cp);
-    } catch (e) {
-      return "";
-    }
-  }
+  const FONT_STACK =
+    `"unscii 16-full","unscii-16-full","unscii","unscii 16","unscii-16","Noto Sans Mono","Noto Mono","Unifont","Cascadia Mono","Consolas",monospace`;
 
-  function isControl(cp) {
-    // C0 + DEL + C1 controls
-    if (cp <= 0x1F) return true;
-    if (cp === 0x7F) return true;
-    if (cp >= 0x80 && cp <= 0x9F) return true;
-    return false;
-  }
+  const cell = { w: 8, h: 16 }; // target; we will measure & adapt if needed.
 
-  function isWhitespace(cp) {
-    // A practical set; you can expand if you want.
-    return (
-      cp === 0x20 ||  // space
-      cp === 0x09 ||  // tab
-      cp === 0x0A ||  // LF
-      cp === 0x0D ||  // CR
-      cp === 0xA0 ||  // NBSP
-      cp === 0x1680 ||
-      (cp >= 0x2000 && cp <= 0x200A) ||
-      cp === 0x2028 ||
-      cp === 0x2029 ||
-      cp === 0x202F ||
-      cp === 0x205F ||
-      cp === 0x3000
-    );
-  }
+  const canvas = document.getElementById("screen");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const fontStatusEl = document.getElementById("fontStatus");
 
-  function isCombining(cp) {
-    // Major combining ranges
-    return (
-      (cp >= 0x0300 && cp <= 0x036F) ||
-      (cp >= 0x1AB0 && cp <= 0x1AFF) ||
-      (cp >= 0x1DC0 && cp <= 0x1DFF) ||
-      (cp >= 0x20D0 && cp <= 0x20FF) ||
-      (cp >= 0xFE20 && cp <= 0xFE2F)
-    );
-  }
-
-  function categoryFor(cp) {
-    if (isControl(cp)) return "control";
-    if (isWhitespace(cp)) return "whitespace";
-    if (isCombining(cp)) return "combining";
-    if (cp >= 0xE000 && cp <= 0xF8FF) return "pua-bmp";
-    if (cp >= 0xF0000 && cp <= 0xFFFFD) return "pua-plane15";
-    if (cp >= 0x100000 && cp <= 0x10FFFD) return "pua-plane16";
-    return "symbol";
-  }
-
-  function bytesToHex(bytes) {
-    return Array.from(bytes).map(b => b.toString(16).toUpperCase().padStart(2, "0")).join(" ");
-  }
-
-  function utf8BytesForString(s) {
-    const enc = new TextEncoder();
-    return enc.encode(s);
-  }
-
-  function jsEscapeFor(cp) {
-    if (cp <= 0xFFFF) return "\\u" + cp.toString(16).toUpperCase().padStart(4, "0");
-    return "\\u{" + cp.toString(16).toUpperCase() + "}";
-  }
-
-  function pyEscapeFor(cp) {
-    if (cp <= 0xFFFF) return "\\u" + cp.toString(16).toUpperCase().padStart(4, "0");
-    return "\\U" + cp.toString(16).toUpperCase().padStart(8, "0");
-  }
-
-  function htmlEntityFor(cp) {
-    return "&#x" + cp.toString(16).toUpperCase() + ";";
-  }
-
-  function toast(msg) {
-    const t = els.toast;
-    t.textContent = msg;
-    t.classList.add("show");
-    window.clearTimeout(toast._timer);
-    toast._timer = window.setTimeout(() => t.classList.remove("show"), 1400);
-  }
-
-  function sha1Hex(buffer) {
-    // Used only for a font fingerprint in localStorage keying.
-    // Falls back if SubtleCrypto isn't available (rare in modern Chrome).
-    if (!crypto || !crypto.subtle) {
-      let h = 2166136261 >>> 0;
-      const u8 = new Uint8Array(buffer);
-      for (let i = 0; i < u8.length; i++) {
-        h ^= u8[i];
-        h = Math.imul(h, 16777619);
-      }
-      return Promise.resolve("fnv1a_" + (h >>> 0).toString(16));
-    }
-    return crypto.subtle.digest("SHA-1", buffer).then(d => {
-      const u8 = new Uint8Array(d);
-      return Array.from(u8).map(b => b.toString(16).padStart(2, "0")).join("");
-    });
-  }
-
-  // ---------------------------
-  // Minimal TTF cmap parser (format 4 + 12)
-  // ---------------------------
-  class Bin {
-    constructor(buffer) {
-      this.dv = new DataView(buffer);
-      this.u8 = new Uint8Array(buffer);
-      this.len = buffer.byteLength;
-    }
-    u16(off) { return this.dv.getUint16(off, false); }
-    i16(off) { return this.dv.getInt16(off, false); }
-    u32(off) { return this.dv.getUint32(off, false); }
-    tag(off) {
-      return String.fromCharCode(
-        this.u8[off], this.u8[off + 1], this.u8[off + 2], this.u8[off + 3]
-      );
-    }
-  }
-
-  function parseTTF_cmap_codepoints(buffer) {
-    // Returns a Set<number> of Unicode codepoints supported by cmap
-    const bin = new Bin(buffer);
-
-    if (bin.len < 12) throw new Error("File too small to be a TTF/OTF.");
-
-    // Offset table
-    const numTables = bin.u16(4);
-    const tableDir = 12;
-
-    let cmapOff = -1;
-    let cmapLen = -1;
-
-    for (let i = 0; i < numTables; i++) {
-      const rec = tableDir + i * 16;
-      const tag = bin.tag(rec + 0);
-      const offset = bin.u32(rec + 8);
-      const length = bin.u32(rec + 12);
-      if (tag === "cmap") {
-        cmapOff = offset;
-        cmapLen = length;
-        break;
-      }
-    }
-    if (cmapOff < 0) throw new Error("No 'cmap' table found.");
-
-    const cmapVersion = bin.u16(cmapOff + 0);
-    const numSubtables = bin.u16(cmapOff + 2);
-    if (cmapVersion !== 0) {
-      // Usually 0, but tolerate
-    }
-
-    // Choose best subtable: prefer Unicode full (format 12), then BMP (format 4)
-    const candidates = [];
-    for (let i = 0; i < numSubtables; i++) {
-      const st = cmapOff + 4 + i * 8;
-      const platformID = bin.u16(st + 0);
-      const encodingID = bin.u16(st + 2);
-      const subOff = bin.u32(st + 4);
-      const subtableOff = cmapOff + subOff;
-
-      const format = bin.u16(subtableOff + 0);
-      // Unicode platform: 0; Windows: 3
-      // encodingId hints: Windows 1 = Unicode BMP, 10 = Unicode full
-      const score = (
-        (format === 12 ? 100 : 0) +
-        (format === 4 ? 80 : 0) +
-        (platformID === 0 ? 20 : 0) +
-        (platformID === 3 ? 10 : 0) +
-        (encodingID === 10 ? 20 : 0) +
-        (encodingID === 1 ? 10 : 0)
-      );
-
-      candidates.push({ platformID, encodingID, format, subtableOff, score });
-    }
-    candidates.sort((a, b) => b.score - a.score);
-
-    const cps = new Set();
-
-    let usedAny = false;
-    for (let c = 0; c < candidates.length; c++) {
-      const cand = candidates[c];
-      const off = cand.subtableOff;
-      const format = cand.format;
-
-      if (format === 12) {
-        // Format 12: u16 format, u16 reserved, u32 length, u32 language, u32 nGroups
-        const nGroups = bin.u32(off + 12);
-        let p = off + 16;
-        for (let g = 0; g < nGroups; g++) {
-          const startCharCode = bin.u32(p + 0);
-          const endCharCode = bin.u32(p + 4);
-          // const startGlyphID = bin.u32(p + 8);
-          for (let cp = startCharCode; cp <= endCharCode; cp++) {
-            cps.add(cp);
-          }
-          p += 12;
-        }
-        usedAny = true;
-        break; // format 12 is best; stop
-      }
-
-      if (format === 4) {
-        // Format 4: segment mapping to delta values
-        // u16 format, u16 length, u16 language, u16 segCountX2, u16 searchRange, u16 entrySelector, u16 rangeShift
-        const segCount = bin.u16(off + 6) / 2;
-        const endCodesOff = off + 14;
-        const startCodesOff = endCodesOff + 2 + segCount * 2;
-        const idDeltaOff = startCodesOff + segCount * 2;
-        const idRangeOffsetOff = idDeltaOff + segCount * 2;
-
-        for (let i = 0; i < segCount; i++) {
-          const endCode = bin.u16(endCodesOff + i * 2);
-          const startCode = bin.u16(startCodesOff + i * 2);
-
-          // Segment 0xFFFF/0xFFFF is the terminator
-          if (startCode === 0xFFFF && endCode === 0xFFFF) continue;
-
-          for (let cp = startCode; cp <= endCode; cp++) {
-            cps.add(cp);
-          }
-        }
-        usedAny = true;
-        // Don't break; a later format 12 might exist, but we already sorted by score.
-        break;
-      }
-    }
-
-    if (!usedAny) throw new Error("No usable cmap subtable found (need format 4 or 12).");
-
-    return cps;
-  }
-
-  // ---------------------------
-  // Rendering-based "blank" detection
-  // ---------------------------
-  function makeCanvas(size) {
-    const c = document.createElement("canvas");
-    c.width = size;
-    c.height = size;
-    return c;
-  }
-
-  function renderGlyphToHash(fontFamily, glyph, fontPx) {
-    // Returns {sum, hash} where sum is total alpha sum, hash is a small signature
-    // This is used to detect "blank" glyphs and can be used to fingerprint tofu if needed.
-    const size = Math.max(48, Math.floor(fontPx * 1.8));
-    const c = renderGlyphToHash._canvas || (renderGlyphToHash._canvas = makeCanvas(size));
-    if (c.width !== size) { c.width = size; c.height = size; }
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-
-    ctx.clearRect(0, 0, size, size);
-    ctx.fillStyle = "rgba(0,0,0,0)";
-    ctx.fillRect(0, 0, size, size);
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#fff";
-    ctx.font = `${fontPx}px "${fontFamily}", monospace`;
-
-    // Slight vertical adjustment helps some fonts.
-    ctx.fillText(glyph, size / 2, size / 2 + Math.floor(fontPx * 0.06));
-
-    const img = ctx.getImageData(0, 0, size, size).data;
-
-    // Compute alpha sum and a coarse hash from sampling
-    let sum = 0;
-    let h = 2166136261 >>> 0; // fnv-ish
-    const step = Math.max(1, Math.floor(size / 32));
-    for (let y = 0; y < size; y += step) {
-      for (let x = 0; x < size; x += step) {
-        const idx = (y * size + x) * 4;
-        const a = img[idx + 3];
-        sum += a;
-        h ^= a;
-        h = Math.imul(h, 16777619);
-      }
-    }
-    const hash = (h >>> 0).toString(16).padStart(8, "0");
-    return { sum, hash };
-  }
-
-  // ---------------------------
-  // DOM Elements
-  // ---------------------------
-  const els = {
-    fontFile: document.getElementById("fontFile"),
-    fontPill: document.getElementById("fontPill"),
-    fontShort: document.getElementById("fontShort"),
-    search: document.getElementById("search"),
-    clearSearch: document.getElementById("clearSearch"),
-    glyphSize: document.getElementById("glyphSize"),
-    glyphSizeNum: document.getElementById("glyphSizeNum"),
-    showLabels: document.getElementById("showLabels"),
-    showWhitespace: document.getElementById("showWhitespace"),
-    showCombining: document.getElementById("showCombining"),
-    showControls: document.getElementById("showControls"),
-    blockFilter: document.getElementById("blockFilter"),
-    copySelected: document.getElementById("copySelected"),
-    insertSelected: document.getElementById("insertSelected"),
-    starSelected: document.getElementById("starSelected"),
-    glyphCount: document.getElementById("glyphCount"),
-    selLabel: document.getElementById("selLabel"),
-
-    infoChar: document.getElementById("infoChar"),
-    infoCode: document.getElementById("infoCode"),
-    infoUtf16: document.getElementById("infoUtf16"),
-    infoUtf8: document.getElementById("infoUtf8"),
-    infoJs: document.getElementById("infoJs"),
-    infoPy: document.getElementById("infoPy"),
-    infoHtml: document.getElementById("infoHtml"),
-    infoCat: document.getElementById("infoCat"),
-
-    favCount: document.getElementById("favCount"),
-    recentCount: document.getElementById("recentCount"),
-    clearFavs: document.getElementById("clearFavs"),
-    clearRecents: document.getElementById("clearRecents"),
-    copyInfo: document.getElementById("copyInfo"),
-
-    main: document.getElementById("main"),
-    leftPane: document.getElementById("leftPane"),
-    rightPane: document.getElementById("rightPane"),
-    divider: document.getElementById("divider"),
-
-    editor: document.getElementById("editor"),
-    editorStats: document.getElementById("editorStats"),
-    newDoc: document.getElementById("newDoc"),
-    copyAll: document.getElementById("copyAll"),
-    downloadText: document.getElementById("downloadText"),
-    clearEditor: document.getElementById("clearEditor"),
-
-    glyphScroller: document.getElementById("glyphScroller"),
-    spacer: document.getElementById("spacer"),
-    tileLayer: document.getElementById("tileLayer"),
-
-    toast: document.getElementById("toast"),
+  const palette = {
+    bg: "#000000",
+    hud: "#9cff9c",
+    dim: "#8a93a4",
+    faint: "#495065",
+    star1: "#2b3040",
+    star2: "#434b66",
+    star3: "#6a74a5",
+    player: "#7de9ff",
+    playerInv: "#c8ffff",
+    option: "#ffd36e",
+    bullet: "#ffe66d",
+    bullet2: "#b5ff9f",
+    ebullet: "#ff4d88",
+    enemy1: "#ff6b6b",
+    enemy2: "#ffb86b",
+    enemy3: "#b28dff",
+    bomb: "#ffcf5c",
+    shield: "#6cf2ff",
+    wpnSpread: "#ffe66d",
+    wpnLaser: "#b5ff9f",
+    wpnMissile: "#ffb86b",
+    wpnCluster: "#b28dff",
+    pickup: "#9cff9c",
+    boom: "#ffffff",
   };
 
-  // ---------------------------
-  // App State
-  // ---------------------------
-  const state = {
-    fontFamily: "GlyphLabFont",
-    fontUrl: null,
-    fontLoaded: false,
-    fontName: null,
-    fontFingerprint: null,
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const irnd = (a, b) => Math.floor(rnd(a, b + 1));
+  const chance = (p) => Math.random() < p;
+  const lerp = (a, b, t) => a + (b - a) * t;
 
-    allCodepoints: [],        // from cmap (raw)
-    displayCodepoints: [],    // filtered + searched + block-filtered
-    blankExcluded: true,      // we exclude blank glyphs by rendering test
-    blankCache: new Map(),    // cp -> boolean (true = nonblank)
-    renderHashCache: new Map(), // cp -> {sum, hash}
-    tofuHash: null,           // reserved if we ever do fallback scanning
+  function codepointLen(str) {
+    // counts glyphs more correctly for Unicode than .length
+    return Array.from(str).length;
+  }
 
-    favorites: new Set(),     // cp
-    recents: [],              // list of cp
+  function spriteDims(lines) {
+    let w = 0;
+    for (const row of lines) w = Math.max(w, codepointLen(row));
+    return { w, h: lines.length };
+  }
 
-    selectedCp: null,
+  function aabb(ax, ay, aw, ah, bx, by, bw, bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+  }
 
-    // UI derived
-    splitLeftPct: 25,
-    glyphSizePx: 56,
-    tileSizePx: 84,
-    tilePad: 10,
-    labelSizePx: 11,
-    showLabels: true,
+  // Draw in grid units (cell coords)
+  function drawText(x, y, text, color) {
+    ctx.fillStyle = color || palette.hud;
+    ctx.fillText(text, Math.round(x * cell.w), Math.round(y * cell.h));
+  }
 
-    // Virtualization
-    columns: 1,
-    totalRows: 0,
-    scrollTop: 0,
-    viewportH: 0,
-    viewportW: 0,
-    overscanRows: 2,
-    rendered: new Map(), // index -> element
-    rafPending: false,
+  function drawGlyph(x, y, ch, color) {
+    ctx.fillStyle = color || palette.fg;
+    ctx.fillText(ch, Math.round(x * cell.w), Math.round(y * cell.h));
+  }
 
-    // Filter toggles
-    showWhitespace: false,
-    showCombining: true,
-    showControls: false,
+  function drawSprite(x, y, lines, color) {
+    ctx.fillStyle = color;
+    const ix = Math.round(x);
+    const iy = Math.round(y);
+    for (let r = 0; r < lines.length; r++) {
+      const rowY = iy + r;
+      if (rowY < 0 || rowY >= ROWS) continue;
+      ctx.fillText(lines[r], ix * cell.w, rowY * cell.h);
+    }
+  }
 
-    searchQuery: "",
-    blockFilter: "all",
+  function centerX(line) {
+    return Math.floor((COLS - codepointLen(line)) / 2);
+  }
+
+  function boxLines(widthInner, title) {
+    const inner = widthInner;
+    const top = "╔" + "═".repeat(inner) + "╗";
+    const midTitle = title
+      ? "║" + title.padEnd(inner, " ").slice(0, inner) + "║"
+      : null;
+    const sep = "╠" + "═".repeat(inner) + "╣";
+    const bot = "╚" + "═".repeat(inner) + "╝";
+    return { top, midTitle, sep, bot };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Font + canvas sizing
+  // ─────────────────────────────────────────────────────────────────────────────
+  function applyCanvasSizing() {
+    const dpr = window.devicePixelRatio || 1;
+
+    // Provisional canvas based on current cell.w/h
+    canvas.width = Math.floor(COLS * cell.w * dpr);
+    canvas.height = Math.floor(ROWS * cell.h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+
+    ctx.font = `${cell.h}px ${FONT_STACK}`;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    // Measure actual monospace width
+    const m = ctx.measureText("M").width;
+    const rounded = Math.max(6, Math.min(32, Math.round(m)));
+
+    // If it differs, adopt the measured width so alignment stays clean even on fallback fonts.
+    if (Math.abs(rounded - cell.w) >= 1) {
+      cell.w = rounded;
+      // Re-apply size after adopting measured width
+      canvas.width = Math.floor(COLS * cell.w * dpr);
+      canvas.height = Math.floor(ROWS * cell.h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+
+      ctx.font = `${cell.h}px ${FONT_STACK}`;
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+    }
+
+    // Fit to viewport using an integer CSS scale (keeps glyph edges sharp)
+    const baseW = COLS * cell.w;
+    const baseH = ROWS * cell.h;
+
+    const pad = 24;
+    const maxW = Math.max(320, window.innerWidth - pad);
+    const maxH = Math.max(240, window.innerHeight - 140); // leave room for help panel
+
+    const scale = Math.max(1, Math.floor(Math.min(maxW / baseW, maxH / baseH)));
+
+    canvas.style.width = (baseW * scale) + "px";
+    canvas.style.height = (baseH * scale) + "px";
+
+    // Font status message
+    const isTarget = (cell.w === 8 && cell.h === 16);
+    const approx = (Math.abs(cell.w - 8) <= 1 && cell.h === 16);
+
+    let msg = `Grid: ${COLS}×${ROWS} • Cell: ${cell.w}×${cell.h}px • Font stack: ${FONT_STACK}`;
+    if (isTarget) {
+      msg = `<b>UNSCII mode:</b> cell is exactly <b>8×16</b>.`;
+    } else if (approx) {
+      msg = `<b>Near-UNSCII:</b> cell is <b>${cell.w}×${cell.h}</b>. For authentic 8×16, keep <code>unscii-16-full.ttf</code> next to this HTML or install “unscii 16-full” locally.`;
+    } else {
+      msg = `<span class="warn"><b>Fallback font detected:</b></span> cell is <b>${cell.w}×${cell.h}</b>. Game still runs aligned, but the “true” 8×16 look needs <code>unscii-16-full.ttf</code> or an installed UNSCII font.`;
+    }
+    fontStatusEl.innerHTML = msg;
+  }
+
+  window.addEventListener("resize", applyCanvasSizing);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sprites (grid-aligned, UNSCII-friendly glyphs)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const SPR_PLAYER = [
+    "  ▸►",
+    "═╫═►",
+    "  ▸►",
+  ];
+  const SPR_OPTION = ["✦"];
+
+  const SPR_ENEMY_SCOUT = [
+    "◄◂ ",
+    "◄■◄",
+    "◄◃ ",
+  ];
+
+  const SPR_ENEMY_BOMBER = [
+    "╔═╦═╗",
+    "╣◄█►╠",
+    "╚═╩═╝",
+  ];
+
+  const SPR_ENEMY_TURRET = [
+    "┌─┐",
+    "│█│",
+    "└╥┘",
+  ];
+
+  const D_PLAYER = spriteDims(SPR_PLAYER);
+  const D_OPTION = spriteDims(SPR_OPTION);
+
+  const D_SCOUT  = spriteDims(SPR_ENEMY_SCOUT);
+  const D_BOMBER = spriteDims(SPR_ENEMY_BOMBER);
+  const D_TURRET = spriteDims(SPR_ENEMY_TURRET);
+
+  const BOOM_FRAMES = ["", "", "", "", "", "", "", " "];
+  const PWR_FRAMES = ["", "", "", ""];
+  const MAX_BOMBS = 3;
+  const MAX_WEAPON_LEVEL = 3;
+
+  const WEAPONS = ["basic", "spread", "laser", "missile", "cluster"];
+  const WEAPON_NAME = {
+    basic: "BASIC",
+    spread: "SPREAD",
+    laser: "LASER",
+    missile: "MISSILE",
+    cluster: "CLUSTER",
   };
 
-  // ---------------------------
-  // localStorage keys
-  // ---------------------------
-  function lsKeyBase() {
-    return state.fontFingerprint ? `glyphlab:${state.fontFingerprint}` : `glyphlab:__nofont__`;
-  }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Input
+  // ─────────────────────────────────────────────────────────────────────────────
+  const keys = new Set();
+  let lastFireDown = false;
+  let lastBombDown = false;
 
-  function loadPrefs() {
-    // global (not per font)
-    try {
-      const s = localStorage.getItem("glyphlab:ui");
-      if (s) {
-        const j = JSON.parse(s);
-        if (typeof j.splitLeftPct === "number") state.splitLeftPct = clamp(j.splitLeftPct, 15, 60);
-        if (typeof j.glyphSizePx === "number") state.glyphSizePx = clamp(j.glyphSizePx, 18, 140);
-        if (typeof j.showLabels === "boolean") state.showLabels = j.showLabels;
-        if (typeof j.showWhitespace === "boolean") state.showWhitespace = j.showWhitespace;
-        if (typeof j.showCombining === "boolean") state.showCombining = j.showCombining;
-        if (typeof j.showControls === "boolean") state.showControls = j.showControls;
+  function isDown(code) { return keys.has(code); }
+
+  window.addEventListener("keydown", (e) => {
+    const code = e.code;
+    keys.add(code);
+
+    // Prevent page scroll on arrows/space.
+    if (code.startsWith("Arrow") || code === "Space") e.preventDefault();
+
+    // One-shot actions
+    if (code === "Enter") {
+      if (state === "title" || state === "gameover") {
+        startGame();
+      } else if (state === "playing") {
+        state = "paused";
+      } else if (state === "paused") {
+        state = "playing";
       }
-    } catch {}
-  }
+    }
+    if (code === "KeyR") {
+      resetGame();
+      state = "title";
+    }
+    if (code === "F1") {
+      debugHUD = !debugHUD;
+      e.preventDefault();
+    }
+  }, { passive:false });
 
-  function savePrefs() {
-    const j = {
-      splitLeftPct: state.splitLeftPct,
-      glyphSizePx: state.glyphSizePx,
-      showLabels: state.showLabels,
-      showWhitespace: state.showWhitespace,
-      showCombining: state.showCombining,
-      showControls: state.showControls
+  window.addEventListener("keyup", (e) => {
+    keys.delete(e.code);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // World state
+  // ─────────────────────────────────────────────────────────────────────────────
+  let state = "title"; // title | playing | paused | gameover
+
+  const stars = [];
+  const enemies = [];
+  const bullets = [];
+  const ebullets = [];
+  const beams = []; // transient per-frame beam segments (laser)
+  const explosions = [];
+  const pickups = [];
+
+  let spawnTimer = 0;
+  let difficulty = 1;
+  let runTime = 0;          // seconds in current run (pauses don't advance)
+  let directorPhase = "INTRO";
+  let wavePhase = "INTRO";
+  let waveIndex = 0;
+  let enemyCap = 6;
+  let enemyBulletCap = 14;
+  const playerBulletCap = 240;
+  let screenFlash = 0;
+  let laserSpark = 0;
+  let spawnedSurvivability = false;
+  let spawnedWeapon = false;
+  let spawnedOption = false;
+
+  const telemetry = {
+    peakEnemies: 0,
+    peakBullets: 0,
+    peakEBullets: 0,
+  };
+
+  let debugHUD = true;
+
+  const player = {
+    x: 8,
+    y: Math.floor((PLAY_Y0 + PLAY_Y1) / 2) - 1,
+    vx: 0,
+    vy: 0,
+    speed: 22,
+    lives: 3,
+    bombs: 1,
+    shield: 0,
+    invuln: 0,
+    cooldown: 0,
+    weapon: "basic",
+    fireLevel: 1,     // 1..3
+    options: 0,       // 0..2
+    optionSpacing: 14,
+    trail: [],
+    score: 0,
+    streak: 0,
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Spawn director (fair ramp)
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 3-phase time-based curve, tuned for readability and ~120s median first death.
+  // TODO: add mild “rank” scaling (no-hit streak / score) once bombs+shields land.
+  const DIRECTOR_PHASES = [
+    {
+      name: "INTRO",
+      t0: 0,
+      t1: 25,
+      diff0: 1.0,
+      diff1: 1.6,
+      spawn: [1.35, 1.85],
+      caps: { enemies: 6, ebullets: 14 },
+      mix: { scout: 1.0, bomber: 0.0, turret: 0.0 },
+      bulletSpeed0: 24,
+      scoutFireChance: 0.10,
+      scoutFireCd: [1.6, 2.4],
+      bomberFireCd: [1.4, 2.1],
+      turretFireCd: [1.2, 1.9],
+    },
+    {
+      name: "CORE",
+      t0: 25,
+      t1: 90,
+      diff0: 1.6,
+      diff1: 3.0,
+      spawn: [0.90, 1.35],
+      caps: { enemies: 10, ebullets: 22 },
+      mix: { scout: 0.72, bomber: 0.26, turret: 0.02 },
+      bulletSpeed0: 28,
+      scoutFireChance: 0.14,
+      scoutFireCd: [1.2, 2.0],
+      bomberFireCd: [1.1, 1.8],
+      turretFireCd: [0.95, 1.5],
+    },
+    {
+      name: "PRESSURE",
+      t0: 90,
+      t1: 240,
+      diff0: 3.0,
+      diff1: 5.0,
+      spawn: [0.55, 0.95],
+      caps: { enemies: 14, ebullets: 30 },
+      mix: { scout: 0.55, bomber: 0.30, turret: 0.15 },
+      bulletSpeed0: 32,
+      scoutFireChance: 0.20,
+      scoutFireCd: [0.9, 1.6],
+      bomberFireCd: [0.75, 1.35],
+      turretFireCd: [0.65, 1.10],
+    },
+  ];
+
+  function computeDirector(t, score) {
+    let phase = DIRECTOR_PHASES[DIRECTOR_PHASES.length - 1];
+    for (const p of DIRECTOR_PHASES) {
+      if (t < p.t1) { phase = p; break; }
+    }
+
+    const phaseT = clamp((t - phase.t0) / (phase.t1 - phase.t0), 0, 1);
+    let diff = lerp(phase.diff0, phase.diff1, phaseT);
+
+    // Gentle performance nudge (kept small so the early game stays learnable).
+    diff += Math.min(0.8, score / 7000);
+
+    return {
+      phase: phase.name,
+      difficulty: diff,
+      maxEnemies: phase.caps.enemies,
+      maxEBullets: phase.caps.ebullets,
+      spawnMin: phase.spawn[0],
+      spawnMax: phase.spawn[1],
+      mix: phase.mix,
+      bulletSpeed: phase.bulletSpeed0 + diff * 1.0,
+      scoutFireChance: phase.scoutFireChance,
+      scoutFireCdMin: phase.scoutFireCd[0],
+      scoutFireCdMax: phase.scoutFireCd[1],
+      bomberFireCdMin: phase.bomberFireCd[0],
+      bomberFireCdMax: phase.bomberFireCd[1],
+      turretFireCdMin: phase.turretFireCd[0],
+      turretFireCdMax: phase.turretFireCd[1],
     };
-    try { localStorage.setItem("glyphlab:ui", JSON.stringify(j)); } catch {}
   }
 
-  function loadFontScoped() {
-    if (!state.fontFingerprint) return;
-    try {
-      const f = localStorage.getItem(lsKeyBase() + ":favorites");
-      state.favorites = new Set(f ? JSON.parse(f) : []);
-    } catch { state.favorites = new Set(); }
-
-    try {
-      const r = localStorage.getItem(lsKeyBase() + ":recents");
-      state.recents = r ? JSON.parse(r) : [];
-      if (!Array.isArray(state.recents)) state.recents = [];
-      state.recents = state.recents.slice(0, 64);
-    } catch { state.recents = []; }
-
-    updateFavRecentCounts();
-  }
-
-  function saveFontScoped() {
-    if (!state.fontFingerprint) return;
-    try { localStorage.setItem(lsKeyBase() + ":favorites", JSON.stringify(Array.from(state.favorites))); } catch {}
-    try { localStorage.setItem(lsKeyBase() + ":recents", JSON.stringify(state.recents.slice(0, 64))); } catch {}
-    updateFavRecentCounts();
-  }
-
-  function updateFavRecentCounts() {
-    els.favCount.textContent = String(state.favorites.size);
-    els.recentCount.textContent = String(state.recents.length);
-  }
-
-  // ---------------------------
-  // Editor insertion helpers (contenteditable)
-  // ---------------------------
-  function getCaretRangeFromPoint(x, y) {
-    // Chrome supports caretPositionFromPoint; old WebKit had caretRangeFromPoint.
-    if (document.caretPositionFromPoint) {
-      const pos = document.caretPositionFromPoint(x, y);
-      if (!pos) return null;
-      const r = document.createRange();
-      r.setStart(pos.offsetNode, pos.offset);
-      r.collapse(true);
-      return r;
-    }
-    if (document.caretRangeFromPoint) {
-      return document.caretRangeFromPoint(x, y);
-    }
-    return null;
-  }
-
-  function insertTextAtRange(text, range) {
-    if (!range) return false;
-    range.deleteContents();
-    const node = document.createTextNode(text);
-    range.insertNode(node);
-    range.setStartAfter(node);
-    range.collapse(true);
-
-    const sel = window.getSelection();
-    if (sel) {
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-    return true;
-  }
-
-  function insertTextAtCaret(text) {
-    els.editor.focus();
-    const sel = window.getSelection();
-    if (!sel) return false;
-    if (sel.rangeCount === 0) return false;
-    const range = sel.getRangeAt(0);
-    return insertTextAtRange(text, range);
-  }
-
-  function getEditorText() {
-    // contenteditable returns markup; use innerText for plain text.
-    return els.editor.innerText.replace(/\r\n/g, "\n");
-  }
-
-  function setEditorText(txt) {
-    els.editor.innerText = txt;
-    updateEditorStats();
-  }
-
-  function updateEditorStats() {
-    const txt = getEditorText();
-    const chars = txt.length;
-    const lines = txt.length ? (txt.split("\n").length) : 1;
-    els.editorStats.textContent = `Chars: ${chars} • Lines: ${lines}`;
-  }
-
-  // ---------------------------
-  // Loading font
-  // ---------------------------
-  async function loadFontFromFile(file) {
-    const buf = await file.arrayBuffer();
-    const fingerprint = await sha1Hex(buf);
-    state.fontFingerprint = fingerprint;
-
-    // Create object URL for CSS font-face
-    if (state.fontUrl) {
-      try { URL.revokeObjectURL(state.fontUrl); } catch {}
-    }
-    const blob = new Blob([buf], { type: "font/ttf" });
-    const url = URL.createObjectURL(blob);
-    state.fontUrl = url;
-
-    // Install @font-face
-    installFontFace(state.fontFamily, url);
-
-    // Parse cmap
-    const cpsSet = parseTTF_cmap_codepoints(buf);
-    // Keep only valid unicode scalar values (exclude surrogate range)
-    const cps = Array.from(cpsSet).filter(cp => cp >= 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF));
-    cps.sort((a, b) => a - b);
-
-    state.allCodepoints = cps;
-    state.blankCache.clear();
-    state.renderHashCache.clear();
-    state.selectedCp = null;
-
-    // Derive fontName display; browsers don't expose name table easily without more parsing,
-    // so use filename for now (reliable).
-    state.fontName = file.name;
-    state.fontLoaded = true;
-
-    // Update UI
-    els.fontPill.textContent = `Loaded: ${file.name} • ${cps.length.toLocaleString()} cmap codepoints`;
-    els.fontShort.textContent = file.name.length > 18 ? file.name.slice(0, 18) + "…" : file.name;
-
-    // Apply font to editor and glyph grid
-    applyFontToUI();
-
-    // Load per-font favorites/recents
-    loadFontScoped();
-
-    // Build display list (filters + search)
-    await rebuildDisplayList();
-
-    toast("Font loaded.");
-  }
-
-  function installFontFace(family, url) {
-    let style = document.getElementById("fontFaceStyle");
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "fontFaceStyle";
-      document.head.appendChild(style);
-    }
-    style.textContent = `
-@font-face {
-  font-family: "${family}";
-  src: url("${url}");
-  font-display: swap;
-}
-`;
-  }
-
-  function applyFontToUI() {
-    els.editor.style.fontFamily = `"${state.fontFamily}", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
-    // Make glyphs crisp-ish; not guaranteed for all fonts, but helps.
-    els.editor.style.webkitFontSmoothing = "none";
-    els.editor.style.textRendering = "geometricPrecision";
-  }
-
-  // ---------------------------
-  // Filtering / Searching / Block ranges
-  // ---------------------------
-  const BLOCK_RANGES = {
-    ascii: [[0x0020, 0x007E]],
-    latin1: [[0x00A0, 0x00FF]],
-    box: [[0x2500, 0x257F]],
-    block: [[0x2580, 0x259F]],
-    geom: [[0x25A0, 0x25FF]],
-    braille: [[0x2800, 0x28FF]],
-    misc: [[0x2600, 0x26FF]],
-    pua_bmp: [[0xE000, 0xF8FF]],
-    pua_p15: [[0xF0000, 0xFFFFD]],
-    pua_p16: [[0x100000, 0x10FFFD]],
-  };
-
-  function cpInRanges(cp, ranges) {
-    for (let i = 0; i < ranges.length; i++) {
-      const r = ranges[i];
-      if (cp >= r[0] && cp <= r[1]) return true;
-    }
-    return false;
-  }
-
-  function parseSearchQuery(q) {
-    // Returns {type, ...}
-    // Supported:
-    // - empty
-    // - "U+2588" or "2588" hex
-    // - "2500-257F" (hex range)
-    // - literal glyph (single char)
-    // - "U+1F600" etc
-    q = (q || "").trim();
-    if (!q) return { type: "empty" };
-
-    // Range like 2500-257F
-    const mRange = q.match(/^U\+?([0-9A-Fa-f]{1,6})\s*-\s*U\+?([0-9A-Fa-f]{1,6})$/) || q.match(/^([0-9A-Fa-f]{1,6})\s*-\s*([0-9A-Fa-f]{1,6})$/);
-    if (mRange) {
-      const a = parseInt(mRange[1], 16);
-      const b = parseInt(mRange[2], 16);
-      if (Number.isFinite(a) && Number.isFinite(b)) {
-        return { type: "range", lo: Math.min(a, b), hi: Math.max(a, b) };
+  function initStars() {
+    stars.length = 0;
+    const N = 220;
+    for (let i = 0; i < N; i++) {
+      const layerPick = Math.random();
+      let speed, ch, color;
+      if (layerPick < 0.60) {
+        speed = rnd(6, 12);
+        ch = chance(0.96) ? "⸰" : "⸱";
+        color = palette.star1;
+      } else if (layerPick < 0.90) {
+        speed = rnd(12, 20);
+        ch = chance(0.92) ? "⸰" : "⸱";
+        color = palette.star2;
+      } else {
+        speed = rnd(20, 32);
+        ch = chance(0.86) ? "⸰" : "⸱";
+        color = palette.star3;
       }
+      stars.push({
+        x: rnd(0, COLS - 1),
+        y: rnd(PLAY_Y0, PLAY_Y1),
+        speed,
+        ch,
+        color,
+      });
     }
-
-    // Hex codepoint
-    const mHex = q.match(/^U\+([0-9A-Fa-f]{1,6})$/) || q.match(/^([0-9A-Fa-f]{1,6})$/);
-    if (mHex) {
-      const cp = parseInt(mHex[1], 16);
-      if (Number.isFinite(cp)) return { type: "single", cp };
-    }
-
-    // If they pasted a glyph (or multiple), use first codepoint
-    const cps = Array.from(q);
-    if (cps.length >= 1) {
-      const cp = q.codePointAt(0);
-      if (typeof cp === "number") return { type: "single", cp };
-    }
-
-    return { type: "unknown" };
   }
 
-  async function isNonBlank(cp) {
-    // Cache result: true = nonblank
-    if (state.blankCache.has(cp)) return state.blankCache.get(cp);
+  function resetGame() {
+    enemies.length = 0;
+    bullets.length = 0;
+    ebullets.length = 0;
+    explosions.length = 0;
+    pickups.length = 0;
 
-    const glyph = codepointToString(cp);
-    if (!glyph) {
-      state.blankCache.set(cp, false);
-      return false;
-    }
+    player.x = 8;
+    player.y = Math.floor((PLAY_Y0 + PLAY_Y1) / 2) - 1;
+    player.vx = 0;
+    player.vy = 0;
+    player.speed = 22;
+    player.lives = 3;
+    player.bombs = 1;
+    player.shield = 0;
+    player.invuln = 0;
+    player.cooldown = 0;
+    player.weapon = "basic";
+    player.fireLevel = 1;
+    player.options = 0;
+    player.trail.length = 0;
+    player.score = 0;
+    player.streak = 0;
 
-    // Heuristic: controls are "blank" visually, but you may want them in list if enabled
-    // We treat them as blank unless user toggles showControls.
-    if (isControl(cp) && !state.showControls) {
-      state.blankCache.set(cp, false);
-      return false;
-    }
+    runTime = 0;
+    telemetry.peakEnemies = 0;
+    telemetry.peakBullets = 0;
+    telemetry.peakEBullets = 0;
+    screenFlash = 0;
+    spawnedSurvivability = false;
+    spawnedWeapon = false;
+    spawnedOption = false;
+    lastBombDown = false;
 
-    // Render test
-    const { sum, hash } = renderGlyphToHash(state.fontFamily, glyph, Math.max(28, state.glyphSizePx));
-    state.renderHashCache.set(cp, { sum, hash });
-
-    // sum threshold: extremely small sums often happen for hairline glyphs; set low threshold
-    const nonBlank = sum > 20;
-
-    state.blankCache.set(cp, nonBlank);
-    return nonBlank;
+    const dir0 = computeDirector(0, 0);
+    directorPhase = dir0.phase;
+    wavePhase = dir0.phase;
+    waveIndex = 0;
+    difficulty = dir0.difficulty;
+    enemyCap = dir0.maxEnemies;
+    enemyBulletCap = dir0.maxEBullets;
+    // give players a small “breathing window” at the start
+    spawnTimer = rnd(dir0.spawnMin, dir0.spawnMax) + 0.9;
   }
 
-  async function rebuildDisplayList() {
-    if (!state.fontLoaded) {
-      state.displayCodepoints = [];
-      updateCounts();
-      scheduleRender();
+  function startGame() {
+    resetGame();
+    state = "playing";
+  }
+
+  function spawnExplosion(x, y, big=false) {
+    const count = big ? 6 : 3;
+    for (let i = 0; i < count; i++) {
+      explosions.push({
+        x: x + rnd(-1.2, 1.2),
+        y: y + rnd(-0.6, 0.6),
+        frame: 0,
+        t: 0,
+        rate: rnd(0.04, 0.07),
+      });
+    }
+  }
+
+  function detonateBomb() {
+    if (player.bombs <= 0) return;
+    player.bombs--;
+    player.streak = 0;
+    player.invuln = Math.max(player.invuln, 0.6);
+    screenFlash = 0.65;
+
+    // Clear bullets (both sides)
+    bullets.length = 0;
+    ebullets.length = 0;
+
+    // Wipe enemies (leave pickups); award reduced score without streak bonus.
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i];
+      const cx = e.x + e.w * 0.5;
+      const cy = e.y + e.h * 0.5;
+      spawnExplosion(cx, cy, true);
+      const base = (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35);
+      player.score += Math.floor(base * 0.6);
+      enemies.splice(i, 1);
+    }
+  }
+
+  function pickWeaponPickup() {
+    const specials = ["spread", "laser", "missile", "cluster"];
+    const choices = specials.filter(w => w !== player.weapon);
+    const w = (choices.length > 0)
+      ? choices[irnd(0, choices.length - 1)]
+      : specials[irnd(0, specials.length - 1)];
+    if (w === "spread") return "wpnSpread";
+    if (w === "laser") return "wpnLaser";
+    if (w === "missile") return "wpnMissile";
+    return "wpnCluster";
+  }
+
+  function pickPickupType(t) {
+    // OPTIONS are intentionally rare; weapon swaps show up occasionally.
+    let wFire, wWeapon, wOption, wShield, wBomb;
+    if (t < 60) {
+      wFire = 0.53;
+      wWeapon = 0.12;
+      wOption = 0.05;
+      wShield = 0.20;
+      wBomb = 0.10;
+    } else if (t < 150) {
+      wFire = 0.47;
+      wWeapon = 0.16;
+      wOption = 0.06;
+      wShield = 0.18;
+      wBomb = 0.13;
+    } else {
+      wFire = 0.42;
+      wWeapon = 0.20;
+      wOption = 0.07;
+      wShield = 0.16;
+      wBomb = 0.15;
+    }
+
+    // Options: 2nd is much rarer; none after cap.
+    if (player.options >= 2) { wFire += wOption; wOption = 0; }
+    else if (player.options >= 1) { wOption *= 0.55; }
+
+    // If already protected / stocked, push weight back into fire/weapons.
+    if (player.shield > 0) { wFire += wShield; wShield = 0; }
+    if (player.bombs >= MAX_BOMBS) { wFire += wBomb; wBomb = 0; }
+
+    // If current weapon is capped, nudge toward weapon pickups instead of redundant FIRE.
+    if (player.fireLevel >= MAX_WEAPON_LEVEL) {
+      const shift = wFire * 0.35;
+      wFire -= shift;
+      wWeapon += shift;
+    }
+
+    const total = wFire + wWeapon + wOption + wShield + wBomb;
+    let r = Math.random() * total;
+    if ((r -= wFire) < 0) return "fire";
+    if ((r -= wWeapon) < 0) return pickWeaponPickup();
+    if ((r -= wOption) < 0) return "option";
+    if ((r -= wShield) < 0) return "shield";
+    return "bomb";
+  }
+
+  function spawnPickup(x, y, type="fire") {
+    pickups.push({
+      x, y,
+      vx: -10,
+      vy: rnd(-2, 2),
+      ttl: 10,
+      type,
+      frame: irnd(0, PWR_FRAMES.length - 1),
+      anim: 0,
+    });
+
+    if (type === "bomb" || type === "shield") spawnedSurvivability = true;
+    if (type.startsWith("wpn")) spawnedWeapon = true;
+    if (type === "option") spawnedOption = true;
+  }
+
+  function fireBullet(x, y, vx, vy, friendly, ch, color, damage=1, extra=null) {
+    const arr = friendly ? bullets : ebullets;
+    if (friendly) {
+      if (arr.length >= playerBulletCap) return;
+    } else {
+      if (arr.length >= enemyBulletCap) return;
+    }
+    const b = { x, y, vx, vy, friendly, ch, color, damage, w: 1, h: 1, ttl: 5 };
+    if (extra) Object.assign(b, extra);
+    arr.push(b);
+  }
+
+  function weaponCooldown(weapon) {
+    if (weapon === "basic") return 0.12;
+    if (weapon === "spread") return 0.15;
+    if (weapon === "missile") return 0.22;
+    if (weapon === "cluster") return 0.22;
+    return 0.12;
+  }
+
+  function killEnemyAtIndex(ei) {
+    const e = enemies[ei];
+    const cx = e.x + e.w * 0.5;
+    const cy = e.y + e.h * 0.5;
+    spawnExplosion(cx, cy, true);
+
+    player.streak++;
+    const bonus = 10 * (1 + Math.min(6, Math.floor(player.streak / 6)));
+    player.score += (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35) + bonus;
+
+    if (chance(0.18)) spawnPickup(cx, cy, pickPickupType(runTime));
+    enemies.splice(ei, 1);
+  }
+
+  function fireWeaponBurst(x0, y0, weapon, level, dmgMul=1) {
+    const lv = clamp(level, 1, MAX_WEAPON_LEVEL);
+
+    if (weapon === "basic") {
+      const speed = (lv === 1) ? 62 : 74;
+      const ch = (lv === 3) ? "⁍" : "•";
+      const dmg = (lv === 3) ? 2 : 1;
+      fireBullet(x0, y0, speed, 0, true, ch, palette.bullet, dmg * dmgMul, { kind: "basic" });
       return;
     }
 
-    const q = parseSearchQuery(state.searchQuery);
-    const block = state.blockFilter;
-
-    const showWhitespace = state.showWhitespace;
-    const showCombining = state.showCombining;
-    const showControls = state.showControls;
-
-    const result = [];
-    const source = state.allCodepoints;
-
-    // fast block filtering first
-    let blockRanges = null;
-    if (BLOCK_RANGES[block]) blockRanges = BLOCK_RANGES[block];
-
-    for (let i = 0; i < source.length; i++) {
-      const cp = source[i];
-
-      // Block filter
-      if (block === "favorites") {
-        if (!state.favorites.has(cp)) continue;
-      } else if (block === "recent") {
-        // Keep recents order, not cmap order
-        // We'll handle after loop.
-      } else if (blockRanges) {
-        if (!cpInRanges(cp, blockRanges)) continue;
+    if (weapon === "spread") {
+      const speed = (lv === 1) ? 54 : 66;
+      const pellet = "･";
+      const angles = (lv === 3)
+        ? [-0.36, -0.18, 0, 0.18, 0.36]
+        : [-0.26, 0, 0.26];
+      for (const a of angles) {
+        fireBullet(
+          x0,
+          y0,
+          Math.cos(a) * speed,
+          Math.sin(a) * speed,
+          true,
+          pellet,
+          palette.wpnSpread,
+          1 * dmgMul,
+          { kind: "spread" },
+        );
       }
-
-      // Search filter
-      if (q.type === "single") {
-        if (cp !== q.cp) continue;
-      } else if (q.type === "range") {
-        if (cp < q.lo || cp > q.hi) continue;
-      } else if (q.type === "unknown") {
-        // Treat unknown as "no match"
-        continue;
-      }
-
-      // Category toggles
-      if (!showControls && isControl(cp)) continue;
-      if (!showWhitespace && isWhitespace(cp)) continue;
-      if (!showCombining && isCombining(cp)) continue;
-
-      // Blank filter (render test)
-      const ok = await isNonBlank(cp);
-      if (!ok) continue;
-
-      result.push(cp);
+      return;
     }
 
-    if (block === "recent") {
-      // Preserve recent order, but only include ones that still pass filters and exist in font.
-      const filtered = [];
-      const seen = new Set();
-      for (let i = 0; i < state.recents.length; i++) {
-        const cp = state.recents[i];
-        if (seen.has(cp)) continue;
-        seen.add(cp);
-        if (!source.includes(cp)) continue;
-        // Apply search / category / blank checks same as above
-        if (q.type === "single" && cp !== q.cp) continue;
-        if (q.type === "range" && (cp < q.lo || cp > q.hi)) continue;
-        if (!showControls && isControl(cp)) continue;
-        if (!showWhitespace && isWhitespace(cp)) continue;
-        if (!showCombining && isCombining(cp)) continue;
-        const ok = await isNonBlank(cp);
-        if (!ok) continue;
-        filtered.push(cp);
-      }
-      state.displayCodepoints = filtered;
-    } else {
-      state.displayCodepoints = result;
+    if (weapon === "missile") {
+      const speed = (lv === 1) ? 44 : 56;
+      const big = (lv === 3);
+      const radius = big ? 5.0 : 3.2;
+      const head = big ? "❥" : "➳";
+      fireBullet(
+        x0,
+        y0,
+        speed,
+        0,
+        true,
+        head,
+        palette.wpnMissile,
+        2 * dmgMul,
+        { kind: "missile", big, radius, ttl: 6.4 },
+      );
+      return;
     }
 
-    updateCounts();
-    updateVirtualMetrics();
-    scheduleRender();
+    if (weapon === "cluster") {
+      const speed = (lv === 1) ? 42 : 54;
+      const fragCount = (lv === 1) ? 3 : (lv === 2) ? 5 : 9;
+      const fragSpeed = (lv === 1) ? 56 : 66;
+      fireBullet(
+        x0,
+        y0,
+        speed,
+        0,
+        true,
+        "⁂",
+        palette.wpnCluster,
+        1 * dmgMul,
+        { kind: "clusterShell", startX: x0, splitDist: 14, fragCount, fragSpeed, ttl: 6.2 },
+      );
+    }
   }
 
-  function updateCounts() {
-    els.glyphCount.textContent = String(state.displayCodepoints.length);
+  function clusterAngles(n) {
+    if (n <= 3) return [-0.26, 0, 0.26];
+    if (n <= 5) return [-0.42, -0.21, 0, 0.21, 0.42];
+    // 9-way forward fan
+    return [-0.62, -0.46, -0.31, -0.15, 0, 0.15, 0.31, 0.46, 0.62];
   }
 
-  // ---------------------------
-  // Virtualized grid rendering
-  // ---------------------------
-  function updateCSSVars() {
-    // tile size depends on glyph size, label, and padding
-    const labelH = state.showLabels ? (state.labelSizePx + 18) : 0;
-    const tile = Math.floor(state.glyphSizePx * 1.55 + labelH + state.tilePad * 2);
-    state.tileSizePx = clamp(tile, 56, 220);
-
-    document.documentElement.style.setProperty("--glyphSize", state.glyphSizePx + "px");
-    document.documentElement.style.setProperty("--tile", state.tileSizePx + "px");
-    document.documentElement.style.setProperty("--labelSize", state.labelSizePx + "px");
+  function splitClusterShell(shell) {
+    const angles = clusterAngles(shell.fragCount);
+    for (const a of angles) {
+      fireBullet(
+        shell.x,
+        shell.y,
+        Math.cos(a) * shell.fragSpeed,
+        Math.sin(a) * shell.fragSpeed,
+        true,
+        "⸱",
+        palette.wpnCluster,
+        1,
+        { kind: "clusterFrag" },
+      );
+    }
+    spawnExplosion(shell.x, shell.y, false);
   }
 
-  function updateVirtualMetrics() {
-    updateCSSVars();
-
-    const sc = els.glyphScroller;
-    const rect = sc.getBoundingClientRect();
-
-    state.viewportH = rect.height;
-    state.viewportW = rect.width;
-
-    // padding in tileLayer is 10px on each side
-    const innerW = Math.max(1, state.viewportW - 20);
-    const col = Math.max(1, Math.floor(innerW / state.tileSizePx));
-    state.columns = col;
-
-    const total = state.displayCodepoints.length;
-    const rows = Math.ceil(total / col);
-    state.totalRows = rows;
-
-    const spacerH = rows * state.tileSizePx + 20; // includes padding
-    els.spacer.style.height = spacerH + "px";
+  function explodeMissile(missile) {
+    spawnExplosion(missile.x, missile.y, true);
+    const r2 = missile.radius * missile.radius;
+    for (let ei = enemies.length - 1; ei >= 0; ei--) {
+      const e = enemies[ei];
+      const cx = e.x + e.w * 0.5;
+      const cy = e.y + e.h * 0.5;
+      const dx = cx - missile.x;
+      const dy = cy - missile.y;
+      if (dx * dx + dy * dy <= r2) {
+        e.hp -= missile.damage;
+        if (e.hp <= 0) killEnemyAtIndex(ei);
+      }
+    }
   }
 
-  function scheduleRender() {
-    if (state.rafPending) return;
-    state.rafPending = true;
-    requestAnimationFrame(() => {
-      state.rafPending = false;
-      renderVisibleTiles();
+  function findLaserTarget(x0, yRows) {
+    let best = -1;
+    let bestX = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.x + e.w < x0) continue;
+      let yOk = false;
+      for (const y of yRows) {
+        if (y >= e.y && y < e.y + e.h) { yOk = true; break; }
+      }
+      if (!yOk) continue;
+      if (e.x < bestX) { bestX = e.x; best = i; }
+    }
+    return best;
+  }
+
+  function emitLaserFrom(x0, y0, level, dt, dmgMul=1) {
+    const lv = clamp(level, 1, MAX_WEAPON_LEVEL);
+    const color = palette.wpnLaser;
+    const dps = (lv === 1) ? 6 : 10;
+    const yRows = (lv >= 3)
+      ? [clamp(y0 - 1, PLAY_Y0, PLAY_Y1), clamp(y0, PLAY_Y0, PLAY_Y1), clamp(y0 + 1, PLAY_Y0, PLAY_Y1)]
+      : [clamp(y0, PLAY_Y0, PLAY_Y1)];
+
+    const targetIdx = findLaserTarget(x0, yRows);
+    const hitX = (targetIdx >= 0) ? Math.floor(enemies[targetIdx].x) : (COLS - 2);
+    const endX = (targetIdx >= 0) ? Math.max(x0, hitX - 1) : hitX;
+
+    // render beam segments (laser stops at first hit)
+    for (const y of yRows) {
+      const beamCh = (lv === 1) ? "-" : "=";
+      const topCh = (lv >= 3) ? "¯" : beamCh;
+      const botCh = (lv >= 3) ? "_" : beamCh;
+      const ch = (lv >= 3)
+        ? (y < y0 ? topCh : (y > y0 ? botCh : beamCh))
+        : beamCh;
+
+      for (let x = x0; x <= endX; x++) {
+        beams.push({ x, y, ch, color });
+      }
+    }
+
+    if (targetIdx >= 0) {
+      const e = enemies[targetIdx];
+      e.hp -= (dps * dmgMul) * dt;
+      if (laserSpark <= 0) {
+        laserSpark = 0.06;
+        spawnExplosion(hitX, y0, false);
+      }
+      if (e.hp <= 0) killEnemyAtIndex(targetIdx);
+    }
+  }
+
+  function spawnEnemy(dir, kindOverride=null, yOverride=null, xOverride=null) {
+    const mix = dir.mix;
+    const total = mix.scout + mix.bomber + mix.turret;
+    const kind = kindOverride ?? (() => {
+      const r = Math.random() * total;
+      return (r < mix.scout) ? "scout" :
+        (r < mix.scout + mix.bomber) ? "bomber" :
+        "turret";
+    })();
+
+    const diff = dir.difficulty;
+
+    if (kind === "scout") {
+      const y = (yOverride ?? rnd(PLAY_Y0, PLAY_Y1 - D_SCOUT.h + 1));
+      enemies.push({
+        kind: "scout",
+        x: (xOverride ?? (COLS + 2)),
+        y,
+        baseY: y,
+        vx: -rnd(12, 16) - diff * 0.6,
+        vy: 0,
+        hp: 1 + Math.floor(diff / 3),
+        fire: rnd(dir.scoutFireCdMin, dir.scoutFireCdMax),
+        phase: rnd(0, Math.PI * 2),
+        amp: rnd(0.4, 2.6),
+        freq: rnd(1.2, 2.2),
+        w: D_SCOUT.w,
+        h: D_SCOUT.h,
+      });
+      return;
+    }
+
+    if (kind === "bomber") {
+      const y = (yOverride ?? rnd(PLAY_Y0, PLAY_Y1 - D_BOMBER.h + 1));
+      enemies.push({
+        kind: "bomber",
+        x: (xOverride ?? (COLS + 3)),
+        y,
+        vx: -rnd(7, 10) - diff * 0.45,
+        vy: 0,
+        hp: 3 + Math.floor(diff / 2),
+        fire: rnd(dir.bomberFireCdMin, dir.bomberFireCdMax),
+        w: D_BOMBER.w,
+        h: D_BOMBER.h,
+      });
+      return;
+    }
+
+    // Turret attached near top/bottom (gives a “stage” feel)
+    const atTop = chance(0.5);
+    const y = (yOverride ?? (atTop ? PLAY_Y0 : (PLAY_Y1 - D_TURRET.h + 1)));
+    enemies.push({
+      kind: "turret",
+      x: (xOverride ?? (COLS + 4)),
+      y,
+      vx: -rnd(5, 8) - diff * 0.35,
+      vy: 0,
+      hp: 2 + Math.floor(diff / 2),
+      fire: rnd(dir.turretFireCdMin, dir.turretFireCdMax),
+      w: D_TURRET.w,
+      h: D_TURRET.h,
     });
   }
 
-  function renderVisibleTiles() {
-    const sc = els.glyphScroller;
-    const scrollTop = sc.scrollTop;
-    state.scrollTop = scrollTop;
+  function spawnWave(dir) {
+    const slots = enemyCap - enemies.length;
+    if (slots <= 0) return Math.max(0.35, rnd(dir.spawnMin, dir.spawnMax));
 
-    const col = state.columns;
-    const tile = state.tileSizePx;
-    const total = state.displayCodepoints.length;
+    if (dir.phase !== wavePhase) {
+      wavePhase = dir.phase;
+      waveIndex = 0;
+    }
+    waveIndex++;
 
-    const startRow = Math.max(0, Math.floor((scrollTop - 10) / tile) - state.overscanRows);
-    const endRow = Math.min(state.totalRows - 1, Math.floor((scrollTop + state.viewportH) / tile) + state.overscanRows);
-
-    const startIndex = startRow * col;
-    const endIndex = Math.min(total - 1, (endRow + 1) * col - 1);
-
-    // Remove tiles that are no longer needed
-    for (const [idx, el] of state.rendered.entries()) {
-      if (idx < startIndex || idx > endIndex) {
-        el.remove();
-        state.rendered.delete(idx);
+    const spawnScoutLine = (count, stepY=5, xStep=4) => {
+      const req = (count - 1) * stepY + D_SCOUT.h;
+      const y0 = rnd(PLAY_Y0, PLAY_Y1 - req + 1);
+      const n = Math.min(count, enemyCap - enemies.length);
+      for (let i = 0; i < n; i++) {
+        spawnEnemy(dir, "scout", y0 + i * stepY, COLS + 2 + i * xStep);
       }
+      return n;
+    };
+
+    const spawnBomberEscort = () => {
+      const stepY = 5;
+      const req = (2 * stepY) + D_SCOUT.h;
+      const y0 = rnd(PLAY_Y0, PLAY_Y1 - req + 1);
+      spawnEnemy(dir, "scout",  y0,           COLS + 2);
+      spawnEnemy(dir, "bomber", y0 + stepY,   COLS + 5);
+      spawnEnemy(dir, "scout",  y0 + stepY*2, COLS + 3);
+      return 3;
+    };
+
+    const spawnTurretEdge = () => {
+      const atTop = (waveIndex % 2 === 0);
+      const y = atTop ? PLAY_Y0 : (PLAY_Y1 - D_TURRET.h + 1);
+      spawnEnemy(dir, "turret", y, COLS + 4);
+      return 1;
+    };
+
+    let spawned = 0;
+
+    if (dir.phase === "INTRO") {
+      if (runTime < 8) {
+        spawnEnemy(dir, "scout");
+        return rnd(1.65, 2.25);
+      }
+
+      if (waveIndex % 5 === 0 && slots >= 2) {
+        spawned = spawnScoutLine(2, 6, 4);
+        return rnd(1.35, 1.85) + (spawned - 1) * 0.25;
+      }
+
+      spawnEnemy(dir, "scout");
+      return rnd(dir.spawnMin, dir.spawnMax);
     }
 
-    // Create/update needed tiles
-    for (let idx = startIndex; idx <= endIndex; idx++) {
-      if (idx < 0 || idx >= total) continue;
-      const cp = state.displayCodepoints[idx];
-      const row = Math.floor(idx / col);
-      const c = idx % col;
+    if (dir.phase === "CORE") {
+      if (waveIndex < 3) {
+        spawnEnemy(dir, "scout");
+        return rnd(dir.spawnMin, dir.spawnMax) + 0.15;
+      }
 
-      const x = 10 + c * tile;
-      const y = 10 + row * tile;
+      if (waveIndex % 9 === 0 && slots >= 1) {
+        spawned = spawnTurretEdge();
+        return rnd(1.05, 1.45);
+      }
 
-      let el = state.rendered.get(idx);
-      if (!el) {
-        el = createTileElement(idx, cp);
-        state.rendered.set(idx, el);
-        els.tileLayer.appendChild(el);
+      if (waveIndex % 7 === 0 && slots >= 3) {
+        spawned = spawnBomberEscort();
+        return rnd(1.25, 1.75) + 0.2;
+      }
+
+      if (waveIndex % 4 === 0 && slots >= 3) {
+        spawned = spawnScoutLine(3, 5, 3);
+        return rnd(dir.spawnMin, dir.spawnMax) + 0.35 + (spawned - 1) * 0.22;
+      }
+
+      if (waveIndex % 2 === 0 && slots >= 2) {
+        spawned = spawnScoutLine(2, 5, 4);
+        return rnd(dir.spawnMin, dir.spawnMax) + 0.2 + (spawned - 1) * 0.2;
+      }
+
+      spawnEnemy(dir, "scout");
+      return rnd(dir.spawnMin, dir.spawnMax);
+    }
+
+    // PRESSURE: go back to mixed spawns, but keep caps.
+    spawnEnemy(dir);
+    return rnd(dir.spawnMin, dir.spawnMax);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Update
+  // ─────────────────────────────────────────────────────────────────────────────
+  function updateStars(dt) {
+    for (const s of stars) {
+      s.x -= (s.speed * dt);
+      if (s.x < -1) {
+        s.x = COLS + rnd(0, 12);
+        s.y = rnd(PLAY_Y0, PLAY_Y1);
+        // occasional twinkle
+        if (chance(0.2)) s.ch = chance(0.92) ? "⸰" : "⸱";
+      }
+    }
+  }
+
+  function update(dt) {
+    updateStars(dt);
+
+    if (state !== "playing") return;
+
+    runTime += dt;
+    const dir = computeDirector(runTime, player.score);
+    difficulty = dir.difficulty;
+    directorPhase = dir.phase;
+    enemyCap = dir.maxEnemies;
+    enemyBulletCap = dir.maxEBullets;
+    screenFlash = Math.max(0, screenFlash - dt * 2.6);
+    laserSpark = Math.max(0, laserSpark - dt);
+    beams.length = 0;
+
+    if (directorPhase !== wavePhase) {
+      wavePhase = directorPhase;
+      waveIndex = 0;
+    }
+
+    // Player invulnerability + cooldown
+    player.invuln = Math.max(0, player.invuln - dt);
+    player.cooldown = Math.max(0, player.cooldown - dt);
+
+    // Movement
+    const slow = isDown("ShiftLeft") || isDown("ShiftRight");
+    const spd = player.speed * (slow ? 0.55 : 1);
+
+    const left  = isDown("ArrowLeft")  || isDown("KeyA");
+    const right = isDown("ArrowRight") || isDown("KeyD");
+    const up    = isDown("ArrowUp")    || isDown("KeyW");
+    const down  = isDown("ArrowDown")  || isDown("KeyS");
+
+    const dx = (right ? 1 : 0) - (left ? 1 : 0);
+    const dy = (down  ? 1 : 0) - (up   ? 1 : 0);
+
+    player.x += dx * spd * dt;
+    player.y += dy * spd * dt;
+
+    // R-Type/Gradius-ish: constrained forward movement
+    const minX = 2;
+    const maxX = Math.floor(COLS * 0.55) - D_PLAYER.w;
+    player.x = clamp(player.x, minX, maxX);
+
+    player.y = clamp(player.y, PLAY_Y0, PLAY_Y1 - D_PLAYER.h + 1);
+
+    // Trail for OPTIONS
+    player.trail.push({ x: player.x, y: player.y });
+    if (player.trail.length > 300) player.trail.shift();
+
+    // Pity timers: guarantee early survivability + first weapon swap.
+    if (!spawnedSurvivability && runTime >= 18) {
+      const type = (player.shield <= 0) ? "shield"
+        : (player.bombs < MAX_BOMBS) ? "bomb"
+        : "shield";
+      spawnPickup(
+        clamp(player.x + 30, 18, COLS - 8),
+        clamp(player.y + 1, PLAY_Y0, PLAY_Y1),
+        type,
+      );
+    }
+    if (!spawnedWeapon && runTime >= 28) {
+      spawnPickup(
+        clamp(player.x + 32, 18, COLS - 8),
+        clamp(player.y + rnd(-2, 2), PLAY_Y0, PLAY_Y1),
+        pickWeaponPickup(),
+      );
+    }
+    if (!spawnedOption && player.options <= 0 && runTime >= 45) {
+      spawnPickup(
+        clamp(player.x + 34, 18, COLS - 8),
+        clamp(player.y + rnd(-3, 3), PLAY_Y0, PLAY_Y1),
+        "option",
+      );
+    }
+
+    // Fire (space)
+    const fireDown = isDown("Space");
+    // fire from nose
+    const px = Math.round(player.x);
+    const py = Math.round(player.y);
+    const shotX = px + D_PLAYER.w;
+    const shotY = py + 1;
+
+    const OPTION_DMG_MUL = 0.75;
+
+    if (player.weapon === "laser") {
+      if (fireDown) {
+        emitLaserFrom(shotX, shotY, player.fireLevel, dt, 1.0);
+
+        for (let i = 0; i < player.options; i++) {
+          const idx = player.trail.length - 1 - ((i + 1) * player.optionSpacing);
+          const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
+          const ox = Math.round(pos.x);
+          const oy = Math.round(pos.y);
+          emitLaserFrom(ox + 1, oy + 0, player.fireLevel, dt, OPTION_DMG_MUL);
+        }
+      }
+    } else if (fireDown && player.cooldown <= 0) {
+      fireWeaponBurst(shotX, shotY, player.weapon, player.fireLevel, 1.0);
+
+      // Fire from options (Gradius-ish)
+      for (let i = 0; i < player.options; i++) {
+        const idx = player.trail.length - 1 - ((i + 1) * player.optionSpacing);
+        const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
+        const ox = Math.round(pos.x);
+        const oy = Math.round(pos.y);
+        fireWeaponBurst(ox + 1, oy + 0, player.weapon, player.fireLevel, OPTION_DMG_MUL);
+      }
+
+      player.cooldown = weaponCooldown(player.weapon);
+    }
+
+    // Bomb (X) — emergency screen wipe
+    const bombDown = isDown("KeyX");
+    if (bombDown && !lastBombDown) {
+      detonateBomb();
+    }
+
+    // Spawn cadence
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnTimer = spawnWave(dir);
+      if (enemies.length >= enemyCap) spawnTimer = Math.max(spawnTimer, 0.35);
+    }
+
+    // Update enemies
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i];
+      e.x += e.vx * dt;
+
+      if (e.kind === "scout") {
+        // sine drift
+        e.phase += e.freq * dt;
+        e.y = e.baseY + Math.sin(e.phase) * e.amp;
+        e.y = clamp(e.y, PLAY_Y0, PLAY_Y1 - e.h + 1);
+
+        // occasional pot-shots
+        e.fire -= dt;
+        if (e.fire <= 0) {
+          if (chance(dir.scoutFireChance)) {
+            const speed = dir.bulletSpeed;
+            const fromX = e.x - 1;
+            const fromY = e.y + 1;
+            // aim slightly toward player
+            const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
+            const vx = Math.cos(ang) * speed;
+            const vy = Math.sin(ang) * speed;
+            fireBullet(fromX, fromY, vx, vy, false, "○", palette.ebullet, 1);
+          }
+          e.fire = rnd(dir.scoutFireCdMin, dir.scoutFireCdMax);
+        }
       } else {
-        // Update cp if necessary (rare, if display list changed but index reused)
-        if (Number(el.dataset.cp) !== cp) {
-          el.dataset.cp = String(cp);
-          updateTileContent(el, cp);
+        // bomber/turret: slower drift
+        e.fire -= dt;
+        if (e.fire <= 0) {
+          const speed = dir.bulletSpeed + (e.kind === "turret" ? 6 : 2);
+          const fromX = e.x - 1;
+          const fromY = e.y + Math.floor(e.h / 2);
+          const ang = Math.atan2((player.y + 1) - (fromY), (player.x) - (fromX));
+          const vx = Math.cos(ang) * speed;
+          const vy = Math.sin(ang) * speed;
+          fireBullet(fromX, fromY, vx, vy, false, "○", palette.ebullet, 1);
+          e.fire = (e.kind === "turret")
+            ? rnd(dir.turretFireCdMin, dir.turretFireCdMax)
+            : rnd(dir.bomberFireCdMin, dir.bomberFireCdMax);
         }
       }
 
-      el.style.transform = `translate(${x}px, ${y}px)`;
-      const isSel = (state.selectedCp === cp);
-      el.classList.toggle("selected", isSel);
-      const star = el.querySelector(".star");
-      if (star) star.classList.toggle("on", state.favorites.has(cp));
-    }
-  }
-
-  function createTileElement(idx, cp) {
-    const el = document.createElement("div");
-    el.className = "tile";
-    el.draggable = true;
-    el.dataset.idx = String(idx);
-    el.dataset.cp = String(cp);
-
-    const star = document.createElement("div");
-    star.className = "star" + (state.favorites.has(cp) ? " on" : "");
-    star.textContent = "★";
-    star.title = "Favorite (click star)";
-    el.appendChild(star);
-
-    const g = document.createElement("div");
-    g.className = "glyph";
-    g.style.fontFamily = `"${state.fontFamily}", monospace`;
-    g.style.webkitFontSmoothing = "none";
-    g.style.textRendering = "geometricPrecision";
-    el.appendChild(g);
-
-    const lab = document.createElement("div");
-    lab.className = "glabel mono";
-    el.appendChild(lab);
-
-    updateTileContent(el, cp);
-
-    // Click select
-    el.addEventListener("click", (ev) => {
-      const target = ev.target;
-      if (target && target.classList && target.classList.contains("star")) {
-        toggleFavorite(cp);
-        ev.stopPropagation();
-        return;
-      }
-      selectCp(cp);
-    });
-
-    // Double click insert
-    el.addEventListener("dblclick", () => {
-      insertCp(cp);
-    });
-
-    // Drag
-    el.addEventListener("dragstart", (ev) => {
-      const glyph = codepointToString(cp);
-      if (!glyph) return;
-      ev.dataTransfer.setData("text/plain", glyph);
-      ev.dataTransfer.effectAllowed = "copy";
-      selectCp(cp);
-    });
-
-    return el;
-  }
-
-  function updateTileContent(el, cp) {
-    const glyph = codepointToString(cp);
-    const g = el.querySelector(".glyph");
-    const lab = el.querySelector(".glabel");
-
-    if (g) g.textContent = glyph;
-
-    if (lab) {
-      if (state.showLabels) {
-        lab.style.display = "inline-flex";
-        lab.textContent = "U+" + hex4(cp);
-      } else {
-        lab.style.display = "none";
-      }
-    }
-  }
-
-  // ---------------------------
-  // Selection + info panel
-  // ---------------------------
-  function selectCp(cp) {
-    state.selectedCp = cp;
-    els.selLabel.textContent = cp == null ? "—" : ("U+" + hex4(cp));
-    updateInfoPanel(cp);
-    scheduleRender(); // to update selection visuals
-  }
-
-  function updateInfoPanel(cp) {
-    if (cp == null) {
-      els.infoChar.textContent = "—";
-      els.infoCode.textContent = "—";
-      els.infoUtf16.textContent = "—";
-      els.infoUtf8.textContent = "—";
-      els.infoJs.textContent = "—";
-      els.infoPy.textContent = "—";
-      els.infoHtml.textContent = "—";
-      els.infoCat.textContent = "—";
-      return;
+      // Despawn if fully off-screen
+      if (e.x < -e.w - 2) enemies.splice(i, 1);
     }
 
-    const s = codepointToString(cp);
-    const utf8 = utf8BytesForString(s);
-    const utf16units = [];
-    for (let i = 0; i < s.length; i++) {
-      utf16units.push(s.charCodeAt(i).toString(16).toUpperCase().padStart(4, "0"));
-    }
+    // Update bullets
+    function updBul(arr) {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const b = arr[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.ttl -= dt;
 
-    els.infoChar.textContent = s;
-    els.infoCode.textContent = "U+" + hex4(cp);
-    els.infoUtf16.textContent = utf16units.join(" ");
-    els.infoUtf8.textContent = bytesToHex(utf8);
-    els.infoJs.textContent = jsEscapeFor(cp);
-    els.infoPy.textContent = pyEscapeFor(cp);
-    els.infoHtml.textContent = htmlEntityFor(cp);
-    els.infoCat.textContent = categoryFor(cp);
-  }
+        if (b.kind === "clusterShell" && (b.x - b.startX) >= b.splitDist) {
+          splitClusterShell(b);
+          arr.splice(i, 1);
+          continue;
+        }
 
-  // ---------------------------
-  // Favorites + Recents
-  // ---------------------------
-  function toggleFavorite(cp) {
-    if (cp == null) return;
-    if (state.favorites.has(cp)) state.favorites.delete(cp);
-    else state.favorites.add(cp);
-    saveFontScoped();
-    scheduleRender();
-  }
-
-  function pushRecent(cp) {
-    if (cp == null) return;
-    // Move to front
-    const idx = state.recents.indexOf(cp);
-    if (idx >= 0) state.recents.splice(idx, 1);
-    state.recents.unshift(cp);
-    state.recents = state.recents.slice(0, 64);
-    saveFontScoped();
-  }
-
-  // ---------------------------
-  // Insert / Copy
-  // ---------------------------
-  function insertCp(cp) {
-    if (cp == null) return;
-    const glyph = codepointToString(cp);
-    if (!glyph) return;
-    const ok = insertTextAtCaret(glyph);
-    if (ok) {
-      pushRecent(cp);
-      toast(`Inserted ${"U+" + hex4(cp)}`);
-      updateEditorStats();
-    } else {
-      toast("Couldn't insert (click in editor first).");
-    }
-  }
-
-  async function copyTextToClipboard(txt) {
-    try {
-      await navigator.clipboard.writeText(txt);
-      return true;
-    } catch {
-      // fallback
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = txt;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-        return true;
-      } catch {
-        return false;
-      }
-    }
-  }
-
-  async function copySelectedGlyph() {
-    if (state.selectedCp == null) {
-      toast("No glyph selected.");
-      return;
-    }
-    const glyph = codepointToString(state.selectedCp);
-    const ok = await copyTextToClipboard(glyph);
-    toast(ok ? "Copied glyph." : "Copy failed.");
-  }
-
-  async function copySelectedInfo() {
-    if (state.selectedCp == null) {
-      toast("No glyph selected.");
-      return;
-    }
-    const cp = state.selectedCp;
-    const s = codepointToString(cp);
-    const block = [
-      `Character: ${s}`,
-      `Codepoint: U+${hex4(cp)}`,
-      `UTF-16: ${els.infoUtf16.textContent}`,
-      `UTF-8: ${els.infoUtf8.textContent}`,
-      `JS: ${jsEscapeFor(cp)}`,
-      `Python: ${pyEscapeFor(cp)}`,
-      `HTML: ${htmlEntityFor(cp)}`,
-      `Category: ${categoryFor(cp)}`
-    ].join("\n");
-    const ok = await copyTextToClipboard(block);
-    toast(ok ? "Copied info." : "Copy failed.");
-  }
-
-  // ---------------------------
-  // Editor drag/drop support
-  // ---------------------------
-  function setupEditorDnD() {
-    const ed = els.editor;
-
-    ed.addEventListener("dragover", (ev) => {
-      ev.preventDefault();
-      ev.dataTransfer.dropEffect = "copy";
-      ed.classList.add("dragOver");
-    });
-
-    ed.addEventListener("dragleave", () => {
-      ed.classList.remove("dragOver");
-    });
-
-    ed.addEventListener("drop", (ev) => {
-      ev.preventDefault();
-      ed.classList.remove("dragOver");
-
-      const txt = ev.dataTransfer.getData("text/plain");
-      if (!txt) return;
-
-      ed.focus();
-      const r = getCaretRangeFromPoint(ev.clientX, ev.clientY);
-      const ok = insertTextAtRange(txt, r || (window.getSelection() && window.getSelection().rangeCount ? window.getSelection().getRangeAt(0) : null));
-      if (ok) {
-        // if dropped text is a single codepoint, record recent
-        const cp = txt.codePointAt(0);
-        if (typeof cp === "number") pushRecent(cp);
-        toast("Dropped glyph.");
-        updateEditorStats();
-      }
-    });
-  }
-
-  // ---------------------------
-  // Splitter (drag divider)
-  // ---------------------------
-  function setupSplitter() {
-    const div = els.divider;
-    let dragging = false;
-
-    div.addEventListener("mousedown", (ev) => {
-      dragging = true;
-      ev.preventDefault();
-      document.body.style.cursor = "col-resize";
-    });
-
-    window.addEventListener("mousemove", (ev) => {
-      if (!dragging) return;
-      const rect = els.main.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const pct = (x / rect.width) * 100;
-      state.splitLeftPct = clamp(pct, 15, 60);
-      document.documentElement.style.setProperty("--split-left", state.splitLeftPct + "%");
-      els.leftPane.style.width = state.splitLeftPct + "%";
-      els.divider.style.left = state.splitLeftPct + "%";
-      savePrefs();
-      updateVirtualMetrics();
-      scheduleRender();
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (!dragging) return;
-      dragging = false;
-      document.body.style.cursor = "";
-    });
-  }
-
-  // ---------------------------
-  // Download editor text
-  // ---------------------------
-  function downloadTextFile(filename, contents) {
-    const blob = new Blob([contents], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-
-  // ---------------------------
-  // Keyboard shortcuts
-  // ---------------------------
-  function setupShortcuts() {
-    window.addEventListener("keydown", (ev) => {
-      // Ctrl+S -> download
-      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "s") {
-        ev.preventDefault();
-        const name = (state.fontName ? state.fontName.replace(/\.(ttf|otf|ttc)$/i, "") : "glyphlab") + ".txt";
-        downloadTextFile(name, getEditorText());
-        toast("Downloaded text.");
-        return;
-      }
-
-      // Enter -> insert selected (when focus not in search)
-      if (ev.key === "Enter" && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey) {
-        const active = document.activeElement;
-        if (active === els.search) return;
-        if (state.selectedCp != null) {
-          // If focus is inside editor, let it insert newline normally.
-          if (active === els.editor) return;
-          ev.preventDefault();
-          insertCp(state.selectedCp);
+        if (
+          b.ttl <= 0 ||
+          b.x < -2 || b.x > COLS + 2 ||
+          b.y < PLAY_Y0 - 2 || b.y > PLAY_Y1 + 2
+        ) {
+          arr.splice(i, 1);
         }
       }
-    });
-  }
-
-  // ---------------------------
-  // Event wiring
-  // ---------------------------
-  function wireUI() {
-    // file load
-    els.fontFile.addEventListener("change", async () => {
-      const file = els.fontFile.files && els.fontFile.files[0];
-      if (!file) return;
-      try {
-        await loadFontFromFile(file);
-      } catch (e) {
-        console.error(e);
-        toast("Failed to load font. See console.");
-        els.fontPill.textContent = "Failed to load font: " + String(e && e.message ? e.message : e);
-      } finally {
-        // allow reloading same file
-        els.fontFile.value = "";
-      }
-    });
-
-    // search
-    els.search.addEventListener("input", async () => {
-      state.searchQuery = els.search.value;
-      await rebuildDisplayList();
-    });
-    els.clearSearch.addEventListener("click", async () => {
-      els.search.value = "";
-      state.searchQuery = "";
-      await rebuildDisplayList();
-      els.search.focus();
-    });
-
-    // glyph size slider / num
-    function setGlyphSize(n) {
-      state.glyphSizePx = clamp(n, 18, 140);
-      els.glyphSize.value = String(state.glyphSizePx);
-      els.glyphSizeNum.value = String(state.glyphSizePx);
-      savePrefs();
-      // Update blank cache? We use a low threshold; keep cache, but render test is size dependent.
-      // Safer: clear blankCache so "nonblank" remains accurate at new size.
-      state.blankCache.clear();
-      state.renderHashCache.clear();
-      rebuildDisplayList();
     }
-    els.glyphSize.addEventListener("input", () => setGlyphSize(parseInt(els.glyphSize.value, 10)));
-    els.glyphSizeNum.addEventListener("change", () => setGlyphSize(parseInt(els.glyphSizeNum.value, 10)));
+    updBul(bullets);
+    updBul(ebullets);
 
-    // toggles
-    els.showLabels.addEventListener("change", async () => {
-      state.showLabels = !!els.showLabels.checked;
-      savePrefs();
-      updateVirtualMetrics();
-      scheduleRender();
-    });
+    telemetry.peakEnemies = Math.max(telemetry.peakEnemies, enemies.length);
+    telemetry.peakBullets = Math.max(telemetry.peakBullets, bullets.length);
+    telemetry.peakEBullets = Math.max(telemetry.peakEBullets, ebullets.length);
 
-    els.showWhitespace.addEventListener("change", async () => {
-      state.showWhitespace = !!els.showWhitespace.checked;
-      savePrefs();
-      await rebuildDisplayList();
-    });
+    // Update pickups
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const p = pickups[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.ttl -= dt;
+      p.anim += dt;
+      if (p.anim >= 0.12) {
+        p.anim = 0;
+        p.frame = (p.frame + 1) % PWR_FRAMES.length;
+      }
+      // tiny bob
+      p.vy += Math.sin((performance.now() / 220) + i) * 0.02;
+      p.y = clamp(p.y, PLAY_Y0, PLAY_Y1);
 
-    els.showCombining.addEventListener("change", async () => {
-      state.showCombining = !!els.showCombining.checked;
-      savePrefs();
-      await rebuildDisplayList();
-    });
+      if (p.ttl <= 0 || p.x < -2) pickups.splice(i, 1);
+    }
 
-    els.showControls.addEventListener("change", async () => {
-      state.showControls = !!els.showControls.checked;
-      savePrefs();
-      await rebuildDisplayList();
-    });
+    // Update explosions
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      const ex = explosions[i];
+      ex.t += dt;
+      if (ex.t >= ex.rate) {
+        ex.t = 0;
+        ex.frame++;
+        if (ex.frame >= BOOM_FRAMES.length) {
+          explosions.splice(i, 1);
+        }
+      }
+    }
 
-    // block filter
-    els.blockFilter.addEventListener("change", async () => {
-      state.blockFilter = els.blockFilter.value;
-      await rebuildDisplayList();
-    });
+    // ───────────────── collisions ─────────────────
 
-    // buttons
-    els.copySelected.addEventListener("click", copySelectedGlyph);
-    els.insertSelected.addEventListener("click", () => {
-      if (state.selectedCp == null) { toast("No glyph selected."); return; }
-      insertCp(state.selectedCp);
-    });
-    els.starSelected.addEventListener("click", () => {
-      if (state.selectedCp == null) { toast("No glyph selected."); return; }
-      toggleFavorite(state.selectedCp);
-      toast(state.favorites.has(state.selectedCp) ? "Starred." : "Unstarred.");
-    });
+    // Player bullets -> enemies
+    for (let bi = bullets.length - 1; bi >= 0; bi--) {
+      const b = bullets[bi];
+      let hitSomething = false;
 
-    els.clearFavs.addEventListener("click", async () => {
-      if (!state.fontFingerprint) { toast("No font loaded."); return; }
-      state.favorites.clear();
-      saveFontScoped();
-      await rebuildDisplayList();
-      toast("Cleared favorites.");
-    });
+      for (let ei = enemies.length - 1; ei >= 0; ei--) {
+        const e = enemies[ei];
+        if (aabb(b.x, b.y, 1, 1, e.x, e.y, e.w, e.h)) {
+          hitSomething = true;
 
-    els.clearRecents.addEventListener("click", async () => {
-      if (!state.fontFingerprint) { toast("No font loaded."); return; }
-      state.recents = [];
-      saveFontScoped();
-      await rebuildDisplayList();
-      toast("Cleared recents.");
-    });
+          if (b.kind === "missile") {
+            explodeMissile(b);
+          } else {
+            e.hp -= b.damage;
+            // hit spark
+            spawnExplosion(b.x, b.y, false);
+            if (e.hp <= 0) killEnemyAtIndex(ei);
+          }
+          break;
+        }
+      }
 
-    els.copyInfo.addEventListener("click", copySelectedInfo);
+      if (hitSomething) bullets.splice(bi, 1);
+    }
 
-    // editor actions
-    els.editor.addEventListener("input", updateEditorStats);
+    // Enemy bullets -> player
+    if (player.invuln <= 0) {
+      for (let bi = ebullets.length - 1; bi >= 0; bi--) {
+        const b = ebullets[bi];
+        if (aabb(b.x, b.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
+          ebullets.splice(bi, 1);
+          if (player.shield > 0) {
+            player.shield = 0;
+            player.invuln = 0.6;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, false);
+          } else {
+            player.lives--;
+            player.invuln = 2.0;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, true);
+          }
+          break;
+        }
+      }
+    }
 
-    els.newDoc.addEventListener("click", () => {
-      setEditorText("");
-      els.editor.focus();
-      toast("New doc.");
-    });
+    // Enemy body -> player
+    if (player.invuln <= 0) {
+      for (let ei = enemies.length - 1; ei >= 0; ei--) {
+        const e = enemies[ei];
+        if (aabb(player.x, player.y, D_PLAYER.w, D_PLAYER.h, e.x, e.y, e.w, e.h)) {
+          if (player.shield > 0) {
+            player.shield = 0;
+            player.invuln = 0.8;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, false);
+            spawnExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, true);
+            enemies.splice(ei, 1);
+          } else {
+            player.lives--;
+            player.invuln = 2.0;
+            player.streak = 0;
+            spawnExplosion(player.x + 1.5, player.y + 1, true);
+            // destroy the enemy too
+            spawnExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, true);
+            enemies.splice(ei, 1);
+          }
+          break;
+        }
+      }
+    }
 
-    els.copyAll.addEventListener("click", async () => {
-      const ok = await copyTextToClipboard(getEditorText());
-      toast(ok ? "Copied all." : "Copy failed.");
-    });
+    // Pickups -> player
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const p = pickups[i];
+      if (aabb(p.x, p.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
+        pickups.splice(i, 1);
 
-    els.downloadText.addEventListener("click", () => {
-      const name = (state.fontName ? state.fontName.replace(/\.(ttf|otf|ttc)$/i, "") : "glyphlab") + ".txt";
-      downloadTextFile(name, getEditorText());
-      toast("Downloaded text.");
-    });
+        if (p.type === "bomb") {
+          player.bombs = Math.min(MAX_BOMBS, player.bombs + 1);
+          player.score += 90;
+        } else if (p.type === "shield") {
+          if (player.shield <= 0) player.shield = 1;
+          else player.score += 60;
+          player.score += 90;
+        } else if (p.type === "option") {
+          if (player.options < 2) player.options++;
+          else player.score += 60;
+          player.score += 110;
+        } else if (p.type.startsWith("wpn")) {
+          const newWeapon =
+            (p.type === "wpnSpread") ? "spread" :
+            (p.type === "wpnLaser") ? "laser" :
+            (p.type === "wpnMissile") ? "missile" :
+            "cluster";
+          if (player.weapon !== newWeapon) {
+            player.weapon = newWeapon;
+            player.fireLevel = 1;
+            player.cooldown = 0;
+          } else {
+            player.score += 80;
+          }
+          player.score += 140;
+        } else {
+          // Fire upgrade
+          if (player.fireLevel < 3) player.fireLevel++;
+          else player.score += 60;
+          player.score += 110;
+        }
+        spawnExplosion(p.x, p.y, false);
+      }
+    }
 
-    els.clearEditor.addEventListener("click", () => {
-      setEditorText("");
-      toast("Cleared.");
-      els.editor.focus();
-    });
+    // Game over
+    if (player.lives <= 0) {
+      state = "gameover";
+    }
 
-    // scroller
-    els.glyphScroller.addEventListener("scroll", scheduleRender);
-    window.addEventListener("resize", () => {
-      updateVirtualMetrics();
-      scheduleRender();
-    });
+    lastFireDown = fireDown;
+    lastBombDown = bombDown;
   }
 
-  // ---------------------------
-  // Initialize
-  // ---------------------------
-  function init() {
-    loadPrefs();
-
-    // Apply prefs to UI
-    document.documentElement.style.setProperty("--split-left", state.splitLeftPct + "%");
-    els.leftPane.style.width = state.splitLeftPct + "%";
-    els.divider.style.left = state.splitLeftPct + "%";
-
-    state.glyphSizePx = clamp(state.glyphSizePx, 18, 140);
-    els.glyphSize.value = String(state.glyphSizePx);
-    els.glyphSizeNum.value = String(state.glyphSizePx);
-
-    els.showLabels.checked = state.showLabels;
-    els.showWhitespace.checked = state.showWhitespace;
-    els.showCombining.checked = state.showCombining;
-    els.showControls.checked = state.showControls;
-
-    setupSplitter();
-    setupEditorDnD();
-    setupShortcuts();
-    wireUI();
-
-    // initial editor stats
-    setEditorText("Type here… then drag or double-click glyphs from the grid on the right.");
-    updateEditorStats();
-
-    updateVirtualMetrics();
-    scheduleRender();
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────────
+  function renderBorders() {
+    // Top HUD separator
+    const topLine = "╚" + "═".repeat(COLS - 2) + "╝";
+    const botLine = "╔" + "═".repeat(COLS - 2) + "╗";
+    drawText(0, BORDER_TOP, topLine, palette.faint);
+    drawText(0, BORDER_BOTTOM, botLine, palette.faint);
   }
 
-  init();
+  function formatTime(t) {
+    const s = Math.max(0, Math.floor(t));
+    const m = Math.floor(s / 60);
+    const ss = String(s % 60).padStart(2, "0");
+    return `${String(m).padStart(2, "0")}:${ss}`;
+  }
 
+  function renderHUD() {
+    const lives = "♥".repeat(Math.max(0, player.lives));
+    const opt = player.options > 0 ? ("✦".repeat(player.options)) : " ";
+    const level = player.fireLevel;
+    const timeStr = formatTime(runTime);
+    const shieldStr = player.shield > 0 ? "S" : " ";
+    const wpn = WEAPON_NAME[player.weapon] || "BASIC";
+
+    const left = `SCORE ${String(player.score).padStart(7, "0")}  `;
+    const mid  = `LIVES ${lives.padEnd(6, " ")}  `;
+    const right= `B ${player.bombs}/${MAX_BOMBS}  ${shieldStr}  OPTIONS ${opt.padEnd(2, " ")}  WPN ${wpn} LV ${level}  TIME ${timeStr}`;
+
+    const line0 = (left + mid + right).padEnd(COLS, " ").slice(0, COLS);
+
+    // streak meter
+    const meterW = 22;
+    const streakTier = Math.min(meterW, Math.floor(player.streak / 2));
+    const meter = "▮".repeat(streakTier) + "▯".repeat(meterW - streakTier);
+
+    const line1 = (debugHUD
+      ? `STREAK ${meter}  T ${timeStr}  PH ${directorPhase.padEnd(8," ")}  EN ${String(enemies.length).padStart(2,"0")}/${enemyCap}  EB ${String(ebullets.length).padStart(2,"0")}/${enemyBulletCap}  PK E${telemetry.peakEnemies} B${telemetry.peakEBullets}  DIFF ${difficulty.toFixed(1)}`
+      : `STREAK ${meter}   DIFF ${Math.round(difficulty)}`
+    ).padEnd(COLS, " ").slice(0, COLS);
+
+    // help hint
+    const line2 = (`[ENTER] pause   [R] restart   SPACE fire   X bomb   SHIFT slow   F1 stats`).padEnd(COLS, " ").slice(0, COLS);
+
+    drawText(0, 0, line0, palette.hud);
+    drawText(0, 1, line1, palette.dim);
+    drawText(0, 2, line2, palette.dim);
+  }
+
+  function renderTitle() {
+    const { top, sep, bot } = boxLines(72, "");
+    const lines = [
+      top,
+      "║       ⋆·˚ ༘ *  UNSCII SHMUP  * ༘ ˚·⋆                                   ║",
+      "║   R‑Type / Gradius / 1942 vibes — side‑scrolling glyph war             ║",
+      sep,
+      "║   Move: Arrows/WASD     Fire: Space     Slow: Shift                    ║",
+      "║   Bomb: X               Start/Pause: Enter    Restart: R               ║",
+      "║                                                                        ║",
+      "║   Powerups: FIRE · WEAPON · OPTION · SHIELD · BOMB (color-coded)       ║",
+      "║   Keep a streak for bigger score ticks.                                ║",
+      bot,
+    ];
+
+    const y0 = 7;
+    for (let i = 0; i < lines.length; i++) {
+      drawText(centerX(lines[i]), y0 + i, lines[i], palette.hud);
+    }
+
+    const prompt = "≪  PRESS ENTER TO LAUNCH  ≫";
+    drawText(centerX(prompt), y0 + lines.length + 3, prompt, palette.option);
+
+    // small “demo ship”
+    drawSprite(Math.floor(COLS/2) - 14, y0 + lines.length + 6, SPR_PLAYER, palette.player);
+    drawText(Math.floor(COLS/2) - 8, y0 + lines.length + 7, "•••", palette.bullet);
+    drawSprite(Math.floor(COLS/2) + 6, y0 + lines.length + 6, SPR_ENEMY_SCOUT, palette.enemy1);
+  }
+
+  function renderOverlayText(textLines) {
+    // dim overlay box
+    const innerW = 52;
+    const box = boxLines(innerW, "");
+    const lines = [
+      box.top,
+      ...textLines.map(t => "║" + t.padEnd(innerW, " ").slice(0, innerW) + "║"),
+      box.bot,
+    ];
+    const y0 = 12;
+    for (let i = 0; i < lines.length; i++) {
+      drawText(centerX(lines[i]), y0 + i, lines[i], palette.hud);
+    }
+  }
+
+  function renderGameOver() {
+    renderOverlayText([
+      "              GAME OVER               ",
+      "",
+      `  FINAL SCORE: ${String(player.score).padStart(7,"0")}          `,
+      "",
+      "  Press ENTER to restart             ",
+      "  Press R to return to title         ",
+    ]);
+  }
+
+  function renderPaused() {
+    renderOverlayText([
+      "                PAUSED               ",
+      "",
+      "  Press ENTER to continue            ",
+      "  Press R to restart (title)         ",
+    ]);
+  }
+
+  function render() {
+    // clear
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, COLS * cell.w, ROWS * cell.h);
+
+    // starfield
+    for (const s of stars) {
+      // keep stars inside play area visually
+      if (s.y < PLAY_Y0 || s.y > PLAY_Y1) continue;
+      drawGlyph(s.x, s.y, s.ch, s.color);
+    }
+
+    renderHUD();
+    renderBorders();
+
+    if (state === "title") {
+      renderTitle();
+      return;
+    }
+
+    // pickups
+    for (const p of pickups) {
+      const ch = PWR_FRAMES[p.frame];
+      const color =
+        (p.type === "bomb") ? palette.bomb :
+        (p.type === "shield") ? palette.shield :
+        (p.type === "option") ? palette.option :
+        (p.type === "wpnSpread") ? palette.wpnSpread :
+        (p.type === "wpnLaser") ? palette.wpnLaser :
+        (p.type === "wpnMissile") ? palette.wpnMissile :
+        (p.type === "wpnCluster") ? palette.wpnCluster :
+        palette.pickup;
+      drawGlyph(p.x, p.y, ch, color);
+    }
+
+    // beams (laser)
+    for (const seg of beams) {
+      drawGlyph(seg.x, seg.y, seg.ch, seg.color);
+    }
+
+    // bullets
+    for (const b of bullets) {
+      if (b.kind === "missile") {
+        if (b.big) {
+          drawGlyph(b.x - 3, b.y, "┈", b.color);
+          drawGlyph(b.x - 2, b.y, "┉", b.color);
+          drawGlyph(b.x - 1, b.y, "➳", b.color);
+          drawGlyph(b.x,     b.y, "❥", b.color);
+        } else {
+          drawGlyph(b.x - 2, b.y, "┈", b.color);
+          drawGlyph(b.x - 1, b.y, "┉", b.color);
+          drawGlyph(b.x,     b.y, "➳", b.color);
+        }
+      } else {
+        drawGlyph(b.x, b.y, b.ch, b.color);
+      }
+    }
+    for (const b of ebullets) {
+      drawGlyph(b.x, b.y, b.ch, b.color);
+    }
+
+    // enemies
+    for (const e of enemies) {
+      if (e.kind === "scout") {
+        drawSprite(e.x, e.y, SPR_ENEMY_SCOUT, palette.enemy1);
+      } else if (e.kind === "bomber") {
+        drawSprite(e.x, e.y, SPR_ENEMY_BOMBER, palette.enemy2);
+      } else {
+        drawSprite(e.x, e.y, SPR_ENEMY_TURRET, palette.enemy3);
+      }
+    }
+
+    // player + options
+    const blink = player.invuln > 0 && (Math.floor(performance.now() / 90) % 2 === 0);
+    const pColor = blink ? palette.playerInv : palette.player;
+
+    if (player.shield > 0) {
+      drawSprite(player.x - 1, player.y - 1, [
+        " ╱¯¯¯╲ ",
+        "╱     ╲",
+        "│     │",
+        "╲     ╱",
+        " ╲▁▁▁╱ ",
+      ], palette.shield);
+    }
+    drawSprite(player.x, player.y, SPR_PLAYER, pColor);
+
+    // options trailing
+    for (let i = 0; i < player.options; i++) {
+      const idx = player.trail.length - 1 - ((i + 1) * player.optionSpacing);
+      const pos = idx >= 0 ? player.trail[idx] : { x: player.x - (i + 1) * 6, y: player.y };
+      drawSprite(pos.x, pos.y, SPR_OPTION, palette.option);
+    }
+
+    // explosions
+    for (const ex of explosions) {
+      const ch = BOOM_FRAMES[Math.min(BOOM_FRAMES.length - 1, ex.frame)];
+      if (ch !== " ") drawGlyph(ex.x, ex.y, ch, palette.boom);
+    }
+
+    // screen flash (bomb)
+    if (screenFlash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${(0.18 * screenFlash).toFixed(3)})`;
+      ctx.fillRect(0, 0, COLS * cell.w, ROWS * cell.h);
+    }
+
+    if (state === "paused") renderPaused();
+    if (state === "gameover") renderGameOver();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Main loop
+  // ─────────────────────────────────────────────────────────────────────────────
+  let lastT = performance.now();
+
+  function loop(t) {
+    const dt = Math.min(0.033, Math.max(0, (t - lastT) / 1000));
+    lastT = t;
+
+    update(dt);
+    render();
+
+    requestAnimationFrame(loop);
+  }
+
+  // Boot
+  applyCanvasSizing();
+  initStars();
+  resetGame();
+
+  // Try resizing once fonts settle (helps if UNSCII loads late locally)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      applyCanvasSizing();
+    }).catch(() => {});
+  }
+
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
