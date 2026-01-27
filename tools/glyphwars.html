@@ -75,6 +75,49 @@
     #help b{ color:var(--hud); font-weight:700; }
     #fontStatus{ margin-top:6px; }
     .warn{ color:var(--warn); }
+    #help .helpRow{ margin-top:2px; }
+    #help code{
+      display:inline-block;
+      padding:0 4px;
+      border:1px solid #2a2f44;
+      border-bottom-color:#1b2032;
+      border-radius:6px;
+      background:var(--panel);
+      color:var(--fg);
+      font-family:inherit;
+      font-size:12px;
+      line-height:1.45;
+    }
+    .legendRow{
+      margin-top:8px;
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:10px;
+    }
+    .legendItem{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:4px;
+      min-width:110px;
+    }
+    .legendItem .label{
+      color:var(--hud);
+      font-weight:700;
+      font-size:12px;
+      letter-spacing:0.2px;
+    }
+    .legendItem pre{
+      margin:0;
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:rgba(0,0,0,0.25);
+      color:var(--fg);
+      line-height:1.05;
+      white-space:pre;
+    }
     kbd{
       display:inline-block;
       padding:1px 7px;
@@ -96,16 +139,7 @@
   <div id="wrap">
     <canvas id="screen" aria-label="ASCII shmup canvas"></canvas>
     <div id="help">
-      <div>
-        <b>Controls:</b>
-        <kbd>Arrow Keys</kbd>/<kbd>WASD</kbd> move ·
-        <kbd>Space</kbd> fire ·
-        <kbd>X</kbd> bomb ·
-        <kbd>Shift</kbd> slow ·
-        <kbd>Enter</kbd> start/pause ·
-        <kbd>R</kbd> restart ·
-        <kbd>F1</kbd> stats
-      </div>
+      <div id="helpContent"></div>
       <div id="fontStatus"></div>
     </div>
   </div>
@@ -135,6 +169,7 @@
   const canvas = document.getElementById("screen");
   const ctx = canvas.getContext("2d", { alpha: false });
   const fontStatusEl = document.getElementById("fontStatus");
+  const helpContentEl = document.getElementById("helpContent");
 
   const palette = {
     bg: "#000000",
@@ -144,6 +179,8 @@
     star1: "#2b3040",
     star2: "#434b66",
     star3: "#6a74a5",
+    nebulaTeal: "rgba(108, 242, 255, 0.14)",
+    nebulaPurple: "rgba(178, 141, 255, 0.14)",
     player: "#7de9ff",
     playerInv: "#c8ffff",
     option: "#ffd36e",
@@ -291,30 +328,89 @@
   // ─────────────────────────────────────────────────────────────────────────────
   // Sprites (grid-aligned, UNSCII-friendly glyphs)
   // ─────────────────────────────────────────────────────────────────────────────
-  const SPR_PLAYER = [
-    "  ▸►",
-    "═╫═►",
-    "  ▸►",
-  ];
-  const SPR_OPTION = ["✦"];
+const SPR_PLAYER = [
+  "  ▸►",
+  "═╫═►",
+  "  ▸►",
+];
+const SPR_OPTION = ["✦"];
 
-  const SPR_ENEMY_SCOUT = [
-    "◄◂ ",
-    "◄■◄",
-    "◄◃ ",
-  ];
+const SPR_ENEMY_SCOUT = [
+  "◄◂ ",
+  "◄■◄",
+  "◄◃ ",
+];
 
-  const SPR_ENEMY_BOMBER = [
-    "╔═╦═╗",
-    "╣◄█►╠",
-    "╚═╩═╝",
-  ];
+const SPR_ENEMY_BOMBER = [
+  "◢◣◜┏╗",
+  "🞀∙██▶",
+  "◥◤◟┗╝",
+];
 
-  const SPR_ENEMY_TURRET = [
-    "┌─┐",
-    "│█│",
-    "└╥┘",
-  ];
+const SPR_ENEMY_TURRET = [
+  " .-.",
+  "( ╳ )",
+  " '-'",
+];
+
+  function escapeHTML(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function spriteBlockHTML(lines) {
+    return `<pre>${escapeHTML(lines.join("\n"))}</pre>`;
+  }
+
+  function updateHelpPanel() {
+    if (!helpContentEl) return;
+
+    const controls = `
+      <div class="helpRow">
+        <b>Controls:</b>
+        <kbd>Arrows</kbd>/<kbd>WASD</kbd> move ·
+        <kbd>Space</kbd> fire ·
+        <kbd>X</kbd> bomb ·
+        <kbd>Shift</kbd> slow ·
+        <kbd>Enter</kbd> pause ·
+        <kbd>R</kbd> restart ·
+        <kbd>C</kbd> controls ·
+        <kbd>F1</kbd> stats
+      </div>
+    `;
+
+    const weapons = `
+      <div class="helpRow">
+        <b>Weapons:</b>
+        BASIC <code>•</code>/<code>⁍</code> ·
+        SPREAD <code>･</code> ·
+        LASER <code>----</code>/<code>====</code> ·
+        MISSILE <code>┈┉➳</code>/<code>┈┉➳❥</code> ·
+        CLUSTER <code>⁂</code>→<code>⸱</code>
+      </div>
+    `;
+
+    const legendItem = (name, lines) => `
+      <div class="legendItem">
+        <div class="label">${escapeHTML(name)}</div>
+        ${spriteBlockHTML(lines)}
+      </div>
+    `;
+
+    const legend = `
+      <div class="legendRow">
+        ${legendItem("PLAYER", SPR_PLAYER)}
+        ${legendItem("OPTION", SPR_OPTION)}
+        ${legendItem("SCOUT", SPR_ENEMY_SCOUT)}
+        ${legendItem("BOMBER", SPR_ENEMY_BOMBER)}
+        ${legendItem("TURRET", SPR_ENEMY_TURRET)}
+      </div>
+    `;
+
+    helpContentEl.innerHTML = controls + weapons + legend;
+  }
 
   const D_PLAYER = spriteDims(SPR_PLAYER);
   const D_OPTION = spriteDims(SPR_OPTION);
@@ -343,6 +439,7 @@
   const keys = new Set();
   let lastFireDown = false;
   let lastBombDown = false;
+  let controlsPrevState = "title";
 
   function isDown(code) { return keys.has(code); }
 
@@ -354,6 +451,11 @@
     if (code.startsWith("Arrow") || code === "Space") e.preventDefault();
 
     // One-shot actions
+    if (code === "KeyC") {
+      if (state === "controls") state = controlsPrevState;
+      else { controlsPrevState = state; state = "controls"; }
+      e.preventDefault();
+    }
     if (code === "Enter") {
       if (state === "title" || state === "gameover") {
         startGame();
@@ -380,9 +482,10 @@
   // ─────────────────────────────────────────────────────────────────────────────
   // World state
   // ─────────────────────────────────────────────────────────────────────────────
-  let state = "title"; // title | playing | paused | gameover
+  let state = "title"; // title | playing | paused | controls | gameover
 
   const stars = [];
+  const nebulae = [];
   const enemies = [];
   const bullets = [];
   const ebullets = [];
@@ -403,6 +506,7 @@
   let laserSpark = 0;
   let spawnedSurvivability = false;
   let spawnedWeapon = false;
+  let spawnedOption = false;
 
   const telemetry = {
     peakEnemies: 0,
@@ -516,6 +620,33 @@
     };
   }
 
+  const NEBULA_TILES = [
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+  ];
+
+  function makeNebula(xStart=null) {
+    const size = chance(0.65) ? 2 : 3;
+    const tiles = [];
+    let filled = 0;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (chance(0.22)) continue;
+        tiles.push({ x, y, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
+        filled++;
+      }
+    }
+    if (filled <= 1) {
+      tiles.push({ x: 0, y: 0, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
+      if (size === 3) tiles.push({ x: 1, y: 1, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
+    }
+
+    const color = chance(0.5) ? palette.nebulaTeal : palette.nebulaPurple;
+    const speed = rnd(2.8, 6.0);
+    const x = xStart ?? (COLS + rnd(30, 120));
+    const y = rnd(PLAY_Y0, PLAY_Y1 - size + 1);
+    return { x, y, size, tiles, color, speed };
+  }
+
   function initStars() {
     stars.length = 0;
     const N = 220;
@@ -543,6 +674,11 @@
         color,
       });
     }
+
+    nebulae.length = 0;
+    // Very occasional background “nebula”: a sparse 2×2 / 3×3 glyph cluster.
+    // Keep exactly one around with long gaps between respawns.
+    nebulae.push(makeNebula(rnd(COLS * 0.75, COLS * 1.35)));
   }
 
   function resetGame() {
@@ -576,6 +712,7 @@
     screenFlash = 0;
     spawnedSurvivability = false;
     spawnedWeapon = false;
+    spawnedOption = false;
     lastBombDown = false;
 
     const dir0 = computeDirector(0, 0);
@@ -646,28 +783,28 @@
     // OPTIONS are intentionally rare; weapon swaps show up occasionally.
     let wFire, wWeapon, wOption, wShield, wBomb;
     if (t < 60) {
-      wFire = 0.56;
+      wFire = 0.53;
       wWeapon = 0.12;
-      wOption = 0.02;
+      wOption = 0.05;
       wShield = 0.20;
       wBomb = 0.10;
     } else if (t < 150) {
-      wFire = 0.50;
+      wFire = 0.47;
       wWeapon = 0.16;
-      wOption = 0.03;
+      wOption = 0.06;
       wShield = 0.18;
       wBomb = 0.13;
     } else {
-      wFire = 0.46;
+      wFire = 0.42;
       wWeapon = 0.20;
-      wOption = 0.03;
+      wOption = 0.07;
       wShield = 0.16;
       wBomb = 0.15;
     }
 
     // Options: 2nd is much rarer; none after cap.
     if (player.options >= 2) { wFire += wOption; wOption = 0; }
-    else if (player.options >= 1) { wOption *= 0.35; }
+    else if (player.options >= 1) { wOption *= 0.55; }
 
     // If already protected / stocked, push weight back into fire/weapons.
     if (player.shield > 0) { wFire += wShield; wShield = 0; }
@@ -702,6 +839,7 @@
 
     if (type === "bomb" || type === "shield") spawnedSurvivability = true;
     if (type.startsWith("wpn")) spawnedWeapon = true;
+    if (type === "option") spawnedOption = true;
   }
 
   function fireBullet(x, y, vx, vy, friendly, ch, color, damage=1, extra=null) {
@@ -1059,6 +1197,14 @@
   // Update
   // ─────────────────────────────────────────────────────────────────────────────
   function updateStars(dt) {
+    for (const n of nebulae) {
+      n.x -= n.speed * dt;
+      if (n.x < -n.size - 4) {
+        // long gap before the next nebula
+        Object.assign(n, makeNebula(COLS + rnd(40, 160)));
+      }
+    }
+
     for (const s of stars) {
       s.x -= (s.speed * dt);
       if (s.x < -1) {
@@ -1136,6 +1282,13 @@
         clamp(player.x + 32, 18, COLS - 8),
         clamp(player.y + rnd(-2, 2), PLAY_Y0, PLAY_Y1),
         pickWeaponPickup(),
+      );
+    }
+    if (!spawnedOption && player.options <= 0 && runTime >= 45) {
+      spawnPickup(
+        clamp(player.x + 34, 18, COLS - 8),
+        clamp(player.y + rnd(-3, 3), PLAY_Y0, PLAY_Y1),
+        "option",
       );
     }
 
@@ -1465,7 +1618,7 @@
     ).padEnd(COLS, " ").slice(0, COLS);
 
     // help hint
-    const line2 = (`[ENTER] pause   [R] restart   SPACE fire   X bomb   SHIFT slow   F1 stats`).padEnd(COLS, " ").slice(0, COLS);
+    const line2 = (`Press C for controls/legend`).padEnd(COLS, " ").slice(0, COLS);
 
     drawText(0, 0, line0, palette.hud);
     drawText(0, 1, line1, palette.dim);
@@ -1479,8 +1632,7 @@
       "║       ⋆·˚ ༘ *  UNSCII SHMUP  * ༘ ˚·⋆                                   ║",
       "║   R‑Type / Gradius / 1942 vibes — side‑scrolling glyph war             ║",
       sep,
-      "║   Move: Arrows/WASD     Fire: Space     Slow: Shift                    ║",
-      "║   Bomb: X               Start/Pause: Enter    Restart: R               ║",
+      "║   Press C for controls/legend (pauses).                                ║",
       "║                                                                        ║",
       "║   Powerups: FIRE · WEAPON · OPTION · SHIELD · BOMB (color-coded)       ║",
       "║   Keep a streak for bigger score ticks.                                ║",
@@ -1501,16 +1653,14 @@
     drawSprite(Math.floor(COLS/2) + 6, y0 + lines.length + 6, SPR_ENEMY_SCOUT, palette.enemy1);
   }
 
-  function renderOverlayText(textLines) {
+  function renderOverlayText(textLines, innerW=52, y0=12) {
     // dim overlay box
-    const innerW = 52;
     const box = boxLines(innerW, "");
     const lines = [
       box.top,
       ...textLines.map(t => "║" + t.padEnd(innerW, " ").slice(0, innerW) + "║"),
       box.bot,
     ];
-    const y0 = 12;
     for (let i = 0; i < lines.length; i++) {
       drawText(centerX(lines[i]), y0 + i, lines[i], palette.hud);
     }
@@ -1536,10 +1686,47 @@
     ]);
   }
 
+  function renderControls() {
+    const lines = [
+      "           CONTROLS + LEGEND (C to close)           ",
+      "",
+      "  Move: Arrows / WASD        Slow: Shift           ",
+      "  Fire: Space                Bomb: X              ",
+      "  Pause: Enter               Restart: R           ",
+      "  Stats: F1                  Controls: C          ",
+      "",
+      "  Weapons (WEAPON swaps; FIRE upgrades L1→L3):     ",
+      "  BASIC:   • / ⁍                                     ",
+      "  SPREAD:  ･   (3-way → 5-way)                      ",
+      "  LASER:   ---- / ==== / wide (stops on first hit)  ",
+      "  MISSILE: ┈┉➳ / ┈┉➳❥   (AoE)                       ",
+      "  CLUSTER: ⁂ → ⸱     (splits after distance)        ",
+      "",
+      "  Enemies:",
+      `  SCOUT:   ${SPR_ENEMY_SCOUT[0]}`,
+      `           ${SPR_ENEMY_SCOUT[1]}`,
+      `           ${SPR_ENEMY_SCOUT[2]}`,
+      `  BOMBER:  ${SPR_ENEMY_BOMBER[0]}`,
+      `           ${SPR_ENEMY_BOMBER[1]}`,
+      `           ${SPR_ENEMY_BOMBER[2]}`,
+      `  TURRET:  ${SPR_ENEMY_TURRET[0]}`,
+      `           ${SPR_ENEMY_TURRET[1]}`,
+      `           ${SPR_ENEMY_TURRET[2]}`,
+    ];
+    renderOverlayText(lines, 86, 5);
+  }
+
   function render() {
     // clear
     ctx.fillStyle = palette.bg;
     ctx.fillRect(0, 0, COLS * cell.w, ROWS * cell.h);
+
+    // nebula backdrop
+    for (const n of nebulae) {
+      for (const t of n.tiles) {
+        drawGlyph(n.x + t.x, n.y + t.y, t.ch, n.color);
+      }
+    }
 
     // starfield
     for (const s of stars) {
@@ -1642,8 +1829,9 @@
       ctx.fillRect(0, 0, COLS * cell.w, ROWS * cell.h);
     }
 
-    if (state === "paused") renderPaused();
-    if (state === "gameover") renderGameOver();
+    if (state === "controls") renderControls();
+    else if (state === "paused") renderPaused();
+    else if (state === "gameover") renderGameOver();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1665,6 +1853,7 @@
   applyCanvasSizing();
   initStars();
   resetGame();
+  updateHelpPanel();
 
   // Try resizing once fonts settle (helps if UNSCII loads late locally)
   if (document.fonts && document.fonts.ready) {
