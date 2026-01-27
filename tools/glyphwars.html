@@ -371,8 +371,11 @@ const SPR_ENEMY_TURRET = [
       <div class="helpRow">
         <b>Controls:</b>
         <kbd>Arrows</kbd>/<kbd>WASD</kbd> move ·
+        Mouse move ·
         <kbd>Space</kbd> fire ·
+        Left click fire ·
         <kbd>X</kbd> bomb ·
+        Right click bomb ·
         <kbd>Shift</kbd> slow ·
         <kbd>Enter</kbd> pause ·
         <kbd>R</kbd> restart ·
@@ -440,8 +443,23 @@ const SPR_ENEMY_TURRET = [
   let lastFireDown = false;
   let lastBombDown = false;
   let controlsPrevState = "title";
+  const mouse = {
+    active: false,
+    x: 0,
+    y: 0,
+    fire: false,
+  };
 
   function isDown(code) { return keys.has(code); }
+
+  function updateMousePos(e) {
+    const r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const nx = (e.clientX - r.left) / r.width;
+    const ny = (e.clientY - r.top) / r.height;
+    mouse.x = clamp(nx * COLS, 0, COLS);
+    mouse.y = clamp(ny * ROWS, 0, ROWS);
+  }
 
   window.addEventListener("keydown", (e) => {
     const code = e.code;
@@ -478,6 +496,32 @@ const SPR_ENEMY_TURRET = [
   window.addEventListener("keyup", (e) => {
     keys.delete(e.code);
   });
+
+  // Mouse controls on the canvas
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("pointerenter", () => { mouse.active = true; });
+  canvas.addEventListener("pointerleave", () => { if (!mouse.fire) mouse.active = false; });
+  canvas.addEventListener("pointermove", (e) => {
+    updateMousePos(e);
+  });
+  canvas.addEventListener("pointerdown", (e) => {
+    updateMousePos(e);
+    mouse.active = true;
+    try { canvas.setPointerCapture(e.pointerId); } catch {}
+
+    if (e.button === 0) {
+      mouse.fire = true;
+    } else if (e.button === 2) {
+      if (state === "playing") detonateBomb();
+    }
+    e.preventDefault();
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    if (e.button === 0) mouse.fire = false;
+    try { canvas.releasePointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  });
+  canvas.addEventListener("pointercancel", () => { mouse.fire = false; });
 
   // ─────────────────────────────────────────────────────────────────────────────
   // World state
@@ -625,12 +669,20 @@ const SPR_ENEMY_TURRET = [
   ];
 
   function makeNebula(xStart=null) {
-    const size = chance(0.65) ? 2 : 3;
+    // Mostly 2×2 / 3×3; occasional 5×5 “big cloud”.
+    const size = (() => {
+      const r = Math.random();
+      if (r < 0.55) return 2;
+      if (r < 0.93) return 3;
+      return 5;
+    })();
+
+    const skipChance = (size === 2) ? 0.18 : (size === 3) ? 0.25 : 0.62;
     const tiles = [];
     let filled = 0;
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
-        if (chance(0.22)) continue;
+        if (chance(skipChance)) continue;
         tiles.push({ x, y, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
         filled++;
       }
@@ -638,11 +690,15 @@ const SPR_ENEMY_TURRET = [
     if (filled <= 1) {
       tiles.push({ x: 0, y: 0, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
       if (size === 3) tiles.push({ x: 1, y: 1, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
+      if (size === 5) {
+        tiles.push({ x: 2, y: 2, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
+        tiles.push({ x: 1, y: 3, ch: NEBULA_TILES[irnd(0, NEBULA_TILES.length - 1)] });
+      }
     }
 
     const color = chance(0.5) ? palette.nebulaTeal : palette.nebulaPurple;
     const speed = rnd(2.8, 6.0);
-    const x = xStart ?? (COLS + rnd(30, 120));
+    const x = xStart ?? (COLS + rnd(18, 90));
     const y = rnd(PLAY_Y0, PLAY_Y1 - size + 1);
     return { x, y, size, tiles, color, speed };
   }
@@ -676,8 +732,7 @@ const SPR_ENEMY_TURRET = [
     }
 
     nebulae.length = 0;
-    // Very occasional background “nebula”: a sparse 2×2 / 3×3 glyph cluster.
-    // Keep exactly one around with long gaps between respawns.
+    // Background “nebula”: sparse 2×2 / 3×3 / occasional 5×5 glyph cluster.
     nebulae.push(makeNebula(rnd(COLS * 0.75, COLS * 1.35)));
   }
 
@@ -1200,8 +1255,8 @@ const SPR_ENEMY_TURRET = [
     for (const n of nebulae) {
       n.x -= n.speed * dt;
       if (n.x < -n.size - 4) {
-        // long gap before the next nebula
-        Object.assign(n, makeNebula(COLS + rnd(40, 160)));
+        // keep them somewhat rare, but visible more often than v1
+        Object.assign(n, makeNebula(COLS + rnd(18, 110)));
       }
     }
 
@@ -1252,12 +1307,20 @@ const SPR_ENEMY_TURRET = [
     const dx = (right ? 1 : 0) - (left ? 1 : 0);
     const dy = (down  ? 1 : 0) - (up   ? 1 : 0);
 
-    player.x += dx * spd * dt;
-    player.y += dy * spd * dt;
-
     // R-Type/Gradius-ish: constrained forward movement
     const minX = 2;
     const maxX = Math.floor(COLS * 0.55) - D_PLAYER.w;
+    if (mouse.active) {
+      const tx = clamp(mouse.x - (D_PLAYER.w * 0.5), minX, maxX);
+      const ty = clamp(mouse.y - (D_PLAYER.h * 0.5), PLAY_Y0, PLAY_Y1 - D_PLAYER.h + 1);
+      const step = spd * dt;
+      player.x += clamp(tx - player.x, -step, step);
+      player.y += clamp(ty - player.y, -step, step);
+    } else {
+      player.x += dx * spd * dt;
+      player.y += dy * spd * dt;
+    }
+
     player.x = clamp(player.x, minX, maxX);
 
     player.y = clamp(player.y, PLAY_Y0, PLAY_Y1 - D_PLAYER.h + 1);
@@ -1293,7 +1356,7 @@ const SPR_ENEMY_TURRET = [
     }
 
     // Fire (space)
-    const fireDown = isDown("Space");
+    const fireDown = isDown("Space") || mouse.fire;
     // fire from nose
     const px = Math.round(player.x);
     const py = Math.round(player.y);
@@ -1691,7 +1754,9 @@ const SPR_ENEMY_TURRET = [
       "           CONTROLS + LEGEND (C to close)           ",
       "",
       "  Move: Arrows / WASD        Slow: Shift           ",
+      "  Mouse: move ship (in canvas)                     ",
       "  Fire: Space                Bomb: X              ",
+      "  Fire: Left click           Bomb: Right click     ",
       "  Pause: Enter               Restart: R           ",
       "  Stats: F1                  Controls: C          ",
       "",
