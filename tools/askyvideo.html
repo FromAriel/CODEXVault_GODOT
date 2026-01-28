@@ -264,8 +264,9 @@
         </div>
 
         <div class="row">
-          <div class="btnrow">
+          <div class="btnrow3">
             <button id="btnParse">Parse</button>
+            <button id="btnDemo" title="Fetch out_contrast.asky.gz from the same directory">Load Demo</button>
             <button id="btnClear">Clear</button>
           </div>
         </div>
@@ -424,6 +425,7 @@
     const elFile = document.getElementById("file");
     const elDrop = document.getElementById("drop");
     const elParse = document.getElementById("btnParse");
+    const elDemo = document.getElementById("btnDemo");
     const elClear = document.getElementById("btnClear");
 
     const elPlay = document.getElementById("btnPlay");
@@ -470,6 +472,8 @@
     let timerId = null;
     let lastTickAt = 0;
 
+    const DEMO_FILE = "out_contrast.asky.gz";
+
     const LIMITS = Object.freeze({
       maxFileBytes: 256 * 1024 * 1024,
       maxCols: 500,
@@ -484,6 +488,7 @@
       const hasParsed = !!parsed;
 
       elParse.disabled = !hasFile;
+      elDemo.disabled = false;
       elClear.disabled = !hasFile && !hasParsed;
 
       elPlay.disabled = !hasParsed;
@@ -924,6 +929,45 @@
       setStatusOk(`Loaded ${file.name} (${fileBytes.byteLength} bytes)${hint}. Now press Parse.`);
     }
 
+    async function loadDemo() {
+      setPlaying(false);
+      fileBytes = null;
+      parsed = null;
+      frameIndex = 0;
+      syncUi();
+      setStatusInfo(`Loading demo "${DEMO_FILE}"...`);
+
+      try {
+        const url = new URL(`./${DEMO_FILE}`, window.location.href);
+        const resp = await fetch(url.toString(), { cache: "no-cache" });
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+        }
+        const buf = await resp.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        if (bytes.byteLength > LIMITS.maxFileBytes) {
+          throw new Error(`Demo too large (${bytes.byteLength} bytes; limit ${LIMITS.maxFileBytes}).`);
+        }
+
+        fileBytes = bytes;
+        parsed = null;
+        syncUi();
+
+        const isGz = (fileBytes.byteLength >= 2 && fileBytes[0] === 0x1f && fileBytes[1] === 0x8b);
+        const hint = isGz ? " (gzip; will decompress on Parse)" : "";
+        setStatusOk(`Loaded demo ${DEMO_FILE} (${fileBytes.byteLength} bytes)${hint}. Now press Parse.`);
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        const extra = (window.location && window.location.protocol === "file:")
+          ? " (Tip: browsers often block fetch() from file://. Host this folder with a local web server, or load the file manually.)"
+          : "";
+        fileBytes = null;
+        parsed = null;
+        syncUi();
+        setStatusBad(`Failed to load demo "${DEMO_FILE}": ${msg}${extra}`);
+      }
+    }
+
     function clearAll() {
       setPlaying(false);
       fileBytes = null;
@@ -965,6 +1009,10 @@
       const f = elFile.files && elFile.files[0] ? elFile.files[0] : null;
       if (!f) { return; }
       await loadFromFile(f);
+    });
+
+    elDemo.addEventListener("click", async () => {
+      await loadDemo();
     });
 
     elParse.addEventListener("click", async () => {
