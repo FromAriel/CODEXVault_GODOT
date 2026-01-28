@@ -43,7 +43,7 @@ The image begins on **Ubuntu 24.04** and installs these core packages:
 | **Node.js** | `nvm` | Node 18, 20, **22** (default) & `corepack`<br/>Global: `npm`, `yarn`, `pnpm`, `prettier`, `eslint`, `typescript` |
 | **Bun** | direct ZIP | `bun` 1.2.14 |
 | **.NET** | MS apt repo + `setup_script.sh` | SDK & runtime **8.0** → command `dotnet` |
-| **Godot-mono** | manual download | Godot **4.4.1-stable (mono)** → command `godot` |
+| **Godot-mono** | manual download | Godot **4.6-stable (mono)** → command `godot` |
 | **Java** | Ubuntu OpenJDK | JDK **21** + **Gradle 8.14** (`gradle`) |
 | **Swift** | `swiftly` | Swift **6.1** (`swift`, `swiftc`) |
 | **Ruby** | `ruby-full` | System Ruby (`ruby`, `gem`, `irb`) |
@@ -81,9 +81,8 @@ The image begins on **Ubuntu 24.04** and installs these core packages:
 1. **`retry`** — small bash function for exponential-back-off retries  
 2. **`pick_icu`** — helper to grab latest ICU runtime package name  
 3. **`godot_import_pass`** — wrapper that:
-   - builds any `*.sln` with `dotnet build`
    - runs `godot --headless --editor --import`
-   - exits gracefully if no `main_scene` or only harmless warnings
+   - exits gracefully if no Godot project is present
 
 These helpers live only in the CI container lifetime but are part of the tooling surface.
 
@@ -93,8 +92,13 @@ These helpers live only in the CI container lifetime but are part of the tooling
 
 | Variable | Value |
 |----------|-------|
-| `GODOT_DIR` | `/opt/godot-mono/${GODOT_VERSION}` |
-| `GODOT_BIN` | `${GODOT_DIR}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_mono_linux.x86_64` |
+| `GODOT_REPO` | `godotengine/godot` |
+| `GODOT_TAG` | `4.6-stable` (default; overrides version/channel) |
+| `GODOT_VERSION` | `4.6` |
+| `GODOT_CHANNEL` | `stable` |
+| `GODOT_ARCH` | `auto` (or `x86_64`, `x86_32`, `arm64`, `arm32`) |
+| `GODOT_DIR` | `/opt/godot-mono/${GODOT_TAG}` |
+| `GODOT_BIN` | `${GODOT_DIR}/Godot_v${GODOT_TAG}_mono_linux.${GODOT_ARCH}` |
 | `ONLINE_DOCS_URL` | https://docs.godotengine.org/en/stable/ |
 | `UV_NO_PROGRESS` | `1` (quiets `uv` output during installs) |
 

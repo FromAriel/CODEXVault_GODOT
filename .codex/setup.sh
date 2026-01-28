@@ -11,8 +11,11 @@ set -euo pipefail
 : "${INSTALL_DOTNET:=1}"        # 1 → install the .NET SDK/runtime, 0 → skip
 : "${INSTALL_GODOT:=1}"         # 1 → download & cache Godot-mono, 0 → skip
 : "${VERBOSE_IMPORT:=1}"        # 1 → echo “warming cache…” messages
-: "${GODOT_VERSION:=4.4.1}"     # which Godot-mono release to use
-: "${GODOT_CHANNEL:=stable}"    # “stable”, “rc”, etc.
+: "${GODOT_REPO:=godotengine/godot}" # GitHub repo hosting release assets
+: "${GODOT_TAG:=}"              # e.g., "4.6-stable" (overrides GODOT_VERSION/GODOT_CHANNEL)
+: "${GODOT_VERSION:=4.6}"       # base version (e.g., 4.6 or 4.6.1) when GODOT_TAG unset
+: "${GODOT_CHANNEL:=stable}"    # “stable”, “rc1”, etc.
+: "${GODOT_ARCH:=auto}"         # auto | x86_64 | x86_32 | arm64 | arm32
 : "${DOTNET_SDK_MAJOR:=8.0}"    # .NET major version (used only if enabled)
 
 ################################################################################
@@ -29,21 +32,22 @@ BASIC_PACKAGES=(
 
 # Runtime libs Godot needs in a headless container
 pick_icu()   { apt-cache --names-only search '^libicu[0-9]\+$' | awk '{print $1}' | sort -V | tail -1; }
-pick_asound(){ apt-cache --names-only search '^libasound2'       | awk '{print $1}' | sort -V | head -1; }
-
-RUNTIME_LIBS=(
-  "$(pick_icu)"
-  libvulkan1 mesa-vulkan-drivers
-  libgl1 libglu1-mesa
-  libxi6 libxrandr2 libxinerama1 libxcursor1 libx11-6
-  "$(pick_asound)" libpulse0
-)
+pick_asound(){
+  if apt-cache show libasound2t64 >/dev/null 2>&1; then echo libasound2t64; return; fi
+  if apt-cache show libasound2 >/dev/null 2>&1; then echo libasound2; return; fi
+  apt-cache --names-only search '^libasound2' | awk '{print $1}' | sort -V | head -1
+}
 
 ################################################################################
-# Derived constants – rarely changed                                        ####
+# Derived constants – set at runtime after resolving release                ####
 ################################################################################
-GODOT_DIR="/opt/godot-mono/${GODOT_VERSION}"
-GODOT_BIN="${GODOT_DIR}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_mono_linux.x86_64"
+GODOT_TAG_RESOLVED=""
+GODOT_DIR=""
+GODOT_BIN=""
+GODOT_ZIP=""
+GODOT_ZIP_DIR=""
+GODOT_ZIP_BIN=""
+
 ONLINE_DOCS_URL="https://docs.godotengine.org/en/stable/"
 
 ################################################################################
@@ -55,6 +59,65 @@ retry() {                       # retry <count> <cmd …>
     (( a++ > n )) && return 1
     echo "↻  retry $((a-1))/$n: $*" >&2; sleep $d
   }; done
+}
+
+detect_godot_arch() {           # echo x86_64|x86_32|arm64|arm32
+  local m
+  m="$(uname -m 2>/dev/null || true)"
+  case "$m" in
+    x86_64|amd64) echo "x86_64" ;;
+    i386|i686) echo "x86_32" ;;
+    aarch64|arm64) echo "arm64" ;;
+    armv7l|armv6l) echo "arm32" ;;
+    *) echo "x86_64" ;;
+  esac
+}
+
+fetch_latest_godot_tag() {      # echo tag_name (e.g., 4.6-stable)
+  local api="https://api.github.com/repos/${GODOT_REPO}/releases/latest"
+  local json
+  json="$(retry 5 curl -fsSL "$api")"
+  python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["tag_name"])' <<<"$json"
+}
+
+resolve_godot_release() {
+  if [[ "$INSTALL_GODOT" == 0 ]]; then
+    return 0
+  fi
+
+  if [[ "$GODOT_ARCH" == "auto" ]]; then
+    GODOT_ARCH="$(detect_godot_arch)"
+  fi
+
+  if [[ -n "$GODOT_TAG" ]]; then
+    if [[ "$GODOT_TAG" == "latest" || "$GODOT_TAG" == "latest-stable" ]]; then
+      GODOT_TAG="$(fetch_latest_godot_tag)"
+    fi
+  else
+    if [[ "$GODOT_VERSION" == "latest" ]]; then
+      GODOT_TAG="$(fetch_latest_godot_tag)"
+    elif [[ "$GODOT_VERSION" == *-* ]]; then
+      # Back-compat: allow "GODOT_VERSION=4.6-stable" with no GODOT_TAG.
+      GODOT_TAG="$GODOT_VERSION"
+    else
+      GODOT_TAG="${GODOT_VERSION}-${GODOT_CHANNEL}"
+    fi
+  fi
+
+  if [[ "$GODOT_TAG" != *-* ]]; then
+    echo "❌  GODOT_TAG must look like '<version>-<channel>' (got: '$GODOT_TAG')" >&2
+    exit 1
+  fi
+
+  GODOT_VERSION="${GODOT_TAG%%-*}"
+  GODOT_CHANNEL="${GODOT_TAG#*-}"
+  GODOT_TAG_RESOLVED="$GODOT_TAG"
+
+  GODOT_DIR="/opt/godot-mono/${GODOT_TAG_RESOLVED}"
+  GODOT_ZIP="Godot_v${GODOT_TAG_RESOLVED}_mono_linux_${GODOT_ARCH}.zip"
+  GODOT_ZIP_DIR="Godot_v${GODOT_TAG_RESOLVED}_mono_linux_${GODOT_ARCH}"
+  GODOT_ZIP_BIN="Godot_v${GODOT_TAG_RESOLVED}_mono_linux.${GODOT_ARCH}"
+  GODOT_BIN="${GODOT_DIR}/${GODOT_ZIP_BIN}"
 }
 
 # Warm the .import cache – NEW: doesn’t fail if no Godot project present
@@ -87,6 +150,13 @@ retry 5 apt-get install -y --no-install-recommends "${BASIC_PACKAGES[@]}"
 ################################################################################
 if [[ "$INSTALL_GODOT" == 1 ]]; then
   echo '📦  Ensuring Godot runtime libraries …'
+  RUNTIME_LIBS=(
+    "$(pick_icu)"
+    libvulkan1 mesa-vulkan-drivers
+    libgl1 libglu1-mesa
+    libxi6 libxrandr2 libxinerama1 libxcursor1 libx11-6
+    "$(pick_asound)" libpulse0
+  )
   retry 5 apt-get install -y --no-install-recommends \
         $(printf '%s\n' "${RUNTIME_LIBS[@]}" | grep -v '^$')
 fi
@@ -94,11 +164,11 @@ fi
 ################################################################################
 # 3 · .NET SDK (optional)                                                   ####
 ################################################################################
-if [[ "$INSTALL_DOTNET" == 1 && ! $(command -v dotnet) ]]; then
+if [[ "$INSTALL_DOTNET" == 1 ]] && ! command -v dotnet >/dev/null 2>&1; then
   echo "⬇️  Installing .NET SDK ${DOTNET_SDK_MAJOR} …"
   install -d /etc/apt/keyrings
-  retry 3 curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
-         | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg
+  retry 3 bash -c \
+    'curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg'
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
 https://packages.microsoft.com/debian/12/prod bookworm main" \
   > /etc/apt/sources.list.d/microsoft.list
@@ -110,19 +180,31 @@ fi
 ################################################################################
 # 4 · Godot-mono (optional)                                                 ####
 ################################################################################
+resolve_godot_release
+
 if [[ "$INSTALL_GODOT" == 1 && ! -x "$GODOT_BIN" ]]; then
-  echo "⬇️  Fetching Godot-mono ${GODOT_VERSION}-${GODOT_CHANNEL} …"
+  echo "⬇️  Fetching Godot-mono ${GODOT_TAG_RESOLVED} (${GODOT_ARCH}) …"
   tmp="$(mktemp -d)"
-  zip="Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_mono_linux_x86_64.zip"
-  url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}/${zip}"
+  zip="$GODOT_ZIP"
+  url="https://github.com/${GODOT_REPO}/releases/download/${GODOT_TAG_RESOLVED}/${zip}"
   retry 5 wget -q --show-progress -O "${tmp}/${zip}" "$url"
   unzip -q "${tmp}/${zip}" -d "${tmp}"
   install -d "$GODOT_DIR"
-  mv "${tmp}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_mono_linux_x86_64"/{GodotSharp,"Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_mono_linux.x86_64"} "$GODOT_DIR"
+  mv "${tmp}/${GODOT_ZIP_DIR}"/{GodotSharp,"${GODOT_ZIP_BIN}"} "$GODOT_DIR"
   ln -sf "$GODOT_BIN" /usr/local/bin/godot
   chmod +x /usr/local/bin/godot
   rm -rf "$tmp"
   echo "✔️  Godot-mono installed → /usr/local/bin/godot"
+fi
+
+if [[ "$INSTALL_GODOT" == 1 ]]; then
+  if [[ ! -x "$GODOT_BIN" ]]; then
+    echo "❌  Godot binary missing after install: $GODOT_BIN" >&2
+    exit 1
+  fi
+
+  # Always point `godot` to the requested version (even when already cached).
+  ln -sf "$GODOT_BIN" /usr/local/bin/godot
 fi
 
 ################################################################################

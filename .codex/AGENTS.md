@@ -2,7 +2,7 @@
 <!--
 ###############################################################################
 # 🧠  Codex Agent Workspace – Tooling Contract & Guide (HIDDEN HEADER)
-# Godot 4.4.1 · Headless · CI-safe · .NET 8 SDK + Godot-mono included
+# Godot 4.6 · Headless · CI-safe · .NET 8 SDK + Godot-mono included
 ###############################################################################
 # CODING AGENT BEHAVIOR MODE: VERBOSE · STEPWISE · SAFE · LINT-COMPLIANT
 # MAXIMUM REASONING TIME
@@ -21,7 +21,7 @@
 ```text
 ###############################################################################
 # 🧠  Codex Agent Workspace – Tooling Contract & Guide
-# Godot 4.4.1 · Headless · CI-safe · .NET 8 SDK + Godot-mono included
+# Godot 4.6 · Headless · CI-safe · .NET 8 SDK + Godot-mono included
 ###############################################################################
 ````
 
@@ -44,6 +44,11 @@
 
 1. **Use the built-in Godot CLI**: `/usr/local/bin/godot` (default in this image).
    To override, export `GODOT=/full/path/to/godot`.
+
+   **Selecting Godot version (CODEX Cloud):** re-run `.codex/setup.sh` with env vars:
+   - `GODOT_TAG=4.6-stable` (recommended)
+   - `GODOT_TAG=latest-stable` (tracks latest stable via GitHub API)
+   - `GODOT_ARCH=arm64` (or `x86_64`, `x86_32`, `arm32`)
 
 2. **Import pass** – warm caches & create `global_script_class_cache.cfg`:
 

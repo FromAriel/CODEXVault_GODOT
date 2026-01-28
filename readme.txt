@@ -14,7 +14,7 @@
 #          and multi-language environments (usable beyond Godot).
 ###############################################################################
 
-👋 Welcome to your one-stop setup ecosystem for **Godot 4.4.1 (Mono)**, modern .NET SDKs, and a rich polyglot development stack.
+👋 Welcome to your one-stop setup ecosystem for **Godot 4.6 (Mono)**, modern .NET SDKs, and a rich polyglot development stack.
 
 These scripts are designed to:
 
@@ -29,11 +29,11 @@ These scripts are designed to:
 📂 FILE OVERVIEW
 ===============
 
-✔ `setup.sh`
+✔ `.codex/setup.sh`
   - Master installer for everything needed to work with Godot, Mono, .NET, and GDToolkit.
   - Also installs essential CLI tools, retries broken installs, and validates your toolchain.
 
-✔ `fix_indent.sh`
+✔ `.codex/fix_indent.sh`
   - Fast and safe GDScript auto-formatter for pre-commit.
   - Uses `gdformat` with retry + timeout. If it fails, your commit won’t be blocked permanently.
 
@@ -41,8 +41,8 @@ These scripts are designed to:
   - The Codex Agent Tooling Contract.
   - Describes CI-safe validation, GDScript import passes, lint rules, and style format expectations.
 
-✔ `TOOLS.md`
-  - An exhaustive manifest of everything `setup.sh` + the Dockerfile deliver.
+✔ `.codex/TOOLS.md`
+  - An exhaustive manifest of everything `.codex/setup.sh` + the Dockerfile deliver.
   - Lists base packages, languages, dev tools, helper commands, and their install mechanisms.
 
 ---
@@ -50,7 +50,7 @@ These scripts are designed to:
 ⚙ WHAT DOES IT INSTALL?
 ========================
 
-From `TOOLS.md`, `setup.sh`, and env logic:
+From `.codex/TOOLS.md`, `.codex/setup.sh`, and env logic:
 
 🔧 Core Packages (via APT)
 --------------------------
@@ -64,7 +64,7 @@ From `TOOLS.md`, `setup.sh`, and env logic:
 🎮 Godot Engine (Mono)
 ----------------------
 - Installs from official GitHub zip release
-- Installs to `/opt/godot-mono/<version>`
+- Installs to `/opt/godot-mono/<tag>` (example: `/opt/godot-mono/4.6-stable`)
 - Symlinked to `/usr/local/bin/godot` for easy CLI use
 
 🌐 .NET SDK (via Microsoft apt repo)
@@ -89,7 +89,7 @@ From `TOOLS.md`, `setup.sh`, and env logic:
 🔁 HOW DO THE SCRIPTS WORK?
 ===========================
 
-▶ `setup.sh` – MASTER INSTALLER
+▶ `.codex/setup.sh` – MASTER INSTALLER
 
 1. Updates APT and installs core tooling
 2. Dynamically fetches the latest ICU version
@@ -103,7 +103,19 @@ From `TOOLS.md`, `setup.sh`, and env logic:
 6. Verifies essential commands exist
 7. Shows a final success log with all key paths
 
-▶ `fix_indent.sh` – SAFE FORMATTER
+🎛 SELECTING GODOT VERSION (CLOUD-FRIENDLY)
+=========================================
+
+`Godot-mono` defaults to `4.6-stable` and auto-detects CPU arch.
+Override by exporting env vars before running:
+
+- Pin a release tag (recommended): `GODOT_TAG=4.6-stable`
+- Track latest stable: `GODOT_TAG=latest-stable` (uses GitHub API)
+- Separate fields: `GODOT_VERSION=4.6` + `GODOT_CHANNEL=rc1`
+- Force arch: `GODOT_ARCH=arm64` (or `x86_64`, `x86_32`, `arm32`)
+- Override source repo: `GODOT_REPO=godotengine/godot`
+
+▶ `.codex/fix_indent.sh` – SAFE FORMATTER
 
 - Filters input to only run on `.gd` files
 - Uses `gdformat --use-spaces=4` with a 20s timeout
@@ -117,7 +129,7 @@ From `TOOLS.md`, `setup.sh`, and env logic:
 - Covers proper patch hygiene, formatting, and retry loop
 - Validates both GDScript and C# builds with exit checks
 
-▶ `TOOLS.md` – TOOLCHAIN INVENTORY
+▶ `.codex/TOOLS.md` – TOOLCHAIN INVENTORY
 
 - Categorized list of:
   - All installed APT packages
@@ -134,7 +146,7 @@ From `TOOLS.md`, `setup.sh`, and env logic:
 Want a smaller, faster install? Here’s how to strip it to essentials:
 
 1. **For Godot-only users (no Mono/.NET):**
-   - Remove `.NET SDK` section from `setup.sh`
+   - Remove `.NET SDK` section from `.codex/setup.sh`
    - Skip `dotnet` build steps and `dotnet format` in validation
 
 2. **For CLI-only environments:**
@@ -142,12 +154,12 @@ Want a smaller, faster install? Here’s how to strip it to essentials:
    - Keep just `curl`, `wget`, `less`, `vim-common`
 
 3. **For single-language use:**
-   - Remove unrelated toolchains from `TOOLS.md` for clarity
+   - Remove unrelated toolchains from `.codex/TOOLS.md` for clarity
    - Comment out their installs from Dockerfile if applicable
 
 4. **Remove Pre-commit Hooks (optional):**
-   - Delete `pre-commit` section in `setup.sh`
-   - Remove `fix_indent.sh` and any `.pre-commit-config.yaml` files
+   - Delete `pre-commit` section in `.codex/setup.sh`
+   - Remove `.codex/fix_indent.sh` and any `.pre-commit-config.yaml` files
 
 5. **Drop Godot GUI support:**
    - Remove `libpulse`, `libx11`, `mesa-vulkan`, etc. if you only do headless build
