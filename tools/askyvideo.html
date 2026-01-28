@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASKYBIN1 (.asky/.asky.gz) Player</title>
+  <style>
+    @font-face {
+      font-family: "unscii 16-full";
+      src:
+        url("./unscii-16-full.ttf") format("truetype"),
+        local("unscii 16-full"),
+        local("unscii-16-full");
+      font-display: swap;
+    }
+
+    :root {
+      --bg: #0b0d10;
+      --panel: #11151b;
+      --panel2: #0f1318;
+      --text: #e7eaf0;
+      --muted: #a9b2c0;
+      --border: #253043;
+      --accent: #7aa2ff;
+      --bad: #ff6b6b;
+      --good: #4ade80;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 20% 0%, #101826 0%, var(--bg) 50%, #07090c 100%);
+      color: var(--text);
+      font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif;
+    }
+
+    .app {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 360px 1fr;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .card .hd {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      background: rgba(0,0,0,0.25);
+      white-space: nowrap;
+    }
+
+    .card .bd { padding: 12px 14px; }
+
+    .row { display: grid; gap: 8px; }
+    .row + .row { margin-top: 12px; }
+
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input[type="file"], input[type="text"], input[type="number"], input[type="range"], select, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      padding: 10px 10px;
+      outline: none;
+    }
+
+    input[type="range"] { padding: 10px 0; }
+    input[type="number"] { padding-right: 6px; }
+
+    button {
+      cursor: pointer;
+      font-weight: 650;
+      transition: transform 0.04s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    button:hover { border-color: rgba(122,162,255,0.65); }
+    button:active { transform: translateY(1px); }
+
+    .btnrow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btnrow3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      line-height: 1.35;
+    }
+
+    .status .ok { color: var(--good); font-weight: 650; }
+    .status .bad { color: var(--bad); font-weight: 650; }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kv b { color: var(--text); font-weight: 650; }
+
+    .viewerWrap {
+      padding: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 70vh;
+    }
+
+    .viewerTop {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.18);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .viewerTop .left, .viewerTop .right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .screen {
+      padding: 14px;
+      overflow: auto;
+      background: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.10));
+    }
+
+    pre#ascii {
+      margin: 0;
+      white-space: pre;
+      line-height: 1;
+      letter-spacing: 0;
+      /* IMPORTANT: per your request, reference exactly "unscii 16-full" (with the space) */
+      font-family:
+        "unscii 16-full",
+        "Noto Sans Mono",
+        "Noto Sans Symbols2",
+        "Noto Sans Symbols",
+        "Noto Emoji",
+        "GNU Unifont",
+        "Unifont",
+        "DejaVu Sans Mono",
+        "Liberation Mono",
+        "Menlo",
+        "Consolas",
+        monospace;
+      font-size: 16px; /* you can override with the control */
+      text-rendering: geometricPrecision;
+      font-variant-ligatures: none;
+      font-feature-settings: "liga" 0, "calt" 0;
+    }
+
+    .viewerBottom {
+      padding: 12px 14px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.18);
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .grid2 { grid-template-columns: 1fr; }
+    }
+
+    .drop {
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.18);
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+    .drop.drag {
+      border-color: rgba(122,162,255,0.75);
+      color: var(--text);
+      background: rgba(122,162,255,0.12);
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- LEFT: Controls / Info -->
+    <div class="card">
+      <div class="hd">
+        <div class="title">ASKYBIN1 Player <span class="pill mono">.asky / .asky.gz</span></div>
+        <div class="pill mono" id="verPill">v?</div>
+      </div>
+      <div class="bd">
+        <div class="row">
+          <label for="file">Load .asky or .asky.gz file</label>
+          <input id="file" type="file" accept=".asky,.asky.gz,.gz,application/octet-stream,application/gzip,application/x-gzip" />
+          <div id="drop" class="drop" tabindex="0" role="button" aria-label="Drop zone">
+            Drag & drop a <span class="mono">.asky</span> or <span class="mono">.asky.gz</span> file here
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="btnrow">
+            <button id="btnParse">Parse</button>
+            <button id="btnClear">Clear</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="btnrow3">
+            <button id="btnPlay">Play</button>
+            <button id="btnPause">Pause</button>
+            <button id="btnStep">Step</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="grid2">
+            <div>
+              <label for="speed">Speed</label>
+              <select id="speed">
+                <option value="0.25">0.25×</option>
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="1.5">1.5×</option>
+                <option value="2">2×</option>
+                <option value="3">3×</option>
+                <option value="4">4×</option>
+              </select>
+            </div>
+            <div>
+              <label for="loop">Loop</label>
+              <select id="loop">
+                <option value="1" selected>On</option>
+                <option value="0">Off</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="fontSize">Font size (px)</label>
+          <input id="fontSize" type="range" min="8" max="32" step="1" value="16" />
+          <div class="small">Uses <span class="mono">"unscii 16-full"</span> first, then Noto/Unicode fallbacks.</div>
+        </div>
+
+        <div class="row">
+          <label>Header info</label>
+          <div class="kv" id="kv">
+            <div>Cols: <b id="cols">–</b></div>
+            <div>Rows: <b id="rows">–</b></div>
+            <div>Frames: <b id="frames">–</b></div>
+            <div>Palette: <b id="palette">–</b></div>
+            <div>Cell px: <b id="cellpx">–</b></div>
+            <div>Palette ID width: <b id="pidw">–</b></div>
+            <div>Default delay: <b id="defDelay">–</b></div>
+            <div>Gamma: <b id="gamma">–</b></div>
+            <div>Font (in file): <b id="fontInFile">–</b></div>
+            <div>Library (in file): <b id="libInFile">–</b></div>
+            <div>Keyframe interval: <b id="kfInt">–</b></div>
+            <div>Seek entries: <b id="seekN">–</b></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>Status</label>
+          <div class="status mono" id="status" role="status" aria-live="polite">Load a file, then hit <span class="mono">Parse</span>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Viewer -->
+    <div class="card viewerWrap">
+      <div class="viewerTop">
+        <div class="left">
+          <span class="pill mono" id="framePill">frame –/–</span>
+          <span class="pill mono" id="delayPill">delay – ms</span>
+          <span class="pill mono" id="fpsPill">fps –</span>
+        </div>
+        <div class="right small">
+          <span>Schema: <span class="mono">ASKYBIN1</span> v1/v2/v3 (+ optional gzip)</span>
+        </div>
+      </div>
+
+      <div class="screen">
+        <pre id="ascii" aria-label="ASCII display"></pre>
+      </div>
+
+      <div class="viewerBottom">
+        <div class="row">
+          <label for="scrub">Frame scrub</label>
+          <input id="scrub" type="range" min="0" max="0" value="0" step="1" />
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label for="goto">Go to frame #</label>
+            <input id="goto" type="number" min="0" value="0" />
+          </div>
+          <div class="btnrow">
+            <button id="btnGoto">Go</button>
+            <button id="btnStop">Stop & Reset</button>
+          </div>
+        </div>
+
+        <div class="small">
+          If you see missing glyphs, that’s usually a font-coverage issue: install an <span class="mono">unscii 16-full</span>
+          font locally, or rely on the Noto/Unifont fallbacks.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ============
+    // ASKYBIN1 binary layout (from your .ksy)
+    // ============
+    // Note: files may be gzip-wrapped (.asky.gz). If so, gunzip first.
+    //
+    // magic: "ASKYBIN1" (8 bytes)
+    // version: u1
+    // header_v1:
+    //   cols u2, rows u2, cell_px_w u1, cell_px_h u1, palette_id_width u1, flags u1
+    //   frame_count u4, palette_count u4, default_delay_ms u2
+    //   threshold u1, black_point u1, white_point u1, reserved0 u1
+    //   gamma f4
+    //   font_utf8_len u2, library_utf8_len u2
+    // header_v2 adds:
+    //   keyframe_interval u2
+    //   seek_count u4 (number of seek table entries)
+    // header_v3 keeps the same fixed header struct but uses:
+    //   delay_ms: uvarint
+    //   run_count/count: uvarint
+    //   palette_id_width=0 => palette_id is uvarint
+    // font_utf8: utf-8 string (font_utf8_len)
+    // library_utf8: utf-8 string (library_utf8_len)
+    // palette_codepoints: u4[palette_count] (Unicode codepoints)
+    // seek_table (v2+): (frame_index u4, file_offset u4)[seek_count]
+    // frames: frame_v1[frame_count]
+    // frame_v1:
+    //   delay_ms u2
+    //   frame_flags u1 (v2 only; bit0 = keyframe)
+    //   rows: row_v1[hdr.rows]
+    // row_v1:
+    //   run_count u2
+    //   runs: run_v1[run_count]
+    // run_v1:
+    //   count u2
+    //   palette_id: u1/u2/u4 depending on hdr.palette_id_width
+    //
+    // frame_v3 uses varints for delay_ms/run_count/count and supports palette_id_width=0 (varint palette IDs).
+    //
+    // Each row expands to exactly hdr.cols cells by repeating palette_codepoints[palette_id] 'count' times per run.
+
+    // ============
+    // UI refs
+    // ============
+    const elFile = document.getElementById("file");
+    const elDrop = document.getElementById("drop");
+    const elParse = document.getElementById("btnParse");
+    const elClear = document.getElementById("btnClear");
+
+    const elPlay = document.getElementById("btnPlay");
+    const elPause = document.getElementById("btnPause");
+    const elStep = document.getElementById("btnStep");
+    const elStop = document.getElementById("btnStop");
+
+    const elSpeed = document.getElementById("speed");
+    const elLoop = document.getElementById("loop");
+    const elFontSize = document.getElementById("fontSize");
+
+    const elAscii = document.getElementById("ascii");
+    const elScrub = document.getElementById("scrub");
+    const elGoto = document.getElementById("goto");
+    const elBtnGoto = document.getElementById("btnGoto");
+
+    const elStatus = document.getElementById("status");
+    const elVerPill = document.getElementById("verPill");
+    const elFramePill = document.getElementById("framePill");
+    const elDelayPill = document.getElementById("delayPill");
+    const elFpsPill = document.getElementById("fpsPill");
+
+    const elCols = document.getElementById("cols");
+    const elRows = document.getElementById("rows");
+    const elFrames = document.getElementById("frames");
+    const elPalette = document.getElementById("palette");
+    const elCellPx = document.getElementById("cellpx");
+    const elPidw = document.getElementById("pidw");
+    const elDefDelay = document.getElementById("defDelay");
+    const elGamma = document.getElementById("gamma");
+    const elFontInFile = document.getElementById("fontInFile");
+    const elLibInFile = document.getElementById("libInFile");
+    const elKfInt = document.getElementById("kfInt");
+    const elSeekN = document.getElementById("seekN");
+
+    // ============
+    // State
+    // ============
+    let fileBytes = null;   // Uint8Array
+    let parsed = null;      // parsed container
+    let frameIndex = 0;
+
+    let playing = false;
+    let timerId = null;
+    let lastTickAt = 0;
+
+    const LIMITS = Object.freeze({
+      maxFileBytes: 256 * 1024 * 1024,
+      maxCols: 500,
+      maxRows: 300,
+      maxCellsPerFrame: 200000,
+      maxFrames: 20000,
+      maxPalette: 200000,
+    });
+
+    function syncUi() {
+      const hasFile = !!fileBytes;
+      const hasParsed = !!parsed;
+
+      elParse.disabled = !hasFile;
+      elClear.disabled = !hasFile && !hasParsed;
+
+      elPlay.disabled = !hasParsed;
+      elPause.disabled = !hasParsed;
+      elStep.disabled = !hasParsed;
+      elStop.disabled = !hasParsed;
+
+      elScrub.disabled = !hasParsed;
+      elGoto.disabled = !hasParsed;
+      elBtnGoto.disabled = !hasParsed;
+    }
+
+    // ============
+    // Helpers
+    // ============
+    function setStatusOk(msg) {
+      elStatus.innerHTML = `<span class="ok">OK</span> ${escapeHtml(msg)}`;
+    }
+    function setStatusBad(msg) {
+      elStatus.innerHTML = `<span class="bad">ERR</span> ${escapeHtml(msg)}`;
+    }
+    function setStatusInfo(msg) {
+      elStatus.textContent = msg;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function maybeGunzip(u8) {
+      if (!u8 || u8.byteLength < 2) { return u8; }
+      const isGz = (u8[0] === 0x1f && u8[1] === 0x8b);
+      if (!isGz) { return u8; }
+      if (typeof DecompressionStream === "undefined") {
+        throw new Error("File is gzip-compressed, but this browser lacks DecompressionStream('gzip'). Use an uncompressed .asky or a newer browser.");
+      }
+      const ds = new DecompressionStream("gzip");
+      const ab = await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer();
+      const out = new Uint8Array(ab);
+      if (out.byteLength > LIMITS.maxFileBytes) {
+        throw new Error(`Decompressed file too large (${out.byteLength} bytes; limit ${LIMITS.maxFileBytes}).`);
+      }
+      return out;
+    }
+
+    function stopTimer() {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
+    function setPlaying(on) {
+      playing = on;
+      if (!playing) {
+        stopTimer();
+      } else {
+        scheduleNextTick(0);
+      }
+    }
+
+    function clampInt(v, lo, hi) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) { return lo; }
+      const i = Math.trunc(n);
+      if (i < lo) { return lo; }
+      if (i > hi) { return hi; }
+      return i;
+    }
+
+    function readUtf8(view, offset, len) {
+      const bytes = new Uint8Array(view.buffer, view.byteOffset + offset, len);
+      const dec = new TextDecoder("utf-8", { fatal: false });
+      return dec.decode(bytes);
+    }
+
+    // ============
+    // Decoder
+    // ============
+    function parseAskybin1(u8) {
+      const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+      let off = 0;
+
+      function need(n) {
+        if (off + n > view.byteLength) {
+          throw new Error(`Unexpected EOF at offset ${off} (need ${n} bytes, have ${view.byteLength - off})`);
+        }
+      }
+
+      function readU1() { need(1); const v = view.getUint8(off); off += 1; return v; }
+      function readU2() { need(2); const v = view.getUint16(off, true); off += 2; return v; }
+      function readU4() { need(4); const v = view.getUint32(off, true); off += 4; return v; }
+      function readF4() { need(4); const v = view.getFloat32(off, true); off += 4; return v; }
+      function readVarU32() {
+        let shift = 0;
+        let out = 0;
+        for (let i = 0; i < 5; i++) {
+          const b = readU1();
+          out |= (b & 0x7F) << shift;
+          if ((b & 0x80) === 0) {
+            return out >>> 0;
+          }
+          shift += 7;
+        }
+        throw new Error("Varint too long (expected <= 5 bytes for u32)");
+      }
+
+      // magic
+      need(8);
+      const magicBytes = new Uint8Array(view.buffer, view.byteOffset + off, 8);
+      const magic = new TextDecoder("ascii").decode(magicBytes);
+      off += 8;
+      if (magic !== "ASKYBIN1") {
+        throw new Error(`Bad magic "${magic}" (expected "ASKYBIN1")`);
+      }
+
+      const version = readU1();
+      if (version !== 1 && version !== 2 && version !== 3) {
+        throw new Error(`Unsupported version ${version} (expected 1, 2, or 3)`);
+      }
+
+      // header_v1
+      const hdr = {};
+      hdr.cols = readU2();
+      hdr.rows = readU2();
+      hdr.cell_px_w = readU1();
+      hdr.cell_px_h = readU1();
+      hdr.palette_id_width = readU1();
+      hdr.flags = readU1();
+      hdr.frame_count = readU4();
+      hdr.palette_count = readU4();
+      hdr.default_delay_ms = readU2();
+      hdr.threshold = readU1();
+      hdr.black_point = readU1();
+      hdr.white_point = readU1();
+      hdr.reserved0 = readU1();
+      hdr.gamma = readF4();
+      hdr.font_utf8_len = readU2();
+      hdr.library_utf8_len = readU2();
+      hdr.keyframe_interval = 1;
+      hdr.seek_count = 0;
+      if (version >= 2) {
+        hdr.keyframe_interval = readU2();
+        hdr.seek_count = readU4();
+      }
+
+      if (hdr.cols <= 0 || hdr.rows <= 0) {
+        throw new Error(`Invalid grid size ${hdr.cols}x${hdr.rows}`);
+      }
+      if (hdr.cols > LIMITS.maxCols || hdr.rows > LIMITS.maxRows) {
+        throw new Error(`Grid too large ${hdr.cols}x${hdr.rows} (limits ${LIMITS.maxCols}x${LIMITS.maxRows})`);
+      }
+      const cellsPerFrame = hdr.cols * hdr.rows;
+      if (cellsPerFrame > LIMITS.maxCellsPerFrame) {
+        throw new Error(`Grid too large (${cellsPerFrame} cells/frame; limit ${LIMITS.maxCellsPerFrame})`);
+      }
+      if (hdr.cell_px_w !== 8 || hdr.cell_px_h !== 16) {
+        throw new Error(`Unsupported cell_px ${hdr.cell_px_w}x${hdr.cell_px_h} (expected 8x16)`);
+      }
+      const allowedPidWidths = (version === 3) ? [0, 1, 2, 4] : [1, 2, 4];
+      if (!allowedPidWidths.includes(hdr.palette_id_width)) {
+        throw new Error(`Unsupported palette_id_width=${hdr.palette_id_width} (expected ${allowedPidWidths.join(",")})`);
+      }
+      if (!Number.isFinite(hdr.gamma) || hdr.gamma <= 0) {
+        throw new Error(`Invalid gamma=${hdr.gamma}`);
+      }
+      if (hdr.frame_count > LIMITS.maxFrames) {
+        throw new Error(`Too many frames (${hdr.frame_count}; limit ${LIMITS.maxFrames})`);
+      }
+      if (hdr.palette_count <= 0 || hdr.palette_count > LIMITS.maxPalette) {
+        throw new Error(`Invalid palette_count=${hdr.palette_count} (limit ${LIMITS.maxPalette})`);
+      }
+      const requiredPidWidth = (hdr.palette_count <= 0x100) ? 1 : ((hdr.palette_count <= 0x10000) ? 2 : 4);
+      if (hdr.palette_id_width !== 0 && hdr.palette_id_width < requiredPidWidth) {
+        throw new Error(`palette_id_width=${hdr.palette_id_width} too small for palette_count=${hdr.palette_count} (need ${requiredPidWidth} or 0 for varint)`);
+      }
+      if (version >= 2 && hdr.keyframe_interval < 1) {
+        throw new Error(`Invalid keyframe_interval=${hdr.keyframe_interval}`);
+      }
+
+      // strings
+      need(hdr.font_utf8_len);
+      const font_utf8 = readUtf8(view, off, hdr.font_utf8_len);
+      off += hdr.font_utf8_len;
+
+      need(hdr.library_utf8_len);
+      const library_utf8 = readUtf8(view, off, hdr.library_utf8_len);
+      off += hdr.library_utf8_len;
+
+      // palette codepoints
+      const palette = new Array(hdr.palette_count);
+      const paletteStr = new Array(hdr.palette_count);
+      for (let i = 0; i < hdr.palette_count; i++) {
+        const cp = readU4(); // codepoint
+        if (cp > 0x10FFFF) {
+          throw new Error(`Invalid codepoint 0x${cp.toString(16)} at palette[${i}]`);
+        }
+        palette[i] = cp;
+        paletteStr[i] = String.fromCodePoint(cp);
+      }
+
+      // seek table (v2+)
+      const seek_table = [];
+      if (version >= 2) {
+        for (let i = 0; i < hdr.seek_count; i++) {
+          const frame_index = readU4();
+          const file_offset = readU4();
+          seek_table.push({ frame_index, file_offset });
+        }
+      }
+
+      // palette_id reader
+      function readPaletteId() {
+        if (hdr.palette_id_width === 0) {
+          return readVarU32();
+        }
+        if (hdr.palette_id_width === 1) {
+          return readU1();
+        }
+        if (hdr.palette_id_width === 2) {
+          return readU2();
+        }
+        if (hdr.palette_id_width === 4) {
+          return readU4();
+        }
+        throw new Error(`Unsupported palette_id_width=${hdr.palette_id_width}`);
+      }
+
+      function readRow(fi, r) {
+        const run_count = (version === 3) ? readVarU32() : readU2();
+        if (run_count <= 0 || run_count > hdr.cols) {
+          throw new Error(`Invalid run_count=${run_count} at frame=${fi} row=${r}`);
+        }
+        const runs = new Array(run_count);
+
+        let totalCells = 0;
+        for (let ri = 0; ri < run_count; ri++) {
+          const count = (version === 3) ? readVarU32() : readU2();
+          const palette_id = readPaletteId();
+          if (count <= 0) {
+            throw new Error(`Invalid run count=0 at frame=${fi} row=${r} run=${ri}`);
+          }
+          if (palette_id < 0 || palette_id >= palette.length) {
+            throw new Error(`palette_id out of range (${palette_id}) at frame=${fi} row=${r} run=${ri}`);
+          }
+          runs[ri] = { count, palette_id };
+          totalCells += count;
+          if (totalCells > hdr.cols) {
+            throw new Error(`Row overflow at frame=${fi} row=${r} (cells ${totalCells} > cols ${hdr.cols})`);
+          }
+        }
+
+        if (totalCells !== hdr.cols) {
+          throw new Error(`Row length mismatch at frame=${fi} row=${r} (cells ${totalCells} != cols ${hdr.cols})`);
+        }
+        return { run_count, runs, totalCells };
+      }
+
+      // frames (v1 = all keyframes; v2 supports row-delta frames)
+      const frames = new Array(hdr.frame_count);
+      let prevRows = null;
+      for (let fi = 0; fi < hdr.frame_count; fi++) {
+        const delay_ms = (version === 3) ? readVarU32() : readU2();
+        let frame_flags = 1; // v1 implicit keyframe
+        let is_keyframe = true;
+        if (version >= 2) {
+          frame_flags = readU1();
+          is_keyframe = (frame_flags & 1) === 1;
+        }
+
+        const rows = new Array(hdr.rows);
+        if (is_keyframe) {
+          for (let r = 0; r < hdr.rows; r++) {
+            rows[r] = readRow(fi, r);
+          }
+        } else {
+          if (!prevRows) {
+            throw new Error(`Delta frame without previous keyframe (frame=${fi})`);
+          }
+          const bitsetLen = Math.ceil(hdr.rows / 8);
+          need(bitsetLen);
+          const changed = new Uint8Array(view.buffer, view.byteOffset + off, bitsetLen);
+          off += bitsetLen;
+
+          for (let r = 0; r < hdr.rows; r++) {
+            const b = changed[(r / 8) | 0];
+            const m = 1 << (r % 8);
+            if (b & m) {
+              rows[r] = readRow(fi, r);
+            } else {
+              rows[r] = prevRows[r];
+            }
+          }
+        }
+
+        frames[fi] = { delay_ms, frame_flags, is_keyframe, rows };
+        prevRows = rows;
+      }
+
+      const trailingBytes = view.byteLength - off;
+      return {
+        magic,
+        version,
+        hdr,
+        font_utf8,
+        library_utf8,
+        palette,
+        paletteStr,
+        seek_table,
+        frames,
+        bytesUsed: off,
+        trailingBytes
+      };
+    }
+
+    function frameToText(container, fi) {
+      const hdr = container.hdr;
+      const paletteStr = container.paletteStr || [];
+      const frame = container.frames[fi];
+
+      const lines = new Array(hdr.rows);
+
+      for (let r = 0; r < hdr.rows; r++) {
+        const row = frame.rows[r];
+
+        const parts = new Array(row.runs.length);
+        for (let i = 0; i < row.runs.length; i++) {
+          const run = row.runs[i];
+          const ch = paletteStr[run.palette_id] || "\uFFFD";
+          parts[i] = ch.repeat(run.count);
+        }
+        lines[r] = parts.join("");
+      }
+
+      return lines.join("\n");
+    }
+
+    function effectiveDelayMs(container, fi) {
+      const f = container.frames[fi];
+      const d = (f.delay_ms && f.delay_ms > 0) ? f.delay_ms : container.hdr.default_delay_ms;
+      return (d && d > 0) ? d : 33; // last resort
+    }
+
+    function updateHeaderUI(container) {
+      elVerPill.textContent = `v${container.version}`;
+      elCols.textContent = String(container.hdr.cols);
+      elRows.textContent = String(container.hdr.rows);
+      elFrames.textContent = String(container.hdr.frame_count);
+      elPalette.textContent = String(container.hdr.palette_count);
+      elCellPx.textContent = `${container.hdr.cell_px_w}×${container.hdr.cell_px_h}`;
+      elPidw.textContent = (container.hdr.palette_id_width === 0) ? "varint" : String(container.hdr.palette_id_width);
+      elDefDelay.textContent = `${container.hdr.default_delay_ms} ms`;
+      elGamma.textContent = String(container.hdr.gamma);
+      elFontInFile.textContent = container.font_utf8 || "–";
+      elLibInFile.textContent = container.library_utf8 || "–";
+      elKfInt.textContent = String(container.hdr.keyframe_interval || "–");
+      elSeekN.textContent = String(container.seek_table ? container.seek_table.length : 0);
+
+      elScrub.max = String(Math.max(0, container.hdr.frame_count - 1));
+      elScrub.value = String(frameIndex);
+      elGoto.max = String(Math.max(0, container.hdr.frame_count - 1));
+      elGoto.value = String(frameIndex);
+    }
+
+    function renderFrame(fi) {
+      if (!parsed) { return; }
+      const total = parsed.hdr.frame_count;
+      frameIndex = clampInt(fi, 0, Math.max(0, total - 1));
+
+      const txt = frameToText(parsed, frameIndex);
+      elAscii.textContent = txt;
+
+      const d = effectiveDelayMs(parsed, frameIndex);
+      elFramePill.textContent = `frame ${frameIndex + 1}/${total}`;
+      elDelayPill.textContent = `delay ${d} ms`;
+      elScrub.value = String(frameIndex);
+      elGoto.value = String(frameIndex);
+
+      // fps estimate based on delay & speed
+      const speed = Number(elSpeed.value);
+      const eff = Math.max(1, Math.round(d / Math.max(0.01, speed)));
+      const fps = 1000 / eff;
+      elFpsPill.textContent = `fps ${fps.toFixed(1)}`;
+    }
+
+    function scheduleNextTick(extraDelayMs) {
+      stopTimer();
+      if (!playing || !parsed) { return; }
+
+      const speed = Number(elSpeed.value);
+      const baseDelay = effectiveDelayMs(parsed, frameIndex);
+      const delay = Math.max(1, Math.round(baseDelay / Math.max(0.01, speed))) + Math.max(0, extraDelayMs);
+
+      timerId = setTimeout(() => {
+        const now = performance.now();
+        lastTickAt = now;
+
+        const total = parsed.hdr.frame_count;
+        let next = frameIndex + 1;
+
+        if (next >= total) {
+          if (elLoop.value === "1") {
+            next = 0;
+          } else {
+            setPlaying(false);
+            return;
+          }
+        }
+
+        renderFrame(next);
+        scheduleNextTick(0);
+      }, delay);
+    }
+
+    // ============
+    // File handling
+    // ============
+    async function loadFromFile(file) {
+      if (!file) { return; }
+      if (file.size > LIMITS.maxFileBytes) {
+        fileBytes = null;
+        parsed = null;
+        syncUi();
+        setStatusBad(`File too large (${file.size} bytes; limit ${LIMITS.maxFileBytes}).`);
+        return;
+      }
+      const buf = await file.arrayBuffer();
+      fileBytes = new Uint8Array(buf);
+      parsed = null;
+      syncUi();
+      const isGz = (fileBytes.byteLength >= 2 && fileBytes[0] === 0x1f && fileBytes[1] === 0x8b);
+      const hint = isGz ? " (gzip; will decompress on Parse)" : "";
+      setStatusOk(`Loaded ${file.name} (${fileBytes.byteLength} bytes)${hint}. Now press Parse.`);
+    }
+
+    function clearAll() {
+      setPlaying(false);
+      fileBytes = null;
+      parsed = null;
+      frameIndex = 0;
+
+      elAscii.textContent = "";
+      elVerPill.textContent = "v?";
+      elFramePill.textContent = "frame –/–";
+      elDelayPill.textContent = "delay – ms";
+      elFpsPill.textContent = "fps –";
+
+      elCols.textContent = "–";
+      elRows.textContent = "–";
+      elFrames.textContent = "–";
+      elPalette.textContent = "–";
+      elCellPx.textContent = "–";
+      elPidw.textContent = "–";
+      elDefDelay.textContent = "–";
+      elGamma.textContent = "–";
+      elFontInFile.textContent = "–";
+      elLibInFile.textContent = "–";
+      elKfInt.textContent = "–";
+      elSeekN.textContent = "–";
+
+      elScrub.min = "0";
+      elScrub.max = "0";
+      elScrub.value = "0";
+      elGoto.value = "0";
+
+      setStatusInfo("Cleared. Load a file, then hit Parse.");
+      syncUi();
+    }
+
+    // ============
+    // Wire up UI
+    // ============
+    elFile.addEventListener("change", async () => {
+      const f = elFile.files && elFile.files[0] ? elFile.files[0] : null;
+      if (!f) { return; }
+      await loadFromFile(f);
+    });
+
+    elParse.addEventListener("click", async () => {
+      if (!fileBytes) {
+        setStatusBad("No file loaded.");
+        return;
+      }
+      try {
+        const isGz = (fileBytes.byteLength >= 2 && fileBytes[0] === 0x1f && fileBytes[1] === 0x8b);
+        const t0 = performance.now();
+        const bytes = isGz ? await maybeGunzip(fileBytes) : fileBytes;
+        parsed = parseAskybin1(bytes);
+        const t1 = performance.now();
+        frameIndex = 0;
+        updateHeaderUI(parsed);
+        renderFrame(0);
+        syncUi();
+        const warn = parsed.trailingBytes ? ` Warning: ${parsed.trailingBytes} trailing bytes.` : "";
+        const decomp = isGz ? ` Decompressed ${fileBytes.byteLength} -> ${bytes.byteLength} bytes.` : "";
+        setStatusOk(`Parsed ASKYBIN1: ${parsed.hdr.cols}×${parsed.hdr.rows}, frames=${parsed.hdr.frame_count}, palette=${parsed.hdr.palette_count}. Parse ${(t1 - t0).toFixed(1)} ms. Bytes used=${parsed.bytesUsed}.${warn}${decomp}`);
+      } catch (e) {
+        parsed = null;
+        syncUi();
+        setStatusBad(e && e.message ? e.message : String(e));
+      }
+    });
+
+    elClear.addEventListener("click", () => clearAll());
+
+    elPlay.addEventListener("click", () => {
+      if (!parsed) { setStatusBad("Parse a file first."); return; }
+      if (!playing) {
+        setPlaying(true);
+        setStatusOk("Playing.");
+      }
+    });
+
+    elPause.addEventListener("click", () => {
+      setPlaying(false);
+      setStatusOk("Paused.");
+    });
+
+    elStep.addEventListener("click", () => {
+      if (!parsed) { setStatusBad("Parse a file first."); return; }
+      setPlaying(false);
+      const total = parsed.hdr.frame_count;
+      let next = frameIndex + 1;
+      if (next >= total) { next = (elLoop.value === "1") ? 0 : (total - 1); }
+      renderFrame(next);
+      setStatusOk("Stepped 1 frame.");
+    });
+
+    elStop.addEventListener("click", () => {
+      if (!parsed) { return; }
+      setPlaying(false);
+      renderFrame(0);
+      setStatusOk("Stopped and reset to frame 1.");
+    });
+
+    elScrub.addEventListener("input", () => {
+      if (!parsed) { return; }
+      setPlaying(false);
+      renderFrame(Number(elScrub.value));
+    });
+
+    elBtnGoto.addEventListener("click", () => {
+      if (!parsed) { setStatusBad("Parse a file first."); return; }
+      setPlaying(false);
+      renderFrame(Number(elGoto.value));
+      setStatusOk(`Jumped to frame ${frameIndex + 1}.`);
+    });
+
+    elFontSize.addEventListener("input", () => {
+      const px = clampInt(elFontSize.value, 8, 64);
+      elAscii.style.fontSize = `${px}px`;
+    });
+
+    elSpeed.addEventListener("change", () => {
+      if (playing) { scheduleNextTick(0); }
+      if (parsed) { renderFrame(frameIndex); }
+    });
+
+    elLoop.addEventListener("change", () => {
+      // no-op; respected during playback
+    });
+
+    // Drag/drop
+    function stopEv(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ["dragenter", "dragover"].forEach(evt => {
+      elDrop.addEventListener(evt, (e) => {
+        stopEv(e);
+        elDrop.classList.add("drag");
+      });
+    });
+    ["dragleave", "drop"].forEach(evt => {
+      elDrop.addEventListener(evt, (e) => {
+        stopEv(e);
+        elDrop.classList.remove("drag");
+      });
+    });
+
+    elDrop.addEventListener("drop", async (e) => {
+      stopEv(e);
+      const dt = e.dataTransfer;
+      if (!dt || !dt.files || dt.files.length === 0) { return; }
+      const f = dt.files[0];
+      elFile.value = "";
+      await loadFromFile(f);
+    });
+
+    elDrop.addEventListener("keydown", (e) => {
+      if (e.code === "Enter" || e.code === "Space") {
+        e.preventDefault();
+        elFile.click();
+      }
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!parsed) { return; }
+        setPlaying(!playing);
+        setStatusOk(playing ? "Playing." : "Paused.");
+      }
+      if (e.code === "ArrowRight") {
+        e.preventDefault();
+        if (!parsed) { return; }
+        setPlaying(false);
+        renderFrame(frameIndex + 1);
+      }
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        if (!parsed) { return; }
+        setPlaying(false);
+        renderFrame(frameIndex - 1);
+      }
+      if (e.code === "Home") {
+        e.preventDefault();
+        if (!parsed) { return; }
+        setPlaying(false);
+        renderFrame(0);
+      }
+      if (e.code === "End") {
+        e.preventDefault();
+        if (!parsed) { return; }
+        setPlaying(false);
+        renderFrame(parsed.hdr.frame_count - 1);
+      }
+    });
+
+    // Init
+    clearAll();
+    // Apply initial font size
+    elAscii.style.fontSize = `${clampInt(elFontSize.value, 8, 64)}px`;
+  </script>
+</body>
+</html>
