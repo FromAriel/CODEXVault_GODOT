@@ -479,7 +479,10 @@
       maxCols: 500,
       maxRows: 300,
       maxCellsPerFrame: 200000,
-      maxFrames: 20000,
+      // Safety: beyond this, we switch to streaming decode (no full in-memory parse of all frames).
+      maxFramesFullParse: 20000,
+      // Safety: refuse absurd frame counts (even streaming). Keep this high, but finite.
+      maxFramesHard: 500000,
       maxPalette: 200000,
     });
 
@@ -573,6 +576,183 @@
     // ============
     // Decoder
     // ============
+    function makeStreamDecoder(u8, { version, hdr, paletteStr, seek_table, framesStart }) {
+      const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+
+      let off = framesStart;
+      let curFi = -1;
+      let haveState = false;
+
+      let curDelayMs = 0;
+      let curFrameFlags = 1;
+      let curIsKeyframe = true;
+
+      const rowsStr = new Array(hdr.rows);
+
+      function need(n) {
+        if (off + n > view.byteLength) {
+          throw new Error(`Unexpected EOF at offset ${off} (need ${n} bytes, have ${view.byteLength - off}).`);
+        }
+      }
+      function readU1() { need(1); const v = view.getUint8(off); off += 1; return v; }
+      function readU2() { need(2); const v = view.getUint16(off, true); off += 2; return v; }
+      function readU4() { need(4); const v = view.getUint32(off, true); off += 4; return v; }
+
+      function readVarU32() {
+        let value = 0;
+        let shift = 0;
+        for (let i = 0; i < 5; i++) {
+          const b = readU1();
+          value |= (b & 0x7F) << shift;
+          if ((b & 0x80) === 0) { return value >>> 0; }
+          shift += 7;
+        }
+        throw new Error("Varint too long (expected <= 5 bytes for u32)");
+      }
+
+      function readPaletteId() {
+        if (hdr.palette_id_width === 0) {
+          return readVarU32();
+        }
+        if (hdr.palette_id_width === 1) {
+          return readU1();
+        }
+        if (hdr.palette_id_width === 2) {
+          return readU2();
+        }
+        if (hdr.palette_id_width === 4) {
+          return readU4();
+        }
+        throw new Error(`Unsupported palette_id_width=${hdr.palette_id_width}`);
+      }
+
+      function readRowStr(fi, r) {
+        const run_count = (version === 3) ? readVarU32() : readU2();
+        if (run_count <= 0 || run_count > hdr.cols) {
+          throw new Error(`Invalid run_count=${run_count} at frame=${fi} row=${r}`);
+        }
+
+        let totalCells = 0;
+        let s = "";
+
+        for (let ri = 0; ri < run_count; ri++) {
+          const count = (version === 3) ? readVarU32() : readU2();
+          const palette_id = readPaletteId();
+          if (count <= 0) {
+            throw new Error(`Invalid run count=0 at frame=${fi} row=${r} run=${ri}`);
+          }
+          if (palette_id < 0 || palette_id >= paletteStr.length) {
+            throw new Error(`palette_id out of range (${palette_id}) at frame=${fi} row=${r} run=${ri}`);
+          }
+          totalCells += count;
+          if (totalCells > hdr.cols) {
+            throw new Error(`Row overflow at frame=${fi} row=${r} (cells ${totalCells} > cols ${hdr.cols})`);
+          }
+          const ch = paletteStr[palette_id] || "\uFFFD";
+          s += ch.repeat(count);
+        }
+
+        if (totalCells !== hdr.cols) {
+          throw new Error(`Row length mismatch at frame=${fi} row=${r} (cells ${totalCells} != cols ${hdr.cols})`);
+        }
+        return s;
+      }
+
+      function decodeOneFrame(fi) {
+        const delay_ms = (version === 3) ? readVarU32() : readU2();
+        let frame_flags = 1; // v1 implicit keyframe
+        let is_keyframe = true;
+        if (version >= 2) {
+          frame_flags = readU1();
+          is_keyframe = (frame_flags & 1) === 1;
+        }
+
+        if (is_keyframe) {
+          for (let r = 0; r < hdr.rows; r++) {
+            rowsStr[r] = readRowStr(fi, r);
+          }
+          haveState = true;
+        } else {
+          if (!haveState) {
+            throw new Error(`Delta frame without previous keyframe (frame=${fi})`);
+          }
+          const bitsetLen = Math.ceil(hdr.rows / 8);
+          need(bitsetLen);
+          const changed = new Uint8Array(view.buffer, view.byteOffset + off, bitsetLen);
+          off += bitsetLen;
+
+          for (let r = 0; r < hdr.rows; r++) {
+            const b = changed[(r / 8) | 0];
+            const m = 1 << (r % 8);
+            if (b & m) {
+              rowsStr[r] = readRowStr(fi, r);
+            }
+          }
+        }
+
+        curDelayMs = delay_ms;
+        curFrameFlags = frame_flags;
+        curIsKeyframe = is_keyframe;
+      }
+
+      function findNearestSeek(fi) {
+        let best = null;
+        if (seek_table && seek_table.length) {
+          let lo = 0;
+          let hi = seek_table.length - 1;
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const e = seek_table[mid];
+            if (e.frame_index <= fi) {
+              best = e;
+              lo = mid + 1;
+            } else {
+              hi = mid - 1;
+            }
+          }
+        }
+        if (!best) {
+          return { frame_index: 0, file_offset: framesStart };
+        }
+        return best;
+      }
+
+      function seekTo(fi) {
+        if (curFi === fi && haveState) {
+          return { delay_ms: curDelayMs, frame_flags: curFrameFlags, is_keyframe: curIsKeyframe, rowsStr };
+        }
+
+        if (haveState && fi === curFi + 1) {
+          curFi = fi;
+          decodeOneFrame(fi);
+          return { delay_ms: curDelayMs, frame_flags: curFrameFlags, is_keyframe: curIsKeyframe, rowsStr };
+        }
+
+        const e = findNearestSeek(fi);
+        if (e.file_offset < framesStart || e.file_offset >= view.byteLength) {
+          throw new Error(`Invalid seek offset ${e.file_offset} for keyframe ${e.frame_index} (framesStart=${framesStart}, fileLen=${view.byteLength})`);
+        }
+        off = e.file_offset;
+        curFi = e.frame_index;
+        haveState = false;
+        decodeOneFrame(curFi);
+        if (!curIsKeyframe) {
+          throw new Error(`Seek entry ${e.frame_index}@${e.file_offset} did not point to a keyframe`);
+        }
+
+        while (curFi < fi) {
+          curFi += 1;
+          decodeOneFrame(curFi);
+        }
+
+        return { delay_ms: curDelayMs, frame_flags: curFrameFlags, is_keyframe: curIsKeyframe, rowsStr };
+      }
+
+      return {
+        seekTo,
+      };
+    }
+
     function parseAskybin1(u8) {
       const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
       let off = 0;
@@ -660,8 +840,8 @@
       if (!Number.isFinite(hdr.gamma) || hdr.gamma <= 0) {
         throw new Error(`Invalid gamma=${hdr.gamma}`);
       }
-      if (hdr.frame_count > LIMITS.maxFrames) {
-        throw new Error(`Too many frames (${hdr.frame_count}; limit ${LIMITS.maxFrames})`);
+      if (hdr.frame_count > LIMITS.maxFramesHard) {
+        throw new Error(`Too many frames (${hdr.frame_count}; hard limit ${LIMITS.maxFramesHard})`);
       }
       if (hdr.palette_count <= 0 || hdr.palette_count > LIMITS.maxPalette) {
         throw new Error(`Invalid palette_count=${hdr.palette_count} (limit ${LIMITS.maxPalette})`);
@@ -753,72 +933,86 @@
       }
 
       // frames (v1 = all keyframes; v2 supports row-delta frames)
-      const frames = new Array(hdr.frame_count);
-      let prevRows = null;
-      for (let fi = 0; fi < hdr.frame_count; fi++) {
-        const delay_ms = (version === 3) ? readVarU32() : readU2();
-        let frame_flags = 1; // v1 implicit keyframe
-        let is_keyframe = true;
-        if (version >= 2) {
-          frame_flags = readU1();
-          is_keyframe = (frame_flags & 1) === 1;
-        }
+      const framesStart = off;
+      const doFullParse = (hdr.frame_count <= LIMITS.maxFramesFullParse);
+      let frames = null;
+      let decoder = null;
 
-        const rows = new Array(hdr.rows);
-        if (is_keyframe) {
-          for (let r = 0; r < hdr.rows; r++) {
-            rows[r] = readRow(fi, r);
+      if (doFullParse) {
+        frames = new Array(hdr.frame_count);
+        let prevRows = null;
+        for (let fi = 0; fi < hdr.frame_count; fi++) {
+          const delay_ms = (version === 3) ? readVarU32() : readU2();
+          let frame_flags = 1; // v1 implicit keyframe
+          let is_keyframe = true;
+          if (version >= 2) {
+            frame_flags = readU1();
+            is_keyframe = (frame_flags & 1) === 1;
           }
-        } else {
-          if (!prevRows) {
-            throw new Error(`Delta frame without previous keyframe (frame=${fi})`);
-          }
-          const bitsetLen = Math.ceil(hdr.rows / 8);
-          need(bitsetLen);
-          const changed = new Uint8Array(view.buffer, view.byteOffset + off, bitsetLen);
-          off += bitsetLen;
 
-          for (let r = 0; r < hdr.rows; r++) {
-            const b = changed[(r / 8) | 0];
-            const m = 1 << (r % 8);
-            if (b & m) {
+          const rows = new Array(hdr.rows);
+          if (is_keyframe) {
+            for (let r = 0; r < hdr.rows; r++) {
               rows[r] = readRow(fi, r);
-            } else {
-              rows[r] = prevRows[r];
+            }
+          } else {
+            if (!prevRows) {
+              throw new Error(`Delta frame without previous keyframe (frame=${fi})`);
+            }
+            const bitsetLen = Math.ceil(hdr.rows / 8);
+            need(bitsetLen);
+            const changed = new Uint8Array(view.buffer, view.byteOffset + off, bitsetLen);
+            off += bitsetLen;
+
+            for (let r = 0; r < hdr.rows; r++) {
+              const b = changed[(r / 8) | 0];
+              const m = 1 << (r % 8);
+              if (b & m) {
+                rows[r] = readRow(fi, r);
+              } else {
+                rows[r] = prevRows[r];
+              }
             }
           }
-        }
 
-        frames[fi] = { delay_ms, frame_flags, is_keyframe, rows };
-        prevRows = rows;
+          frames[fi] = { delay_ms, frame_flags, is_keyframe, rows };
+          prevRows = rows;
+        }
+      } else {
+        // Do not materialize all frames; decode on-demand using the seek table + delta frames.
+        decoder = makeStreamDecoder(u8, { version, hdr, paletteStr, seek_table, framesStart });
       }
 
       const trailingBytes = view.byteLength - off;
       return {
         magic,
         version,
+        mode: doFullParse ? "full" : "stream",
         hdr,
         font_utf8,
         library_utf8,
         palette,
         paletteStr,
         seek_table,
+        framesStart,
+        decoder,
         frames,
-        bytesUsed: off,
-        trailingBytes
+        bytesUsed: doFullParse ? off : view.byteLength,
+        trailingBytes: doFullParse ? trailingBytes : 0
       };
     }
 
     function frameToText(container, fi) {
       const hdr = container.hdr;
       const paletteStr = container.paletteStr || [];
+      if (container.mode === "stream") {
+        const f = container.decoder.seekTo(fi);
+        return f.rowsStr.join("\n");
+      }
       const frame = container.frames[fi];
-
       const lines = new Array(hdr.rows);
-
       for (let r = 0; r < hdr.rows; r++) {
         const row = frame.rows[r];
-
         const parts = new Array(row.runs.length);
         for (let i = 0; i < row.runs.length; i++) {
           const run = row.runs[i];
@@ -827,13 +1021,17 @@
         }
         lines[r] = parts.join("");
       }
-
       return lines.join("\n");
     }
 
     function effectiveDelayMs(container, fi) {
-      const f = container.frames[fi];
-      const d = (f.delay_ms && f.delay_ms > 0) ? f.delay_ms : container.hdr.default_delay_ms;
+      let delay_ms = 0;
+      if (container.mode === "stream") {
+        delay_ms = container.decoder.seekTo(fi).delay_ms;
+      } else {
+        delay_ms = container.frames[fi].delay_ms;
+      }
+      const d = (delay_ms && delay_ms > 0) ? delay_ms : container.hdr.default_delay_ms;
       return (d && d > 0) ? d : 33; // last resort
     }
 
@@ -1032,7 +1230,9 @@
         syncUi();
         const warn = parsed.trailingBytes ? ` Warning: ${parsed.trailingBytes} trailing bytes.` : "";
         const decomp = isGz ? ` Decompressed ${fileBytes.byteLength} -> ${bytes.byteLength} bytes.` : "";
-        setStatusOk(`Parsed ASKYBIN1: ${parsed.hdr.cols}×${parsed.hdr.rows}, frames=${parsed.hdr.frame_count}, palette=${parsed.hdr.palette_count}. Parse ${(t1 - t0).toFixed(1)} ms. Bytes used=${parsed.bytesUsed}.${warn}${decomp}`);
+        const mode = parsed.mode ? ` Mode=${parsed.mode}.` : "";
+        const note = (parsed.mode === "stream") ? ` (Tip: streaming mode avoids huge memory usage for large frame counts.)` : "";
+        setStatusOk(`Parsed ASKYBIN1: ${parsed.hdr.cols}×${parsed.hdr.rows}, frames=${parsed.hdr.frame_count}, palette=${parsed.hdr.palette_count}.${mode} Parse ${(t1 - t0).toFixed(1)} ms. Bytes used=${parsed.bytesUsed}.${warn}${decomp}${note}`);
       } catch (e) {
         parsed = null;
         syncUi();
