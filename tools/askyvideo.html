@@ -45,6 +45,13 @@
       align-items: start;
     }
 
+    .app.compact {
+      max-width: none;
+      grid-template-columns: 1fr;
+    }
+
+    .app.compact #leftPanel { display: none; }
+
     @media (max-width: 980px) {
       .app { grid-template-columns: 1fr; }
     }
@@ -117,6 +124,47 @@
     }
     button:hover { border-color: rgba(122,162,255,0.65); }
     button:active { transform: translateY(1px); }
+
+    .iconBtn {
+      width: auto;
+      padding: 8px 10px;
+      min-width: 40px;
+      line-height: 1;
+    }
+
+    .iconBtn.on {
+      border-color: rgba(122,162,255,0.75);
+      background: rgba(122,162,255,0.14);
+    }
+
+    .miniControls {
+      display: none;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .app.compact .miniControls { display: flex; }
+    .app.compact #schemaNote { display: none; }
+    .app.compact #viewerBottomFull { display: none; }
+    .app:not(.compact) #viewerBottomMini { display: none; }
+
+    .checkboxRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .checkboxRow label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .checkboxRow input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
 
     .btnrow {
       display: grid;
@@ -249,7 +297,7 @@
 <body>
   <div class="app">
     <!-- LEFT: Controls / Info -->
-    <div class="card">
+    <div class="card" id="leftPanel">
       <div class="hd">
         <div class="title">ASKYBIN1 Player <span class="pill mono">.asky / .asky.gz</span></div>
         <div class="pill mono" id="verPill">v?</div>
@@ -266,8 +314,15 @@
         <div class="row">
           <div class="btnrow3">
             <button id="btnParse">Parse</button>
-            <button id="btnDemo" title="Fetch out_contrast.asky.gz from the same directory">Load Demo</button>
+            <button id="btnDemo" title="Fetch out_contrast.asky.gz from the same directory, parse, and play">Load Demo</button>
             <button id="btnClear">Clear</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="checkboxRow">
+            <input id="autoplayParse" type="checkbox" checked />
+            <label for="autoplayParse">Autoplay on Parse</label>
           </div>
         </div>
 
@@ -305,7 +360,7 @@
 
         <div class="row">
           <label for="fontSize">Font size (px)</label>
-          <input id="fontSize" type="range" min="8" max="32" step="1" value="16" />
+          <input id="fontSize" type="range" min="8" max="256" step="1" value="16" />
           <div class="small">Uses <span class="mono">"unscii 16-full"</span> first, then Noto/Unicode fallbacks.</div>
         </div>
 
@@ -342,8 +397,18 @@
           <span class="pill mono" id="delayPill">delay – ms</span>
           <span class="pill mono" id="fpsPill">fps –</span>
         </div>
-        <div class="right small">
-          <span>Schema: <span class="mono">ASKYBIN1</span> v1/v2/v3 (+ optional gzip)</span>
+        <div class="right">
+          <div class="miniControls" id="miniControls" aria-label="Compact controls">
+            <button id="btnMiniOpen" class="iconBtn" title="Load file" aria-label="Load file">⭳</button>
+            <button id="btnMiniParse" class="iconBtn" title="Parse (autoplay)" aria-label="Parse">⟳</button>
+            <button id="btnMiniDemo" class="iconBtn" title="Load demo (parses and plays)" aria-label="Load demo">Demo</button>
+            <button id="btnMiniPlay" class="iconBtn" title="Play" aria-label="Play">▶</button>
+            <button id="btnMiniPause" class="iconBtn" title="Pause" aria-label="Pause">⏸</button>
+            <button id="btnMiniStep" class="iconBtn" title="Step" aria-label="Step">⏭</button>
+            <button id="btnMiniFit" class="iconBtn" title="Fit text to window" aria-label="Fit text to window">⤢</button>
+          </div>
+          <button id="btnUiMode" class="iconBtn" title="Toggle compact/full UI" aria-label="Toggle compact/full UI">☰</button>
+          <span id="schemaNote" class="small">Schema: <span class="mono">ASKYBIN1</span> v1/v2/v3 (+ optional gzip)</span>
         </div>
       </div>
 
@@ -357,20 +422,26 @@
           <input id="scrub" type="range" min="0" max="0" value="0" step="1" />
         </div>
 
-        <div class="grid2">
-          <div>
-            <label for="goto">Go to frame #</label>
-            <input id="goto" type="number" min="0" value="0" />
+        <div id="viewerBottomFull">
+          <div class="grid2">
+            <div>
+              <label for="goto">Go to frame #</label>
+              <input id="goto" type="number" min="0" value="0" />
+            </div>
+            <div class="btnrow">
+              <button id="btnGoto">Go</button>
+              <button id="btnStop">Stop & Reset</button>
+            </div>
           </div>
-          <div class="btnrow">
-            <button id="btnGoto">Go</button>
-            <button id="btnStop">Stop & Reset</button>
+
+          <div class="small">
+            If you see missing glyphs, that’s usually a font-coverage issue: install an <span class="mono">unscii 16-full</span>
+            font locally, or rely on the Noto/Unifont fallbacks.
           </div>
         </div>
 
-        <div class="small">
-          If you see missing glyphs, that’s usually a font-coverage issue: install an <span class="mono">unscii 16-full</span>
-          font locally, or rely on the Noto/Unifont fallbacks.
+        <div id="viewerBottomMini" class="row">
+          <div class="status mono" id="statusMini" role="status" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -422,6 +493,7 @@
     // ============
     // UI refs
     // ============
+    const elApp = document.querySelector(".app");
     const elFile = document.getElementById("file");
     const elDrop = document.getElementById("drop");
     const elParse = document.getElementById("btnParse");
@@ -436,17 +508,29 @@
     const elSpeed = document.getElementById("speed");
     const elLoop = document.getElementById("loop");
     const elFontSize = document.getElementById("fontSize");
+    const elAutoplayParse = document.getElementById("autoplayParse");
 
     const elAscii = document.getElementById("ascii");
+    const elScreen = document.querySelector(".screen");
     const elScrub = document.getElementById("scrub");
     const elGoto = document.getElementById("goto");
     const elBtnGoto = document.getElementById("btnGoto");
 
     const elStatus = document.getElementById("status");
+    const elStatusMini = document.getElementById("statusMini");
     const elVerPill = document.getElementById("verPill");
     const elFramePill = document.getElementById("framePill");
     const elDelayPill = document.getElementById("delayPill");
     const elFpsPill = document.getElementById("fpsPill");
+
+    const elUiMode = document.getElementById("btnUiMode");
+    const elMiniOpen = document.getElementById("btnMiniOpen");
+    const elMiniParse = document.getElementById("btnMiniParse");
+    const elMiniDemo = document.getElementById("btnMiniDemo");
+    const elMiniPlay = document.getElementById("btnMiniPlay");
+    const elMiniPause = document.getElementById("btnMiniPause");
+    const elMiniStep = document.getElementById("btnMiniStep");
+    const elMiniFit = document.getElementById("btnMiniFit");
 
     const elCols = document.getElementById("cols");
     const elRows = document.getElementById("rows");
@@ -471,6 +555,7 @@
     let playing = false;
     let timerId = null;
     let lastTickAt = 0;
+    let fitMode = false;
 
     const DEMO_FILE = "out_contrast.asky.gz";
 
@@ -502,6 +587,14 @@
       elScrub.disabled = !hasParsed;
       elGoto.disabled = !hasParsed;
       elBtnGoto.disabled = !hasParsed;
+
+      if (elMiniOpen) { elMiniOpen.disabled = false; }
+      if (elMiniParse) { elMiniParse.disabled = !hasFile; }
+      if (elMiniDemo) { elMiniDemo.disabled = false; }
+      if (elMiniPlay) { elMiniPlay.disabled = !hasParsed; }
+      if (elMiniPause) { elMiniPause.disabled = !hasParsed; }
+      if (elMiniStep) { elMiniStep.disabled = !hasParsed; }
+      if (elMiniFit) { elMiniFit.disabled = !hasParsed; }
     }
 
     // ============
@@ -509,12 +602,15 @@
     // ============
     function setStatusOk(msg) {
       elStatus.innerHTML = `<span class="ok">OK</span> ${escapeHtml(msg)}`;
+      if (elStatusMini) { elStatusMini.innerHTML = `<span class="ok">OK</span> ${escapeHtml(msg)}`; }
     }
     function setStatusBad(msg) {
       elStatus.innerHTML = `<span class="bad">ERR</span> ${escapeHtml(msg)}`;
+      if (elStatusMini) { elStatusMini.innerHTML = `<span class="bad">ERR</span> ${escapeHtml(msg)}`; }
     }
     function setStatusInfo(msg) {
       elStatus.textContent = msg;
+      if (elStatusMini) { elStatusMini.textContent = msg; }
     }
 
     function escapeHtml(s) {
@@ -1077,6 +1173,83 @@
       elFpsPill.textContent = `fps ${fps.toFixed(1)}`;
     }
 
+    let _charMetricsCache = null; // { cw: number, lh: number } ratios per 1px font-size
+
+    function getCharMetricsRatios() {
+      if (_charMetricsCache) { return _charMetricsCache; }
+
+      const m = document.createElement("span");
+      m.style.position = "absolute";
+      m.style.left = "-10000px";
+      m.style.top = "-10000px";
+      m.style.visibility = "hidden";
+      m.style.whiteSpace = "pre";
+      m.style.lineHeight = "1";
+      m.style.letterSpacing = "0";
+      m.style.fontFamily = getComputedStyle(elAscii).fontFamily;
+      document.body.appendChild(m);
+
+      const testPx = 100;
+      m.style.fontSize = `${testPx}px`;
+
+      m.textContent = "0".repeat(100);
+      const w = m.getBoundingClientRect().width / 100;
+
+      m.textContent = "0\n0";
+      const h = m.getBoundingClientRect().height / 2;
+
+      m.remove();
+      _charMetricsCache = { cw: w / testPx, lh: h / testPx };
+      return _charMetricsCache;
+    }
+
+    function fitAsciiToScreen() {
+      if (!parsed || !elScreen) { return; }
+
+      const styles = getComputedStyle(elScreen);
+      const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+      const padY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+
+      const availW = Math.max(0, elScreen.clientWidth - padX);
+      const availH = Math.max(0, elScreen.clientHeight - padY);
+      if (availW <= 0 || availH <= 0) { return; }
+
+      const cols = parsed.hdr.cols;
+      const rows = parsed.hdr.rows;
+      const r = getCharMetricsRatios();
+      const byW = availW / (cols * r.cw);
+      const byH = availH / (rows * r.lh);
+
+      let px = Math.floor(Math.min(byW, byH) * 0.98);
+      px = clampInt(px, 6, 256);
+
+      elAscii.style.fontSize = `${px}px`;
+      if (elFontSize) {
+        elFontSize.max = String(Math.max(parseInt(elFontSize.max || "0", 10) || 0, px));
+        elFontSize.value = String(px);
+      }
+    }
+
+    function setFitMode(on) {
+      fitMode = !!on;
+      if (elMiniFit) {
+        elMiniFit.classList.toggle("on", fitMode);
+      }
+      if (fitMode) {
+        fitAsciiToScreen();
+      }
+    }
+
+    let _fitRaf = 0;
+    window.addEventListener("resize", () => {
+      if (!fitMode) { return; }
+      if (_fitRaf) { cancelAnimationFrame(_fitRaf); }
+      _fitRaf = requestAnimationFrame(() => {
+        _fitRaf = 0;
+        fitAsciiToScreen();
+      });
+    });
+
     function scheduleNextTick(extraDelayMs) {
       stopTimer();
       if (!playing || !parsed) { return; }
@@ -1166,6 +1339,38 @@
       }
     }
 
+    async function parseLoadedBytes({ autoPlay, sourceLabel } = {}) {
+      if (!fileBytes) {
+        throw new Error("No file loaded.");
+      }
+      setPlaying(false);
+
+      const isGz = (fileBytes.byteLength >= 2 && fileBytes[0] === 0x1f && fileBytes[1] === 0x8b);
+      const t0 = performance.now();
+      const bytes = isGz ? await maybeGunzip(fileBytes) : fileBytes;
+      parsed = parseAskybin1(bytes);
+      const t1 = performance.now();
+
+      frameIndex = 0;
+      updateHeaderUI(parsed);
+      renderFrame(0);
+      if (fitMode) { fitAsciiToScreen(); }
+      syncUi();
+
+      const warn = parsed.trailingBytes ? ` Warning: ${parsed.trailingBytes} trailing bytes.` : "";
+      const decomp = isGz ? ` Decompressed ${fileBytes.byteLength} -> ${bytes.byteLength} bytes.` : "";
+      const mode = parsed.mode ? ` Mode=${parsed.mode}.` : "";
+      const note = (parsed.mode === "stream") ? ` (Tip: streaming mode avoids huge memory usage for large frame counts.)` : "";
+      const summary = `Parsed ASKYBIN1: ${parsed.hdr.cols}×${parsed.hdr.rows}, frames=${parsed.hdr.frame_count}, palette=${parsed.hdr.palette_count}.${mode} Parse ${(t1 - t0).toFixed(1)} ms. Bytes used=${parsed.bytesUsed}.${warn}${decomp}${note}`;
+      if (autoPlay) {
+        setPlaying(true);
+        const prefix = sourceLabel ? `${sourceLabel} ` : "";
+        setStatusOk(`${prefix}${summary} Started playback.`);
+      } else {
+        setStatusOk(summary);
+      }
+    }
+
     function clearAll() {
       setPlaying(false);
       fileBytes = null;
@@ -1211,28 +1416,20 @@
 
     elDemo.addEventListener("click", async () => {
       await loadDemo();
+      if (!fileBytes) { return; }
+      try {
+        await parseLoadedBytes({ autoPlay: true, sourceLabel: `Loaded demo "${DEMO_FILE}".` });
+      } catch (e) {
+        parsed = null;
+        syncUi();
+        setStatusBad(e && e.message ? e.message : String(e));
+      }
     });
 
     elParse.addEventListener("click", async () => {
-      if (!fileBytes) {
-        setStatusBad("No file loaded.");
-        return;
-      }
       try {
-        const isGz = (fileBytes.byteLength >= 2 && fileBytes[0] === 0x1f && fileBytes[1] === 0x8b);
-        const t0 = performance.now();
-        const bytes = isGz ? await maybeGunzip(fileBytes) : fileBytes;
-        parsed = parseAskybin1(bytes);
-        const t1 = performance.now();
-        frameIndex = 0;
-        updateHeaderUI(parsed);
-        renderFrame(0);
-        syncUi();
-        const warn = parsed.trailingBytes ? ` Warning: ${parsed.trailingBytes} trailing bytes.` : "";
-        const decomp = isGz ? ` Decompressed ${fileBytes.byteLength} -> ${bytes.byteLength} bytes.` : "";
-        const mode = parsed.mode ? ` Mode=${parsed.mode}.` : "";
-        const note = (parsed.mode === "stream") ? ` (Tip: streaming mode avoids huge memory usage for large frame counts.)` : "";
-        setStatusOk(`Parsed ASKYBIN1: ${parsed.hdr.cols}×${parsed.hdr.rows}, frames=${parsed.hdr.frame_count}, palette=${parsed.hdr.palette_count}.${mode} Parse ${(t1 - t0).toFixed(1)} ms. Bytes used=${parsed.bytesUsed}.${warn}${decomp}${note}`);
+        const autoPlay = !!(elAutoplayParse && elAutoplayParse.checked);
+        await parseLoadedBytes({ autoPlay });
       } catch (e) {
         parsed = null;
         syncUi();
@@ -1286,7 +1483,8 @@
     });
 
     elFontSize.addEventListener("input", () => {
-      const px = clampInt(elFontSize.value, 8, 64);
+      setFitMode(false);
+      const px = clampInt(elFontSize.value, 6, 256);
       elAscii.style.fontSize = `${px}px`;
     });
 
@@ -1374,7 +1572,64 @@
     // Init
     clearAll();
     // Apply initial font size
-    elAscii.style.fontSize = `${clampInt(elFontSize.value, 8, 64)}px`;
+    elAscii.style.fontSize = `${clampInt(elFontSize.value, 6, 256)}px`;
+
+    function setUiMode(mode) {
+      const compact = (mode === "compact");
+      if (elApp) {
+        elApp.classList.toggle("compact", compact);
+      }
+      if (elUiMode) {
+        elUiMode.title = compact ? "Show full controls" : "Show compact controls";
+        elUiMode.setAttribute("aria-label", elUiMode.title);
+      }
+      try {
+        localStorage.setItem("askyvideo_ui_mode", compact ? "compact" : "full");
+      } catch {
+        // ignore
+      }
+      if (fitMode) {
+        requestAnimationFrame(() => fitAsciiToScreen());
+      }
+    }
+
+    // Default UI mode
+    let initialMode = "compact";
+    try {
+      const saved = localStorage.getItem("askyvideo_ui_mode");
+      if (saved === "full" || saved === "compact") {
+        initialMode = saved;
+      }
+    } catch {
+      // ignore
+    }
+    setUiMode(initialMode);
+
+    if (elUiMode) {
+      elUiMode.addEventListener("click", () => {
+        const isCompact = !!(elApp && elApp.classList.contains("compact"));
+        setUiMode(isCompact ? "full" : "compact");
+      });
+    }
+
+    if (elMiniOpen) { elMiniOpen.addEventListener("click", () => elFile.click()); }
+    if (elMiniDemo) { elMiniDemo.addEventListener("click", () => elDemo.click()); }
+    if (elMiniParse) {
+      elMiniParse.addEventListener("click", async () => {
+        try {
+          const autoPlay = !!(elAutoplayParse && elAutoplayParse.checked);
+          await parseLoadedBytes({ autoPlay });
+        } catch (e) {
+          parsed = null;
+          syncUi();
+          setStatusBad(e && e.message ? e.message : String(e));
+        }
+      });
+    }
+    if (elMiniPlay) { elMiniPlay.addEventListener("click", () => elPlay.click()); }
+    if (elMiniPause) { elMiniPause.addEventListener("click", () => elPause.click()); }
+    if (elMiniStep) { elMiniStep.addEventListener("click", () => elStep.click()); }
+    if (elMiniFit) { elMiniFit.addEventListener("click", () => setFitMode(!fitMode)); }
   </script>
 </body>
 </html>
