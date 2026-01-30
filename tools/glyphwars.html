@@ -563,6 +563,13 @@ const SPR_ENEMY_TURRET = [
   " '-'",
 ];
 
+const SPR_BOSS_EYEBALL = [
+  " ▁▁▁ ",
+  "█",
+  "█",
+  " ¯¯¯ ",
+];
+
   function escapeHTML(s) {
     return String(s)
       .replaceAll("&", "&amp;")
@@ -632,6 +639,7 @@ const SPR_ENEMY_TURRET = [
   const D_SCOUT  = spriteDims(SPR_ENEMY_SCOUT);
   const D_BOMBER = spriteDims(SPR_ENEMY_BOMBER);
   const D_TURRET = spriteDims(SPR_ENEMY_TURRET);
+  const D_BOSS_EYEBALL = spriteDims(SPR_BOSS_EYEBALL);
 
   const BOOM_FRAMES = ["", "", "", "", "", "", "", " "];
   const PWR_FRAMES = ["", "", "", ""];
@@ -800,8 +808,9 @@ const SPR_ENEMY_TURRET = [
   // ─────────────────────────────────────────────────────────────────────────────
   const TEST_BOSS_URL = "./skull.asky.gz";
   const BOSS_BOMB_DAMAGE_FRACTION = 0.18; // "significant but not overwhelming"
+  const BOSS_MOUTH_FRAMES = ["🞅","🞆","🞇","🞈","🞉","🍪","🌐","🍪","🞉","🞈","🞇","🞆"];
 
-  let boss = null; // { state, clip, x,y,vx,targetX,yBase,frame,accMs,hp,maxHp,deathT }
+  let boss = null; // { state, clip, x,y,vx,targetX,yBase,frame,accMs,hp,maxHp,deathT,mouthCd,eyeCd }
   let cachedSkullClip = null;
   let cachedSkullClipPromise = null;
   let bossNotice = "";
@@ -921,6 +930,63 @@ const SPR_ENEMY_TURRET = [
     ebullets.length = 0;
   }
 
+  function fireBossMouthShot() {
+    if (!bossIsTargetable() || !boss.clip) return;
+    if (ebullets.length >= enemyBulletCap) return;
+    const bx = bossGridX();
+    const by = bossGridY();
+    const x = bx + Math.floor(boss.clip.cols * 0.30);
+    const y = clamp(by + Math.floor(boss.clip.rows * 0.63), PLAY_Y0, PLAY_Y1);
+    const speed = 28;
+    fireBullet(
+      x,
+      y,
+      -speed,
+      rnd(-2.4, 2.4),
+      false,
+      BOSS_MOUTH_FRAMES[0],
+      palette.ebullet,
+      1,
+      {
+        kind: "bossMouth",
+        ttl: 9.0,
+        animFrames: BOSS_MOUTH_FRAMES,
+        animIdx: 0,
+        animT: 0,
+        animRate: 0.06,
+        wanderT: 0,
+        wanderRate: 0.08,
+        wanderAccel: 1.4,
+        wanderVMax: 9.5,
+      },
+    );
+  }
+
+  function fireBossEyeBall() {
+    if (!bossIsTargetable() || !boss.clip) return;
+    if (ebullets.length >= enemyBulletCap) return;
+    const bx = bossGridX();
+    const by = bossGridY();
+    const x = bx + Math.floor(boss.clip.cols * 0.25);
+    const y = clamp(
+      by + Math.floor(boss.clip.rows * 0.25),
+      PLAY_Y0,
+      PLAY_Y1 - D_BOSS_EYEBALL.h + 1,
+    );
+    const speed = 14;
+    fireBullet(
+      x,
+      y,
+      -speed,
+      0,
+      false,
+      "█",
+      palette.ebullet,
+      2,
+      { kind: "bossEye", sprite: SPR_BOSS_EYEBALL, w: D_BOSS_EYEBALL.w, h: D_BOSS_EYEBALL.h, ttl: 10.5 },
+    );
+  }
+
   function spawnTestBoss() {
     if (state !== "playing") return;
     if (boss) return;
@@ -939,6 +1005,8 @@ const SPR_ENEMY_TURRET = [
       hp: 300,
       maxHp: 300,
       deathT: 0,
+      mouthCd: 0.9,
+      eyeCd: 3.2,
     };
     bossNotice = "Loading boss…";
     bossNoticeT = 1.2;
@@ -962,6 +1030,8 @@ const SPR_ENEMY_TURRET = [
       boss.state = "enter";
       bossNotice = "BOSS INCOMING";
       bossNoticeT = 1.0;
+      boss.mouthCd = rnd(0.65, 1.10);
+      boss.eyeCd = rnd(2.8, 4.4);
     };
 
     const onErr = (err) => {
@@ -1011,6 +1081,18 @@ const SPR_ENEMY_TURRET = [
         PLAY_Y0,
         PLAY_Y1 - boss.clip.rows + 1,
       );
+
+      boss.mouthCd -= dt;
+      if (boss.mouthCd <= 0) {
+        fireBossMouthShot();
+        boss.mouthCd = rnd(0.28, 0.55);
+      }
+
+      boss.eyeCd -= dt;
+      if (boss.eyeCd <= 0) {
+        fireBossEyeBall();
+        boss.eyeCd = rnd(3.6, 6.2);
+      }
     } else if (boss.state === "dead") {
       boss.deathT -= dt;
       if (boss.deathT <= 0) {
@@ -1944,6 +2026,29 @@ const SPR_ENEMY_TURRET = [
     function updBul(arr) {
       for (let i = arr.length - 1; i >= 0; i--) {
         const b = arr[i];
+        if (!b) continue;
+
+        if (b.animFrames && b.animFrames.length > 0) {
+          b.animT = (b.animT || 0) + dt;
+          const rate = b.animRate || 0.08;
+          let guard = 0;
+          while (b.animT >= rate && guard++ < 8) {
+            b.animT -= rate;
+            b.animIdx = ((b.animIdx || 0) + 1) % b.animFrames.length;
+            b.ch = b.animFrames[b.animIdx];
+          }
+        }
+
+        if (b.wanderRate) {
+          b.wanderT = (b.wanderT || 0) + dt;
+          if (b.wanderT >= b.wanderRate) {
+            b.wanderT = 0;
+            const a = (b.wanderAccel != null) ? b.wanderAccel : 1.2;
+            const vMax = (b.wanderVMax != null) ? b.wanderVMax : 10;
+            b.vy = clamp(b.vy + rnd(-a, a), -vMax, vMax);
+          }
+        }
+
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         b.ttl -= dt;
@@ -1954,10 +2059,12 @@ const SPR_ENEMY_TURRET = [
           continue;
         }
 
+        const bw = b.w || 1;
+        const bh = b.h || 1;
         if (
           b.ttl <= 0 ||
-          b.x < -2 || b.x > COLS + 2 ||
-          b.y < PLAY_Y0 - 2 || b.y > PLAY_Y1 + 2
+          (b.x + bw) < -2 || b.x > COLS + 2 ||
+          (b.y + bh) < (PLAY_Y0 - 2) || b.y > (PLAY_Y1 + 2)
         ) {
           arr.splice(i, 1);
         }
@@ -2009,7 +2116,7 @@ const SPR_ENEMY_TURRET = [
       if (!b) continue;
       let hitSomething = false;
 
-      if (bossSolidAt(b.x, b.y)) {
+      if (bossSolidAt(Math.floor(b.x + 0.5), Math.floor(b.y + 0.5))) {
         hitSomething = true;
         if (b.kind === "missile") {
           explodeMissile(b);
@@ -2042,7 +2149,9 @@ const SPR_ENEMY_TURRET = [
     if (player.invuln <= 0) {
       for (let bi = ebullets.length - 1; bi >= 0; bi--) {
         const b = ebullets[bi];
-        if (aabb(b.x, b.y, 1, 1, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
+        const bw = b.w || 1;
+        const bh = b.h || 1;
+        if (aabb(b.x, b.y, bw, bh, player.x, player.y, D_PLAYER.w, D_PLAYER.h)) {
           ebullets.splice(bi, 1);
           if (player.shield > 0) {
             player.shield = 0;
@@ -2418,7 +2527,8 @@ const SPR_ENEMY_TURRET = [
       }
     }
     for (const b of ebullets) {
-      drawGlyph(b.x, b.y, b.ch, b.color);
+      if (b.sprite) drawSprite(b.x, b.y, b.sprite, b.color);
+      else drawGlyph(b.x, b.y, b.ch, b.color);
     }
 
     // enemies
