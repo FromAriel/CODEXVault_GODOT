@@ -809,6 +809,8 @@ const SPR_BOSS_EYEBALL = [
   const TEST_BOSS_URL = "./skull.asky.gz";
   const BOSS_BOMB_DAMAGE_FRACTION = 0.18; // "significant but not overwhelming"
   const BOSS_MOUTH_FRAMES = ["🞅","🞆","🞇","🞈","🞉","🍪","🌐","🍪","🞉","🞈","🞇","🞆"];
+  const BOSS_SHOT_OX = 3;
+  const BOSS_SHOT_OY = 5;
 
   let boss = null; // { state, clip, x,y,vx,targetX,yBase,frame,accMs,hp,maxHp,deathT,mouthCd,eyeCd }
   let cachedSkullClip = null;
@@ -935,8 +937,8 @@ const SPR_BOSS_EYEBALL = [
     if (ebullets.length >= enemyBulletCap) return;
     const bx = bossGridX();
     const by = bossGridY();
-    const x = bx + Math.floor(boss.clip.cols * 0.30);
-    const y = clamp(by + Math.floor(boss.clip.rows * 0.63), PLAY_Y0, PLAY_Y1);
+    const x = bx + Math.floor(boss.clip.cols * 0.30) + BOSS_SHOT_OX;
+    const y = clamp(by + Math.floor(boss.clip.rows * 0.63) + BOSS_SHOT_OY, PLAY_Y0, PLAY_Y1);
     const speed = 28;
     fireBullet(
       x,
@@ -967,9 +969,9 @@ const SPR_BOSS_EYEBALL = [
     if (ebullets.length >= enemyBulletCap) return;
     const bx = bossGridX();
     const by = bossGridY();
-    const x = bx + Math.floor(boss.clip.cols * 0.25);
+    const x = bx + Math.floor(boss.clip.cols * 0.25) + BOSS_SHOT_OX;
     const y = clamp(
-      by + Math.floor(boss.clip.rows * 0.25),
+      by + Math.floor(boss.clip.rows * 0.25) + BOSS_SHOT_OY,
       PLAY_Y0,
       PLAY_Y1 - D_BOSS_EYEBALL.h + 1,
     );
