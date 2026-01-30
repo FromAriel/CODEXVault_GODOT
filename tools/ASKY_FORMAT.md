@@ -141,6 +141,11 @@ FrameV3:
 - u8 frame_flags
   - bit0 (1): keyframe
 
+Delay semantics:
+
+- If delay_ms == 0, decoders should treat it as "use header.default_delay_ms".
+  (Encoders may use this to save bytes when many frames share the default delay.)
+
 If keyframe (bit0 set):
 
 - for each row (rows rows):

@@ -151,8 +151,8 @@
   // ─────────────────────────────────────────────────────────────────────────────
   // Core grid + UNSCII intent (8×16)
   // ─────────────────────────────────────────────────────────────────────────────
-  const COLS = 120;
-  const ROWS = 36;
+  const COLS = 180;
+  const ROWS = 60;
 
   // HUD + borders
   const HUD_ROWS = 3;
@@ -190,6 +190,7 @@
     enemy1: "#ff6b6b",
     enemy2: "#ffb86b",
     enemy3: "#b28dff",
+    boss: "#ff6bf7",
     bomb: "#ffcf5c",
     shield: "#6cf2ff",
     wpnSpread: "#ffe66d",
@@ -262,6 +263,195 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // ASKYBIN1 (v3) loader (boss animations)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const TEXT_DECODER = ("TextDecoder" in globalThis) ? new TextDecoder("utf-8") : null;
+  const ASKY_MAGIC = [0x41, 0x53, 0x4b, 0x59, 0x42, 0x49, 0x4e, 0x31]; // ASKYBIN1
+
+  function isGzipBytes(u8) {
+    return u8 && u8.length >= 2 && u8[0] === 0x1f && u8[1] === 0x8b;
+  }
+
+  async function maybeGunzip(arrayBuffer) {
+    const u8 = new Uint8Array(arrayBuffer);
+    if (!isGzipBytes(u8)) return arrayBuffer;
+    if (!("DecompressionStream" in globalThis)) {
+      throw new Error("This browser can't gunzip .asky.gz (DecompressionStream missing).");
+    }
+    const ds = new DecompressionStream("gzip");
+    const decompressed = new Blob([u8]).stream().pipeThrough(ds);
+    return await new Response(decompressed).arrayBuffer();
+  }
+
+  function parseAskyBin1V3(arrayBuffer) {
+    const u8 = new Uint8Array(arrayBuffer);
+    const view = new DataView(arrayBuffer);
+    let off = 0;
+
+    const need = (n) => {
+      if (off + n > u8.length) throw new Error("ASKY parse: unexpected EOF");
+    };
+    const readU8 = () => { need(1); return u8[off++]; };
+    const readU16 = () => { need(2); const v = view.getUint16(off, true); off += 2; return v; };
+    const readU32 = () => { need(4); const v = view.getUint32(off, true); off += 4; return v; };
+    const readF32 = () => { need(4); const v = view.getFloat32(off, true); off += 4; return v; };
+    const readBytes = (n) => { need(n); const b = u8.subarray(off, off + n); off += n; return b; };
+    const readUtf8 = (n) => {
+      if (!n) return "";
+      const b = readBytes(n);
+      if (!TEXT_DECODER) throw new Error("ASKY parse: TextDecoder not available");
+      return TEXT_DECODER.decode(b);
+    };
+    const readUvarint = () => {
+      let result = 0;
+      let mul = 1;
+      for (let i = 0; i < 10; i++) {
+        const byte = readU8();
+        result += (byte & 0x7f) * mul;
+        if ((byte & 0x80) === 0) return result;
+        mul *= 128;
+      }
+      throw new Error("ASKY parse: uvarint too long");
+    };
+
+    // Magic + version
+    need(9);
+    for (let i = 0; i < 8; i++) {
+      if (u8[off + i] !== ASKY_MAGIC[i]) throw new Error("ASKY parse: bad magic");
+    }
+    off += 8;
+    const version = readU8();
+    if (version !== 3) throw new Error(`ASKY parse: unsupported version ${version}`);
+
+    // HeaderV3 (36 bytes)
+    const cols = readU16();
+    const rows = readU16();
+    const cellW = readU8();
+    const cellH = readU8();
+    const paletteIdWidth = readU8();
+    const flags = readU8();
+    const frameCount = readU32();
+    const paletteCount = readU32();
+    const defaultDelayMs = readU16();
+    const threshold = readU8();
+    const blackPoint = readU8();
+    const whitePoint = readU8();
+    const reserved0 = readU8();
+    const gamma = readF32();
+    const fontUtf8Len = readU16();
+    const libraryUtf8Len = readU16();
+    const keyframeInterval = readU16();
+    const seekCount = readU32();
+
+    // Strings
+    const font = readUtf8(fontUtf8Len);
+    const library = readUtf8(libraryUtf8Len);
+
+    // Palette (u32 codepoints)
+    const paletteGlyphs = new Array(paletteCount);
+    for (let i = 0; i < paletteCount; i++) {
+      const cp = readU32();
+      try {
+        paletteGlyphs[i] = String.fromCodePoint(cp);
+      } catch {
+        paletteGlyphs[i] = " ";
+      }
+    }
+
+    // Seek table (frame_index, file_offset) — not needed for sequential decode, but parse to advance offset.
+    for (let i = 0; i < seekCount; i++) {
+      readU32();
+      readU32();
+    }
+
+    const readPaletteId = () => {
+      if (paletteIdWidth === 0) return readUvarint();
+      if (paletteIdWidth === 1) return readU8();
+      if (paletteIdWidth === 2) return readU16();
+      if (paletteIdWidth === 4) return readU32();
+      throw new Error(`ASKY parse: unsupported palette_id_width ${paletteIdWidth}`);
+    };
+
+    const decodeRow = () => {
+      const runCount = readUvarint();
+      const parts = [];
+      let cells = 0;
+      for (let r = 0; r < runCount; r++) {
+        const count = readUvarint();
+        const palId = readPaletteId();
+        const glyph = paletteGlyphs[palId] ?? " ";
+        parts.push(glyph.repeat(count));
+        cells += count;
+      }
+      let row = parts.join("");
+      if (cells < cols) row += " ".repeat(cols - cells);
+      else if (cells > cols) row = Array.from(row).slice(0, cols).join("");
+      return row;
+    };
+
+    const framesRows = new Array(frameCount);
+    const delaysMs = new Array(frameCount);
+    let prevRows = new Array(rows).fill(" ".repeat(cols));
+
+    const bitsetBytes = Math.ceil(rows / 8);
+    for (let fi = 0; fi < frameCount; fi++) {
+      const delayRaw = readUvarint();
+      delaysMs[fi] = delayRaw === 0 ? defaultDelayMs : delayRaw;
+      const frameFlags = readU8();
+      const isKeyframe = (frameFlags & 1) !== 0;
+
+      if (isKeyframe) {
+        const rowStrings = new Array(rows);
+        for (let y = 0; y < rows; y++) rowStrings[y] = decodeRow();
+        framesRows[fi] = rowStrings;
+        prevRows = rowStrings;
+      } else {
+        const changed = readBytes(bitsetBytes);
+        const rowStrings = prevRows.slice();
+        for (let y = 0; y < rows; y++) {
+          const bi = (y / 8) | 0;
+          const bit = 1 << (y & 7);
+          if ((changed[bi] & bit) !== 0) rowStrings[y] = decodeRow();
+        }
+        framesRows[fi] = rowStrings;
+        prevRows = rowStrings;
+      }
+    }
+
+    return {
+      version,
+      cols,
+      rows,
+      cellW,
+      cellH,
+      paletteIdWidth,
+      flags,
+      frameCount,
+      paletteCount,
+      defaultDelayMs,
+      threshold,
+      blackPoint,
+      whitePoint,
+      reserved0,
+      gamma,
+      font,
+      library,
+      keyframeInterval,
+      seekCount,
+      delaysMs,
+      framesRows,
+    };
+  }
+
+  async function loadAskyClip(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to load ${url} (${res.status})`);
+    const raw = await res.arrayBuffer();
+    const payload = await maybeGunzip(raw);
+    return parseAskyBin1V3(payload);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Font + canvas sizing
   // ─────────────────────────────────────────────────────────────────────────────
   function applyCanvasSizing() {
@@ -303,7 +493,9 @@
     const maxW = Math.max(320, window.innerWidth - pad);
     const maxH = Math.max(240, window.innerHeight - 140); // leave room for help panel
 
-    const scale = Math.max(1, Math.floor(Math.min(maxW / baseW, maxH / baseH)));
+    const scaleRaw = Math.min(maxW / baseW, maxH / baseH);
+    // Prefer integer scaling for crispness, but allow <1 when the grid is too large to fit.
+    const scale = clamp((scaleRaw >= 1) ? Math.floor(scaleRaw) : scaleRaw, 0.25, 6);
 
     canvas.style.width = (baseW * scale) + "px";
     canvas.style.height = (baseH * scale) + "px";
@@ -376,6 +568,7 @@ const SPR_ENEMY_TURRET = [
         Left click fire ·
         <kbd>X</kbd> bomb ·
         Right click bomb ·
+        <kbd>E</kbd> boss ·
         <kbd>Shift</kbd> slow ·
         <kbd>Enter</kbd> pause ·
         <kbd>R</kbd> restart ·
@@ -491,6 +684,10 @@ const SPR_ENEMY_TURRET = [
       debugHUD = !debugHUD;
       e.preventDefault();
     }
+    if (code === "KeyE") {
+      spawnTestBoss();
+      e.preventDefault();
+    }
   }, { passive:false });
 
   window.addEventListener("keyup", (e) => {
@@ -579,6 +776,171 @@ const SPR_ENEMY_TURRET = [
     score: 0,
     streak: 0,
   };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Boss system (ASKY clips)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const TEST_BOSS_URL = "./skull.asky.gz";
+  const BOSS_BOMB_DAMAGE_FRACTION = 0.18; // "significant but not overwhelming"
+
+  let boss = null; // { state, clip, x,y,vx,targetX,yBase,frame,accMs,hp,maxHp,deathT }
+  let cachedSkullClip = null;
+  let cachedSkullClipPromise = null;
+  let bossNotice = "";
+  let bossNoticeT = 0;
+
+  function bossBlocksSpawns() {
+    return !!boss;
+  }
+
+  function bossIsTargetable() {
+    return boss && (boss.state === "enter" || boss.state === "fight");
+  }
+
+  function bossHitbox() {
+    if (!boss || !boss.clip) return null;
+    return { x: boss.x, y: boss.y, w: boss.clip.cols, h: boss.clip.rows };
+  }
+
+  function damageBoss(amount, hitX=null, hitY=null, big=false) {
+    if (!bossIsTargetable()) return;
+    boss.hp -= amount;
+    if (hitX != null && hitY != null) spawnExplosion(hitX, hitY, big);
+    if (boss.hp <= 0) {
+      boss.hp = 0;
+      boss.state = "dead";
+      boss.deathT = 1.35;
+      // burst of explosions across the boss body
+      const hb = bossHitbox();
+      if (hb) {
+        for (let i = 0; i < 18; i++) {
+          spawnExplosion(
+            hb.x + rnd(2, Math.max(3, hb.w - 3)),
+            hb.y + rnd(1, Math.max(2, hb.h - 2)),
+            chance(0.6),
+          );
+        }
+      }
+      player.score += 2500;
+      // clear bullets for the transition
+      bullets.length = 0;
+      ebullets.length = 0;
+    }
+  }
+
+  function clearForBoss() {
+    enemies.length = 0;
+    ebullets.length = 0;
+  }
+
+  function spawnTestBoss() {
+    if (state !== "playing") return;
+    if (boss) return;
+    clearForBoss();
+
+    boss = {
+      state: "loading",
+      clip: null,
+      x: COLS + 6,
+      y: PLAY_Y0,
+      yBase: PLAY_Y0,
+      vx: -18,
+      targetX: COLS - 80 - 1,
+      frame: 0,
+      accMs: 0,
+      hp: 300,
+      maxHp: 300,
+      deathT: 0,
+    };
+    bossNotice = "Loading boss…";
+    bossNoticeT = 1.2;
+
+    const startWith = (clip) => {
+      const xTarget = COLS - clip.cols - 1;
+      const yBase = clamp(
+        PLAY_Y0 + Math.floor(((PLAY_Y1 - PLAY_Y0 + 1) - clip.rows) / 2),
+        PLAY_Y0,
+        PLAY_Y1 - clip.rows + 1,
+      );
+      boss.clip = clip;
+      boss.x = COLS + 6;
+      boss.targetX = xTarget;
+      boss.yBase = yBase;
+      boss.y = yBase;
+      boss.vx = -18;
+      boss.frame = 0;
+      boss.accMs = 0;
+      boss.hp = boss.maxHp;
+      boss.state = "enter";
+      bossNotice = "BOSS INCOMING";
+      bossNoticeT = 1.0;
+    };
+
+    const onErr = (err) => {
+      boss = null;
+      bossNotice = `Boss load failed: ${String(err && err.message ? err.message : err)}`;
+      bossNoticeT = 4.0;
+    };
+
+    if (cachedSkullClip) {
+      startWith(cachedSkullClip);
+      return;
+    }
+    if (!cachedSkullClipPromise) {
+      cachedSkullClipPromise = loadAskyClip(TEST_BOSS_URL)
+        .then((clip) => {
+          cachedSkullClip = clip;
+          return clip;
+        })
+        .catch((err) => {
+          cachedSkullClipPromise = null;
+          throw err;
+        });
+    }
+    cachedSkullClipPromise.then(startWith).catch(onErr);
+  }
+
+  function updateBoss(dt) {
+    if (!boss) return;
+    if (bossNoticeT > 0) bossNoticeT = Math.max(0, bossNoticeT - dt);
+
+    if (boss.state === "loading") return;
+    if (!boss.clip) return;
+
+    if (boss.state === "enter") {
+      boss.x += boss.vx * dt;
+      if (boss.x <= boss.targetX) {
+        boss.x = boss.targetX;
+        boss.vx = 0;
+        boss.state = "fight";
+        // ensure a clean arena once the boss is fully on-screen
+        clearForBoss();
+      }
+    } else if (boss.state === "fight") {
+      // gentle bob
+      boss.y = clamp(
+        boss.yBase + Math.sin(runTime * 0.7) * 1.4,
+        PLAY_Y0,
+        PLAY_Y1 - boss.clip.rows + 1,
+      );
+    } else if (boss.state === "dead") {
+      boss.deathT -= dt;
+      if (boss.deathT <= 0) {
+        boss = null;
+        // breathing room before spawns resume
+        spawnTimer = Math.max(spawnTimer, 1.15);
+        return;
+      }
+    }
+
+    // Animation ticks for enter/fight/dead (keeps the sprite alive during death)
+    boss.accMs += dt * 1000;
+    let guard = 0;
+    while (boss.accMs >= boss.clip.delaysMs[boss.frame] && guard++ < 12) {
+      boss.accMs -= boss.clip.delaysMs[boss.frame];
+      boss.frame = (boss.frame + 1) % boss.clip.frameCount;
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Spawn director (fair ramp)
@@ -705,7 +1067,7 @@ const SPR_ENEMY_TURRET = [
 
   function initStars() {
     stars.length = 0;
-    const N = 220;
+    const N = Math.round((COLS * (PLAY_Y1 - PLAY_Y0 + 1)) * 0.055);
     for (let i = 0; i < N; i++) {
       const layerPick = Math.random();
       let speed, ch, color;
@@ -742,6 +1104,9 @@ const SPR_ENEMY_TURRET = [
     ebullets.length = 0;
     explosions.length = 0;
     pickups.length = 0;
+    boss = null;
+    bossNotice = "";
+    bossNoticeT = 0;
 
     player.x = 8;
     player.y = Math.floor((PLAY_Y0 + PLAY_Y1) / 2) - 1;
@@ -819,6 +1184,13 @@ const SPR_ENEMY_TURRET = [
       const base = (e.kind === "bomber" ? 70 : e.kind === "turret" ? 55 : 35);
       player.score += Math.floor(base * 0.6);
       enemies.splice(i, 1);
+    }
+
+    // Future bosses: significant (not overwhelming) bomb damage.
+    if (bossIsTargetable()) {
+      const dmg = Math.max(1, Math.ceil(boss.maxHp * BOSS_BOMB_DAMAGE_FRACTION));
+      const hb = bossHitbox();
+      damageBoss(dmg, hb ? hb.x + hb.w * 0.5 : null, hb ? hb.y + hb.h * 0.5 : null, true);
     }
   }
 
@@ -1040,11 +1412,26 @@ const SPR_ENEMY_TURRET = [
         if (e.hp <= 0) killEnemyAtIndex(ei);
       }
     }
+
+    // Boss AoE
+    if (bossIsTargetable()) {
+      const hb = bossHitbox();
+      if (hb) {
+        const nx = clamp(missile.x, hb.x, hb.x + hb.w);
+        const ny = clamp(missile.y, hb.y, hb.y + hb.h);
+        const dx = missile.x - nx;
+        const dy = missile.y - ny;
+        if (dx * dx + dy * dy <= r2) {
+          damageBoss(missile.damage, null, null, true);
+        }
+      }
+    }
   }
 
   function findLaserTarget(x0, yRows) {
-    let best = -1;
+    let best = null; // { kind: "enemy"|"boss", idx, x }
     let bestX = Infinity;
+
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
       if (e.x + e.w < x0) continue;
@@ -1053,8 +1440,26 @@ const SPR_ENEMY_TURRET = [
         if (y >= e.y && y < e.y + e.h) { yOk = true; break; }
       }
       if (!yOk) continue;
-      if (e.x < bestX) { bestX = e.x; best = i; }
+      if (e.x < bestX) {
+        bestX = e.x;
+        best = { kind: "enemy", idx: i, x: e.x };
+      }
     }
+
+    if (bossIsTargetable()) {
+      const hb = bossHitbox();
+      if (hb && (hb.x + hb.w) >= x0) {
+        let yOk = false;
+        for (const y of yRows) {
+          if (y >= hb.y && y < hb.y + hb.h) { yOk = true; break; }
+        }
+        if (yOk && hb.x < bestX) {
+          bestX = hb.x;
+          best = { kind: "boss", idx: -1, x: hb.x };
+        }
+      }
+    }
+
     return best;
   }
 
@@ -1066,9 +1471,9 @@ const SPR_ENEMY_TURRET = [
       ? [clamp(y0 - 1, PLAY_Y0, PLAY_Y1), clamp(y0, PLAY_Y0, PLAY_Y1), clamp(y0 + 1, PLAY_Y0, PLAY_Y1)]
       : [clamp(y0, PLAY_Y0, PLAY_Y1)];
 
-    const targetIdx = findLaserTarget(x0, yRows);
-    const hitX = (targetIdx >= 0) ? Math.floor(enemies[targetIdx].x) : (COLS - 2);
-    const endX = (targetIdx >= 0) ? Math.max(x0, hitX - 1) : hitX;
+    const target = findLaserTarget(x0, yRows);
+    const hitX = target ? Math.floor(target.x) : (COLS - 2);
+    const endX = target ? Math.max(x0, hitX - 1) : hitX;
 
     // render beam segments (laser stops at first hit)
     for (const y of yRows) {
@@ -1084,14 +1489,22 @@ const SPR_ENEMY_TURRET = [
       }
     }
 
-    if (targetIdx >= 0) {
-      const e = enemies[targetIdx];
-      e.hp -= (dps * dmgMul) * dt;
+    if (target) {
+      const dmg = (dps * dmgMul) * dt;
       if (laserSpark <= 0) {
         laserSpark = 0.06;
         spawnExplosion(hitX, y0, false);
       }
-      if (e.hp <= 0) killEnemyAtIndex(targetIdx);
+
+      if (target.kind === "enemy") {
+        const e = enemies[target.idx];
+        if (e) {
+          e.hp -= dmg;
+          if (e.hp <= 0) killEnemyAtIndex(target.idx);
+        }
+      } else {
+        damageBoss(dmg);
+      }
     }
   }
 
@@ -1285,6 +1698,7 @@ const SPR_ENEMY_TURRET = [
     screenFlash = Math.max(0, screenFlash - dt * 2.6);
     laserSpark = Math.max(0, laserSpark - dt);
     beams.length = 0;
+    updateBoss(dt);
 
     if (directorPhase !== wavePhase) {
       wavePhase = directorPhase;
@@ -1398,11 +1812,13 @@ const SPR_ENEMY_TURRET = [
       detonateBomb();
     }
 
-    // Spawn cadence
-    spawnTimer -= dt;
-    if (spawnTimer <= 0) {
-      spawnTimer = spawnWave(dir);
-      if (enemies.length >= enemyCap) spawnTimer = Math.max(spawnTimer, 0.35);
+    // Spawn cadence (suppressed during boss)
+    if (!bossBlocksSpawns()) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnTimer = spawnWave(dir);
+        if (enemies.length >= enemyCap) spawnTimer = Math.max(spawnTimer, 0.35);
+      }
     }
 
     // Update enemies
@@ -1515,25 +1931,35 @@ const SPR_ENEMY_TURRET = [
 
     // ───────────────── collisions ─────────────────
 
-    // Player bullets -> enemies
+    // Player bullets -> enemies / boss
+    const hb = bossHitbox();
     for (let bi = bullets.length - 1; bi >= 0; bi--) {
       const b = bullets[bi];
       let hitSomething = false;
 
-      for (let ei = enemies.length - 1; ei >= 0; ei--) {
-        const e = enemies[ei];
-        if (aabb(b.x, b.y, 1, 1, e.x, e.y, e.w, e.h)) {
-          hitSomething = true;
+      if (hb && aabb(b.x, b.y, 1, 1, hb.x, hb.y, hb.w, hb.h)) {
+        hitSomething = true;
+        if (b.kind === "missile") {
+          explodeMissile(b);
+        } else {
+          damageBoss(b.damage, b.x, b.y, false);
+        }
+      } else {
+        for (let ei = enemies.length - 1; ei >= 0; ei--) {
+          const e = enemies[ei];
+          if (aabb(b.x, b.y, 1, 1, e.x, e.y, e.w, e.h)) {
+            hitSomething = true;
 
-          if (b.kind === "missile") {
-            explodeMissile(b);
-          } else {
-            e.hp -= b.damage;
-            // hit spark
-            spawnExplosion(b.x, b.y, false);
-            if (e.hp <= 0) killEnemyAtIndex(ei);
+            if (b.kind === "missile") {
+              explodeMissile(b);
+            } else {
+              e.hp -= b.damage;
+              // hit spark
+              spawnExplosion(b.x, b.y, false);
+              if (e.hp <= 0) killEnemyAtIndex(ei);
+            }
+            break;
           }
-          break;
         }
       }
 
@@ -1584,6 +2010,24 @@ const SPR_ENEMY_TURRET = [
             enemies.splice(ei, 1);
           }
           break;
+        }
+      }
+    }
+
+    // Boss body -> player
+    if (player.invuln <= 0) {
+      const hbBoss = bossHitbox();
+      if (hbBoss && aabb(player.x, player.y, D_PLAYER.w, D_PLAYER.h, hbBoss.x, hbBoss.y, hbBoss.w, hbBoss.h)) {
+        if (player.shield > 0) {
+          player.shield = 0;
+          player.invuln = 0.9;
+          player.streak = 0;
+          spawnExplosion(player.x + 1.5, player.y + 1, false);
+        } else {
+          player.lives--;
+          player.invuln = 2.0;
+          player.streak = 0;
+          spawnExplosion(player.x + 1.5, player.y + 1, true);
         }
       }
     }
@@ -1681,7 +2125,13 @@ const SPR_ENEMY_TURRET = [
     ).padEnd(COLS, " ").slice(0, COLS);
 
     // help hint
-    const line2 = (`Press C for controls/legend`).padEnd(COLS, " ").slice(0, COLS);
+    const bossHint = boss
+      ? (boss.state === "loading") ? "BOSS loading…"
+        : `BOSS HP ${Math.ceil(boss.hp)}/${boss.maxHp}`
+      : "";
+    const line2 = (
+      `Press C for controls/legend` + (bossHint ? `  •  ${bossHint}` : "")
+    ).padEnd(COLS, " ").slice(0, COLS);
 
     drawText(0, 0, line0, palette.hud);
     drawText(0, 1, line1, palette.dim);
@@ -1758,7 +2208,7 @@ const SPR_ENEMY_TURRET = [
       "  Fire: Space                Bomb: X              ",
       "  Fire: Left click           Bomb: Right click     ",
       "  Pause: Enter               Restart: R           ",
-      "  Stats: F1                  Controls: C          ",
+      "  Stats: F1   Boss test: E   Controls: C          ",
       "",
       "  Weapons (WEAPON swaps; FIRE upgrades L1→L3):     ",
       "  BASIC:   • / ⁍                                     ",
@@ -1806,6 +2256,16 @@ const SPR_ENEMY_TURRET = [
     if (state === "title") {
       renderTitle();
       return;
+    }
+
+    // boss (behind pickups/bullets for readability)
+    if (boss && boss.clip) {
+      const frameRows = boss.clip.framesRows[boss.frame];
+      if (frameRows) drawSprite(boss.x, boss.y, frameRows, palette.boss);
+    }
+
+    if (bossNoticeT > 0 && bossNotice) {
+      drawText(centerX(bossNotice), PLAY_Y0 + 1, bossNotice, palette.boss);
     }
 
     // pickups
