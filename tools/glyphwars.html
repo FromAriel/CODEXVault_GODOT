@@ -2212,18 +2212,41 @@ const SPR_ENEMY_TURRET = [
       : `STREAK ${meter}   DIFF ${Math.round(difficulty)}`
     ).padEnd(COLS, " ").slice(0, COLS);
 
-    // help hint
-    const bossHint = boss
-      ? (boss.state === "loading") ? "BOSS loading…"
-        : `BOSS HP ${Math.ceil(boss.hp)}/${boss.maxHp}`
-      : "";
-    const line2 = (
-      `Press C for controls/legend` + (bossHint ? `  •  ${bossHint}` : "")
-    ).padEnd(COLS, " ").slice(0, COLS);
-
     drawText(0, 0, line0, palette.hud);
     drawText(0, 1, line1, palette.dim);
-    drawText(0, 2, line2, palette.dim);
+
+    // help hint / boss HP bar
+    if (boss && boss.clip) {
+      const hpPct = clamp(boss.maxHp > 0 ? (boss.hp / boss.maxHp) : 0, 0, 1);
+      const capL = "◖";
+      const capR = ")";
+      const fill = "";
+      const fillTip = "";
+      const empty = "";
+
+      const totalW = clamp(Math.floor(COLS * 0.92), 30, COLS);
+      const segs = Math.max(1, totalW - 2);
+      const filled = clamp(Math.round(segs * hpPct), 0, segs);
+
+      let body = "";
+      if (filled > 0) {
+        body += fill.repeat(Math.max(0, filled - 1));
+        body += fillTip;
+      }
+      body += empty.repeat(segs - filled);
+
+      const bar = capL + body + capR;
+      drawText(centerX(bar), 2, bar, palette.enemy1);
+    } else {
+      const bossHint = boss
+        ? (boss.state === "loading") ? "BOSS loading…"
+          : `BOSS HP ${Math.ceil(boss.hp)}/${boss.maxHp}`
+        : "";
+      const line2 = (
+        `Press C for controls/legend` + (bossHint ? `  •  ${bossHint}` : "")
+      ).padEnd(COLS, " ").slice(0, COLS);
+      drawText(0, 2, line2, palette.dim);
+    }
   }
 
   function renderTitle() {
