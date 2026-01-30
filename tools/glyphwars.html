@@ -811,6 +811,9 @@ const SPR_BOSS_EYEBALL = [
   const BOSS_MOUTH_FRAMES = ["🞅","🞆","🞇","🞈","🞉","🍪","🌐","🍪","🞉","🞈","🞇","🞆"];
   const BOSS_SHOT_OX = 3;
   const BOSS_SHOT_OY = 5;
+  const BOSS_FOLLOW_SPEED = 5.2;   // rows/sec
+  const BOSS_BOB_AMPL = 2.6;       // rows
+  const BOSS_BOB_RATE = 0.45;      // Hz-ish (radians/sec handled below)
 
   let boss = null; // { state, clip, x,y,vx,targetX,yBase,frame,accMs,hp,maxHp,deathT,mouthCd,eyeCd }
   let cachedSkullClip = null;
@@ -940,11 +943,19 @@ const SPR_BOSS_EYEBALL = [
     const x = bx + Math.floor(boss.clip.cols * 0.30) + BOSS_SHOT_OX;
     const y = clamp(by + Math.floor(boss.clip.rows * 0.63) + BOSS_SHOT_OY, PLAY_Y0, PLAY_Y1);
     const speed = 28;
+    const tx = player.x + (D_PLAYER.w * 0.5);
+    const ty = player.y + (D_PLAYER.h * 0.5);
+    const dx = tx - x;
+    const dy = ty - y;
+    const safeDx = (Math.abs(dx) < 6) ? (dx < 0 ? -6 : 6) : dx;
+    let vyAim = (dy / safeDx) * (-speed);
+    if (!Number.isFinite(vyAim)) vyAim = 0;
+    vyAim = clamp(vyAim + rnd(-2.2, 2.2), -16, 16);
     fireBullet(
       x,
       y,
       -speed,
-      rnd(-2.4, 2.4),
+      vyAim,
       false,
       BOSS_MOUTH_FRAMES[0],
       palette.ebullet,
@@ -956,10 +967,13 @@ const SPR_BOSS_EYEBALL = [
         animIdx: 0,
         animT: 0,
         animRate: 0.06,
+        trackStrength: 4.2,
+        trackMaxVy: 18,
+        trackJitter: 1.6,
         wanderT: 0,
-        wanderRate: 0.08,
-        wanderAccel: 1.4,
-        wanderVMax: 9.5,
+        wanderRate: 0.12,
+        wanderAccel: 0.8,
+        wanderVMax: 8.0,
       },
     );
   }
@@ -976,16 +990,33 @@ const SPR_BOSS_EYEBALL = [
       PLAY_Y1 - D_BOSS_EYEBALL.h + 1,
     );
     const speed = 14;
+    const tx = player.x + (D_PLAYER.w * 0.5);
+    const ty = player.y + (D_PLAYER.h * 0.5);
+    const dx = tx - x;
+    const dy = ty - y;
+    const safeDx = (Math.abs(dx) < 10) ? (dx < 0 ? -10 : 10) : dx;
+    let vyAim = (dy / safeDx) * (-speed);
+    if (!Number.isFinite(vyAim)) vyAim = 0;
+    vyAim = clamp(vyAim, -6, 6);
     fireBullet(
       x,
       y,
       -speed,
-      0,
+      vyAim,
       false,
       "█",
       palette.ebullet,
       2,
-      { kind: "bossEye", sprite: SPR_BOSS_EYEBALL, w: D_BOSS_EYEBALL.w, h: D_BOSS_EYEBALL.h, ttl: 10.5 },
+      {
+        kind: "bossEye",
+        sprite: SPR_BOSS_EYEBALL,
+        w: D_BOSS_EYEBALL.w,
+        h: D_BOSS_EYEBALL.h,
+        ttl: 10.5,
+        trackStrength: 1.25,
+        trackMaxVy: 7,
+        trackJitter: 0.8,
+      },
     );
   }
 
@@ -1077,9 +1108,16 @@ const SPR_BOSS_EYEBALL = [
         clearForBoss();
       }
     } else if (boss.state === "fight") {
-      // gentle bob
+      // slow follow + bob (boss is big, so limit speed)
+      const desiredY = clamp(
+        (player.y + (D_PLAYER.h * 0.5)) - (boss.clip.rows * 0.5),
+        PLAY_Y0,
+        PLAY_Y1 - boss.clip.rows + 1,
+      );
+      const step = BOSS_FOLLOW_SPEED * dt;
+      boss.yBase += clamp(desiredY - boss.yBase, -step, step);
       boss.y = clamp(
-        boss.yBase + Math.sin(runTime * 0.7) * 1.4,
+        boss.yBase + Math.sin(runTime * (Math.PI * 2 * BOSS_BOB_RATE)) * BOSS_BOB_AMPL,
         PLAY_Y0,
         PLAY_Y1 - boss.clip.rows + 1,
       );
@@ -2084,6 +2122,21 @@ const SPR_BOSS_EYEBALL = [
             const vMax = (b.wanderVMax != null) ? b.wanderVMax : 10;
             b.vy = clamp(b.vy + rnd(-a, a), -vMax, vMax);
           }
+        }
+
+        if (b.trackStrength) {
+          const tx = player.x + (D_PLAYER.w * 0.5);
+          const ty = player.y + (D_PLAYER.h * 0.5);
+          const dx = tx - b.x;
+          const dy = ty - b.y;
+          const safeDx = (Math.abs(dx) < 6) ? (dx < 0 ? -6 : 6) : dx;
+          let desiredVy = (dy / safeDx) * b.vx;
+          if (!Number.isFinite(desiredVy)) desiredVy = b.vy;
+          const maxVy = (b.trackMaxVy != null) ? b.trackMaxVy : 12;
+          const jitter = (b.trackJitter != null) ? b.trackJitter : 0;
+          desiredVy = clamp(desiredVy + rnd(-jitter, jitter), -maxVy, maxVy);
+          const t = clamp(b.trackStrength * dt, 0, 1);
+          b.vy = lerp(b.vy, desiredVy, t);
         }
 
         b.x += b.vx * dt;
