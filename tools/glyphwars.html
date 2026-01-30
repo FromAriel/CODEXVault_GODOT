@@ -390,8 +390,11 @@
     };
 
     const framesRows = new Array(frameCount);
+    const framesMask = new Array(frameCount);
     const delaysMs = new Array(frameCount);
     let prevRows = new Array(rows).fill(" ".repeat(cols));
+
+    const isBlankGlyph = (ch) => ch === " " || ch === "\u2800";
 
     const bitsetBytes = Math.ceil(rows / 8);
     for (let fi = 0; fi < frameCount; fi++) {
@@ -416,6 +419,19 @@
         framesRows[fi] = rowStrings;
         prevRows = rowStrings;
       }
+
+      // Per-frame hitmask: 1 = solid glyph, 0 = blank/transparent.
+      const mask = new Uint8Array(cols * rows);
+      const rowStrings = framesRows[fi];
+      for (let y = 0; y < rows; y++) {
+        let x = 0;
+        for (const ch of rowStrings[y]) {
+          if (!isBlankGlyph(ch)) mask[(y * cols) + x] = 1;
+          x++;
+          if (x >= cols) break;
+        }
+      }
+      framesMask[fi] = mask;
     }
 
     return {
@@ -440,6 +456,7 @@
       seekCount,
       delaysMs,
       framesRows,
+      framesMask,
     };
   }
 
@@ -797,9 +814,79 @@ const SPR_ENEMY_TURRET = [
     return boss && (boss.state === "enter" || boss.state === "fight");
   }
 
+  function bossGridX() {
+    return boss ? Math.round(boss.x) : 0;
+  }
+
+  function bossGridY() {
+    return boss ? Math.round(boss.y) : 0;
+  }
+
   function bossHitbox() {
     if (!boss || !boss.clip) return null;
-    return { x: boss.x, y: boss.y, w: boss.clip.cols, h: boss.clip.rows };
+    return { x: bossGridX(), y: bossGridY(), w: boss.clip.cols, h: boss.clip.rows };
+  }
+
+  function bossSolidAt(x, y) {
+    if (!bossIsTargetable()) return false;
+    const clip = boss.clip;
+    if (!clip || !clip.framesMask) return false;
+    const bx = bossGridX();
+    const by = bossGridY();
+    const cx = Math.floor(x - bx);
+    const cy = Math.floor(y - by);
+    if (cx < 0 || cy < 0 || cx >= clip.cols || cy >= clip.rows) return false;
+    const mask = clip.framesMask[boss.frame];
+    return !!mask && mask[(cy * clip.cols) + cx] === 1;
+  }
+
+  function bossCircleHitsSolid(cx, cy, radius) {
+    if (!bossIsTargetable() || !boss.clip || !boss.clip.framesMask) return false;
+    const clip = boss.clip;
+    const bx = bossGridX();
+    const by = bossGridY();
+    const mask = clip.framesMask[boss.frame];
+    if (!mask) return false;
+
+    const r2 = radius * radius;
+    const x0Raw = Math.floor(cx - radius) - bx;
+    const x1Raw = Math.floor(cx + radius) - bx;
+    const y0Raw = Math.floor(cy - radius) - by;
+    const y1Raw = Math.floor(cy + radius) - by;
+    if (x1Raw < 0 || y1Raw < 0 || x0Raw >= clip.cols || y0Raw >= clip.rows) return false;
+
+    const x0 = clamp(x0Raw, 0, clip.cols - 1);
+    const x1 = clamp(x1Raw, 0, clip.cols - 1);
+    const y0 = clamp(y0Raw, 0, clip.rows - 1);
+    const y1 = clamp(y1Raw, 0, clip.rows - 1);
+
+    for (let yy = y0; yy <= y1; yy++) {
+      for (let xx = x0; xx <= x1; xx++) {
+        if (mask[(yy * clip.cols) + xx] !== 1) continue;
+        const wx = bx + xx;
+        const wy = by + yy;
+        const dx = wx - cx;
+        const dy = wy - cy;
+        if (dx * dx + dy * dy <= r2) return true;
+      }
+    }
+    return false;
+  }
+
+  function findBossLaserHit(x0, yRows) {
+    if (!bossIsTargetable() || !boss.clip) return null;
+    const clip = boss.clip;
+    const bx = bossGridX();
+    const by = bossGridY();
+    const startX = Math.max(Math.floor(x0), bx);
+    const endX = bx + clip.cols - 1;
+    if (startX > endX) return null;
+    for (let x = startX; x <= endX; x++) {
+      for (const y of yRows) {
+        if (bossSolidAt(x, y)) return { x, y };
+      }
+    }
+    return null;
   }
 
   function damageBoss(amount, hitX=null, hitY=null, big=false) {
@@ -1414,22 +1501,13 @@ const SPR_ENEMY_TURRET = [
     }
 
     // Boss AoE
-    if (bossIsTargetable()) {
-      const hb = bossHitbox();
-      if (hb) {
-        const nx = clamp(missile.x, hb.x, hb.x + hb.w);
-        const ny = clamp(missile.y, hb.y, hb.y + hb.h);
-        const dx = missile.x - nx;
-        const dy = missile.y - ny;
-        if (dx * dx + dy * dy <= r2) {
-          damageBoss(missile.damage, null, null, true);
-        }
-      }
+    if (bossCircleHitsSolid(missile.x, missile.y, missile.radius)) {
+      damageBoss(missile.damage, missile.x, missile.y, true);
     }
   }
 
   function findLaserTarget(x0, yRows) {
-    let best = null; // { kind: "enemy"|"boss", idx, x }
+    let best = null; // { kind: "enemy"|"boss", idx, x, y }
     let bestX = Infinity;
 
     for (let i = 0; i < enemies.length; i++) {
@@ -1442,22 +1520,14 @@ const SPR_ENEMY_TURRET = [
       if (!yOk) continue;
       if (e.x < bestX) {
         bestX = e.x;
-        best = { kind: "enemy", idx: i, x: e.x };
+        best = { kind: "enemy", idx: i, x: e.x, y: null };
       }
     }
 
-    if (bossIsTargetable()) {
-      const hb = bossHitbox();
-      if (hb && (hb.x + hb.w) >= x0) {
-        let yOk = false;
-        for (const y of yRows) {
-          if (y >= hb.y && y < hb.y + hb.h) { yOk = true; break; }
-        }
-        if (yOk && hb.x < bestX) {
-          bestX = hb.x;
-          best = { kind: "boss", idx: -1, x: hb.x };
-        }
-      }
+    const bossHit = findBossLaserHit(x0, yRows);
+    if (bossHit && bossHit.x < bestX) {
+      bestX = bossHit.x;
+      best = { kind: "boss", idx: -1, x: bossHit.x, y: bossHit.y };
     }
 
     return best;
@@ -1473,6 +1543,7 @@ const SPR_ENEMY_TURRET = [
 
     const target = findLaserTarget(x0, yRows);
     const hitX = target ? Math.floor(target.x) : (COLS - 2);
+    const hitY = (target && target.y != null) ? target.y : y0;
     const endX = target ? Math.max(x0, hitX - 1) : hitX;
 
     // render beam segments (laser stops at first hit)
@@ -1493,7 +1564,7 @@ const SPR_ENEMY_TURRET = [
       const dmg = (dps * dmgMul) * dt;
       if (laserSpark <= 0) {
         laserSpark = 0.06;
-        spawnExplosion(hitX, y0, false);
+        spawnExplosion(hitX, hitY, false);
       }
 
       if (target.kind === "enemy") {
@@ -1503,7 +1574,7 @@ const SPR_ENEMY_TURRET = [
           if (e.hp <= 0) killEnemyAtIndex(target.idx);
         }
       } else {
-        damageBoss(dmg);
+        damageBoss(dmg, hitX, hitY, false);
       }
     }
   }
@@ -1932,12 +2003,11 @@ const SPR_ENEMY_TURRET = [
     // ───────────────── collisions ─────────────────
 
     // Player bullets -> enemies / boss
-    const hb = bossHitbox();
     for (let bi = bullets.length - 1; bi >= 0; bi--) {
       const b = bullets[bi];
       let hitSomething = false;
 
-      if (hb && aabb(b.x, b.y, 1, 1, hb.x, hb.y, hb.w, hb.h)) {
+      if (bossSolidAt(b.x, b.y)) {
         hitSomething = true;
         if (b.kind === "missile") {
           explodeMissile(b);
@@ -2017,17 +2087,34 @@ const SPR_ENEMY_TURRET = [
     // Boss body -> player
     if (player.invuln <= 0) {
       const hbBoss = bossHitbox();
-      if (hbBoss && aabb(player.x, player.y, D_PLAYER.w, D_PLAYER.h, hbBoss.x, hbBoss.y, hbBoss.w, hbBoss.h)) {
-        if (player.shield > 0) {
-          player.shield = 0;
-          player.invuln = 0.9;
-          player.streak = 0;
-          spawnExplosion(player.x + 1.5, player.y + 1, false);
-        } else {
-          player.lives--;
-          player.invuln = 2.0;
-          player.streak = 0;
-          spawnExplosion(player.x + 1.5, player.y + 1, true);
+      if (hbBoss) {
+        const px = Math.round(player.x);
+        const py = Math.round(player.y);
+        if (aabb(px, py, D_PLAYER.w, D_PLAYER.h, hbBoss.x, hbBoss.y, hbBoss.w, hbBoss.h)) {
+          const x0 = Math.max(px, hbBoss.x);
+          const x1 = Math.min(px + D_PLAYER.w - 1, hbBoss.x + hbBoss.w - 1);
+          const y0 = Math.max(py, hbBoss.y);
+          const y1 = Math.min(py + D_PLAYER.h - 1, hbBoss.y + hbBoss.h - 1);
+          let hitSolid = false;
+          for (let y = y0; y <= y1 && !hitSolid; y++) {
+            for (let x = x0; x <= x1; x++) {
+              if (bossSolidAt(x, y)) { hitSolid = true; break; }
+            }
+          }
+
+          if (hitSolid) {
+            if (player.shield > 0) {
+              player.shield = 0;
+              player.invuln = 0.9;
+              player.streak = 0;
+              spawnExplosion(player.x + 1.5, player.y + 1, false);
+            } else {
+              player.lives--;
+              player.invuln = 2.0;
+              player.streak = 0;
+              spawnExplosion(player.x + 1.5, player.y + 1, true);
+            }
+          }
         }
       }
     }
