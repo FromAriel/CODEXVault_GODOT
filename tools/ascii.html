@@ -188,6 +188,68 @@
 
   .field input[type="text"].wide { width: 180px; }
 
+  .settings-panel {
+
+    background: #0e131a;
+
+    border: 1px solid #1c2230;
+
+    padding: 6px 8px;
+
+    border-radius: 10px;
+
+  }
+
+  .settings-panel > summary {
+
+    list-style: none;
+
+    cursor: pointer;
+
+    user-select: none;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    font-size: 12px;
+
+    color: var(--muted);
+
+    padding: 4px 6px;
+
+    border-radius: 8px;
+
+    background: #0f172a;
+
+    border: 1px solid #2a3446;
+
+  }
+
+  .settings-panel > summary::-webkit-details-marker { display: none; }
+
+  .settings-panel > summary::after { content: '▸'; font-size: 11px; color: var(--muted); }
+
+  .settings-panel[open] > summary::after { content: '▾'; }
+
+  .settings-panel[open] > summary { color: var(--ink); }
+
+  .settings-body {
+
+    margin-top: 8px;
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px 12px;
+
+    align-items: center;
+
+  }
+
   .btn {
 
     background: linear-gradient(180deg,#1d2431,#171c27);
@@ -408,6 +470,86 @@
 
   }
 
+  .canvas-stack {
+
+    position: relative;
+
+    display: inline-block;
+
+  }
+
+  .bg-image {
+
+    position: absolute;
+
+    left: 0;
+
+    top: 0;
+
+    z-index: 1;
+
+    opacity: 0.4;
+
+    pointer-events: none;
+
+    transform-origin: center center;
+
+  }
+
+  .bg-box {
+
+    position: absolute;
+
+    z-index: 3;
+
+    border: 1px dashed #7c3aed;
+
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35);
+
+    box-sizing: border-box;
+
+    display: none;
+
+    touch-action: none;
+
+  }
+
+  .bg-box.unlocked { display: block; cursor: move; }
+
+  .bg-handle {
+
+    position: absolute;
+
+    width: 10px;
+
+    height: 10px;
+
+    background: #7c3aed;
+
+    border: 1px solid #e6edf3;
+
+    border-radius: 2px;
+
+    box-shadow: 0 0 4px rgba(0,0,0,0.45);
+
+  }
+
+  .bg-handle[data-handle="nw"] { left: 0; top: 0; transform: translate(-50%, -50%); cursor: nwse-resize; }
+
+  .bg-handle[data-handle="n"] { left: 50%; top: 0; transform: translate(-50%, -50%); cursor: ns-resize; }
+
+  .bg-handle[data-handle="ne"] { right: 0; top: 0; transform: translate(50%, -50%); cursor: nesw-resize; }
+
+  .bg-handle[data-handle="e"] { right: 0; top: 50%; transform: translate(50%, -50%); cursor: ew-resize; }
+
+  .bg-handle[data-handle="se"] { right: 0; bottom: 0; transform: translate(50%, 50%); cursor: nwse-resize; }
+
+  .bg-handle[data-handle="s"] { left: 50%; bottom: 0; transform: translate(-50%, 50%); cursor: ns-resize; }
+
+  .bg-handle[data-handle="sw"] { left: 0; bottom: 0; transform: translate(-50%, 50%); cursor: nesw-resize; }
+
+  .bg-handle[data-handle="w"] { left: 0; top: 50%; transform: translate(-50%, -50%); cursor: ew-resize; }
+
   .frame-bar { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; border: 1px solid #1c2230; background: #0e1420; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; box-shadow: var(--shadow); }
 
   .frame-controls { display: flex; gap: 8px; align-items: center; }
@@ -434,7 +576,11 @@
 
     display: block;
 
-    background: #0b1017;
+    position: relative;
+
+    z-index: 2;
+
+    background: transparent;
 
   }
 
@@ -497,6 +643,28 @@
   .tool-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid #2a3446; background: #0e1320; cursor:pointer; color: var(--ink); }
 
   .tool-btn.sel { outline: 2px solid var(--accent); }
+
+  .text-tool-field { align-items: flex-start; }
+
+  .text-tool-field textarea {
+
+    width: 200px;
+
+    min-height: 40px;
+
+    background: transparent;
+
+    border: none;
+
+    color: var(--ink);
+
+    outline: none;
+
+    font-size: 13px;
+
+    resize: vertical;
+
+  }
 
   .color-hud {
 
@@ -590,6 +758,12 @@
 
     <div class="controls">
 
+      <details class="settings-panel" id="settingsPanel">
+
+        <summary>Settings</summary>
+
+        <div class="settings-body">
+
       <div class="field">
 
         <label>Preset</label>
@@ -676,6 +850,10 @@
 
       <button class="btn ghost" id="toggleGridlines">Gridlines: On</button>
 
+        </div>
+
+      </details>
+
       <button class="btn" id="clearGrid">Clear</button>
 
       <button class="btn" id="undoBtn">Undo</button>
@@ -698,6 +876,14 @@
 
       <button class="btn" id="exportPNG">Export PNG</button>
 
+      <button class="btn" id="loadBG">Load BG</button>
+
+      <button class="btn" id="rotateBG">Rotate BG 90 deg</button>
+
+      <button class="btn ghost" id="toggleBGLock">BG Lock: On</button>
+
+      <button class="btn danger" id="clearBG">Clear BG</button>
+
       <button class="btn" id="exportAnim">Export Anim (TXT)</button>
 
       <button class="btn" id="playAnim">Play Animation</button>
@@ -709,6 +895,8 @@
       <input id="fileSettings" type="file" accept=".json,application/json" />
 
       <input id="fileTXT" type="file" accept=".txt,text/plain" />
+
+      <input id="fileBG" type="file" accept="image/*" />
 
     </div>
 
@@ -740,6 +928,8 @@
 
         <button class="tool-btn" data-tool="type" title="Type mode (keyboard) [T]">⌨️ Type</button>
 
+        <button class="tool-btn" data-tool="text" title="Text stamp (braille font)">🔤 Text</button>
+
       </div>
 
       <div class="field">
@@ -751,6 +941,14 @@
         <input id="customGlyph" type="text" maxlength="4" placeholder="Add glyph" style="width:90px;" />
 
         <button class="btn" id="useCustomGlyph">Use</button>
+
+      </div>
+
+      <div class="field text-tool-field">
+
+        <label>Text</label>
+
+        <textarea id="textToolInput" placeholder="Text stamp"></textarea>
 
       </div>
 
@@ -846,7 +1044,33 @@
 
     <div class="canvas-wrap" id="canvasWrap">
 
-      <canvas id="gridCanvas" width="1120" height="800"></canvas>
+      <div class="canvas-stack" id="canvasStack">
+
+        <img id="bgImage" class="bg-image" alt="" />
+
+        <canvas id="gridCanvas" width="1120" height="800"></canvas>
+
+        <div class="bg-box" id="bgBox">
+
+          <div class="bg-handle" data-handle="nw"></div>
+
+          <div class="bg-handle" data-handle="n"></div>
+
+          <div class="bg-handle" data-handle="ne"></div>
+
+          <div class="bg-handle" data-handle="e"></div>
+
+          <div class="bg-handle" data-handle="se"></div>
+
+          <div class="bg-handle" data-handle="s"></div>
+
+          <div class="bg-handle" data-handle="sw"></div>
+
+          <div class="bg-handle" data-handle="w"></div>
+
+        </div>
+
+      </div>
 
       <div class="statusbar" id="status">80×50 • cell 14×16 • font 14px • zoom 100% • centered</div>
 
@@ -1270,6 +1494,8 @@
 
       this.bg = '#0b1017';
 
+      this.transparentBg = false;
+
       this.fg = '#e6edf3';
 
       this.gridColor = '#1f2937';
@@ -1462,9 +1688,17 @@
 
       const W = this.model.w, H = this.model.h;
 
-      ctx.fillStyle = this.bg;
+      if (this.transparentBg) {
 
-      ctx.fillRect(0,0, this.model.w*this.cellW, this.model.h*this.cellH);
+        ctx.clearRect(0,0, this.model.w*this.cellW, this.model.h*this.cellH);
+
+      } else {
+
+        ctx.fillStyle = this.bg;
+
+        ctx.fillRect(0,0, this.model.w*this.cellW, this.model.h*this.cellH);
+
+      }
 
       // grid (optional)
 
@@ -1558,7 +1792,15 @@
 
       // clear region
 
-      ctx.fillStyle = this.bg; ctx.fillRect(px, py, pw, ph);
+      if (this.transparentBg) {
+
+        ctx.clearRect(px, py, pw, ph);
+
+      } else {
+
+        ctx.fillStyle = this.bg; ctx.fillRect(px, py, pw, ph);
+
+      }
 
       // local grid
 
@@ -1614,7 +1856,15 @@
 
       const px = x*this.cellW, py = y*this.cellH;
 
-      ctx.fillStyle = this.bg; ctx.fillRect(px, py, this.cellW, this.cellH);
+      if (this.transparentBg) {
+
+        ctx.clearRect(px, py, this.cellW, this.cellH);
+
+      } else {
+
+        ctx.fillStyle = this.bg; ctx.fillRect(px, py, this.cellW, this.cellH);
+
+      }
 
       if (this.gridlines) { ctx.strokeStyle = this.gridColor; ctx.lineWidth = 1; ctx.strokeRect(px+0.5, py+0.5, this.cellW-1, this.cellH-1); }
 
@@ -1788,6 +2038,12 @@
 
   const canvasWrap = document.getElementById('canvasWrap');
 
+  const canvasStack = document.getElementById('canvasStack');
+
+  const bgImageEl = document.getElementById('bgImage');
+
+  const bgBoxEl = document.getElementById('bgBox');
+
   const statusEl = document.getElementById('status');
 
   const presetsEl = document.getElementById('presets');
@@ -1850,11 +2106,21 @@ const exportAnimBtn = document.getElementById('exportAnim');
 
 const playAnimBtn = document.getElementById('playAnim');
 
+const loadBgBtn = document.getElementById('loadBG');
+
+const rotateBgBtn = document.getElementById('rotateBG');
+
+const toggleBgLockBtn = document.getElementById('toggleBGLock');
+
+const clearBgBtn = document.getElementById('clearBG');
+
 const fileJSON = document.getElementById('fileJSON');
 
 const fileSettings = document.getElementById('fileSettings');
 
 const fileTXT = document.getElementById('fileTXT');
+
+const fileBG = document.getElementById('fileBG');
 
 const colorHud = document.getElementById('colorHud');
 
@@ -2640,13 +2906,15 @@ const setColorMode = (next) => {
 
   const useCustomGlyphBtn = document.getElementById('useCustomGlyph');
 
+  const textToolInputEl = document.getElementById('textToolInput');
+
   const paletteEl = document.getElementById('palette');
 
   const searchEl = document.getElementById('searchGlyphs');
 
   const toolGroup = document.getElementById('toolGroup');
 
-  let currentTool = 'pencil'; // 'pencil' | 'eraser' | 'eyedrop' | 'type'
+let currentTool = 'pencil'; // 'pencil' | 'eraser' | 'eyedrop' | 'type' | 'text'
 
   let selectedGlyph = '█';
 
@@ -2669,6 +2937,482 @@ let playTimer = null;
 let model = new GridModel(80,50);
 
 let renderer = new GridRenderer(canvas, model);
+
+  // ----- Background image guide (DOM layer, not exported) -----
+
+  const BG_MIN_SIZE = 10;
+
+  const bgState = {
+
+    img: null,
+
+    x: 0,
+
+    y: 0,
+
+    w: 0,
+
+    h: 0,
+
+    rot: 0,
+
+    locked: true,
+
+    objectUrl: null,
+
+  };
+
+  let bgDrag = null;
+
+  const bgHasImage = () => !!bgState.img;
+
+  const bgDisplaySize = () => {
+
+    if (!bgState.img) return { w: 0, h: 0 };
+
+    return (bgState.rot % 180 === 0)
+
+      ? { w: bgState.w, h: bgState.h }
+
+      : { w: bgState.h, h: bgState.w };
+
+  };
+
+  const setBgDisplaySize = (dispW, dispH) => {
+
+    const clampedW = Math.max(BG_MIN_SIZE, dispW);
+
+    const clampedH = Math.max(BG_MIN_SIZE, dispH);
+
+    if (bgState.rot % 180 === 0) {
+
+      bgState.w = clampedW; bgState.h = clampedH;
+
+    } else {
+
+      bgState.w = clampedH; bgState.h = clampedW;
+
+    }
+
+  };
+
+  const syncCanvasStackSize = () => {
+
+    if (!canvasStack) return;
+
+    const w = canvas.style.width || ((model.w * renderer.cellW * renderer.zoom) + 'px');
+
+    const h = canvas.style.height || ((model.h * renderer.cellH * renderer.zoom) + 'px');
+
+    canvasStack.style.width = w;
+
+    canvasStack.style.height = h;
+
+  };
+
+  const syncBgDisplay = () => {
+
+    if (!bgImageEl || !bgBoxEl) return;
+
+    if (!bgState.img) {
+
+      bgImageEl.style.display = 'none';
+
+      bgBoxEl.style.display = 'none';
+
+      bgBoxEl.classList.remove('unlocked');
+
+      return;
+
+    }
+
+    bgBoxEl.style.display = '';
+
+    const z = renderer.zoom || 1;
+
+    const disp = bgDisplaySize();
+
+    const left = bgState.x * z;
+
+    const top = bgState.y * z;
+
+    const dispW = disp.w * z;
+
+    const dispH = disp.h * z;
+
+    bgImageEl.style.display = 'block';
+
+    bgImageEl.style.width = (bgState.w * z) + 'px';
+
+    bgImageEl.style.height = (bgState.h * z) + 'px';
+
+    bgImageEl.style.left = (left + dispW / 2) + 'px';
+
+    bgImageEl.style.top = (top + dispH / 2) + 'px';
+
+    bgImageEl.style.transform = `translate(-50%, -50%) rotate(${bgState.rot}deg)`;
+
+    bgBoxEl.style.left = left + 'px';
+
+    bgBoxEl.style.top = top + 'px';
+
+    bgBoxEl.style.width = dispW + 'px';
+
+    bgBoxEl.style.height = dispH + 'px';
+
+    if (bgState.locked) {
+
+      bgBoxEl.classList.remove('unlocked');
+
+      bgBoxEl.style.pointerEvents = 'none';
+
+    } else {
+
+      bgBoxEl.classList.add('unlocked');
+
+      bgBoxEl.style.pointerEvents = 'auto';
+
+    }
+
+  };
+
+  const updateBgControls = () => {
+
+    const has = bgHasImage();
+
+    if (rotateBgBtn) rotateBgBtn.disabled = !has;
+
+    if (toggleBgLockBtn) {
+
+      toggleBgLockBtn.disabled = !has;
+
+      toggleBgLockBtn.textContent = `BG Lock: ${bgState.locked ? 'On' : 'Off'}`;
+
+    }
+
+    if (clearBgBtn) clearBgBtn.disabled = !has;
+
+  };
+
+  const clearBackground = () => {
+
+    if (bgState.objectUrl) {
+
+      URL.revokeObjectURL(bgState.objectUrl);
+
+      bgState.objectUrl = null;
+
+    }
+
+    bgState.img = null;
+
+    bgState.x = 0; bgState.y = 0; bgState.w = 0; bgState.h = 0;
+
+    bgState.rot = 0;
+
+    bgState.locked = true;
+
+    renderer.transparentBg = false;
+
+    renderer.fullRedraw();
+
+    if (bgImageEl) { bgImageEl.removeAttribute('src'); }
+
+    syncBgDisplay();
+
+    updateBgControls();
+
+  };
+
+  const rotateBackground = () => {
+
+    if (!bgState.img) return;
+
+    const disp = bgDisplaySize();
+
+    const cx = bgState.x + disp.w / 2;
+
+    const cy = bgState.y + disp.h / 2;
+
+    bgState.rot = (bgState.rot + 90) % 360;
+
+    const nextDisp = bgDisplaySize();
+
+    bgState.x = cx - nextDisp.w / 2;
+
+    bgState.y = cy - nextDisp.h / 2;
+
+    syncBgDisplay();
+
+  };
+
+  const bgPointFromEvent = (e) => {
+
+    if (!canvasStack) return { x: 0, y: 0 };
+
+    const rect = canvasStack.getBoundingClientRect();
+
+    const z = renderer.zoom || 1;
+
+    return { x: (e.clientX - rect.left) / z, y: (e.clientY - rect.top) / z };
+
+  };
+
+  const startBgDrag = (e) => {
+
+    if (!bgState.img || bgState.locked) return;
+
+    if (e.button !== 0) return;
+
+    const handle = (e.target && e.target.dataset && e.target.dataset.handle) ? e.target.dataset.handle : 'move';
+
+    const pt = bgPointFromEvent(e);
+
+    const disp = bgDisplaySize();
+
+    bgDrag = {
+
+      handle,
+
+      startX: pt.x,
+
+      startY: pt.y,
+
+      boxX: bgState.x,
+
+      boxY: bgState.y,
+
+      boxW: disp.w,
+
+      boxH: disp.h,
+
+    };
+
+    if (bgBoxEl && bgBoxEl.setPointerCapture) bgBoxEl.setPointerCapture(e.pointerId);
+
+    e.preventDefault();
+
+    e.stopPropagation();
+
+  };
+
+  const moveBgDrag = (e) => {
+
+    if (!bgDrag) return;
+
+    const pt = bgPointFromEvent(e);
+
+    const dx = pt.x - bgDrag.startX;
+
+    const dy = pt.y - bgDrag.startY;
+
+    if (bgDrag.handle === 'move') {
+
+      bgState.x = bgDrag.boxX + dx;
+
+      bgState.y = bgDrag.boxY + dy;
+
+    } else {
+
+      let nx = bgDrag.boxX;
+
+      let ny = bgDrag.boxY;
+
+      let nW = bgDrag.boxW;
+
+      let nH = bgDrag.boxH;
+
+      if (bgDrag.handle.includes('e')) nW = bgDrag.boxW + dx;
+
+      if (bgDrag.handle.includes('s')) nH = bgDrag.boxH + dy;
+
+      if (bgDrag.handle.includes('w')) { nW = bgDrag.boxW - dx; nx = bgDrag.boxX + dx; }
+
+      if (bgDrag.handle.includes('n')) { nH = bgDrag.boxH - dy; ny = bgDrag.boxY + dy; }
+
+      if (nW < BG_MIN_SIZE) {
+
+        if (bgDrag.handle.includes('w')) { nx = bgDrag.boxX + (bgDrag.boxW - BG_MIN_SIZE); }
+
+        nW = BG_MIN_SIZE;
+
+      }
+
+      if (nH < BG_MIN_SIZE) {
+
+        if (bgDrag.handle.includes('n')) { ny = bgDrag.boxY + (bgDrag.boxH - BG_MIN_SIZE); }
+
+        nH = BG_MIN_SIZE;
+
+      }
+
+      bgState.x = nx;
+
+      bgState.y = ny;
+
+      setBgDisplaySize(nW, nH);
+
+    }
+
+    syncBgDisplay();
+
+    e.preventDefault();
+
+    e.stopPropagation();
+
+  };
+
+  const endBgDrag = (e) => {
+
+    if (!bgDrag) return;
+
+    bgDrag = null;
+
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  };
+
+  if (bgBoxEl) {
+
+    bgBoxEl.addEventListener('pointerdown', startBgDrag);
+
+    bgBoxEl.addEventListener('pointermove', moveBgDrag);
+
+    bgBoxEl.addEventListener('pointerup', endBgDrag);
+
+    bgBoxEl.addEventListener('pointercancel', endBgDrag);
+
+  }
+
+  if (loadBgBtn) loadBgBtn.addEventListener('click', () => { if (fileBG) fileBG.click(); });
+
+  if (fileBG && bgImageEl) {
+
+    fileBG.addEventListener('change', () => {
+
+      const file = fileBG.files[0];
+
+      if (!file) return;
+
+      if (!file.type || !file.type.startsWith('image/')) {
+
+        alert('Please select an image file.');
+
+        fileBG.value = '';
+
+        return;
+
+      }
+
+      if (bgState.objectUrl) {
+
+        URL.revokeObjectURL(bgState.objectUrl);
+
+        bgState.objectUrl = null;
+
+      }
+
+      const url = URL.createObjectURL(file);
+
+      bgState.objectUrl = url;
+
+      bgImageEl.onload = () => {
+
+        const iw = bgImageEl.naturalWidth || 1;
+
+        const ih = bgImageEl.naturalHeight || 1;
+
+        const maxW = model.w * renderer.cellW;
+
+        const maxH = model.h * renderer.cellH;
+
+        const scale = Math.min(maxW / iw, maxH / ih, 1);
+
+        bgState.w = Math.max(BG_MIN_SIZE, iw * scale);
+
+        bgState.h = Math.max(BG_MIN_SIZE, ih * scale);
+
+        bgState.rot = 0;
+
+        bgState.img = bgImageEl;
+
+        bgState.x = (maxW - bgState.w) / 2;
+
+        bgState.y = (maxH - bgState.h) / 2;
+
+        bgState.locked = false;
+
+        renderer.transparentBg = true;
+
+        renderer.fullRedraw();
+
+        syncBgDisplay();
+
+        updateBgControls();
+
+        if (bgState.objectUrl) {
+
+          URL.revokeObjectURL(bgState.objectUrl);
+
+          bgState.objectUrl = null;
+
+        }
+
+      };
+
+      bgImageEl.onerror = () => {
+
+        alert('Failed to load background image.');
+
+        clearBackground();
+
+      };
+
+      bgImageEl.src = url;
+
+      fileBG.value = '';
+
+    });
+
+  }
+
+  if (rotateBgBtn) rotateBgBtn.addEventListener('click', rotateBackground);
+
+  if (toggleBgLockBtn) {
+
+    toggleBgLockBtn.addEventListener('click', () => {
+
+      if (!bgState.img) return;
+
+      bgState.locked = !bgState.locked;
+
+      syncBgDisplay();
+
+      updateBgControls();
+
+    });
+
+  }
+
+  if (clearBgBtn) clearBgBtn.addEventListener('click', clearBackground);
+
+  const _origUpdateCanvasSize = renderer.updateCanvasSize.bind(renderer);
+
+  renderer.updateCanvasSize = function(){
+
+    _origUpdateCanvasSize();
+
+    syncCanvasStackSize();
+
+    syncBgDisplay();
+
+  };
+
+  syncCanvasStackSize();
+
+  syncBgDisplay();
+
+  updateBgControls();
 
 const FRAME_HISTORY_LIMIT = 200;
 
@@ -3906,6 +4650,8 @@ let clipboard = null; // {w,h,chars,colors,mask}
 
 let lastHoverCell = null;
 
+let suppressNextPasteEvent = false;
+
 // Caret (Type mode) blink state
 
 let caretTimer = null;
@@ -4034,6 +4780,150 @@ const startCaretBlink = () => {
 
   };
 
+  const BRAILLE_FONT = (() => {
+
+    const width = 2;
+
+    const height = 2;
+
+    const pad = (s='') => (s + '  ').slice(0, width);
+
+    const glyphs = {};
+
+    const add = (ch, top, bottom) => { glyphs[ch] = [pad(top), pad(bottom)]; };
+
+    add(' ', '  ', '  ');
+
+    // Lowercase
+    add('a', '⢀⣀', '⠣⠼');
+    add('b', '⣇⡀', '⠧⠜');
+    add('c', '⢀⣀', '⠣⠤');
+    add('d', '⢀⣸', '⠣⠼');
+    add('e', '⢀⡀', '⠣⠭');
+    add('f', '⣰⡁', '⢸');
+    add('g', '⢀⡀', '⣑⡺');
+    add('h', '⣇⡀', '⠇⠸');
+    add('i', '⠄', '⠇');
+    add('j', '⠠', '⡸');
+    add('k', '⡇⡠', '⠏⠢');
+    add('l', '⡇', '⠣');
+    add('m', '⣀⣀', '⠇⠇');
+    add('n', '⣀⡀', '⠇⠸');
+    add('o', '⢀⡀', '⠣⠜');
+    add('p', '⣀⡀', '⡧⠜');
+    add('q', '⢀⣀', '⠣⢼');
+    add('r', '⡀⣀', '⠏');
+    add('s', '⢀⣀', '⠭⠕');
+    add('t', '⣰⡀', '⠘⠤');
+    add('u', '⡀⢀', '⠣⠼');
+    add('v', '⡀⢀', '⠱⠃');
+    add('w', '⡀⢀', '⠱⠱');
+    add('x', '⡀⢀', '⠜⠣');
+    add('y', '⡀⢀', '⣑⡺');
+    add('z', '⣀⣀', '⠴⠥');
+
+    // Uppercase
+    add('A', '⣎⣱', '⠇⠸');
+    add('B', '⣏⡱', '⠧⠜');
+    add('C', '⡎⠑', '⠣⠔');
+    add('D', '⡏⢱', '⠧⠜');
+    add('E', '⣏⡉', '⠧⠤');
+    add('F', '⣏⡉', '⠇');
+    add('G', '⡎⠑', '⠣⠝');
+    add('H', '⣇⣸', '⠇⠸');
+    add('I', '⡇', '⠇');
+    add('J', '⠈⢹', '⠣⠜');
+    add('K', '⣇⠜', '⠇⠱');
+    add('L', '⡇', '⠧⠤');
+    add('M', '⡷⢾', '⠇⠸');
+    add('N', '⡷⣸', '⠇⠹');
+    add('O', '⡎⢱', '⠣⠜');
+    add('P', '⣏⡱', '⠇');
+    add('Q', '⡎⢱', '⠣⠪');
+    add('R', '⣏⡱', '⠇⠱');
+    add('S', '⢎⡑', '⠢⠜');
+    add('T', '⢹⠁', '⠸');
+    add('U', '⡇⢸', '⠣⠜');
+    add('V', '⡇⢸', '⠸⠃');
+    add('W', '⡇⢸', '⠟⠻');
+    add('X', '⢇⡸', '⠇⠸');
+    add('Y', '⢇⢸', '⠇');
+    add('Z', '⢉⠝', '⠮⠤');
+
+    // Digits and basic symbols
+    add('1', '⢺', '⠼⠄');
+    add('2', '⠊⡱', '⠮⠤');
+    add('3', '⢉⡹', '⠤⠜');
+    add('4', '⢇⣸', '⠸');
+    add('5', '⣏⡉', '⠤⠜');
+    add('6', '⣎⡁', '⠣⠜');
+    add('7', '⠉⡹', '⠸');
+    add('8', '⢎⡱', '⠣⠜');
+    add('9', '⢎⣱', '⠠⠜');
+    add('0', '⣎⣵', '⠫⠜');
+    add('-', '  ', '⠉⠉');
+    add('=', '⣀⣀', '⠒⠒');
+
+    return { width, height, glyphs };
+
+  })();
+
+  const stampBrailleText = (text, startX, startY) => {
+
+    if (!text) return;
+
+    const color = resolveDrawColor();
+
+    const lines = text.replace(/\r/g, '').split('\n');
+
+    for (let row = 0; row < lines.length; row++) {
+
+      const line = lines[row];
+
+      let x = startX;
+
+      const y = startY + row * BRAILLE_FONT.height;
+
+      for (let i = 0; i < line.length; i++) {
+
+        const ch = line[i];
+
+        const glyph = BRAILLE_FONT.glyphs[ch];
+
+        if (!glyph) {
+
+          x += BRAILLE_FONT.width;
+
+          continue;
+
+        }
+
+        for (let gy = 0; gy < BRAILLE_FONT.height; gy++) {
+
+          for (let gx = 0; gx < BRAILLE_FONT.width; gx++) {
+
+            const outCh = glyph[gy][gx] || ' ';
+
+            const tx = x + gx;
+
+            const ty = y + gy;
+
+            if (tx < 0 || ty < 0 || tx >= model.w || ty >= model.h) continue;
+
+            model.set(tx, ty, outCh, outCh === ' ' ? null : color);
+
+          }
+
+        }
+
+        x += BRAILLE_FONT.width;
+
+      }
+
+    }
+
+  };
+
   canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
 
   canvas.addEventListener('pointerdown', (e) => {
@@ -4043,6 +4933,22 @@ const startCaretBlink = () => {
     const cell = renderer.cellFromClient(e.clientX, e.clientY);
 
     if (!cell) return;
+
+    if (currentTool === 'text') {
+
+      const text = textToolInputEl ? textToolInputEl.value : '';
+
+      if (!text) return;
+
+      pushSnapshot();
+
+      stampBrailleText(text, cell.x, cell.y);
+
+      renderer.fullRedraw();
+
+      return;
+
+    }
 
     isPointerDown = true;
 
@@ -4404,7 +5310,12 @@ const startCaretBlink = () => {
 
       if (e.shiftKey && e.key.toLowerCase() === 'v') { // paste over selection
 
-        if (clipboard && selectionRect) { pasteOverSelection(); e.preventDefault(); }
+        if (clipboard && selectionRect) {
+          pasteOverSelection();
+          suppressNextPasteEvent = true;
+          setTimeout(() => { suppressNextPasteEvent = false; }, 0);
+          e.preventDefault();
+        }
 
         return;
 
@@ -4440,16 +5351,7 @@ const startCaretBlink = () => {
 
       if (e.key.toLowerCase() === 'v') { // paste at cursor/last hover
 
-        if (clipboard) {
-
-          const anchor = lastHoverCell || typeCursor || {x:0,y:0};
-
-          pasteClipboardAt(anchor.x, anchor.y);
-
-          e.preventDefault();
-
-        }
-
+        // Let the 'paste' event handle system clipboard text (and fall back to internal clipboard when it matches).
         return;
 
       }
@@ -4548,6 +5450,128 @@ const startCaretBlink = () => {
 
     }
 
+  });
+
+  // System clipboard paste: paste plain text at cursor (Type tool) or last hover.
+  // We keep internal clipboard paste for selections by preferring it when the system text matches.
+  const normalizeClipboardTextForCompare = (text) => {
+    if (typeof text !== 'string') return '';
+    const normalized = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\u00A0/g, ' ');
+    const lines = normalized.split('\n').map(l => l.replace(/[ \t]+$/g, ''));
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines.join('\n');
+  };
+
+  const pastePlainTextAt = (tx, ty, text) => {
+    if (typeof text !== 'string' || text.length === 0) return false;
+
+    const normalized = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\u00A0/g, ' ');
+
+    const lines = normalized.split('\n');
+    if (lines.length === 0) return false;
+
+    const startX = clamp(tx|0, 0, model.w - 1);
+    const startY = clamp(ty|0, 0, model.h - 1);
+    const applyColor = resolveDrawColor();
+
+    pushSnapshot();
+
+    let maxW = 0;
+    let usedH = 0;
+    let lastLineW = 0;
+
+    for (let y=0; y<lines.length; y++) {
+      const gy = startY + y;
+      if (gy < 0 || gy >= model.h) break;
+
+      const line = (lines[y] ?? '').replace(/\t/g, '    ');
+      let xCount = 0;
+
+      for (const rawCh of line) {
+        const gx = startX + xCount;
+        if (gx < 0 || gx >= model.w) break;
+        const ch = rawCh === '\u00A0' ? ' ' : rawCh;
+        model.set(gx, gy, ch, applyColor);
+        xCount++;
+      }
+
+      maxW = Math.max(maxW, xCount);
+      usedH = y + 1;
+      lastLineW = xCount;
+    }
+
+    if (maxW > 0 && usedH > 0) {
+      const r = {
+        x0: startX,
+        y0: startY,
+        x1: Math.min(model.w - 1, startX + maxW - 1),
+        y1: Math.min(model.h - 1, startY + usedH - 1),
+      };
+      selectionRect = r;
+      selectionData = captureSelection(r);
+      selectionMoving = false;
+      selectStart = null;
+    }
+
+    renderer.fullRedraw();
+
+    if (currentTool === 'type' && typeCursor) {
+      typeCursor.x = clamp(startX + lastLineW, 0, model.w - 1);
+      typeCursor.y = clamp(startY + usedH - 1, 0, model.h - 1);
+      caretVisible = true;
+      drawCaretOverlay();
+    }
+
+    return true;
+  };
+
+  window.addEventListener('paste', (e) => {
+    // Let native pasting work in inputs/textareas/contenteditable.
+    if (isEditableActive()) return;
+
+    if (suppressNextPasteEvent) {
+      suppressNextPasteEvent = false;
+      e.preventDefault();
+      return;
+    }
+
+    const anchor = (currentTool === 'type' && typeCursor) ? typeCursor : (lastHoverCell || typeCursor || {x:0,y:0});
+    const ax = clamp(anchor.x|0, 0, model.w - 1);
+    const ay = clamp(anchor.y|0, 0, model.h - 1);
+
+    let text = '';
+    try { text = e.clipboardData ? e.clipboardData.getData('text/plain') : ''; } catch {}
+
+    const sysNorm = normalizeClipboardTextForCompare(text);
+    const internalNorm = clipboard ? normalizeClipboardTextForCompare(rowsFromGridData(clipboard).join('\n')) : '';
+
+    // If the system clipboard text matches our internal clipboard text, prefer internal paste
+    // (preserves mask + colors for selection copy/paste).
+    if (clipboard && internalNorm && sysNorm && sysNorm === internalNorm) {
+      pasteClipboardAt(ax, ay);
+      if (currentTool === 'type') { caretVisible = true; drawCaretOverlay(); }
+      e.preventDefault();
+      return;
+    }
+
+    // Otherwise paste plain text from the system clipboard.
+    if (pastePlainTextAt(ax, ay, text)) {
+      e.preventDefault();
+      return;
+    }
+
+    // If no text data but we have an internal clipboard, fall back to internal paste.
+    if (clipboard) {
+      pasteClipboardAt(ax, ay);
+      if (currentTool === 'type') { caretVisible = true; drawCaretOverlay(); }
+      e.preventDefault();
+    }
   });
 
   // Click to move type cursor
@@ -6182,7 +7206,31 @@ const deepCloneGrid = (data) => ({
 
   exportPNGBtn.addEventListener('click', () => {
 
-    const dataURL = canvas.toDataURL('image/png');
+    let dataURL = '';
+
+    if (renderer.transparentBg) {
+
+      const offscreen = document.createElement('canvas');
+
+      offscreen.width = canvas.width;
+
+      offscreen.height = canvas.height;
+
+      const octx = offscreen.getContext('2d');
+
+      octx.fillStyle = renderer.bg;
+
+      octx.fillRect(0, 0, offscreen.width, offscreen.height);
+
+      octx.drawImage(canvas, 0, 0);
+
+      dataURL = offscreen.toDataURL('image/png');
+
+    } else {
+
+      dataURL = canvas.toDataURL('image/png');
+
+    }
 
     download(`ascii_grid_${model.w}x${model.h}.png`, dataURL, 'image/png');
 
