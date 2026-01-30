@@ -2006,6 +2006,7 @@ const SPR_ENEMY_TURRET = [
     // Player bullets -> enemies / boss
     for (let bi = bullets.length - 1; bi >= 0; bi--) {
       const b = bullets[bi];
+      if (!b) continue;
       let hitSomething = false;
 
       if (bossSolidAt(b.x, b.y)) {
