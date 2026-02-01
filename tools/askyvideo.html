@@ -166,6 +166,54 @@
       margin: 0;
     }
 
+    .popMenu {
+      position: absolute;
+      z-index: 9999;
+      min-width: 220px;
+      max-width: min(520px, calc(100vw - 24px));
+      max-height: min(70vh, 640px);
+      overflow: auto;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(8,10,14,0.98);
+      box-shadow: 0 18px 70px rgba(0,0,0,0.65);
+      backdrop-filter: blur(8px);
+    }
+
+    .popMenu .menuTitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 8px 0;
+    }
+
+    .popMenu .menuList {
+      display: grid;
+      gap: 8px;
+    }
+
+    .popMenu .menuItem {
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.20);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    .popMenu .menuItem:hover { border-color: rgba(122,162,255,0.65); }
+
+    .popMenu .menuNote {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
     .btnrow {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -314,7 +362,7 @@
         <div class="row">
           <div class="btnrow3">
             <button id="btnParse">Parse</button>
-            <button id="btnDemo" title="Fetch out_contrast.asky.gz from the same directory, parse, and play">Load Demo</button>
+            <button id="btnDemo" title="Choose a demo .asky.gz file from this directory (loads, parses, plays)" aria-haspopup="menu" aria-expanded="false">Load Demo</button>
             <button id="btnClear">Clear</button>
           </div>
         </div>
@@ -401,7 +449,7 @@
           <div class="miniControls" id="miniControls" aria-label="Compact controls">
             <button id="btnMiniOpen" class="iconBtn" title="Load file" aria-label="Load file">⭳</button>
             <button id="btnMiniParse" class="iconBtn" title="Parse (autoplay)" aria-label="Parse">⟳</button>
-            <button id="btnMiniDemo" class="iconBtn" title="Load demo (parses and plays)" aria-label="Load demo">Demo</button>
+            <button id="btnMiniDemo" class="iconBtn" title="Choose demo (loads, parses, plays)" aria-label="Choose demo" aria-haspopup="menu" aria-expanded="false">Demo</button>
             <button id="btnMiniPlay" class="iconBtn" title="Play" aria-label="Play">▶</button>
             <button id="btnMiniPause" class="iconBtn" title="Pause" aria-label="Pause">⏸</button>
             <button id="btnMiniStep" class="iconBtn" title="Step" aria-label="Step">⏭</button>
@@ -445,6 +493,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="demoMenu" class="popMenu" hidden role="menu" aria-label="Demo picker">
+    <div class="menuTitle mono">Choose demo (.asky.gz)</div>
+    <div id="demoMenuList" class="menuList"></div>
+    <div id="demoMenuNote" class="menuNote"></div>
   </div>
 
   <script>
@@ -532,6 +586,10 @@
     const elMiniStep = document.getElementById("btnMiniStep");
     const elMiniFit = document.getElementById("btnMiniFit");
 
+    const elDemoMenu = document.getElementById("demoMenu");
+    const elDemoMenuList = document.getElementById("demoMenuList");
+    const elDemoMenuNote = document.getElementById("demoMenuNote");
+
     const elCols = document.getElementById("cols");
     const elRows = document.getElementById("rows");
     const elFrames = document.getElementById("frames");
@@ -556,6 +614,8 @@
     let timerId = null;
     let lastTickAt = 0;
     let fitMode = false;
+    let demoFilesCache = null;
+    let demoMenuAnchor = null;
 
     const DEMO_FILE = "out_contrast.asky.gz";
 
@@ -1300,16 +1360,187 @@
       setStatusOk(`Loaded ${file.name} (${fileBytes.byteLength} bytes)${hint}. Now press Parse.`);
     }
 
-    async function loadDemo() {
+    function setDemoButtonsExpanded(expanded) {
+      const v = expanded ? "true" : "false";
+      if (elDemo) { elDemo.setAttribute("aria-expanded", v); }
+      if (elMiniDemo) { elMiniDemo.setAttribute("aria-expanded", v); }
+    }
+
+    function closeDemoMenu() {
+      if (!elDemoMenu) { return; }
+      elDemoMenu.hidden = true;
+      if (elDemoMenuList) { elDemoMenuList.textContent = ""; }
+      if (elDemoMenuNote) { elDemoMenuNote.textContent = ""; }
+      demoMenuAnchor = null;
+      setDemoButtonsExpanded(false);
+    }
+
+    function positionDemoMenu(anchorEl) {
+      if (!elDemoMenu || !anchorEl) { return; }
+      if (elDemoMenu.hidden) { return; }
+      const pad = 10;
+      const rect = anchorEl.getBoundingClientRect();
+      const menuRect = elDemoMenu.getBoundingClientRect();
+
+      let left = rect.left + window.scrollX;
+      let top = rect.bottom + 8 + window.scrollY;
+
+      const maxLeft = window.scrollX + window.innerWidth - pad - menuRect.width;
+      if (left > maxLeft) { left = Math.max(window.scrollX + pad, maxLeft); }
+      if (left < window.scrollX + pad) { left = window.scrollX + pad; }
+
+      const maxTop = window.scrollY + window.innerHeight - pad - menuRect.height;
+      if (top > maxTop) {
+        const above = rect.top - 8 - menuRect.height;
+        top = (above >= pad) ? (above + window.scrollY) : Math.max(window.scrollY + pad, maxTop);
+      }
+      if (top < window.scrollY + pad) { top = window.scrollY + pad; }
+
+      elDemoMenu.style.left = `${Math.round(left)}px`;
+      elDemoMenu.style.top = `${Math.round(top)}px`;
+    }
+
+    function normalizeDemoFiles(files) {
+      const out = [];
+      const seen = new Set();
+
+      for (const raw of (files || [])) {
+        if (typeof raw !== "string") { continue; }
+        const name = raw.trim();
+        if (!name) { continue; }
+        if (!name.toLowerCase().endsWith(".asky.gz")) { continue; }
+        if (name.includes("/") || name.includes("\\") || name.includes("..")) { continue; }
+        if (seen.has(name)) { continue; }
+        seen.add(name);
+        out.push(name);
+      }
+
+      out.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+      const idx = out.indexOf(DEMO_FILE);
+      if (idx > 0) {
+        out.splice(idx, 1);
+        out.unshift(DEMO_FILE);
+      }
+      return out;
+    }
+
+    function extractDemoFileFromHref(href, dirUrl) {
+      if (!href || typeof href !== "string") { return null; }
+      const clean = href.split(/[?#]/)[0];
+      if (!clean) { return null; }
+
+      try {
+        const u = new URL(clean, dirUrl);
+        if (u.origin !== dirUrl.origin) { return null; }
+        if (!u.pathname.startsWith(dirUrl.pathname)) { return null; }
+        let rel = u.pathname.slice(dirUrl.pathname.length);
+        if (!rel || rel.includes("/")) { return null; }
+        rel = decodeURIComponent(rel);
+        return rel;
+      } catch {
+        return null;
+      }
+    }
+
+    async function discoverDemoFiles() {
+      const proto = (window.location && window.location.protocol) ? window.location.protocol : "";
+      const isFile = (proto === "file:");
+
+      if (isFile) {
+        return {
+          files: normalizeDemoFiles([DEMO_FILE]),
+          note: "Tip: browsers block directory access under file://. Host this folder (e.g. python -m http.server) or add asky_demos.json.",
+        };
+      }
+
+      const sources = [];
+      let manifestFiles = [];
+      let dirFiles = [];
+
+      // 1) Optional manifest: asky_demos.json (useful on hosts without directory listings)
+      try {
+        const manifestUrl = new URL("./asky_demos.json", window.location.href);
+        const resp = await fetch(manifestUrl.toString(), { cache: "no-cache" });
+        if (resp.ok) {
+          const json = await resp.json();
+          const list = Array.isArray(json) ? json : (json && Array.isArray(json.files) ? json.files : []);
+          manifestFiles = normalizeDemoFiles(list);
+          if (manifestFiles.length) {
+            sources.push("asky_demos.json");
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // 2) Best-effort: parse directory listing (works with python -m http.server)
+      try {
+        const dirUrl = new URL("./", window.location.href);
+        const resp = await fetch(dirUrl.toString(), { cache: "no-cache" });
+        if (resp.ok) {
+          const html = await resp.text();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const hrefs = Array.from(doc.querySelectorAll("a[href]")).map(a => a.getAttribute("href") || "");
+          dirFiles = normalizeDemoFiles(hrefs.map(h => extractDemoFileFromHref(h, dirUrl)).filter(Boolean));
+          if (dirFiles.length) {
+            sources.push("directory listing");
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      const merged = normalizeDemoFiles([].concat(manifestFiles, dirFiles));
+      if (merged.length) {
+        return {
+          files: merged,
+          note: sources.length ? `List source: ${sources.join(", ")}` : "",
+        };
+      }
+
+      return {
+        files: normalizeDemoFiles([DEMO_FILE]),
+        note: "Tip: no demo list found. Add asky_demos.json next to askyvideo.html to control the Demo dropdown.",
+      };
+    }
+
+    async function getDemoList({ refresh } = {}) {
+      if (refresh) {
+        demoFilesCache = null;
+      }
+      if (!demoFilesCache) {
+        demoFilesCache = discoverDemoFiles();
+      }
+      try {
+        return await demoFilesCache;
+      } catch (e) {
+        demoFilesCache = null;
+        throw e;
+      }
+    }
+
+    async function loadDemoFile(fileName) {
+      if (!fileName || typeof fileName !== "string") {
+        setStatusBad("Demo filename missing.");
+        return;
+      }
+      if (fileName.includes("/") || fileName.includes("\\") || fileName.includes("..")) {
+        setStatusBad(`Refusing unsafe demo filename: "${fileName}"`);
+        return;
+      }
+
+      closeDemoMenu();
+
       setPlaying(false);
       fileBytes = null;
       parsed = null;
       frameIndex = 0;
       syncUi();
-      setStatusInfo(`Loading demo "${DEMO_FILE}"...`);
+      setStatusInfo(`Loading demo "${fileName}"...`);
 
       try {
-        const url = new URL(`./${DEMO_FILE}`, window.location.href);
+        const safe = encodeURIComponent(fileName);
+        const url = new URL(`./${safe}`, window.location.href);
         const resp = await fetch(url.toString(), { cache: "no-cache" });
         if (!resp.ok) {
           throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
@@ -1324,9 +1555,7 @@
         parsed = null;
         syncUi();
 
-        const isGz = (fileBytes.byteLength >= 2 && fileBytes[0] === 0x1f && fileBytes[1] === 0x8b);
-        const hint = isGz ? " (gzip; will decompress on Parse)" : "";
-        setStatusOk(`Loaded demo ${DEMO_FILE} (${fileBytes.byteLength} bytes)${hint}. Now press Parse.`);
+        await parseLoadedBytes({ autoPlay: true, sourceLabel: `Loaded demo "${fileName}".` });
       } catch (e) {
         const msg = e && e.message ? e.message : String(e);
         const extra = (window.location && window.location.protocol === "file:")
@@ -1335,8 +1564,64 @@
         fileBytes = null;
         parsed = null;
         syncUi();
-        setStatusBad(`Failed to load demo "${DEMO_FILE}": ${msg}${extra}`);
+        setStatusBad(`Failed to load demo "${fileName}": ${msg}${extra}`);
       }
+    }
+
+    async function openDemoMenu(anchorEl, { refresh } = {}) {
+      if (!elDemoMenu || !elDemoMenuList || !elDemoMenuNote) {
+        await loadDemoFile(DEMO_FILE);
+        return;
+      }
+
+      if (!elDemoMenu.hidden && demoMenuAnchor === anchorEl) {
+        closeDemoMenu();
+        return;
+      }
+
+      demoMenuAnchor = anchorEl;
+      setDemoButtonsExpanded(true);
+      elDemoMenuList.textContent = "";
+      elDemoMenuNote.textContent = "Loading demo list...";
+      elDemoMenu.hidden = false;
+      requestAnimationFrame(() => positionDemoMenu(anchorEl));
+
+      let list;
+      try {
+        list = await getDemoList({ refresh });
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        elDemoMenuNote.textContent = `Failed to load demo list: ${msg}`;
+        return;
+      }
+
+      if (elDemoMenu.hidden) { return; }
+
+      elDemoMenuList.textContent = "";
+
+      const files = list && list.files ? list.files : [];
+      if (!files.length) {
+        elDemoMenuNote.textContent = "No .asky.gz files found.";
+        requestAnimationFrame(() => positionDemoMenu(anchorEl));
+        return;
+      }
+
+      for (const f of files) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "menuItem";
+        btn.setAttribute("role", "menuitem");
+        btn.textContent = f;
+        btn.addEventListener("click", async (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          await loadDemoFile(f);
+        });
+        elDemoMenuList.appendChild(btn);
+      }
+
+      elDemoMenuNote.textContent = list.note || "";
+      requestAnimationFrame(() => positionDemoMenu(anchorEl));
     }
 
     async function parseLoadedBytes({ autoPlay, sourceLabel } = {}) {
@@ -1414,16 +1699,10 @@
       await loadFromFile(f);
     });
 
-    elDemo.addEventListener("click", async () => {
-      await loadDemo();
-      if (!fileBytes) { return; }
-      try {
-        await parseLoadedBytes({ autoPlay: true, sourceLabel: `Loaded demo "${DEMO_FILE}".` });
-      } catch (e) {
-        parsed = null;
-        syncUi();
-        setStatusBad(e && e.message ? e.message : String(e));
-      }
+    elDemo.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openDemoMenu(e.currentTarget, { refresh: !!e.shiftKey });
     });
 
     elParse.addEventListener("click", async () => {
@@ -1605,6 +1884,26 @@
     }
     setUiMode(initialMode);
 
+    document.addEventListener("click", (e) => {
+      if (!elDemoMenu || elDemoMenu.hidden) { return; }
+      const t = e.target;
+      if (elDemoMenu.contains(t)) { return; }
+      if (demoMenuAnchor && demoMenuAnchor.contains(t)) { return; }
+      closeDemoMenu();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") { return; }
+      if (!elDemoMenu || elDemoMenu.hidden) { return; }
+      closeDemoMenu();
+    });
+
+    window.addEventListener("resize", () => {
+      if (!elDemoMenu || elDemoMenu.hidden) { return; }
+      if (!demoMenuAnchor) { return; }
+      requestAnimationFrame(() => positionDemoMenu(demoMenuAnchor));
+    });
+
     if (elUiMode) {
       elUiMode.addEventListener("click", () => {
         const isCompact = !!(elApp && elApp.classList.contains("compact"));
@@ -1613,7 +1912,13 @@
     }
 
     if (elMiniOpen) { elMiniOpen.addEventListener("click", () => elFile.click()); }
-    if (elMiniDemo) { elMiniDemo.addEventListener("click", () => elDemo.click()); }
+    if (elMiniDemo) {
+      elMiniDemo.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openDemoMenu(e.currentTarget, { refresh: !!e.shiftKey });
+      });
+    }
     if (elMiniParse) {
       elMiniParse.addEventListener("click", async () => {
         try {
