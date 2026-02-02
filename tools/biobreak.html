@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, viewport-fit=cover" />
+  <title>NoCode-ish Cell Breakout Prototype (Single Page)</title>
+  <style>
+    :root {
+      --bg0: #07080c;
+      --bg1: #0b1020;
+      --hud: rgba(255,255,255,0.92);
+      --hud-dim: rgba(255,255,255,0.72);
+      --panel: rgba(10,12,18,0.55);
+      --panel-border: rgba(255,255,255,0.12);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: radial-gradient(1200px 900px at 40% 30%, var(--bg1), var(--bg0));
+      overflow: hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none; /* so taps don't scroll */
+      cursor: crosshair;
+    }
+
+    #hud {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      max-width: min(560px, calc(100vw - 24px));
+      color: var(--hud);
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      user-select: none;
+      line-height: 1.25;
+    }
+
+    #hud .title {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #hud .title .pill {
+      font-size: 12px;
+      color: var(--hud-dim);
+      border: 1px solid var(--panel-border);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    #hud .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 6px;
+      color: var(--hud-dim);
+      font-size: 13px;
+    }
+
+    #hud code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.86);
+    }
+
+    #hud .stat {
+      color: rgba(255,255,255,0.86);
+    }
+
+    #hud .keys {
+      margin-top: 6px;
+      color: rgba(255,255,255,0.80);
+      font-size: 13px;
+    }
+
+    #hud .keys b {
+      color: rgba(255,255,255,0.96);
+    }
+
+    #hud .tiny {
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.62);
+    }
+
+    #cornerHint {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
+      user-select: none;
+      background: rgba(10,12,18,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      padding: 6px 10px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    #onboarding {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none; /* let the game still receive input */
+      padding: 12px;
+    }
+
+    #onboarding.hidden { display: none; }
+
+    #onboarding .card {
+      max-width: min(560px, calc(100vw - 24px));
+      background: rgba(10,12,18,0.72);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    }
+
+    #onboarding .card .otitle {
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      margin-bottom: 6px;
+    }
+
+    #onboarding .card .obody {
+      font-size: 14px;
+      line-height: 1.35;
+      color: rgba(255,255,255,0.78);
+    }
+
+    #onboarding .card .okeys {
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.62);
+    }
+
+    a { color: inherit; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="onboarding">
+    <div class="card">
+      <div class="otitle">Objective: Destroy the nucleus</div>
+      <div class="obody">
+        You are the ball. Kick with <b>WASD/Arrows</b> or <b>click/tap</b> to move. Repeated hits bruise cells and open tunnels.
+        <div class="okeys">Dismiss: first kick/click · Next seed: N · Reroll: R</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div class="title">
+      <div>Cell‑Mass Breakout Prototype</div>
+      <div class="pill">single‑file</div>
+      <div class="pill">impulse ball + shockwave tissue</div>
+    </div>
+    <div class="row">
+      <div>Seed: <span class="stat" id="seedOut">—</span></div>
+      <div>Cells alive: <span class="stat" id="aliveOut">—</span></div>
+      <div>FPS: <span class="stat" id="fpsOut">—</span></div>
+    </div>
+    <div class="row">
+      <div>Objective: <span class="stat" id="objectiveOut">—</span></div>
+      <div>Nucleus HP: <span class="stat" id="nucleusOut">—</span></div>
+      <div class="stat" id="statusOut"></div>
+    </div>
+    <div class="keys">
+      <b>Kick:</b> <code>WASD</code>/<code>Arrows</code> (tap or hold) · <b>Mouse/tap:</b> click toward cursor ·
+      <b>Brake:</b> <code>Space</code> · <b>Next:</b> <code>N</code> · <b>Regen:</b> <code>R</code> · <b>Reset ball:</b> <code>F</code> · <b>Hide UI:</b> <code>H</code>
+    </div>
+    <div class="tiny">
+      Direct hit = big damage. Shockwave = tiny % damage outward (½ falloff per ring) + squish.
+      Tunnel by repeatedly kicking into weakened tissue.
+    </div>
+  </div>
+
+  <div id="cornerHint">Tip: destroy the pulsing nucleus; tunnel through bruised tissue to reach it.</div>
+
+  <script>
+    "use strict";
+
+    // ============
+    // Utilities
+    // ============
+    const TAU = Math.PI * 2;
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function fade(t) { return t * t * (3 - 2 * t); }
+
+    // Deterministic-ish hash noise (32-bit)
+    function hash2(ix, iy, seed) {
+      let h = (ix * 374761393) + (iy * 668265263) + (seed * 1442695047);
+      h = (h ^ (h >>> 13)) >>> 0;
+      h = Math.imul(h, 1274126177) >>> 0;
+      h = (h ^ (h >>> 16)) >>> 0;
+      return h / 4294967296;
+    }
+
+    function valueNoise2D(x, y, seed) {
+      const x0 = Math.floor(x);
+      const y0 = Math.floor(y);
+      const xf = x - x0;
+      const yf = y - y0;
+
+      const v00 = hash2(x0,     y0,     seed);
+      const v10 = hash2(x0 + 1, y0,     seed);
+      const v01 = hash2(x0,     y0 + 1, seed);
+      const v11 = hash2(x0 + 1, y0 + 1, seed);
+
+      const u = fade(xf);
+      const v = fade(yf);
+
+      const x1 = lerp(v00, v10, u);
+      const x2 = lerp(v01, v11, u);
+      return lerp(x1, x2, v);
+    }
+
+    function expDecay(value, rate, dt) {
+      // value * e^(-rate*dt)
+      return value * Math.exp(-rate * dt);
+    }
+
+    function lerpHue(a, b, t) {
+      const d = (((b - a) % 360) + 540) % 360 - 180; // shortest path (-180..180)
+      return (a + d * t + 360) % 360;
+    }
+
+    function formatTime(seconds) {
+      const s = Math.max(0, seconds);
+      const m = Math.floor(s / 60);
+      const r = Math.floor(s % 60);
+      return `${m}:${String(r).padStart(2, "0")}`;
+    }
+
+    function roundRectPath(ctx, x, y, w, h, r) {
+      const rr = Math.max(0, Math.min(r, w * 0.5, h * 0.5));
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    }
+
+    // ============
+    // Hex helpers (axial coords)
+    // ============
+    const SQRT3 = Math.sqrt(3);
+
+    function axialToPixel(q, r, spacing) {
+      // pointy-top axial
+      const x = spacing * (SQRT3 * q + (SQRT3 / 2) * r);
+      const y = spacing * (1.5 * r);
+      return { x, y };
+    }
+
+    function pixelToAxial(x, y, spacing) {
+      // inverse for pointy-top axial
+      const q = ((SQRT3 / 3) * x - (1 / 3) * y) / spacing;
+      const r = ((2 / 3) * y) / spacing;
+      return { q, r };
+    }
+
+    function axialRound(q, r) {
+      // cube rounding
+      let x = q;
+      let z = r;
+      let y = -x - z;
+
+      let rx = Math.round(x);
+      let ry = Math.round(y);
+      let rz = Math.round(z);
+
+      const xDiff = Math.abs(rx - x);
+      const yDiff = Math.abs(ry - y);
+      const zDiff = Math.abs(rz - z);
+
+      if (xDiff > yDiff && xDiff > zDiff) {
+        rx = -ry - rz;
+      } else if (yDiff > zDiff) {
+        ry = -rx - rz;
+      } else {
+        rz = -rx - ry;
+      }
+      return { q: rx, r: rz };
+    }
+
+    const HEX_DIRS = [
+      [ 1,  0],
+      [ 1, -1],
+      [ 0, -1],
+      [-1,  0],
+      [-1,  1],
+      [ 0,  1],
+    ];
+
+    // ============
+    // Canvas setup
+    // ============
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+
+    let dpr = 1;
+    let viewW = 0;
+    let viewH = 0;
+
+    function resize() {
+      dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); // cap for perf
+      viewW = Math.floor(window.innerWidth);
+      viewH = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(viewW * dpr);
+      canvas.height = Math.floor(viewH * dpr);
+    }
+    window.addEventListener("resize", resize, { passive: true });
+    resize();
+
+    // ============
+    // Game state
+    // ============
+    const hud = document.getElementById("hud");
+    const seedOut = document.getElementById("seedOut");
+    const aliveOut = document.getElementById("aliveOut");
+    const fpsOut = document.getElementById("fpsOut");
+    const objectiveOut = document.getElementById("objectiveOut");
+    const nucleusOut = document.getElementById("nucleusOut");
+    const statusOut = document.getElementById("statusOut");
+    const onboardingEl = document.getElementById("onboarding");
+
+    // Tunables (feel knobs)
+    const SETTINGS = {
+      // World / cells
+      spacing: 40,
+      range: 55,            // grid extent
+      blobRadius: 1500,     // overall tissue size
+      spawnCavity: 140,     // guaranteed gap at center
+      jitterFrac: 0.16,     // position jitter relative to spacing (smaller = tighter packing)
+      cellRadiusMul: 1.06,  // overall cell radius multiplier (bigger = tighter packing)
+
+      // Objective (nucleus)
+      nucleusRings: 2,       // cluster radius in neighbor rings
+      nucleusRadiusMul: 2.0, // physical size multiplier for nucleus cells (visual + collision)
+      nucleusMinDist: 520,   // keep away from spawn cavity
+      nucleusMaxDist: 1150,  // keep inside outer tissue
+
+      // Visual wave propagation (reactive tissue ripples)
+      waveMaxCount: 8,
+      waveMinInterval: 0.028,  // seconds; limits spam on rapid collisions
+      waveMaxAge: 1.15,        // seconds
+      waveSpeed: 920,          // px/sec (wavefront travel)
+      waveSigma: 150,          // px (wavefront thickness)
+      waveAmp: 18,             // px (peak displacement at full impact)
+      waveDistDecay: 0.00105,  // 1/px
+      waveTimeDecay: 1.25,     // 1/sec
+      waveDirectionality: 0.35, // 0..1 bias wave forward along hit normal
+      waveStressScale: 18,     // px -> stress boost in rendering
+      waveDeform: 0.26,        // anisotropic squash as wave passes (0..~0.5)
+      waveRimRipple: 0.045,    // extra membrane ripple near wavefront
+
+      // Ball
+      ballRadius: 14,
+      maxSpeed: 860,
+      drag: 0.55,           // 1/sec
+      restitution: 0.62,
+      tangentFriction: 0.08,
+
+      // Input
+      kickImpulse: 420,
+      holdKickInterval: 0.18,
+      brakeStrength: 0.84,  // multiply velocity each frame while braking (in fixed step)
+
+      // Damage
+      directBaseDamage: 1.05,    // absolute
+      shockPercentBase: 0.18,    // percent of target maxHealth, BEFORE falloff
+      shockFalloff: 0.5,
+      shockCutoff: 0.012,        // stop when shockPercent < cutoff
+      shockMaxRings: 10,
+      shockMaxEvents: 10,        // concurrent propagations (oldest drops)
+      hitCooldown: 0.08,         // seconds per cell
+
+      // Squish
+      stressDecay: 2.2,    // 1/sec
+      flashDecay: 6.0,     // 1/sec
+      springK: 70.0,
+      springD: 16.0,
+
+      // Camera
+      camFollowSpeed: 780,       // px/sec cap
+      camResponsiveness: 4.0,    // smoothing (bigger = snappier)
+      camLookAhead: 140,         // px at max speed
+    };
+
+    // Runtime state
+    let seed = (Date.now() >>> 0);
+    let cells = [];
+    let cellMap = new Map();     // "q,r" -> index
+    let aliveCount = 0;
+
+    let visitMark = null;
+    let visitToken = 1;
+
+    let gameState = "play"; // "play" | "won"
+    let winT = -999;
+    let levelStartT = 0;
+
+    let nucleusCenterIdx = -1;
+    let nucleusIdx = [];
+    let nucleusMaxHealth = 0;
+    let nucleusHealth = 0;
+    let nucleusAlive = 0;
+
+    let onboardingDismissed = false;
+
+    let lastWaveT = -999;
+    const waves = [];
+
+    let waveTmpX = 0;
+    let waveTmpY = 0;
+    let waveTmpMag = 0;
+
+    const shockEvents = [];
+
+    const ball = {
+      x: 0, y: 0,
+      vx: 0, vy: 0,
+      r: SETTINGS.ballRadius,
+      trail: [],
+      trailMax: 44,
+    };
+
+    const cam = {
+      x: 0, y: 0,
+    };
+
+    const input = {
+      held: new Set(),
+      holdTimer: 0,
+      braking: false,
+      pointerDown: false,
+      pointerX: 0,
+      pointerY: 0,
+    };
+
+    let showHUD = true;
+
+    // ============
+    // Level generation
+    // ============
+    function regenLevel(newSeed) {
+      seed = (newSeed >>> 0);
+      seedOut.textContent = seed.toString(16).toUpperCase();
+      levelStartT = performance.now() / 1000;
+
+      if (!onboardingDismissed) onboardingEl.classList.remove("hidden");
+
+      // clear transient effects from the previous level
+      waves.length = 0;
+      lastWaveT = -999;
+      shockEvents.length = 0;
+
+      cells = [];
+      cellMap = new Map();
+
+      const spacing = SETTINGS.spacing;
+      const range = SETTINGS.range;
+      const blobR = SETTINGS.blobRadius;
+      const spawnCavity = SETTINGS.spawnCavity;
+
+      // Build cells
+      for (let q = -range; q <= range; q++) {
+        for (let r = -range; r <= range; r++) {
+          const base = axialToPixel(q, r, spacing);
+
+          // jitter position slightly for organic look
+          const jitter = spacing * SETTINGS.jitterFrac;
+          const jx = (hash2(q + 11, r - 7, seed * 3) - 0.5) * 2 * jitter;
+          const jy = (hash2(q - 19, r + 23, seed * 5) - 0.5) * 2 * jitter;
+
+          const x = base.x + jx;
+          const y = base.y + jy;
+
+          const dist = Math.hypot(x, y);
+
+          // Guarantee starting gap
+          if (dist < spawnCavity) continue;
+
+          // blob boundary with low-frequency noise
+          const nShape = valueNoise2D(q * 0.12 + seed * 0.001, r * 0.12 - seed * 0.001, seed + 101);
+          const boundary = blobR * (0.70 + 0.40 * nShape);
+          if (dist > boundary) continue;
+
+          // cavities / gaps with higher frequency noise
+          const nHole = valueNoise2D(q * 0.38 - seed * 0.002, r * 0.38 + seed * 0.002, seed + 1337);
+          if (nHole > 0.78 && dist > spawnCavity * 1.8) continue;
+
+          // radius variation
+          const nRad = valueNoise2D(q * 0.22 + 17.3, r * 0.22 - 9.1, seed + 42);
+          const baseR = spacing * (0.48 + 0.16 * nRad) * SETTINGS.cellRadiusMul;
+
+          // toughness / health classes
+          const nTough = valueNoise2D(q * 0.18 + 77.7, r * 0.18 + 55.5, seed + 9001);
+          let maxHealth = 1;
+          if (nTough > 0.84) maxHealth = 4;
+          else if (nTough > 0.72) maxHealth = 2;
+
+          // base hue for color variety
+          const baseHue = (hash2(q * 2, r * 2, seed + 99) * 360) % 360;
+
+          // Blob shape arrays
+          const verts = 16;
+          const shape = new Float32Array(verts);
+          const phase = new Float32Array(verts);
+          for (let k = 0; k < verts; k++) {
+            shape[k] = ((hash2(q * 19 + k * 7, r * 23 - k * 5, seed + 1000) - 0.5) * 2);
+            phase[k] = hash2(q * 31 - k * 11, r * 29 + k * 13, seed + 2000) * TAU;
+          }
+
+          const wobbleSpeed = 0.9 + hash2(q + 5, r - 8, seed + 777) * 1.5;
+
+          const cell = {
+            id: cells.length,
+            q, r,
+            x, y,
+
+            baseR,
+            radiusMul: 1.0,
+            maxHealth,
+            health: maxHealth,
+
+            alive: true,
+            deathT: -999,
+            lastHitT: -999,
+            isNucleus: false,
+
+            // squish
+            stress: 0,
+            flash: 0,
+            ox: 0, oy: 0,
+            ovx: 0, ovy: 0,
+
+            // render personality
+            baseHue,
+            shape,
+            phase,
+            wobbleSpeed,
+
+            neighbors: [],
+          };
+
+          cells.push(cell);
+          cellMap.set(`${q},${r}`, cell.id);
+        }
+      }
+
+      // Neighbor links
+      for (let i = 0; i < cells.length; i++) {
+        const c = cells[i];
+        c.neighbors.length = 0;
+        for (let d = 0; d < HEX_DIRS.length; d++) {
+          const nq = c.q + HEX_DIRS[d][0];
+          const nr = c.r + HEX_DIRS[d][1];
+          const idx = cellMap.get(`${nq},${nr}`);
+          if (idx !== undefined) c.neighbors.push(idx);
+        }
+      }
+
+      aliveCount = cells.length;
+      aliveOut.textContent = aliveCount.toString();
+
+      visitMark = new Uint32Array(cells.length);
+      visitToken = 1;
+
+      setupObjectiveNucleus();
+
+      // Reset ball/camera
+      resetBall(true);
+    }
+
+    function resetBall(hard = false) {
+      ball.x = 0;
+      ball.y = 0;
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.trail.length = 0;
+      if (hard) {
+        cam.x = ball.x;
+        cam.y = ball.y;
+      }
+    }
+
+    // ============
+    // Objective: Destroy the nucleus
+    // ============
+    function setupObjectiveNucleus() {
+      objectiveOut.textContent = "Destroy nucleus";
+      statusOut.textContent = "Time: 0:00";
+
+      gameState = "play";
+      winT = -999;
+
+      nucleusCenterIdx = -1;
+      nucleusIdx = [];
+      nucleusMaxHealth = 0;
+      nucleusHealth = 0;
+      nucleusAlive = 0;
+
+      // choose a deterministic-ish nucleus center, away from spawn
+      const minD = SETTINGS.nucleusMinDist;
+      const maxD = SETTINGS.nucleusMaxDist;
+
+      let bestIdx = -1;
+      let bestScore = -1;
+
+      for (let i = 0; i < cells.length; i++) {
+        const c = cells[i];
+        if (!c.alive) continue;
+        const d = Math.hypot(c.x, c.y);
+        if (d < minD || d > maxD) continue;
+
+        const s = hash2(c.q, c.r, seed + 424242);
+        if (s > bestScore) {
+          bestScore = s;
+          bestIdx = i;
+        }
+      }
+
+      // fallback: any alive cell
+      if (bestIdx < 0) {
+        bestScore = -1;
+        for (let i = 0; i < cells.length; i++) {
+          const c = cells[i];
+          if (!c.alive) continue;
+          const s = hash2(c.q, c.r, seed + 424242);
+          if (s > bestScore) {
+            bestScore = s;
+            bestIdx = i;
+          }
+        }
+      }
+
+      if (bestIdx < 0) return;
+
+      nucleusCenterIdx = bestIdx;
+
+      // Build a contiguous cluster around center by neighbor rings
+      const rings = SETTINGS.nucleusRings;
+      const visited = new Uint8Array(cells.length);
+
+      let frontier = [bestIdx];
+      visited[bestIdx] = 1;
+      nucleusIdx.push(bestIdx);
+
+      for (let ring = 1; ring <= rings; ring++) {
+        const next = [];
+        for (let i = 0; i < frontier.length; i++) {
+          const idx = frontier[i];
+          const c = cells[idx];
+          for (let j = 0; j < c.neighbors.length; j++) {
+            const nb = c.neighbors[j];
+            if (visited[nb]) continue;
+            visited[nb] = 1;
+            if (!cells[nb].alive) continue;
+            nucleusIdx.push(nb);
+            next.push(nb);
+          }
+        }
+        frontier = next;
+        if (frontier.length === 0) break;
+      }
+
+      for (let i = 0; i < nucleusIdx.length; i++) {
+        const c = cells[nucleusIdx[i]];
+        c.isNucleus = true;
+        c.radiusMul = SETTINGS.nucleusRadiusMul;
+        nucleusMaxHealth += c.maxHealth;
+        nucleusHealth += c.health;
+        if (c.alive) nucleusAlive++;
+      }
+
+      nucleusOut.textContent = `${nucleusHealth.toFixed(1)} / ${nucleusMaxHealth}`;
+    }
+
+    function updateObjective(tNow) {
+      if (nucleusIdx.length === 0) {
+        nucleusOut.textContent = "—";
+        return;
+      }
+
+      let h = 0;
+      let alive = 0;
+      for (let i = 0; i < nucleusIdx.length; i++) {
+        const c = cells[nucleusIdx[i]];
+        h += c.health;
+        if (c.alive) alive++;
+      }
+
+      nucleusHealth = h;
+      nucleusAlive = alive;
+
+      nucleusOut.textContent = `${Math.max(0, nucleusHealth).toFixed(1)} / ${nucleusMaxHealth}`;
+
+      if (gameState === "play" && nucleusHealth <= 0.0001) {
+        setWin(tNow);
+      }
+    }
+
+    function setWin(tNow) {
+      gameState = "won";
+      winT = tNow;
+
+      ball.vx = 0;
+      ball.vy = 0;
+      input.held.clear();
+      input.braking = false;
+      input.holdTimer = 0;
+
+      statusOut.textContent = `Cleared in ${formatTime(winT - levelStartT)}`;
+    }
+
+    function dismissOnboarding() {
+      if (onboardingDismissed) return;
+      onboardingDismissed = true;
+      onboardingEl.classList.add("hidden");
+    }
+
+    // ============
+    // Visual wave propagation
+    // ============
+    function updateWaves(tNow) {
+      for (let i = waves.length - 1; i >= 0; i--) {
+        const w = waves[i];
+        const age = tNow - w.t0;
+        if (age > SETTINGS.waveMaxAge) {
+          waves.splice(i, 1);
+          continue;
+        }
+        w.travel = SETTINGS.waveSpeed * age;
+        w.baseAmp = w.amp * Math.exp(-age * SETTINGS.waveTimeDecay);
+      }
+    }
+
+    function spawnWave(x, y, impactEnergy, hitNX, hitNY, tNow) {
+      if ((tNow - lastWaveT) < SETTINGS.waveMinInterval) return;
+      lastWaveT = tNow;
+
+      updateWaves(tNow);
+
+      const amp = SETTINGS.waveAmp * (0.30 + 0.95 * impactEnergy);
+      waves.push({ x, y, t0: tNow, amp, baseAmp: amp, travel: 0, nx: hitNX, ny: hitNY });
+      if (waves.length > SETTINGS.waveMaxCount) waves.shift();
+    }
+
+    function computeWaveOffset(px, py, tNow) {
+      waveTmpX = 0;
+      waveTmpY = 0;
+      waveTmpMag = 0;
+
+      if (waves.length === 0) return;
+
+      for (let i = 0; i < waves.length; i++) {
+        const w = waves[i];
+        const dx = px - w.x;
+        const dy = py - w.y;
+        const r = Math.hypot(dx, dy) + 1e-6;
+
+        const t = (r - w.travel) / SETTINGS.waveSigma;
+        const tt = t * t;
+
+        // Ignore if far from wavefront (Gaussian is ~0).
+        if (tt > 9) continue;
+
+        // Mexican-hat pulse centered on the wavefront.
+        const g = Math.exp(-tt);
+        const mexican = (1 - tt) * g;
+
+        // Distance attenuation (time attenuation is baked into `w.baseAmp`)
+        const env = Math.exp(-r * SETTINGS.waveDistDecay);
+
+        // Optional forward bias along the hit normal (feels more "directed impact")
+        let dirW = 1.0;
+        if (SETTINGS.waveDirectionality > 0) {
+          const ux = dx / r;
+          const uy = dy / r;
+          const dot = ux * w.nx + uy * w.ny;
+          const fwd = Math.max(0, dot);
+          dirW = (1 - SETTINGS.waveDirectionality) + SETTINGS.waveDirectionality * (0.55 + 0.45 * fwd);
+        }
+
+        const disp = w.baseAmp * env * mexican * dirW;
+        const ux = dx / r;
+        const uy = dy / r;
+
+        waveTmpX += ux * disp;
+        waveTmpY += uy * disp;
+        waveTmpMag += Math.abs(disp);
+      }
+
+      waveTmpMag = Math.min(60, waveTmpMag);
+    }
+
+    // ============
+    // Timed shock damage propagation (matches the visible wave travel)
+    // ============
+    function spawnShockEvent(originIdx, impactEnergy, hitNX, hitNY, tNow) {
+      // ring 1 starts after the wave has had time to travel one neighbor step
+      const ringInterval = SETTINGS.spacing / Math.max(1e-6, SETTINGS.waveSpeed);
+
+      let shockPercent = SETTINGS.shockPercentBase * (0.45 + 0.90 * impactEnergy);
+      shockPercent *= SETTINGS.shockFalloff; // ring 1
+      if (shockPercent < SETTINGS.shockCutoff) return;
+
+      // Visited stamping (fast BFS), per-event token
+      visitToken = (visitToken + 1) >>> 0;
+      if (visitToken === 0) {
+        visitMark.fill(0);
+        visitToken = 1;
+      }
+      const token = visitToken;
+      visitMark[originIdx] = token;
+
+      shockEvents.push({
+        originIdx,
+        token,
+        ring: 1,
+        frontier: [originIdx],
+        shockPercent,
+        impactEnergy,
+        hitNX,
+        hitNY,
+        nextT: tNow + ringInterval,
+      });
+
+      if (shockEvents.length > SETTINGS.shockMaxEvents) shockEvents.shift();
+    }
+
+    function updateShockEvents(tNow) {
+      if (shockEvents.length === 0) return;
+
+      const ringInterval = SETTINGS.spacing / Math.max(1e-6, SETTINGS.waveSpeed);
+      const maxAdvance = 3; // safety: don't chew through many rings on a single frame
+
+      for (let i = shockEvents.length - 1; i >= 0; i--) {
+        const e = shockEvents[i];
+        const origin = cells[e.originIdx];
+
+        // Origin cell can be dead; still works as a source point.
+        let advanced = 0;
+        while (tNow >= e.nextT && advanced < maxAdvance) {
+          if (e.ring > SETTINGS.shockMaxRings) break;
+          if (e.shockPercent < SETTINGS.shockCutoff) break;
+          if (!e.frontier || e.frontier.length === 0) break;
+
+          const ringFactor = Math.pow(SETTINGS.shockFalloff, e.ring);
+          const next = [];
+
+          for (let fi = 0; fi < e.frontier.length; fi++) {
+            const idx = e.frontier[fi];
+            const c = cells[idx];
+
+            // propagate only through alive tissue after the first hop
+            if (e.ring > 1 && !c.alive) continue;
+
+            for (let j = 0; j < c.neighbors.length; j++) {
+              const nb = c.neighbors[j];
+              if (visitMark[nb] === e.token) continue;
+              visitMark[nb] = e.token;
+
+              const ncell = cells[nb];
+              if (!ncell.alive) continue;
+
+              next.push(nb);
+
+              const dmg = ncell.maxHealth * e.shockPercent;
+              damageCell(ncell, dmg, ringFactor, e.impactEnergy, e.hitNX, e.hitNY, tNow, origin);
+            }
+          }
+
+          e.frontier = next;
+          e.ring++;
+          e.shockPercent *= SETTINGS.shockFalloff;
+          e.nextT += ringInterval;
+          advanced++;
+        }
+
+        const done =
+          (e.ring > SETTINGS.shockMaxRings) ||
+          (e.shockPercent < SETTINGS.shockCutoff) ||
+          (!e.frontier || e.frontier.length === 0);
+
+        if (done) shockEvents.splice(i, 1);
+      }
+    }
+
+    // ============
+    // Damage + shockwave
+    // ============
+    function damageCell(cell, dmg, ringFactor, impactEnergy, dirX, dirY, tNow, originCell) {
+      if (!cell.alive) return;
+
+      cell.health = Math.max(0, cell.health - dmg);
+
+      // Visual stress: impactEnergy and ringFactor both contribute
+      const stressAdd = (0.22 + 0.55 * impactEnergy) * ringFactor + (dmg / Math.max(0.0001, cell.maxHealth)) * 0.25;
+      cell.stress = Math.min(1.65, cell.stress + stressAdd);
+
+      cell.flash = Math.min(1.2, cell.flash + 0.55 * ringFactor);
+
+      // Springy positional offset: push away from origin cell if available; else use hit direction
+      if (originCell) {
+        const dx = cell.x - originCell.x;
+        const dy = cell.y - originCell.y;
+        const dl = Math.hypot(dx, dy) + 1e-6;
+        const nx = dx / dl;
+        const ny = dy / dl;
+        const push = (12 + 40 * impactEnergy) * ringFactor;
+        cell.ovx += nx * push;
+        cell.ovy += ny * push;
+      } else {
+        const push = (18 + 55 * impactEnergy) * ringFactor;
+        cell.ovx += dirX * push;
+        cell.ovy += dirY * push;
+      }
+
+      if (cell.health <= 0 && cell.alive) {
+        cell.alive = false;
+        cell.deathT = tNow;
+        aliveCount = Math.max(0, aliveCount - 1);
+      }
+    }
+
+    function applyImpact(originIdx, impactSpeed, hitNX, hitNY, tNow) {
+      const origin = cells[originIdx];
+
+      const impactEnergy = clamp01(impactSpeed / SETTINGS.maxSpeed);
+
+      // Direct hit = absolute chunk
+      const directDmg = SETTINGS.directBaseDamage * (0.65 + 0.95 * impactEnergy);
+      damageCell(origin, directDmg, 1.0, impactEnergy, hitNX, hitNY, tNow, null);
+
+      // Timed shock propagation (indirect wave-driven damage)
+      spawnShockEvent(originIdx, impactEnergy, hitNX, hitNY, tNow);
+    }
+
+    // ============
+    // Input handling
+    // ============
+    const KEY_DIR = new Map([
+      ["ArrowUp",    {x: 0, y:-1}],
+      ["ArrowDown",  {x: 0, y: 1}],
+      ["ArrowLeft",  {x:-1, y: 0}],
+      ["ArrowRight", {x: 1, y: 0}],
+      ["w", {x: 0, y:-1}],
+      ["s", {x: 0, y: 1}],
+      ["a", {x:-1, y: 0}],
+      ["d", {x: 1, y: 0}],
+    ]);
+
+    function kick(dirX, dirY, scale = 1.0) {
+      const len = Math.hypot(dirX, dirY);
+      if (len < 1e-6) return;
+
+      const nx = dirX / len;
+      const ny = dirY / len;
+
+      ball.vx += nx * SETTINGS.kickImpulse * scale;
+      ball.vy += ny * SETTINGS.kickImpulse * scale;
+
+      // clamp speed
+      const sp = Math.hypot(ball.vx, ball.vy);
+      if (sp > SETTINGS.maxSpeed) {
+        const s = SETTINGS.maxSpeed / sp;
+        ball.vx *= s;
+        ball.vy *= s;
+      }
+    }
+
+    function heldDirVector() {
+      let x = 0, y = 0;
+      for (const k of input.held) {
+        const d = KEY_DIR.get(k);
+        if (d) { x += d.x; y += d.y; }
+      }
+      const l = Math.hypot(x, y);
+      if (l < 1e-6) return { x: 0, y: 0 };
+      return { x: x / l, y: y / l };
+    }
+
+    window.addEventListener("keydown", (e) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+      if (key === "escape") {
+        dismissOnboarding();
+        return;
+      }
+
+      if (key === " ") {
+        if (gameState === "play") input.braking = true;
+        e.preventDefault();
+        return;
+      }
+
+      if (key === "n") {
+        if (!e.repeat) regenLevel((seed + 1) >>> 0);
+        return;
+      }
+
+      if (key === "r") {
+        if (!e.repeat) regenLevel((Date.now() + Math.floor(Math.random() * 1e9)) >>> 0);
+        return;
+      }
+
+      if (key === "f") {
+        resetBall(false);
+        return;
+      }
+
+      if (key === "h") {
+        showHUD = !showHUD;
+        hud.style.display = showHUD ? "block" : "none";
+        return;
+      }
+
+      // directional kick
+      if (KEY_DIR.has(key)) {
+        dismissOnboarding();
+        if (gameState === "play") {
+          input.held.add(key);
+          // On initial press, kick once (ignore repeats)
+          if (!e.repeat) {
+            const d = KEY_DIR.get(key);
+            kick(d.x, d.y, 1.0);
+          }
+        }
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    window.addEventListener("keyup", (e) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+      if (key === " ") {
+        input.braking = false;
+        return;
+      }
+
+      if (KEY_DIR.has(key)) {
+        input.held.delete(key);
+      }
+    }, { passive: true });
+
+    function screenToWorld(sx, sy) {
+      // screen px to world coords
+      const wx = (sx - viewW * 0.5) + cam.x;
+      const wy = (sy - viewH * 0.5) + cam.y;
+      return { x: wx, y: wy };
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      input.pointerDown = true;
+      input.pointerX = e.clientX;
+      input.pointerY = e.clientY;
+
+      dismissOnboarding();
+      if (gameState === "play") {
+        const w = screenToWorld(e.clientX, e.clientY);
+        kick(w.x - ball.x, w.y - ball.y, 1.05);
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener("pointermove", (e) => {
+      input.pointerX = e.clientX;
+      input.pointerY = e.clientY;
+    }, { passive: true });
+
+    canvas.addEventListener("pointerup", (e) => {
+      input.pointerDown = false;
+    }, { passive: true });
+
+    // ============
+    // Physics + camera
+    // ============
+    function updateCamera(dt) {
+      const sp = Math.hypot(ball.vx, ball.vy);
+      let lx = 0, ly = 0;
+      if (sp > 1e-4) {
+        lx = ball.vx / sp;
+        ly = ball.vy / sp;
+      }
+
+      const look = SETTINGS.camLookAhead * clamp01(sp / SETTINGS.maxSpeed);
+      const targetX = ball.x + lx * look;
+      const targetY = ball.y + ly * look;
+
+      const dx = targetX - cam.x;
+      const dy = targetY - cam.y;
+
+      // Smooth move
+      const soft = 1 - Math.exp(-SETTINGS.camResponsiveness * dt);
+      let mx = dx * soft;
+      let my = dy * soft;
+
+      // Cap speed
+      const maxMove = SETTINGS.camFollowSpeed * dt;
+      const ml = Math.hypot(mx, my);
+      if (ml > maxMove) {
+        const s = maxMove / (ml + 1e-9);
+        mx *= s;
+        my *= s;
+      }
+
+      cam.x += mx;
+      cam.y += my;
+    }
+
+    function updateCells(dt) {
+      for (let i = 0; i < cells.length; i++) {
+        const c = cells[i];
+
+        // decay stress/flash even if dead (for fade)
+        c.stress = expDecay(c.stress, SETTINGS.stressDecay, dt);
+        c.flash  = expDecay(c.flash,  SETTINGS.flashDecay,  dt);
+
+        // damped spring offsets
+        // ov += (-k*o - d*ov) * dt ; o += ov * dt
+        const ax = (-SETTINGS.springK * c.ox) - (SETTINGS.springD * c.ovx);
+        const ay = (-SETTINGS.springK * c.oy) - (SETTINGS.springD * c.ovy);
+
+        c.ovx += ax * dt;
+        c.ovy += ay * dt;
+
+        c.ox += c.ovx * dt;
+        c.oy += c.ovy * dt;
+
+        // slight extra decay for dead cells to settle
+        if (!c.alive) {
+          c.ox = expDecay(c.ox, 1.5, dt);
+          c.oy = expDecay(c.oy, 1.5, dt);
+          c.ovx = expDecay(c.ovx, 1.8, dt);
+          c.ovy = expDecay(c.ovy, 1.8, dt);
+        }
+      }
+    }
+
+    function handleCollisions(tNow) {
+      const spacing = SETTINGS.spacing;
+
+      // approximate nearest axial cell to ball
+      const ar = pixelToAxial(ball.x, ball.y, spacing);
+      const rounded = axialRound(ar.q, ar.r);
+      const cq = rounded.q;
+      const cr = rounded.r;
+
+      const checkRadius = 3;
+
+      for (let dq = -checkRadius; dq <= checkRadius; dq++) {
+        for (let dr = -checkRadius; dr <= checkRadius; dr++) {
+          const q = cq + dq;
+          const r = cr + dr;
+          const idx = cellMap.get(`${q},${r}`);
+          if (idx === undefined) continue;
+
+          const cell = cells[idx];
+          if (!cell.alive) continue;
+
+          const baseX = cell.x + cell.ox;
+          const baseY = cell.y + cell.oy;
+          computeWaveOffset(baseX, baseY, tNow);
+          const cx = baseX + waveTmpX;
+          const cy = baseY + waveTmpY;
+
+          const dx = ball.x - cx;
+          const dy = ball.y - cy;
+          const dist = Math.hypot(dx, dy);
+
+          const collideR = ball.r + (cell.baseR * cell.radiusMul) * 0.93;
+          if (dist >= collideR || dist < 1e-6) continue;
+
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = collideR - dist;
+
+          // separate (prevents deep overlap)
+          ball.x += nx * overlap;
+          ball.y += ny * overlap;
+
+          // relative velocity along normal
+          const vn = (ball.vx * nx + ball.vy * ny);
+
+            // only if moving into the cell
+            if (vn < 0) {
+              // impact event (cooldown)
+              if ((tNow - cell.lastHitT) > SETTINGS.hitCooldown) {
+                // spawn a visible ripple at the contact point
+                const impactSpeed = -vn;
+                const impactEnergy = clamp01(impactSpeed / SETTINGS.maxSpeed);
+                const ix = ball.x - nx * ball.r;
+                const iy = ball.y - ny * ball.r;
+                spawnWave(ix, iy, impactEnergy, nx, ny, tNow);
+
+                applyImpact(idx, -vn, nx, ny, tNow);
+                cell.lastHitT = tNow;
+              }
+
+            const brokeNow = (!cell.alive) && ((tNow - cell.deathT) < 0.05);
+
+            if (brokeNow) {
+              // "break-through": reduce inward component without full reflect
+              ball.vx -= nx * vn * 0.35;
+              ball.vy -= ny * vn * 0.35;
+
+              ball.vx *= 0.98;
+              ball.vy *= 0.98;
+
+              // nudge forward slightly to avoid sticking on freshly opened void
+              const sp = Math.hypot(ball.vx, ball.vy) + 1e-6;
+              ball.x += (ball.vx / sp) * 2.5;
+              ball.y += (ball.vy / sp) * 2.5;
+            } else {
+              // reflect bounce
+              ball.vx -= (1 + SETTINGS.restitution) * vn * nx;
+              ball.vy -= (1 + SETTINGS.restitution) * vn * ny;
+
+              // tangential damping for squishy feel
+              ball.vx *= (1 - SETTINGS.tangentFriction);
+              ball.vy *= (1 - SETTINGS.tangentFriction);
+            }
+          }
+        }
+      }
+    }
+
+    // ============
+    // Rendering
+    // ============
+    function cellColorStyle(cell, tNow) {
+      const life = cell.health / Math.max(0.0001, cell.maxHealth);
+      const dmg = clamp01(1 - life);
+
+      // Health-encoded palette (consistent across cells)
+      // dmg: 0 (healthy) → 1 (critical)
+      let hue, sat, lit;
+      if (dmg < 0.45) {
+        const t = dmg / 0.45;
+        hue = lerpHue(155, 105, t); // teal → green
+        sat = lerp(78, 76, t);
+        lit = lerp(56, 50, t);
+      } else if (dmg < 0.75) {
+        const t = (dmg - 0.45) / 0.30;
+        hue = lerpHue(105, 32, t); // green → amber
+        sat = lerp(76, 72, t);
+        lit = lerp(50, 42, t);
+      } else {
+        const t = (dmg - 0.75) / 0.25;
+        hue = lerpHue(32, 292, t); // amber → bruise purple (wraps)
+        sat = lerp(72, 55, t);
+        lit = lerp(42, 20, t);
+      }
+
+      // tiny per-cell hue variation for organic look (keeps health colors readable)
+      hue = (hue + (cell.baseHue - 180) * 0.03 + 360) % 360;
+
+      // flash brightens briefly (impact highlight)
+      if (cell.flash > 0.001) {
+        lit = Math.min(86, lit + cell.flash * 24);
+        sat = Math.min(100, sat + cell.flash * 10);
+      }
+
+      // dead cells fade darker
+      let alpha = 1.0;
+      if (!cell.alive) {
+        const age = (tNow - cell.deathT);
+        alpha = clamp01(1 - age / 0.55);
+        sat = 0;
+        lit = 10;
+      }
+
+      return { fill: `hsl(${hue}, ${sat}%, ${lit}%)`, alpha };
+    }
+
+    function drawCell(cell, tNow) {
+      const verts = cell.shape.length;
+
+      const baseX = cell.x + cell.ox;
+      const baseY = cell.y + cell.oy;
+
+      // cull offscreen
+      const margin = 260;
+      const minX = cam.x - viewW * 0.5 - margin;
+      const maxX = cam.x + viewW * 0.5 + margin;
+      const minY = cam.y - viewH * 0.5 - margin;
+      const maxY = cam.y + viewH * 0.5 - margin;
+      const baseR = cell.baseR * cell.radiusMul;
+      const r = baseR + 40 + SETTINGS.waveAmp;
+
+      if (baseX + r < minX || baseX - r > maxX || baseY + r < minY || baseY - r > maxY) return;
+
+      computeWaveOffset(baseX, baseY, tNow);
+      const px = baseX + waveTmpX;
+      const py = baseY + waveTmpY;
+
+      const { fill, alpha } = cellColorStyle(cell, tNow);
+      if (alpha <= 0.001) return;
+
+      const waveStress = clamp01(waveTmpMag / SETTINGS.waveStressScale);
+      const stress = clamp01(cell.stress + waveStress);
+      const wobble = 0.12 + 0.18 * stress;
+      const pulse = 0.06 * stress;
+
+      let waveAng = 0;
+      const waveLen = Math.hypot(waveTmpX, waveTmpY);
+      if (waveLen > 1e-3) waveAng = Math.atan2(waveTmpY, waveTmpX);
+      const deform = waveStress * SETTINGS.waveDeform;
+      const rim = waveStress * SETTINGS.waveRimRipple;
+
+      ctx.globalAlpha = alpha;
+
+      ctx.beginPath();
+      for (let k = 0; k < verts; k++) {
+        const ang = (k / verts) * TAU;
+        const wob = Math.sin(tNow * cell.wobbleSpeed + cell.phase[k]);
+        const anis = Math.cos(2 * (ang - waveAng));
+        const rimRip = rim * Math.sin(tNow * 12.0 + cell.phase[k] * 1.7 + anis * 1.3);
+        const rad = baseR * (1 + cell.shape[k] * wobble + pulse * wob + deform * anis + rimRip);
+
+        const x = px + Math.cos(ang) * rad;
+        const y = py + Math.sin(ang) * rad;
+
+        if (k === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      ctx.fillStyle = fill;
+      ctx.fill();
+
+      // membrane outline
+      ctx.globalAlpha = alpha * Math.min(1, (0.72 + 0.55 * waveStress));
+      ctx.lineWidth = 1.25 + 1.2 * waveStress;
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.stroke();
+
+      // nucleus marker (goal)
+      if (cell.isNucleus && cell.alive) {
+        const pulse = 0.5 + 0.5 * Math.sin(tNow * 3.3);
+        ctx.globalAlpha = alpha * (0.38 + 0.30 * pulse);
+        ctx.lineWidth = 2.35;
+        ctx.strokeStyle = "rgba(255, 70, 210, 0.95)";
+        ctx.stroke();
+
+        ctx.globalAlpha = alpha * (0.18 + 0.20 * pulse);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(px, py, baseR * 0.35, 0, TAU);
+        ctx.strokeStyle = "rgba(255, 70, 210, 0.9)";
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1.0;
+    }
+
+    function drawWinOverlay(tNow) {
+      const w = Math.min(560, Math.max(260, viewW - 24));
+      const h = 136;
+      const x = Math.floor((viewW - w) * 0.5);
+      const y = Math.floor((viewH - h) * 0.42);
+
+      ctx.save();
+      ctx.globalAlpha = 1.0;
+      roundRectPath(ctx, x, y, w, h, 14);
+      ctx.fillStyle = "rgba(10,12,18,0.72)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+
+      ctx.fillStyle = "rgba(255,255,255,0.94)";
+      ctx.font = "700 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("Nucleus destroyed", x + w * 0.5, y + 16);
+
+      ctx.fillStyle = "rgba(255,255,255,0.82)";
+      ctx.font = "14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("Press N for next seed · R to reroll · F to reset ball", x + w * 0.5, y + 54);
+
+      ctx.fillStyle = "rgba(255,255,255,0.68)";
+      const hNow = Math.max(0, nucleusHealth).toFixed(1);
+      ctx.fillText(`Cleared in ${formatTime(winT - levelStartT)} · Nucleus HP: ${hNow} / ${nucleusMaxHealth}`, x + w * 0.5, y + 78);
+
+      ctx.restore();
+    }
+
+    function drawBall(tNow) {
+      // trail
+      if (ball.trail.length > 1) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.20)";
+        ctx.beginPath();
+        for (let i = 0; i < ball.trail.length; i++) {
+          const p = ball.trail[i];
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+
+      // body
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+      ctx.fillStyle = "rgba(255,255,255,0.94)";
+      ctx.fill();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.stroke();
+
+      // tiny direction dot (helps read motion)
+      const sp = Math.hypot(ball.vx, ball.vy);
+      if (sp > 10) {
+        const nx = ball.vx / sp;
+        const ny = ball.vy / sp;
+        ctx.beginPath();
+        ctx.arc(ball.x + nx * (ball.r * 0.65), ball.y + ny * (ball.r * 0.65), 2.6, 0, TAU);
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fill();
+      }
+    }
+
+    function drawPointerAim() {
+      // draw a faint aim line from ball to cursor (screen-space to world)
+      const w = screenToWorld(input.pointerX, input.pointerY);
+
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.beginPath();
+      ctx.moveTo(ball.x, ball.y);
+      ctx.lineTo(w.x, w.y);
+      ctx.stroke();
+    }
+
+    function render(tNow) {
+      // clear
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // world transform (map world coords to canvas center)
+      ctx.setTransform(dpr, 0, 0, dpr, canvas.width * 0.5, canvas.height * 0.5);
+      ctx.translate(-cam.x, -cam.y);
+
+      // subtle background specks (cheap "tissue depth" vibe)
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      for (let i = 0; i < 40; i++) {
+        const px = cam.x + (hash2(i, 1, seed + 300) - 0.5) * (viewW + 400);
+        const py = cam.y + (hash2(i, 2, seed + 301) - 0.5) * (viewH + 400);
+        const rr = 0.8 + hash2(i, 3, seed + 302) * 1.6;
+        ctx.beginPath();
+        ctx.arc(px, py, rr, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+
+      // cells
+      // draw alive first, then dead faintly (gives less visual clutter)
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].alive) drawCell(cells[i], tNow);
+      }
+      for (let i = 0; i < cells.length; i++) {
+        if (!cells[i].alive) drawCell(cells[i], tNow);
+      }
+
+      // pointer aim (if moving mouse)
+      if (gameState === "play") drawPointerAim();
+
+      // ball
+      drawBall(tNow);
+
+      // back to screen space for any debug overlays if needed later
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalAlpha = 1.0;
+
+      if (gameState === "won") drawWinOverlay(tNow);
+    }
+
+    // ============
+    // Main loop (fixed timestep physics)
+    // ============
+    let lastT = performance.now() / 1000;
+    let acc = 0;
+
+    const FIXED_DT = 1 / 120;         // stable collision
+    const MAX_SUBSTEPS = 6;
+
+    // FPS tracker
+    let fpsAcc = 0;
+    let fpsFrames = 0;
+    let fps = 0;
+
+    function tick() {
+      const now = performance.now() / 1000;
+      let dt = now - lastT;
+      lastT = now;
+
+      // avoid spiral on tab-switch
+      dt = Math.min(dt, 0.05);
+
+      acc += dt;
+
+      // update cached wave params (baseAmp/travel) once per frame
+      if (waves.length) updateWaves(now);
+
+      // held kick repeating
+      if (gameState === "play") {
+        const held = heldDirVector();
+        if (held.x !== 0 || held.y !== 0) {
+          input.holdTimer += dt;
+          if (input.holdTimer >= SETTINGS.holdKickInterval) {
+            input.holdTimer = 0;
+            kick(held.x, held.y, 0.92);
+          }
+        } else {
+          input.holdTimer = 0;
+        }
+      } else {
+        input.holdTimer = 0;
+      }
+
+      // fixed substeps
+      let sub = 0;
+      while (acc >= FIXED_DT && sub < MAX_SUBSTEPS) {
+        if (gameState !== "play") {
+          updateCells(FIXED_DT);
+          updateCamera(FIXED_DT);
+          acc -= FIXED_DT;
+          sub++;
+          continue;
+        }
+
+        // brake (if pressed)
+        if (input.braking) {
+          ball.vx *= SETTINGS.brakeStrength;
+          ball.vy *= SETTINGS.brakeStrength;
+        }
+
+        // drag
+        const dragMul = Math.exp(-SETTINGS.drag * FIXED_DT);
+        ball.vx *= dragMul;
+        ball.vy *= dragMul;
+
+        // clamp speed
+        const sp = Math.hypot(ball.vx, ball.vy);
+        if (sp > SETTINGS.maxSpeed) {
+          const s = SETTINGS.maxSpeed / (sp + 1e-9);
+          ball.vx *= s;
+          ball.vy *= s;
+        }
+
+        // integrate
+        ball.x += ball.vx * FIXED_DT;
+        ball.y += ball.vy * FIXED_DT;
+
+        // collisions
+        handleCollisions(now);
+
+        // timed wave-driven shock damage
+        updateShockEvents(now);
+
+        // update cell squish / spring
+        updateCells(FIXED_DT);
+
+        // trail
+        ball.trail.push({ x: ball.x, y: ball.y });
+        if (ball.trail.length > ball.trailMax) ball.trail.shift();
+
+        // camera
+        updateCamera(FIXED_DT);
+
+        acc -= FIXED_DT;
+        sub++;
+      }
+
+      // HUD stats
+      aliveOut.textContent = aliveCount.toString();
+      updateObjective(now);
+      if (gameState === "play") statusOut.textContent = `Time: ${formatTime(now - levelStartT)}`;
+
+      fpsAcc += dt;
+      fpsFrames++;
+      if (fpsAcc >= 0.35) {
+        fps = Math.round(fpsFrames / fpsAcc);
+        fpsFrames = 0;
+        fpsAcc = 0;
+        fpsOut.textContent = fps.toString();
+      }
+
+      // render
+      render(now);
+
+      requestAnimationFrame(tick);
+    }
+
+    // ============
+    // Boot
+    // ============
+    regenLevel(seed);
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
