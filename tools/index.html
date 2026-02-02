@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en" data-theme="terminal">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Foxjammin Studios — Sigilry: The Braided Stair</title>
+    <meta
+      name="description"
+      content="Foxjammin Studios is building Sigilry: The Braided Stair — a 3D ASCII art shader dungeon looter about sigils, keys, and vertical labyrinths."
+    />
+
+    <!-- Social preview (replace og:image when you have one) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Foxjammin Studios — Sigilry: The Braided Stair" />
+    <meta
+      property="og:description"
+      content="A 3D ASCII art shader dungeon looter about sigils, keys, and vertical labyrinths."
+    />
+    <meta property="og:url" content="https://www.foxjammin.com/" />
+
+    <meta name="theme-color" content="#040707" />
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- Iconify web component (official docs) -->
+    <script
+      src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js"
+      defer
+    ></script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-state="closed">
+      <div class="container header-inner">
+        <a class="brand" href="#top" aria-label="Foxjammin Studios home">
+          <span class="brand__mark" aria-hidden="true">⌁</span>
+          <span class="brand__name">Foxjammin Studios</span>
+        </a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-controls="primary-nav"
+          aria-expanded="false"
+        >
+          <span class="sr-only">Open menu</span>
+          <span aria-hidden="true">☰</span>
+        </button>
+
+        <nav id="primary-nav" class="nav" aria-label="Primary navigation">
+          <a href="#game">Game</a>
+          <a href="#media">Media</a>
+          <a href="#press">Press kit</a>
+          <a href="#studio">Studio</a>
+          <a href="#contact">Contact</a>
+          <a href="#icon-forge">Icon Forge</a>
+        </nav>
+
+        <div class="header-tools">
+          <label class="theme-picker">
+            <span class="sr-only">Theme</span>
+            <select id="themeSelect" aria-label="Theme">
+              <option value="terminal">Terminal Cathedral</option>
+              <option value="obsidian">Obsidian Atelier</option>
+              <option value="zine">Zine Workshop</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section id="top" class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="kicker">
+              <iconify-icon icon="game-icons:3d-stairs" aria-hidden="true"></iconify-icon>
+              <span>New game in the works</span>
+            </p>
+
+            <h1>Sigilry: The Braided Stair</h1>
+
+            <p class="lede">
+              A <strong>3D ASCII art shader</strong> dungeon looter about
+              <strong>sigils</strong>, <strong>keys</strong>, and <strong>vertical</strong>
+              labyrinths—where builds feel like spellcraft and loot tells a story.
+            </p>
+
+            <div class="cta-row" role="group" aria-label="Primary calls to action">
+              <!-- TODO: replace # with your Steam/itch/etc link -->
+              <a class="btn primary" href="#contact">Wishlist (coming soon)</a>
+              <a class="btn" href="#media">Trailer / screenshots</a>
+              <a class="btn ghost" href="#press">Press kit</a>
+            </div>
+
+            <div class="mini-facts" aria-label="Quick feature highlights">
+              <div class="pill">
+                <iconify-icon icon="game-icons:cube" aria-hidden="true"></iconify-icon>
+                <span>3D ASCII shader</span>
+              </div>
+              <div class="pill">
+                <iconify-icon
+                  icon="game-icons:open-treasure-chest"
+                  aria-hidden="true"
+                ></iconify-icon>
+                <span>Loot + builds</span>
+              </div>
+              <div class="pill">
+                <iconify-icon icon="game-icons:dungeon-gate" aria-hidden="true"></iconify-icon>
+                <span>Dungeon crawler</span>
+              </div>
+            </div>
+
+            <div class="hero-note">
+              <p>
+                <strong>Status:</strong> early development. Want updates? Drop a note in the
+                contact section and I’ll hook you into the devlog/newsletter list.
+              </p>
+            </div>
+          </div>
+
+          <div class="hero-art">
+            <div class="sigil-frame" aria-label="Animated ASCII background">
+              <canvas id="asciiCanvas"></canvas>
+
+              <div class="sigil-overlay" aria-hidden="true">
+                <div class="sigil-title">Generated sigil</div>
+                <pre id="sigilOutput" class="sigil-ascii"></pre>
+                <div class="sigil-seed" id="sigilSeed"></div>
+              </div>
+            </div>
+
+            <div class="sigil-controls">
+              <button class="btn small" id="regenSigil" type="button">
+                <iconify-icon icon="game-icons:magic-swirl" aria-hidden="true"></iconify-icon>
+                <span>Regenerate</span>
+              </button>
+              <button class="btn small" id="pauseAscii" type="button" aria-pressed="false">
+                <iconify-icon icon="game-icons:portal" aria-hidden="true"></iconify-icon>
+                <span>Pause</span>
+              </button>
+            </div>
+
+            <p class="hero-aside">
+              Tip: switch themes in the header to preview 3 different brand directions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="game" class="section">
+        <div class="container">
+          <header class="section-head">
+            <h2>The game</h2>
+            <p>
+              <strong>Sigilry: The Braided Stair</strong> aims to blend the clarity of old-school
+              glyph aesthetics with modern 3D readability—then put that look on top of a tight,
+              loot-driven progression loop.
+            </p>
+          </header>
+
+          <div class="feature-grid" role="list">
+            <article class="card feature" role="listitem">
+              <div class="feature__icon" aria-hidden="true">
+                <iconify-icon icon="game-icons:3d-stairs"></iconify-icon>
+              </div>
+              <h3>Braided vertical dungeon</h3>
+              <p>
+                A stair-focused structure that forks, reconnects, and loops—so “route planning” is
+                part of the build.
+              </p>
+            </article>
+
+            <article class="card feature" role="listitem">
+              <div class="feature__icon" aria-hidden="true">
+                <iconify-icon icon="game-icons:scroll-unfurled"></iconify-icon>
+              </div>
+              <h3>Sigils as systems</h3>
+              <p>
+                Sigils aren’t just lore—they’re knobs. Stack them, twist them, and let them shape
+                your runs.
+              </p>
+            </article>
+
+            <article class="card feature" role="listitem">
+              <div class="feature__icon" aria-hidden="true">
+                <iconify-icon icon="game-icons:open-treasure-chest"></iconify-icon>
+              </div>
+              <h3>Loot-first builds</h3>
+              <p>
+                Find, fuse, and refine gear. The fun is in turning “junk” into a weird synergy that
+                suddenly works.
+              </p>
+            </article>
+
+            <article class="card feature" role="listitem">
+              <div class="feature__icon" aria-hidden="true">
+                <iconify-icon icon="game-icons:rune-stone"></iconify-icon>
+              </div>
+              <h3>Runes & modifiers</h3>
+              <p>
+                Small modifiers matter. Runes change the rules of encounters and encourage
+                experimentation.
+              </p>
+            </article>
+
+            <article class="card feature" role="listitem">
+              <div class="feature__icon" aria-hidden="true">
+                <iconify-icon icon="game-icons:skeleton-key"></iconify-icon>
+              </div>
+              <h3>Keys, locks, shortcuts</h3>
+              <p>
+                Unlock routes and rooms. Your progress is spatial—not just numerical.
+              </p>
+            </article>
+
+            <article class="card feature" role="listitem">
+              <div class="feature__icon" aria-hidden="true">
+                <iconify-icon icon="game-icons:dungeon-gate"></iconify-icon>
+              </div>
+              <h3>Dungeon atmosphere</h3>
+              <p>
+                Gated chambers, ritual geometry, and “what is this place?” energy—wrapped in the
+                ASCII-rendered aesthetic.
+              </p>
+            </article>
+          </div>
+
+          <div class="split">
+            <div class="card">
+              <h3>What you can put here soon</h3>
+              <ul class="bullets">
+                <li><strong>Steam/itch link</strong> + “Wishlist” button</li>
+                <li><strong>30–60s trailer</strong></li>
+                <li><strong>3 GIFs</strong> showing the shader, loot, and combat loop</li>
+                <li><strong>One paragraph pitch</strong> + 4 bullet features</li>
+              </ul>
+              <p class="muted">
+                (This template is intentionally written so you can replace copy fast without
+                reworking layout.)
+              </p>
+            </div>
+
+            <div class="card">
+              <h3>One-sentence pitch</h3>
+              <p class="quote">
+                “A 3D ASCII dungeon looter where sigils rewrite reality and the dungeon itself is a
+                braided vertical puzzle.”
+              </p>
+
+              <h3>2–3 word pillars</h3>
+              <div class="pill-row" aria-label="Design pillars">
+                <span class="pill pill--soft">
+                  <iconify-icon icon="game-icons:cube" aria-hidden="true"></iconify-icon>
+                  <span>Glyph-lit</span>
+                </span>
+                <span class="pill pill--soft">
+                  <iconify-icon icon="game-icons:open-treasure-chest" aria-hidden="true"></iconify-icon>
+                  <span>Looty</span>
+                </span>
+                <span class="pill pill--soft">
+                  <iconify-icon icon="game-icons:3d-stairs" aria-hidden="true"></iconify-icon>
+                  <span>Vertical</span>
+                </span>
+                <span class="pill pill--soft">
+                  <iconify-icon icon="game-icons:magic-swirl" aria-hidden="true"></iconify-icon>
+                  <span>Sigilcraft</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="media" class="section section--alt">
+        <div class="container">
+          <header class="section-head">
+            <h2>Media</h2>
+            <p>
+              Drop your trailer, screenshots, and GIFs here. The layout is designed so you can start
+              with placeholders and upgrade as assets arrive.
+            </p>
+          </header>
+
+          <div class="media-grid">
+            <article class="card media">
+              <h3>Trailer</h3>
+              <div class="media-placeholder">
+                <p>
+                  <strong>TODO:</strong> Embed YouTube/Vimeo or self-hosted video.
+                </p>
+                <p class="muted">Recommended: 1920×1080, 30–60s.</p>
+              </div>
+            </article>
+
+            <article class="card media">
+              <h3>Screenshots</h3>
+              <div class="shot-grid" aria-label="Screenshot placeholders">
+                <div class="shot">Screenshot 1</div>
+                <div class="shot">Screenshot 2</div>
+                <div class="shot">Screenshot 3</div>
+                <div class="shot">Screenshot 4</div>
+              </div>
+            </article>
+
+            <article class="card media">
+              <h3>Animated GIFs</h3>
+              <div class="shot-grid shot-grid--wide" aria-label="GIF placeholders">
+                <div class="shot">Shader demo</div>
+                <div class="shot">Loot drop</div>
+                <div class="shot">Combat beat</div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="press" class="section">
+        <div class="container">
+          <header class="section-head">
+            <h2>Press kit</h2>
+            <p>
+              A clean fact sheet + quick assets list. Replace the “TBA” fields as you lock details.
+            </p>
+          </header>
+
+          <div class="press-grid">
+            <article class="card">
+              <h3>Fact sheet</h3>
+              <dl class="facts">
+                <div>
+                  <dt>Developer</dt>
+                  <dd>Foxjammin Studios</dd>
+                </div>
+                <div>
+                  <dt>Game</dt>
+                  <dd>Sigilry: The Braided Stair</dd>
+                </div>
+                <div>
+                  <dt>Genre</dt>
+                  <dd>Dungeon looter / roguelite-ish (TBA)</dd>
+                </div>
+                <div>
+                  <dt>Platforms</dt>
+                  <dd>PC (TBA)</dd>
+                </div>
+                <div>
+                  <dt>Release window</dt>
+                  <dd>TBA</dd>
+                </div>
+                <div>
+                  <dt>Engine / tech</dt>
+                  <dd>TBA (3D ASCII shader)</dd>
+                </div>
+              </dl>
+
+              <div class="cta-row">
+                <!-- TODO: replace with a real link to a .zip -->
+                <a class="btn" href="#contact">
+                  <iconify-icon icon="game-icons:scroll-unfurled" aria-hidden="true"></iconify-icon>
+                  <span>Request press kit ZIP</span>
+                </a>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3>Suggested assets</h3>
+              <ul class="bullets">
+                <li>Studio logo (SVG + PNG)</li>
+                <li>Game logo / wordmark</li>
+                <li>6–10 screenshots (PNG)</li>
+                <li>3 GIFs (shader / loot / combat)</li>
+                <li>Short trailer + raw capture clips</li>
+                <li>One-page PDF fact sheet (optional)</li>
+              </ul>
+
+              <h3>Boilerplate</h3>
+              <p class="muted">
+                Foxjammin Studios is an indie team creating multimedia projects—from games to books—
+                with a love for experimental tech and strong vibes.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="studio" class="section section--alt">
+        <div class="container">
+          <header class="section-head">
+            <h2>Studio</h2>
+            <p>
+              Keep this short and punchy. Studio pages win when they feel human and specific.
+            </p>
+          </header>
+
+          <div class="split">
+            <article class="card">
+              <h3>What we make</h3>
+              <p>
+                We build worlds that feel like strange machines: readable on the surface, deeper the
+                longer you keep pushing buttons. Games, writing, tools, and whatever else the project
+                demands.
+              </p>
+
+              <h3>What we care about</h3>
+              <ul class="bullets">
+                <li>Mechanics that reinforce theme</li>
+                <li>Strong visual identity</li>
+                <li>Systems you can “learn by playing”</li>
+                <li>Weird tech used with intention</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Devlog</h3>
+              <div class="devlog">
+                <article class="devlog__entry">
+                  <h4>Devlog #1 — The shader moodboard</h4>
+                  <p class="muted">TBA • Replace with your first post</p>
+                  <p>
+                    Write 4–6 lines about what you’re exploring: lighting, glyph sets, readability,
+                    and what “3D ASCII” means for the player.
+                  </p>
+                </article>
+
+                <article class="devlog__entry">
+                  <h4>Devlog #2 — Loot that tells stories</h4>
+                  <p class="muted">TBA</p>
+                  <p>
+                    Share a couple item names + what systems they touch. (Players love seeing “build
+                    nouns” early.)
+                  </p>
+                </article>
+
+                <article class="devlog__entry">
+                  <h4>Devlog #3 — The Braided Stair layout</h4>
+                  <p class="muted">TBA</p>
+                  <p>
+                    Show a sketch of the dungeon structure (even ASCII diagrams work perfectly for
+                    this brand).
+                  </p>
+                </article>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" class="section">
+        <div class="container">
+          <header class="section-head">
+            <h2>Contact</h2>
+            <p>
+              Easiest first version: a mail link. Later, swap this for a form service or a backend.
+            </p>
+          </header>
+
+          <div class="contact-grid">
+            <article class="card">
+              <h3>Email</h3>
+              <!-- TODO: replace with your real email -->
+              <p>
+                <a class="btn" href="mailto:hello@foxjammin.com">
+                  <iconify-icon icon="game-icons:scroll-quill" aria-hidden="true"></iconify-icon>
+                  <span>hello@foxjammin.com</span>
+                </a>
+              </p>
+              <p class="muted">
+                Press inquiries, partnerships, and “I want to playtest” all welcome.
+              </p>
+            </article>
+
+            <article class="card">
+              <h3>Social</h3>
+              <ul class="bullets">
+                <!-- TODO: replace links -->
+                <li><a href="#" rel="noopener">Steam (TBA)</a></li>
+                <li><a href="#" rel="noopener">itch.io (TBA)</a></li>
+                <li><a href="#" rel="noopener">Bluesky / Twitter (TBA)</a></li>
+                <li><a href="#" rel="noopener">YouTube (TBA)</a></li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="icon-forge" class="section section--alt">
+        <div class="container">
+          <header class="section-head">
+            <h2>Icon Forge</h2>
+            <p>
+              Search Iconify for icons (default: <code>game-icons</code>). Click a result to copy
+              the icon name, then paste it into your HTML like:
+              <code>&lt;iconify-icon icon="game-icons:stairs"&gt;&lt;/iconify-icon&gt;</code>
+            </p>
+          </header>
+
+          <div class="card">
+            <form id="iconSearchForm" class="icon-forge" autocomplete="off">
+              <label class="field">
+                <span>Query</span>
+                <input
+                  id="iconQuery"
+                  name="query"
+                  type="text"
+                  placeholder="stairs, potion, dungeon, skull…"
+                  required
+                />
+              </label>
+
+              <label class="field">
+                <span>Prefix</span>
+                <input id="iconPrefix" name="prefix" type="text" value="game-icons" />
+              </label>
+
+              <label class="field">
+                <span>Limit</span>
+                <input id="iconLimit" name="limit" type="number" min="32" max="999" value="64" />
+              </label>
+
+              <button class="btn primary" type="submit">
+                <iconify-icon icon="game-icons:magic-portal" aria-hidden="true"></iconify-icon>
+                <span>Search</span>
+              </button>
+            </form>
+
+            <div class="icon-status" id="iconStatus" aria-live="polite"></div>
+            <div class="icon-results" id="iconResults" role="list"></div>
+
+            <noscript>
+              <p class="muted">
+                Icon search needs JavaScript enabled.
+              </p>
+            </noscript>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p class="fineprint">
+          © <span id="year"></span> Foxjammin Studios.
+        </p>
+
+        <p class="fineprint">
+          Icons used on this page: <strong>Game Icons</strong> (CC BY 3.0).
+          <a
+            href="https://github.com/game-icons/icons/blob/master/license.txt"
+            target="_blank"
+            rel="noopener noreferrer"
+            >License</a
+          >
+          • Rendered via
+          <a
+            href="https://iconify.design/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Iconify</a
+          >.
+        </p>
+      </div>
+    </footer>
+
+    <div
+      class="toast"
+      id="toast"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>
