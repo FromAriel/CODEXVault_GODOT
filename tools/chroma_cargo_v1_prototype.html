@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chroma Cargo Prototype v1</title>
+  <style>
+    :root {
+      --bg: #11131a;
+      --panel: #191d29;
+      --panel-2: #22283a;
+      --line: #30384f;
+      --text: #e7ebff;
+      --muted: #aab4d8;
+      --accent: #7cc8ff;
+      --danger: #ff6f6f;
+      --good: #72e38d;
+      --warn: #ffd86b;
+      --shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(circle at top, #1a2134 0%, #10131b 45%, #0c0e13 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #sidebar {
+      background: linear-gradient(180deg, rgba(28, 34, 49, 0.95) 0%, rgba(20, 24, 35, 0.95) 100%);
+      border-right: 1px solid var(--line);
+      box-shadow: 6px 0 24px var(--shadow);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(31, 38, 56, 0.95) 0%, rgba(25, 29, 41, 0.98) 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 8px 24px var(--shadow);
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #f4f6ff;
+      letter-spacing: 0.03em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #dfe7ff;
+    }
+
+    .button-row,
+    .view-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .button-row.three {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    button,
+    select {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #2a3450 0%, #222b3f 100%);
+      color: var(--text);
+      padding: 10px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.08s ease, border-color 0.12s ease, background 0.12s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    button:hover,
+    select:hover {
+      border-color: #4d6aaa;
+      background: linear-gradient(180deg, #334266 0%, #28324b 100%);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.active {
+      border-color: #80caff;
+      box-shadow: 0 0 0 1px rgba(128, 202, 255, 0.25) inset, 0 0 18px rgba(74, 149, 255, 0.18);
+      background: linear-gradient(180deg, #33517a 0%, #29415f 100%);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 9px;
+    }
+
+    .stat .label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .stat .value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    #piecePreview {
+      width: 100%;
+      height: 220px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(18, 21, 31, 0.95) 0%, rgba(10, 13, 19, 1) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: block;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .legend-chip {
+      border-radius: 12px;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      min-height: 58px;
+    }
+
+    .legend-chip strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .legend-chip span {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    #main {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #mainCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(95, 121, 196, 0.10) 0%, rgba(95, 121, 196, 0.03) 20%, rgba(0, 0, 0, 0) 40%),
+        linear-gradient(180deg, rgba(17, 21, 30, 1) 0%, rgba(11, 14, 21, 1) 100%);
+    }
+
+    #hud {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: min(340px, calc(100% - 28px));
+      pointer-events: none;
+    }
+
+    .hud-card {
+      pointer-events: auto;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(23, 29, 44, 0.82) 0%, rgba(17, 21, 31, 0.90) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(12px);
+    }
+
+    .hud-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    #statusLine {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #e9edff;
+    }
+
+    #hoverInfo,
+    #pieceInfo,
+    #forecastInfo {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #ecf1ff;
+    }
+
+    .kv span:first-child {
+      color: var(--muted);
+    }
+
+    .tiny {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .good {
+      color: var(--good);
+    }
+
+    .warn {
+      color: var(--warn);
+    }
+
+    .danger {
+      color: var(--danger);
+    }
+
+    @media (max-width: 980px) {
+      #app {
+        grid-template-columns: 320px 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <section class="card">
+        <div class="title-row">
+          <div>
+            <h1>Chroma Cargo Prototype</h1>
+            <p class="muted">Single-page sandbox for shape placement, mono-color field spread, synthesis, chaos, and shake.</p>
+          </div>
+          <div class="badge">v1 prototype</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Controls</h2>
+        <div class="button-row">
+          <button id="rerollBtn">Reroll Piece</button>
+          <button id="clearBtn">Clear Board</button>
+          <button id="rotateBtn">Rotate 90°</button>
+          <button id="flipHBtn">Flip H</button>
+          <button id="flipVBtn">Flip V</button>
+          <button id="resetViewBtn">Reset View</button>
+        </div>
+        <p class="muted" style="margin-top: 10px;">
+          Left click places the current piece. Mouse wheel zooms. Middle or right drag pans. Keyboard: <strong>R</strong> rotate, <strong>F</strong> flip H, <strong>V</strong> flip V, <strong>Q</strong> reroll.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Current Piece</h2>
+        <canvas id="piecePreview" width="320" height="220"></canvas>
+        <div id="pieceMeta" class="stats-grid" style="margin-top: 10px;"></div>
+      </section>
+
+      <section class="card">
+        <h2>Board Metrics</h2>
+        <div id="statsGrid" class="stats-grid"></div>
+      </section>
+
+      <section class="card">
+        <h2>View Mode</h2>
+        <div class="view-row">
+          <button class="view-btn active" data-view="combined">Combined</button>
+          <button class="view-btn" data-view="dominant">Dominant</button>
+          <button class="view-btn" data-view="sources">Sources</button>
+          <button class="view-btn" data-view="chaos">Chaos</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Color Wheel</h2>
+        <div class="legend-grid" id="legendGrid"></div>
+        <p class="muted" style="margin-top: 10px;">
+          Opposites create chaos: Orange ↔ Blue, Purple ↔ Yellow, Red ↔ Green. Neighbor pairs create harmony. Two-step pairs synthesize the missing middle color in a single non-recursive pass.
+        </p>
+      </section>
+    </aside>
+
+    <main id="main">
+      <canvas id="mainCanvas"></canvas>
+      <div id="hud">
+        <div class="hud-card">
+          <div class="hud-title">Status</div>
+          <div id="statusLine">Move the piece over the board and left click to place it.</div>
+        </div>
+        <div class="hud-card">
+          <div class="hud-title">Hover Cell</div>
+          <div id="hoverInfo"></div>
+        </div>
+        <div class="hud-card">
+          <div class="hud-title">Current Piece</div>
+          <div id="pieceInfo"></div>
+        </div>
+        <div class="hud-card">
+          <div class="hud-title">Placement Forecast</div>
+          <div id="forecastInfo"></div>
+          <div class="tiny" style="margin-top: 8px;">
+            Forecast is local and immediate: direct contacts, harmony touches, pressure touches, and opposite-color risks near the preview position.
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const BOARD_W = 50;
+      const BOARD_H = 50;
+      const BASE_CELL_SIZE = 22;
+      const MAX_SOURCE_VALUE = 10;
+
+      const COLORS = [
+        { name: "Red", hex: "#ff5959", glow: "rgba(255, 89, 89, 0.85)" },
+        { name: "Orange", hex: "#ff9f45", glow: "rgba(255, 159, 69, 0.85)" },
+        { name: "Yellow", hex: "#ffe55c", glow: "rgba(255, 229, 92, 0.85)" },
+        { name: "Green", hex: "#6ae66a", glow: "rgba(106, 230, 106, 0.85)" },
+        { name: "Blue", hex: "#56a8ff", glow: "rgba(86, 168, 255, 0.85)" },
+        { name: "Purple", hex: "#cc74ff", glow: "rgba(204, 116, 255, 0.85)" }
+      ];
+
+      const COLOR_INDEX = {
+        Red: 0,
+        Orange: 1,
+        Yellow: 2,
+        Green: 3,
+        Blue: 4,
+        Purple: 5
+      };
+
+      const OPPOSITE_PAIRS = new Set(["0-3", "1-4", "2-5"]);
+      const legendGrid = document.getElementById("legendGrid");
+
+      const mainCanvas = document.getElementById("mainCanvas");
+      const mainCtx = mainCanvas.getContext("2d");
+      const previewCanvas = document.getElementById("piecePreview");
+      const previewCtx = previewCanvas.getContext("2d");
+      const statusLine = document.getElementById("statusLine");
+      const hoverInfo = document.getElementById("hoverInfo");
+      const pieceInfo = document.getElementById("pieceInfo");
+      const forecastInfo = document.getElementById("forecastInfo");
+      const statsGrid = document.getElementById("statsGrid");
+      const pieceMeta = document.getElementById("pieceMeta");
+
+      const state = {
+        pieces: [],
+        occupied: make2D(BOARD_H, BOARD_W, null),
+        fields: makeFieldGrid(),
+        currentPiece: null,
+        rotation: 0,
+        flipX: false,
+        flipY: false,
+        hoverBoardX: -999,
+        hoverBoardY: -999,
+        offsetX: 120,
+        offsetY: 80,
+        zoom: 0.82,
+        isPanning: false,
+        panStartX: 0,
+        panStartY: 0,
+        panOriginX: 0,
+        panOriginY: 0,
+        viewMode: "combined",
+        pieceCounter: 1,
+        maxDominant: 1,
+        maxChaos: 1,
+        metrics: {
+          occupiedCells: 0,
+          totalHarmony: 0,
+          totalPressure: 0,
+          totalChaos: 0,
+          maxCellChaos: 0,
+          hotspots: 0,
+          totalEnergy: 0,
+          avgEnergy: 0
+        },
+        animationTime: 0
+      };
+
+      function make2D(height, width, fillValue) {
+        const arr = new Array(height);
+        for (let y = 0; y < height; y += 1) {
+          arr[y] = new Array(width);
+          for (let x = 0; x < width; x += 1) {
+            arr[y][x] = fillValue;
+          }
+        }
+        return arr;
+      }
+
+      function createEmptyFieldCell() {
+        return {
+          raw: new Array(6).fill(0),
+          harmonyBonus: new Array(6).fill(0),
+          synthBonus: new Array(6).fill(0),
+          effective: new Array(6).fill(0),
+          harmony: 0,
+          pressure: 0,
+          chaosField: 0,
+          contactChaos: 0,
+          totalChaos: 0,
+          areaChaos: 0,
+          dominantColor: -1,
+          dominantValue: 0
+        };
+      }
+
+      function makeFieldGrid() {
+        const grid = new Array(BOARD_H);
+        for (let y = 0; y < BOARD_H; y += 1) {
+          grid[y] = new Array(BOARD_W);
+          for (let x = 0; x < BOARD_W; x += 1) {
+            grid[y][x] = createEmptyFieldCell();
+          }
+        }
+        return grid;
+      }
+
+      function resetFieldGrid() {
+        for (let y = 0; y < BOARD_H; y += 1) {
+          for (let x = 0; x < BOARD_W; x += 1) {
+            state.fields[y][x] = createEmptyFieldCell();
+          }
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function choice(items) {
+        return items[Math.floor(Math.random() * items.length)];
+      }
+
+      function weightedChoice(entries) {
+        const total = entries.reduce((sum, entry) => sum + entry.weight, 0);
+        let roll = Math.random() * total;
+        for (const entry of entries) {
+          roll -= entry.weight;
+          if (roll <= 0) {
+            return entry.value;
+          }
+        }
+        return entries[entries.length - 1].value;
+      }
+
+      function colorDistance(a, b) {
+        const diff = Math.abs(a - b);
+        return Math.min(diff, 6 - diff);
+      }
+
+      function isOpposite(a, b) {
+        const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
+        return OPPOSITE_PAIRS.has(key);
+      }
+
+      function getSynthesisMiddle(a, b) {
+        const diff = (b - a + 6) % 6;
+        if (diff === 2) {
+          return (a + 1) % 6;
+        }
+        if (diff === 4) {
+          return (b + 1) % 6;
+        }
+        return -1;
+      }
+
+      function normalizeCells(cells) {
+        let minX = Infinity;
+        let minY = Infinity;
+        for (const cell of cells) {
+          if (cell.x < minX) {
+            minX = cell.x;
+          }
+          if (cell.y < minY) {
+            minY = cell.y;
+          }
+        }
+        const normalized = cells.map((cell) => ({ x: cell.x - minX, y: cell.y - minY }));
+        normalized.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+        return normalized;
+      }
+
+      function cellsToSet(cells) {
+        const set = new Set();
+        for (const cell of cells) {
+          set.add(`${cell.x},${cell.y}`);
+        }
+        return set;
+      }
+
+      function getNeighbors4(cell) {
+        return [
+          { x: cell.x + 1, y: cell.y },
+          { x: cell.x - 1, y: cell.y },
+          { x: cell.x, y: cell.y + 1 },
+          { x: cell.x, y: cell.y - 1 }
+        ];
+      }
+
+      function generateConnectedCells(targetCount, allowWide = true) {
+        const cells = [{ x: 0, y: 0 }];
+        const set = cellsToSet(cells);
+        while (cells.length < targetCount) {
+          const base = choice(cells);
+          const options = getNeighbors4(base).filter((next) => !set.has(`${next.x},${next.y}`));
+          if (options.length === 0) {
+            continue;
+          }
+          const picked = choice(options);
+          cells.push(picked);
+          set.add(`${picked.x},${picked.y}`);
+        }
+        let normalized = normalizeCells(cells);
+        if (allowWide && Math.random() < 0.35) {
+          const stretchX = randInt(0, 2);
+          const stretchY = randInt(0, 2);
+          normalized = normalized.map((cell) => ({ x: cell.x + randInt(0, stretchX), y: cell.y + randInt(0, stretchY) }));
+          normalized = normalizeCells(normalized);
+        }
+        return normalized;
+      }
+
+      function generateRectUnion() {
+        const rects = [];
+        rects.push({ x: 0, y: 0, w: randInt(3, 8), h: randInt(2, 7) });
+        const extraCount = randInt(1, 2);
+        for (let i = 0; i < extraCount; i += 1) {
+          const anchor = choice(rects);
+          const side = choice(["top", "bottom", "left", "right"]);
+          const w = randInt(2, 6);
+          const h = randInt(2, 6);
+          let x = anchor.x;
+          let y = anchor.y;
+          if (side === "top") {
+            x = anchor.x + randInt(-Math.floor(w / 2), Math.max(0, anchor.w - 1));
+            y = anchor.y - h;
+          } else if (side === "bottom") {
+            x = anchor.x + randInt(-Math.floor(w / 2), Math.max(0, anchor.w - 1));
+            y = anchor.y + anchor.h;
+          } else if (side === "left") {
+            x = anchor.x - w;
+            y = anchor.y + randInt(-Math.floor(h / 2), Math.max(0, anchor.h - 1));
+          } else {
+            x = anchor.x + anchor.w;
+            y = anchor.y + randInt(-Math.floor(h / 2), Math.max(0, anchor.h - 1));
+          }
+          rects.push({ x, y, w, h });
+        }
+        const cells = [];
+        const set = new Set();
+        for (const rect of rects) {
+          for (let y = rect.y; y < rect.y + rect.h; y += 1) {
+            for (let x = rect.x; x < rect.x + rect.w; x += 1) {
+              const key = `${x},${y}`;
+              if (!set.has(key)) {
+                set.add(key);
+                cells.push({ x, y });
+              }
+            }
+          }
+        }
+        return normalizeCells(cells);
+      }
+
+      function generateCarvedMass() {
+        const w = randInt(5, 12);
+        const h = randInt(5, 12);
+        const cells = [];
+        const set = new Set();
+        for (let y = 0; y < h; y += 1) {
+          for (let x = 0; x < w; x += 1) {
+            const key = `${x},${y}`;
+            set.add(key);
+            cells.push({ x, y });
+          }
+        }
+        const holeCount = randInt(1, 2);
+        for (let i = 0; i < holeCount; i += 1) {
+          const holeW = randInt(2, Math.max(2, Math.floor(w * 0.45)));
+          const holeH = randInt(2, Math.max(2, Math.floor(h * 0.45)));
+          const holeX = randInt(1, Math.max(1, w - holeW - 1));
+          const holeY = randInt(1, Math.max(1, h - holeH - 1));
+          for (let y = holeY; y < holeY + holeH; y += 1) {
+            for (let x = holeX; x < holeX + holeW; x += 1) {
+              set.delete(`${x},${y}`);
+            }
+          }
+        }
+        const result = [];
+        set.forEach((key) => {
+          const [x, y] = key.split(",").map(Number);
+          result.push({ x, y });
+        });
+        return normalizeCells(result);
+      }
+
+      function generateSplitShape() {
+        const blobA = generateConnectedCells(randInt(4, 10), false);
+        const blobB = generateConnectedCells(randInt(3, 8), false);
+        let maxAX = 0;
+        for (const cell of blobA) {
+          if (cell.x > maxAX) {
+            maxAX = cell.x;
+          }
+        }
+        const gapX = maxAX + randInt(2, 4);
+        const offsetY = randInt(-2, 2);
+        const cells = blobA.map((cell) => ({ x: cell.x, y: cell.y }));
+        for (const cell of blobB) {
+          cells.push({ x: cell.x + gapX, y: cell.y + offsetY });
+        }
+        return normalizeCells(cells);
+      }
+
+      function generateLargeBeam() {
+        const horizontal = Math.random() < 0.5;
+        const length = randInt(8, 14);
+        const thickness = randInt(2, 4);
+        const cells = [];
+        for (let y = 0; y < (horizontal ? thickness : length); y += 1) {
+          for (let x = 0; x < (horizontal ? length : thickness); x += 1) {
+            cells.push({ x, y });
+          }
+        }
+        if (Math.random() < 0.55) {
+          const carve = randInt(2, Math.floor(length * 0.45));
+          const start = randInt(1, Math.max(1, length - carve - 1));
+          const filtered = cells.filter((cell) => {
+            if (horizontal) {
+              return !(cell.x >= start && cell.x < start + carve && cell.y === Math.floor(thickness / 2));
+            }
+            return !(cell.y >= start && cell.y < start + carve && cell.x === Math.floor(thickness / 2));
+          });
+          return normalizeCells(filtered);
+        }
+        return normalizeCells(cells);
+      }
+
+      function getShapeClass() {
+        return weightedChoice([
+          { value: "single", weight: 8 },
+          { value: "tiny", weight: 20 },
+          { value: "blob", weight: 25 },
+          { value: "mediumBlob", weight: 20 },
+          { value: "rectUnion", weight: 15 },
+          { value: "carved", weight: 7 },
+          { value: "split", weight: 5 },
+          { value: "beam", weight: 7 }
+        ]);
+      }
+
+      function generateBaseCellsByClass(shapeClass) {
+        if (shapeClass === "single") {
+          return [{ x: 0, y: 0 }];
+        }
+        if (shapeClass === "tiny") {
+          return generateConnectedCells(randInt(2, 6));
+        }
+        if (shapeClass === "blob") {
+          return generateConnectedCells(randInt(7, 18));
+        }
+        if (shapeClass === "mediumBlob") {
+          return generateConnectedCells(randInt(18, 42));
+        }
+        if (shapeClass === "rectUnion") {
+          return generateRectUnion();
+        }
+        if (shapeClass === "carved") {
+          return generateCarvedMass();
+        }
+        if (shapeClass === "split") {
+          return generateSplitShape();
+        }
+        if (shapeClass === "beam") {
+          return generateLargeBeam();
+        }
+        return generateConnectedCells(randInt(4, 8));
+      }
+
+      function attachValues(cells, baseStrength) {
+        const set = cellsToSet(cells);
+        const valued = [];
+        for (const cell of cells) {
+          const neighbors = getNeighbors4(cell).reduce((count, neighbor) => count + (set.has(`${neighbor.x},${neighbor.y}`) ? 1 : 0), 0);
+          const interiorBoost = neighbors >= 3 ? 1 : 0;
+          const edgeVariance = randInt(-2, 2);
+          const value = clamp(baseStrength + interiorBoost + edgeVariance, 1, MAX_SOURCE_VALUE);
+          valued.push({ x: cell.x, y: cell.y, value });
+        }
+        return valued;
+      }
+
+      function computePieceBounds(cells) {
+        let maxX = 0;
+        let maxY = 0;
+        for (const cell of cells) {
+          if (cell.x > maxX) {
+            maxX = cell.x;
+          }
+          if (cell.y > maxY) {
+            maxY = cell.y;
+          }
+        }
+        return { width: maxX + 1, height: maxY + 1 };
+      }
+
+      function generatePiece() {
+        const shapeClass = getShapeClass();
+        const colorIndex = randInt(0, 5);
+        const baseStrength = randInt(2, 9);
+        const baseCells = generateBaseCellsByClass(shapeClass);
+        const cells = attachValues(baseCells, baseStrength);
+        const bounds = computePieceBounds(cells);
+        return {
+          id: state.pieceCounter += 1,
+          shapeClass,
+          colorIndex,
+          baseStrength,
+          cells,
+          bounds,
+          transformCache: null
+        };
+      }
+
+      function transformPieceCells(piece, rotation, flipX, flipY) {
+        const transformed = [];
+        for (const cell of piece.cells) {
+          let x = cell.x;
+          let y = cell.y;
+          if (flipX) {
+            x = -x;
+          }
+          if (flipY) {
+            y = -y;
+          }
+          for (let i = 0; i < rotation; i += 1) {
+            const nextX = -y;
+            const nextY = x;
+            x = nextX;
+            y = nextY;
+          }
+          transformed.push({ x, y, value: cell.value });
+        }
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const cell of transformed) {
+          if (cell.x < minX) {
+            minX = cell.x;
+          }
+          if (cell.y < minY) {
+            minY = cell.y;
+          }
+          if (cell.x > maxX) {
+            maxX = cell.x;
+          }
+          if (cell.y > maxY) {
+            maxY = cell.y;
+          }
+        }
+        const normalized = transformed.map((cell) => ({ x: cell.x - minX, y: cell.y - minY, value: cell.value }));
+        normalized.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+        return {
+          cells: normalized,
+          width: maxX - minX + 1,
+          height: maxY - minY + 1
+        };
+      }
+
+      function getCurrentTransformedPiece() {
+        if (state.currentPiece === null) {
+          return null;
+        }
+        const cacheKey = `${state.rotation}|${state.flipX}|${state.flipY}`;
+        if (state.currentPiece.transformCache !== null && state.currentPiece.transformCache.key === cacheKey) {
+          return state.currentPiece.transformCache.value;
+        }
+        const value = transformPieceCells(state.currentPiece, state.rotation, state.flipX, state.flipY);
+        state.currentPiece.transformCache = { key: cacheKey, value };
+        return value;
+      }
+
+      function canPlacePieceAt(anchorX, anchorY, transformed) {
+        for (const cell of transformed.cells) {
+          const x = anchorX + cell.x;
+          const y = anchorY + cell.y;
+          if (x < 0 || y < 0 || x >= BOARD_W || y >= BOARD_H) {
+            return false;
+          }
+          if (state.occupied[y][x] !== null) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function placeCurrentPiece(anchorX, anchorY) {
+        const transformed = getCurrentTransformedPiece();
+        if (transformed === null) {
+          return;
+        }
+        if (!canPlacePieceAt(anchorX, anchorY, transformed)) {
+          setStatus("Invalid placement. Keep the piece inside the board and off occupied cells.", "danger");
+          return;
+        }
+        const placed = {
+          id: state.currentPiece.id,
+          colorIndex: state.currentPiece.colorIndex,
+          shapeClass: state.currentPiece.shapeClass,
+          cells: transformed.cells.map((cell) => ({
+            x: anchorX + cell.x,
+            y: anchorY + cell.y,
+            value: cell.value
+          }))
+        };
+        state.pieces.push(placed);
+        for (const cell of placed.cells) {
+          state.occupied[cell.y][cell.x] = {
+            pieceId: placed.id,
+            colorIndex: placed.colorIndex,
+            value: cell.value
+          };
+        }
+        recomputeFields();
+        state.currentPiece = generatePiece();
+        state.rotation = 0;
+        state.flipX = false;
+        state.flipY = false;
+        updateUI();
+        setStatus(`Placed ${COLORS[placed.colorIndex].name} ${placed.shapeClass} piece with ${placed.cells.length} cells.`, "good");
+      }
+
+      function inBounds(x, y) {
+        return x >= 0 && y >= 0 && x < BOARD_W && y < BOARD_H;
+      }
+
+      function addSourceSpread(x, y, colorIndex, value) {
+        const spread = [
+          { dx: 0, dy: 0, weight: 1.0 },
+          { dx: 1, dy: 0, weight: 0.5 },
+          { dx: -1, dy: 0, weight: 0.5 },
+          { dx: 0, dy: 1, weight: 0.5 },
+          { dx: 0, dy: -1, weight: 0.5 },
+          { dx: 2, dy: 0, weight: 0.25 },
+          { dx: -2, dy: 0, weight: 0.25 },
+          { dx: 0, dy: 2, weight: 0.25 },
+          { dx: 0, dy: -2, weight: 0.25 },
+          { dx: 1, dy: 1, weight: 0.25 },
+          { dx: -1, dy: 1, weight: 0.25 },
+          { dx: 1, dy: -1, weight: 0.25 },
+          { dx: -1, dy: -1, weight: 0.25 }
+        ];
+        for (const step of spread) {
+          const nx = x + step.dx;
+          const ny = y + step.dy;
+          if (inBounds(nx, ny)) {
+            state.fields[ny][nx].raw[colorIndex] += value * step.weight;
+          }
+        }
+      }
+
+      function addContactChaosForPair(a, b) {
+        if (!inBounds(a.x, a.y) || !inBounds(b.x, b.y)) {
+          return;
+        }
+        state.fields[a.y][a.x].contactChaos += 8;
+        state.fields[b.y][b.x].contactChaos += 8;
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            if (Math.abs(dx) + Math.abs(dy) > 1) {
+              continue;
+            }
+            const ax = a.x + dx;
+            const ay = a.y + dy;
+            const bx = b.x + dx;
+            const by = b.y + dy;
+            if (inBounds(ax, ay)) {
+              state.fields[ay][ax].contactChaos += 3;
+            }
+            if (inBounds(bx, by)) {
+              state.fields[by][bx].contactChaos += 3;
+            }
+          }
+        }
+      }
+
+      function recomputeFields() {
+        resetFieldGrid();
+        state.maxDominant = 1;
+        state.maxChaos = 1;
+        const allCells = [];
+        for (const piece of state.pieces) {
+          for (const cell of piece.cells) {
+            allCells.push({ ...cell, colorIndex: piece.colorIndex });
+            addSourceSpread(cell.x, cell.y, piece.colorIndex, cell.value);
+          }
+        }
+
+        for (const cell of allCells) {
+          const right = inBounds(cell.x + 1, cell.y) ? state.occupied[cell.y][cell.x + 1] : null;
+          const down = inBounds(cell.x, cell.y + 1) ? state.occupied[cell.y + 1][cell.x] : null;
+          if (right !== null && isOpposite(cell.colorIndex, right.colorIndex)) {
+            addContactChaosForPair(cell, { x: cell.x + 1, y: cell.y });
+          }
+          if (down !== null && isOpposite(cell.colorIndex, down.colorIndex)) {
+            addContactChaosForPair(cell, { x: cell.x, y: cell.y + 1 });
+          }
+        }
+
+        let totalHarmony = 0;
+        let totalPressure = 0;
+        let totalChaos = 0;
+        let maxCellChaos = 0;
+        let hotspots = 0;
+        let totalEnergy = 0;
+
+        for (let y = 0; y < BOARD_H; y += 1) {
+          for (let x = 0; x < BOARD_W; x += 1) {
+            const field = state.fields[y][x];
+            for (let a = 0; a < 6; a += 1) {
+              for (let b = a + 1; b < 6; b += 1) {
+                const overlap = Math.min(field.raw[a], field.raw[b]);
+                if (overlap <= 0) {
+                  continue;
+                }
+                const dist = colorDistance(a, b);
+                if (dist === 1) {
+                  const bonus = overlap * 0.18;
+                  field.harmonyBonus[a] += bonus * 0.5;
+                  field.harmonyBonus[b] += bonus * 0.5;
+                  field.harmony += overlap;
+                } else if (dist === 2) {
+                  const middle = getSynthesisMiddle(a, b);
+                  if (middle >= 0) {
+                    field.synthBonus[middle] += overlap * 0.22;
+                  }
+                  field.pressure += overlap;
+                } else if (dist === 3) {
+                  field.chaosField += overlap * 2.2;
+                }
+              }
+            }
+
+            let effectiveTotal = 0;
+            for (let i = 0; i < 6; i += 1) {
+              field.effective[i] = field.raw[i] + field.harmonyBonus[i] + field.synthBonus[i];
+              effectiveTotal += field.effective[i];
+            }
+
+            const pressureOverflow = field.pressure >= 8 ? (field.pressure - 7) : 0;
+            field.totalChaos = field.chaosField + field.contactChaos + pressureOverflow;
+            let dominantColor = -1;
+            let dominantValue = 0;
+            for (let i = 0; i < 6; i += 1) {
+              if (field.effective[i] > dominantValue) {
+                dominantValue = field.effective[i];
+                dominantColor = i;
+              }
+            }
+            field.dominantColor = dominantColor;
+            field.dominantValue = dominantValue;
+            state.maxDominant = Math.max(state.maxDominant, dominantValue);
+            state.maxChaos = Math.max(state.maxChaos, field.totalChaos);
+            totalHarmony += field.harmony;
+            totalPressure += field.pressure;
+            totalChaos += field.totalChaos;
+            totalEnergy += effectiveTotal;
+            if (field.totalChaos > maxCellChaos) {
+              maxCellChaos = field.totalChaos;
+            }
+          }
+        }
+
+        for (let y = 0; y < BOARD_H; y += 1) {
+          for (let x = 0; x < BOARD_W; x += 1) {
+            let sum = 0;
+            let count = 0;
+            for (let dy = -1; dy <= 1; dy += 1) {
+              for (let dx = -1; dx <= 1; dx += 1) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (inBounds(nx, ny)) {
+                  sum += state.fields[ny][nx].totalChaos;
+                  count += 1;
+                }
+              }
+            }
+            state.fields[y][x].areaChaos = count > 0 ? (sum / count) : 0;
+            if (state.fields[y][x].areaChaos >= 10) {
+              hotspots += 1;
+            }
+          }
+        }
+
+        state.metrics = {
+          occupiedCells: allCells.length,
+          totalHarmony: totalHarmony,
+          totalPressure: totalPressure,
+          totalChaos: totalChaos,
+          maxCellChaos: maxCellChaos,
+          hotspots: hotspots,
+          totalEnergy: totalEnergy,
+          avgEnergy: totalEnergy / (BOARD_W * BOARD_H)
+        };
+      }
+
+      function setStatus(message, kind = "neutral") {
+        statusLine.innerHTML = message;
+        statusLine.className = kind === "good" ? "good" : (kind === "warn" ? "warn" : (kind === "danger" ? "danger" : ""));
+      }
+
+      function updateLegend() {
+        legendGrid.innerHTML = "";
+        const oppositeNames = {
+          Red: "Opposes Green",
+          Orange: "Opposes Blue",
+          Yellow: "Opposes Purple",
+          Green: "Opposes Red",
+          Blue: "Opposes Orange",
+          Purple: "Opposes Yellow"
+        };
+        for (let i = 0; i < COLORS.length; i += 1) {
+          const color = COLORS[i];
+          const chip = document.createElement("div");
+          chip.className = "legend-chip";
+          chip.innerHTML = `
+            <strong style="color:${color.hex};">${color.name}</strong>
+            <span>${oppositeNames[color.name]}</span>
+            <span>Neighbors: ${COLORS[(i + 5) % 6].name}, ${COLORS[(i + 1) % 6].name}</span>
+          `;
+          legendGrid.appendChild(chip);
+        }
+      }
+
+      function updateStatsUI() {
+        const metrics = state.metrics;
+        const stats = [
+          { label: "Occupied", value: metrics.occupiedCells.toFixed(0) },
+          { label: "Harmony", value: metrics.totalHarmony.toFixed(1) },
+          { label: "Pressure", value: metrics.totalPressure.toFixed(1) },
+          { label: "Chaos", value: metrics.totalChaos.toFixed(1) },
+          { label: "Peak Chaos", value: metrics.maxCellChaos.toFixed(1) },
+          { label: "Hotspots", value: metrics.hotspots.toFixed(0) },
+          { label: "Energy", value: metrics.totalEnergy.toFixed(1) },
+          { label: "Avg / Cell", value: metrics.avgEnergy.toFixed(2) }
+        ];
+        statsGrid.innerHTML = stats.map((stat) => `
+          <div class="stat">
+            <span class="label">${stat.label}</span>
+            <span class="value">${stat.value}</span>
+          </div>
+        `).join("");
+      }
+
+      function describeShapeClass(shapeClass) {
+        if (shapeClass === "single") {
+          return "Single";
+        }
+        if (shapeClass === "tiny") {
+          return "Tiny Poly";
+        }
+        if (shapeClass === "blob") {
+          return "Blob";
+        }
+        if (shapeClass === "mediumBlob") {
+          return "Medium Blob";
+        }
+        if (shapeClass === "rectUnion") {
+          return "Rect Union";
+        }
+        if (shapeClass === "carved") {
+          return "Carved Mass";
+        }
+        if (shapeClass === "split") {
+          return "Split";
+        }
+        if (shapeClass === "beam") {
+          return "Beam / Frame";
+        }
+        return shapeClass;
+      }
+
+      function buildPieceMeta() {
+        const transformed = getCurrentTransformedPiece();
+        if (state.currentPiece === null || transformed === null) {
+          pieceMeta.innerHTML = "";
+          pieceInfo.innerHTML = "";
+          return;
+        }
+        const values = transformed.cells.map((cell) => cell.value);
+        const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+        const max = Math.max(...values);
+        const min = Math.min(...values);
+        const color = COLORS[state.currentPiece.colorIndex];
+        const cards = [
+          { label: "Color", value: `<span style="color:${color.hex};font-weight:700;">${color.name}</span>` },
+          { label: "Shape", value: describeShapeClass(state.currentPiece.shapeClass) },
+          { label: "Cells", value: `${transformed.cells.length}` },
+          { label: "Bounds", value: `${transformed.width} × ${transformed.height}` },
+          { label: "Avg Value", value: `${avg.toFixed(2)}` },
+          { label: "Value Range", value: `${min}–${max}` }
+        ];
+        pieceMeta.innerHTML = cards.map((card) => `
+          <div class="stat">
+            <span class="label">${card.label}</span>
+            <span class="value" style="font-size:15px;">${card.value}</span>
+          </div>
+        `).join("");
+
+        pieceInfo.innerHTML = `
+          <div class="kv"><span>Color</span><strong style="color:${color.hex};">${color.name}</strong></div>
+          <div class="kv"><span>Shape</span><strong>${describeShapeClass(state.currentPiece.shapeClass)}</strong></div>
+          <div class="kv"><span>Cells</span><strong>${transformed.cells.length}</strong></div>
+          <div class="kv"><span>Bounds</span><strong>${transformed.width} × ${transformed.height}</strong></div>
+          <div class="kv"><span>Rotation</span><strong>${state.rotation * 90}°</strong></div>
+          <div class="kv"><span>Flip</span><strong>${state.flipX ? "H" : "-"}${state.flipY ? "V" : "-"}</strong></div>
+        `;
+      }
+
+      function getHoverField(x, y) {
+        if (!inBounds(x, y)) {
+          return null;
+        }
+        return state.fields[y][x];
+      }
+
+      function updateHoverInfo() {
+        const x = state.hoverBoardX;
+        const y = state.hoverBoardY;
+        const field = getHoverField(x, y);
+        if (field === null) {
+          hoverInfo.innerHTML = `<div class="tiny">Move onto the board to inspect local color fields, synthesis, and chaos.</div>`;
+          return;
+        }
+        const dominantName = field.dominantColor >= 0 ? COLORS[field.dominantColor].name : "None";
+        const topRaw = field.raw
+          .map((value, index) => ({ value, index }))
+          .filter((entry) => entry.value > 0.01)
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 3)
+          .map((entry) => `${COLORS[entry.index].name} ${entry.value.toFixed(1)}`)
+          .join(" · ") || "No field";
+        hoverInfo.innerHTML = `
+          <div class="kv"><span>Coord</span><strong>${x}, ${y}</strong></div>
+          <div class="kv"><span>Dominant</span><strong style="color:${field.dominantColor >= 0 ? COLORS[field.dominantColor].hex : '#fff'};">${dominantName}</strong></div>
+          <div class="kv"><span>Dominant V</span><strong>${field.dominantValue.toFixed(2)}</strong></div>
+          <div class="kv"><span>Harmony</span><strong class="good">${field.harmony.toFixed(2)}</strong></div>
+          <div class="kv"><span>Pressure</span><strong class="warn">${field.pressure.toFixed(2)}</strong></div>
+          <div class="kv"><span>Total Chaos</span><strong class="danger">${field.totalChaos.toFixed(2)}</strong></div>
+          <div class="kv"><span>Area Chaos</span><strong class="danger">${field.areaChaos.toFixed(2)}</strong></div>
+          <div class="tiny" style="grid-column:1 / -1; margin-top:4px;">${topRaw}</div>
+        `;
+      }
+
+      function computePlacementForecast(anchorX, anchorY, transformed) {
+        if (transformed === null) {
+          return null;
+        }
+        let directHarmony = 0;
+        let directPressure = 0;
+        let directOpposition = 0;
+        let nearFieldConflict = 0;
+        let nearFieldSynergy = 0;
+        let blocked = 0;
+        const currentColor = state.currentPiece.colorIndex;
+
+        for (const cell of transformed.cells) {
+          const x = anchorX + cell.x;
+          const y = anchorY + cell.y;
+          if (!inBounds(x, y)) {
+            blocked += 1;
+            continue;
+          }
+          if (state.occupied[y][x] !== null) {
+            blocked += 1;
+          }
+          const field = state.fields[y][x];
+          for (let other = 0; other < 6; other += 1) {
+            if (other === currentColor) {
+              continue;
+            }
+            const overlap = Math.min(cell.value, field.raw[other]);
+            if (overlap <= 0.01) {
+              continue;
+            }
+            const dist = colorDistance(currentColor, other);
+            if (dist === 1) {
+              nearFieldSynergy += overlap;
+            } else if (dist === 2) {
+              nearFieldConflict += overlap * 0.55;
+            } else if (dist === 3) {
+              nearFieldConflict += overlap * 1.35;
+            }
+          }
+          const neighbors = [
+            { x: x + 1, y },
+            { x: x - 1, y },
+            { x, y: y + 1 },
+            { x, y: y - 1 }
+          ];
+          for (const neighbor of neighbors) {
+            if (!inBounds(neighbor.x, neighbor.y)) {
+              continue;
+            }
+            const occ = state.occupied[neighbor.y][neighbor.x];
+            if (occ === null) {
+              continue;
+            }
+            const dist = colorDistance(currentColor, occ.colorIndex);
+            if (dist === 1) {
+              directHarmony += 1;
+            } else if (dist === 2) {
+              directPressure += 1;
+            } else if (dist === 3) {
+              directOpposition += 1;
+            }
+          }
+        }
+
+        return {
+          blocked,
+          directHarmony,
+          directPressure,
+          directOpposition,
+          nearFieldConflict,
+          nearFieldSynergy,
+          valid: blocked === 0 && canPlacePieceAt(anchorX, anchorY, transformed)
+        };
+      }
+
+      function updateForecastUI() {
+        const transformed = getCurrentTransformedPiece();
+        if (transformed === null) {
+          forecastInfo.innerHTML = `<div class="tiny">No active piece.</div>`;
+          return;
+        }
+        const forecast = computePlacementForecast(state.hoverBoardX, state.hoverBoardY, transformed);
+        if (forecast === null) {
+          forecastInfo.innerHTML = `<div class="tiny">No active piece.</div>`;
+          return;
+        }
+        forecastInfo.innerHTML = `
+          <div class="kv"><span>Valid</span><strong class="${forecast.valid ? "good" : "danger"}">${forecast.valid ? "Yes" : "No"}</strong></div>
+          <div class="kv"><span>Blocked Cells</span><strong class="${forecast.blocked > 0 ? "danger" : "good"}">${forecast.blocked}</strong></div>
+          <div class="kv"><span>Harmony Touches</span><strong class="good">${forecast.directHarmony}</strong></div>
+          <div class="kv"><span>Pressure Touches</span><strong class="warn">${forecast.directPressure}</strong></div>
+          <div class="kv"><span>Opposition Touches</span><strong class="danger">${forecast.directOpposition}</strong></div>
+          <div class="kv"><span>Field Synergy</span><strong class="good">${forecast.nearFieldSynergy.toFixed(2)}</strong></div>
+          <div class="kv"><span>Field Risk</span><strong class="danger">${forecast.nearFieldConflict.toFixed(2)}</strong></div>
+        `;
+      }
+
+      function updateUI() {
+        updateStatsUI();
+        buildPieceMeta();
+        updateHoverInfo();
+        updateForecastUI();
+        drawPiecePreview();
+      }
+
+      function drawPiecePreview() {
+        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        previewCtx.fillStyle = "#0d1017";
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        const transformed = getCurrentTransformedPiece();
+        if (transformed === null) {
+          return;
+        }
+        const padding = 24;
+        const gridW = transformed.width;
+        const gridH = transformed.height;
+        const cellSize = Math.max(12, Math.min(32, Math.floor(Math.min((previewCanvas.width - padding * 2) / Math.max(1, gridW), (previewCanvas.height - padding * 2) / Math.max(1, gridH)))));
+        const totalW = gridW * cellSize;
+        const totalH = gridH * cellSize;
+        const originX = Math.floor((previewCanvas.width - totalW) / 2);
+        const originY = Math.floor((previewCanvas.height - totalH) / 2);
+        previewCtx.strokeStyle = "rgba(255,255,255,0.08)";
+        previewCtx.lineWidth = 1;
+        for (let y = 0; y < gridH; y += 1) {
+          for (let x = 0; x < gridW; x += 1) {
+            previewCtx.strokeRect(originX + x * cellSize + 0.5, originY + y * cellSize + 0.5, cellSize, cellSize);
+          }
+        }
+        const color = COLORS[state.currentPiece.colorIndex];
+        for (const cell of transformed.cells) {
+          const px = originX + cell.x * cellSize;
+          const py = originY + cell.y * cellSize;
+          const intensity = clamp(cell.value / MAX_SOURCE_VALUE, 0, 1);
+          previewCtx.fillStyle = mixColor(color.hex, "#ffffff", 0.08 + intensity * 0.14);
+          previewCtx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+          previewCtx.strokeStyle = "rgba(255,255,255,0.24)";
+          previewCtx.strokeRect(px + 0.5, py + 0.5, cellSize - 1, cellSize - 1);
+          previewCtx.fillStyle = intensity > 0.68 ? "#11131a" : "#f5f7ff";
+          previewCtx.font = `${Math.max(9, Math.floor(cellSize * 0.42))}px Inter, sans-serif`;
+          previewCtx.textAlign = "center";
+          previewCtx.textBaseline = "middle";
+          previewCtx.fillText(String(cell.value), px + cellSize / 2, py + cellSize / 2 + 0.5);
+        }
+      }
+
+      function mixColor(aHex, bHex, t) {
+        const a = hexToRgb(aHex);
+        const b = hexToRgb(bHex);
+        const r = Math.round(lerp(a.r, b.r, t));
+        const g = Math.round(lerp(a.g, b.g, t));
+        const bVal = Math.round(lerp(a.b, b.b, t));
+        return `rgb(${r}, ${g}, ${bVal})`;
+      }
+
+      function hexToRgb(hex) {
+        const clean = hex.replace("#", "");
+        const value = parseInt(clean, 16);
+        return {
+          r: (value >> 16) & 255,
+          g: (value >> 8) & 255,
+          b: value & 255
+        };
+      }
+
+      function worldToScreen(x, y) {
+        const size = BASE_CELL_SIZE * state.zoom;
+        return {
+          x: state.offsetX + x * size,
+          y: state.offsetY + y * size,
+          size
+        };
+      }
+
+      function screenToBoard(clientX, clientY) {
+        const rect = mainCanvas.getBoundingClientRect();
+        const sx = clientX - rect.left;
+        const sy = clientY - rect.top;
+        const size = BASE_CELL_SIZE * state.zoom;
+        const x = Math.floor((sx - state.offsetX) / size);
+        const y = Math.floor((sy - state.offsetY) / size);
+        return { x, y, sx, sy };
+      }
+
+      function jitterOffset(areaChaos, time, x, y, size) {
+        if (areaChaos < 5) {
+          return { x: 0, y: 0 };
+        }
+        const severity = clamp((areaChaos - 5) / 30, 0, 1);
+        const amp = size * lerp(0.04, 0.22, severity);
+        const speed = lerp(0.005, 0.026, severity);
+        const sx = Math.sin(time * speed + x * 12.9898 + y * 78.233) * amp;
+        const sy = Math.cos(time * (speed * 1.21) + x * 54.113 + y * 17.771) * amp;
+        return { x: sx, y: sy };
+      }
+
+      function renderBackgroundGrid() {
+        const ctx = mainCtx;
+        const size = BASE_CELL_SIZE * state.zoom;
+        if (size < 3) {
+          return;
+        }
+        const left = Math.floor((-state.offsetX) / size) - 1;
+        const top = Math.floor((-state.offsetY) / size) - 1;
+        const right = Math.ceil((mainCanvas.width - state.offsetX) / size) + 1;
+        const bottom = Math.ceil((mainCanvas.height - state.offsetY) / size) + 1;
+        const startX = clamp(left, 0, BOARD_W);
+        const startY = clamp(top, 0, BOARD_H);
+        const endX = clamp(right, 0, BOARD_W);
+        const endY = clamp(bottom, 0, BOARD_H);
+
+        ctx.strokeStyle = size >= 10 ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)";
+        ctx.lineWidth = 1;
+        for (let x = startX; x <= endX; x += 1) {
+          const px = state.offsetX + x * size + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(px, state.offsetY + startY * size);
+          ctx.lineTo(px, state.offsetY + endY * size);
+          ctx.stroke();
+        }
+        for (let y = startY; y <= endY; y += 1) {
+          const py = state.offsetY + y * size + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(state.offsetX + startX * size, py);
+          ctx.lineTo(state.offsetX + endX * size, py);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "rgba(132, 159, 234, 0.18)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(state.offsetX + 0.5, state.offsetY + 0.5, BOARD_W * size, BOARD_H * size);
+      }
+
+      function renderCells(time) {
+        const ctx = mainCtx;
+        const size = BASE_CELL_SIZE * state.zoom;
+        const left = Math.floor((-state.offsetX) / size) - 2;
+        const top = Math.floor((-state.offsetY) / size) - 2;
+        const right = Math.ceil((mainCanvas.width - state.offsetX) / size) + 2;
+        const bottom = Math.ceil((mainCanvas.height - state.offsetY) / size) + 2;
+        const startX = clamp(left, 0, BOARD_W - 1);
+        const startY = clamp(top, 0, BOARD_H - 1);
+        const endX = clamp(right, 0, BOARD_W - 1);
+        const endY = clamp(bottom, 0, BOARD_H - 1);
+
+        for (let y = startY; y <= endY; y += 1) {
+          for (let x = startX; x <= endX; x += 1) {
+            const field = state.fields[y][x];
+            const occ = state.occupied[y][x];
+            const world = worldToScreen(x, y);
+            const jitter = jitterOffset(field.areaChaos, time, x, y, size);
+            const px = world.x + jitter.x;
+            const py = world.y + jitter.y;
+            const dominantColor = field.dominantColor >= 0 ? COLORS[field.dominantColor] : null;
+            const chaosNorm = clamp(field.areaChaos / Math.max(1, state.maxChaos), 0, 1);
+            const dominantNorm = clamp(field.dominantValue / Math.max(1, state.maxDominant), 0, 1);
+            const showDominant = state.viewMode === "combined" || state.viewMode === "dominant";
+            const showSources = state.viewMode === "combined" || state.viewMode === "sources";
+            const showChaos = state.viewMode === "combined" || state.viewMode === "chaos";
+
+            if (showDominant && dominantColor !== null && dominantNorm > 0.01) {
+              ctx.fillStyle = applyAlpha(dominantColor.hex, clamp(0.08 + dominantNorm * 0.64, 0, 0.8));
+              ctx.fillRect(px + 0.8, py + 0.8, size - 1.6, size - 1.6);
+              if (field.synthBonus.some((v) => v > 0.15) && state.viewMode !== "sources") {
+                ctx.strokeStyle = applyAlpha(dominantColor.hex, 0.55);
+                ctx.lineWidth = Math.max(1, size * 0.06);
+                ctx.strokeRect(px + size * 0.18, py + size * 0.18, size * 0.64, size * 0.64);
+              }
+            }
+
+            if (showChaos && field.areaChaos > 0.35) {
+              const pulse = (Math.sin(time * 0.014 + x * 0.7 + y * 0.45) + 1) * 0.5;
+              const alpha = clamp(0.03 + chaosNorm * 0.55 + pulse * chaosNorm * 0.12, 0, 0.75);
+              ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.10})`;
+              ctx.fillRect(px + 1.5, py + 1.5, size - 3, size - 3);
+              if (field.areaChaos >= 5) {
+                ctx.strokeStyle = `rgba(255, 112, 112, ${clamp(0.15 + chaosNorm * 0.65, 0, 0.9)})`;
+                ctx.lineWidth = Math.max(1, size * 0.08);
+                ctx.strokeRect(px + size * 0.12, py + size * 0.12, size * 0.76, size * 0.76);
+              }
+            }
+
+            if (showSources && occ !== null) {
+              const color = COLORS[occ.colorIndex];
+              const intensity = clamp(occ.value / MAX_SOURCE_VALUE, 0, 1);
+              ctx.fillStyle = mixColor(color.hex, "#ffffff", 0.06 + intensity * 0.18);
+              ctx.fillRect(px + size * 0.08, py + size * 0.08, size * 0.84, size * 0.84);
+              ctx.strokeStyle = applyAlpha("#ffffff", 0.22);
+              ctx.lineWidth = Math.max(1, size * 0.05);
+              ctx.strokeRect(px + size * 0.08, py + size * 0.08, size * 0.84, size * 0.84);
+              if (size >= 18) {
+                ctx.fillStyle = intensity >= 0.65 ? "#12141b" : "#f8fbff";
+                ctx.font = `${Math.max(9, Math.floor(size * 0.34))}px Inter, sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(String(occ.value), px + size / 2, py + size / 2 + 0.5);
+              }
+            }
+          }
+        }
+      }
+
+      function renderPreviewGhost(time) {
+        const transformed = getCurrentTransformedPiece();
+        if (transformed === null) {
+          return;
+        }
+        const anchorX = state.hoverBoardX;
+        const anchorY = state.hoverBoardY;
+        if (!Number.isFinite(anchorX) || !Number.isFinite(anchorY)) {
+          return;
+        }
+        const valid = canPlacePieceAt(anchorX, anchorY, transformed);
+        const color = COLORS[state.currentPiece.colorIndex];
+        const size = BASE_CELL_SIZE * state.zoom;
+        for (const cell of transformed.cells) {
+          const x = anchorX + cell.x;
+          const y = anchorY + cell.y;
+          if (!inBounds(x, y)) {
+            continue;
+          }
+          const base = worldToScreen(x, y);
+          const localChaos = state.fields[y][x].areaChaos;
+          const jitter = jitterOffset(localChaos * 0.4, time, x, y, size);
+          const px = base.x + jitter.x * 0.3;
+          const py = base.y + jitter.y * 0.3;
+          const alpha = valid ? 0.32 : 0.18;
+          mainCtx.fillStyle = applyAlpha(color.hex, alpha);
+          mainCtx.fillRect(px + size * 0.06, py + size * 0.06, size * 0.88, size * 0.88);
+          mainCtx.strokeStyle = valid ? applyAlpha("#9cffc5", 0.8) : applyAlpha("#ff8f8f", 0.9);
+          mainCtx.lineWidth = Math.max(1, size * 0.06);
+          mainCtx.strokeRect(px + size * 0.06, py + size * 0.06, size * 0.88, size * 0.88);
+
+          const haloSteps = [
+            { dx: 1, dy: 0, alpha: 0.16 },
+            { dx: -1, dy: 0, alpha: 0.16 },
+            { dx: 0, dy: 1, alpha: 0.16 },
+            { dx: 0, dy: -1, alpha: 0.16 },
+            { dx: 2, dy: 0, alpha: 0.08 },
+            { dx: -2, dy: 0, alpha: 0.08 },
+            { dx: 0, dy: 2, alpha: 0.08 },
+            { dx: 0, dy: -2, alpha: 0.08 },
+            { dx: 1, dy: 1, alpha: 0.08 },
+            { dx: -1, dy: 1, alpha: 0.08 },
+            { dx: 1, dy: -1, alpha: 0.08 },
+            { dx: -1, dy: -1, alpha: 0.08 }
+          ];
+          for (const step of haloSteps) {
+            const hx = x + step.dx;
+            const hy = y + step.dy;
+            if (!inBounds(hx, hy)) {
+              continue;
+            }
+            const halo = worldToScreen(hx, hy);
+            mainCtx.fillStyle = applyAlpha(color.hex, valid ? step.alpha : step.alpha * 0.5);
+            mainCtx.fillRect(halo.x + size * 0.18, halo.y + size * 0.18, size * 0.64, size * 0.64);
+          }
+        }
+      }
+
+      function renderCrosshair() {
+        if (!inBounds(state.hoverBoardX, state.hoverBoardY)) {
+          return;
+        }
+        const world = worldToScreen(state.hoverBoardX, state.hoverBoardY);
+        const size = world.size;
+        mainCtx.strokeStyle = "rgba(255,255,255,0.38)";
+        mainCtx.lineWidth = 1;
+        mainCtx.strokeRect(world.x + 0.5, world.y + 0.5, size, size);
+      }
+
+      function applyAlpha(hexOrRgb, alpha) {
+        if (hexOrRgb.startsWith("rgb(")) {
+          return hexOrRgb.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
+        }
+        const rgb = hexToRgb(hexOrRgb);
+        return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+      }
+
+      function render(time) {
+        state.animationTime = time;
+        mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        renderBackgroundGrid();
+        renderCells(time);
+        renderPreviewGhost(time);
+        renderCrosshair();
+        requestAnimationFrame(render);
+      }
+
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = mainCanvas.getBoundingClientRect();
+        mainCanvas.width = Math.floor(rect.width * dpr);
+        mainCanvas.height = Math.floor(rect.height * dpr);
+        mainCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function resetView() {
+        state.zoom = 0.82;
+        state.offsetX = 120;
+        state.offsetY = 80;
+      }
+
+      function clearBoard() {
+        state.pieces = [];
+        state.occupied = make2D(BOARD_H, BOARD_W, null);
+        recomputeFields();
+        updateUI();
+        setStatus("Board cleared.", "warn");
+      }
+
+      function rerollPiece() {
+        state.currentPiece = generatePiece();
+        state.rotation = 0;
+        state.flipX = false;
+        state.flipY = false;
+        updateUI();
+        setStatus("Generated a new piece.", "neutral");
+      }
+
+      function rotatePiece() {
+        state.rotation = (state.rotation + 1) % 4;
+        updateUI();
+      }
+
+      function flipPieceH() {
+        state.flipX = !state.flipX;
+        updateUI();
+      }
+
+      function flipPieceV() {
+        state.flipY = !state.flipY;
+        updateUI();
+      }
+
+      function initControls() {
+        document.getElementById("rerollBtn").addEventListener("click", rerollPiece);
+        document.getElementById("clearBtn").addEventListener("click", clearBoard);
+        document.getElementById("rotateBtn").addEventListener("click", rotatePiece);
+        document.getElementById("flipHBtn").addEventListener("click", flipPieceH);
+        document.getElementById("flipVBtn").addEventListener("click", flipPieceV);
+        document.getElementById("resetViewBtn").addEventListener("click", () => {
+          resetView();
+          setStatus("Camera reset.", "neutral");
+        });
+
+        document.querySelectorAll(".view-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".view-btn").forEach((other) => other.classList.remove("active"));
+            btn.classList.add("active");
+            state.viewMode = btn.dataset.view;
+          });
+        });
+
+        mainCanvas.addEventListener("contextmenu", (event) => {
+          event.preventDefault();
+        });
+
+        mainCanvas.addEventListener("wheel", (event) => {
+          event.preventDefault();
+          const before = screenToBoard(event.clientX, event.clientY);
+          const worldX = (before.sx - state.offsetX) / (BASE_CELL_SIZE * state.zoom);
+          const worldY = (before.sy - state.offsetY) / (BASE_CELL_SIZE * state.zoom);
+          const zoomFactor = event.deltaY < 0 ? 1.12 : 0.89;
+          state.zoom = clamp(state.zoom * zoomFactor, 0.18, 3.4);
+          state.offsetX = before.sx - worldX * BASE_CELL_SIZE * state.zoom;
+          state.offsetY = before.sy - worldY * BASE_CELL_SIZE * state.zoom;
+        }, { passive: false });
+
+        mainCanvas.addEventListener("mousedown", (event) => {
+          if (event.button === 1 || event.button === 2) {
+            state.isPanning = true;
+            state.panStartX = event.clientX;
+            state.panStartY = event.clientY;
+            state.panOriginX = state.offsetX;
+            state.panOriginY = state.offsetY;
+            return;
+          }
+          if (event.button === 0) {
+            const boardPos = screenToBoard(event.clientX, event.clientY);
+            state.hoverBoardX = boardPos.x;
+            state.hoverBoardY = boardPos.y;
+            const transformed = getCurrentTransformedPiece();
+            if (transformed !== null) {
+              placeCurrentPiece(boardPos.x, boardPos.y);
+            }
+          }
+        });
+
+        window.addEventListener("mouseup", () => {
+          state.isPanning = false;
+        });
+
+        window.addEventListener("mousemove", (event) => {
+          if (state.isPanning) {
+            const dx = event.clientX - state.panStartX;
+            const dy = event.clientY - state.panStartY;
+            state.offsetX = state.panOriginX + dx;
+            state.offsetY = state.panOriginY + dy;
+            return;
+          }
+          const rect = mainCanvas.getBoundingClientRect();
+          if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+            return;
+          }
+          const boardPos = screenToBoard(event.clientX, event.clientY);
+          state.hoverBoardX = boardPos.x;
+          state.hoverBoardY = boardPos.y;
+          updateHoverInfo();
+          updateForecastUI();
+        });
+
+        window.addEventListener("keydown", (event) => {
+          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+            return;
+          }
+          if (event.key === "r" || event.key === "R") {
+            rotatePiece();
+            event.preventDefault();
+          } else if (event.key === "f" || event.key === "F") {
+            flipPieceH();
+            event.preventDefault();
+          } else if (event.key === "v" || event.key === "V") {
+            flipPieceV();
+            event.preventDefault();
+          } else if (event.key === "q" || event.key === "Q") {
+            rerollPiece();
+            event.preventDefault();
+          } else if (event.key === "c" || event.key === "C") {
+            clearBoard();
+            event.preventDefault();
+          }
+        });
+      }
+
+      function seedDemoBoard() {
+        for (let i = 0; i < 6; i += 1) {
+          state.currentPiece = generatePiece();
+          state.rotation = randInt(0, 3);
+          state.flipX = Math.random() < 0.5;
+          state.flipY = Math.random() < 0.35;
+          const transformed = getCurrentTransformedPiece();
+          let placed = false;
+          for (let attempts = 0; attempts < 80 && !placed; attempts += 1) {
+            const x = randInt(0, BOARD_W - transformed.width);
+            const y = randInt(0, BOARD_H - transformed.height);
+            if (canPlacePieceAt(x, y, transformed)) {
+              placeCurrentPiece(x, y);
+              placed = true;
+            }
+          }
+        }
+        state.currentPiece = generatePiece();
+        state.rotation = 0;
+        state.flipX = false;
+        state.flipY = false;
+      }
+
+      function init() {
+        updateLegend();
+        resizeCanvas();
+        resetView();
+        recomputeFields();
+        initControls();
+        seedDemoBoard();
+        updateUI();
+        setStatus("Prototype ready. Place pieces to test spread, blending, chaos, and regional shake.");
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("resize", () => {
+        resizeCanvas();
+      });
+
+      init();
+    })();
+  </script>
+</body>
+</html>
