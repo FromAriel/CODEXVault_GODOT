@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glass Cylinder Liquid Demo</title>
+  <style>
+    :root {
+      --bg-1: #071018;
+      --bg-2: #0c1724;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-border: rgba(255, 255, 255, 0.14);
+      --text: #e8f1ff;
+      --muted: rgba(232, 241, 255, 0.72);
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 22%, rgba(77, 133, 190, 0.16), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(255, 80, 80, 0.07), transparent 30%),
+        linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    .app {
+      width: min(100vw, 900px);
+      height: min(100vh, 900px);
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .stage {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 0;
+    }
+
+    #scene {
+      width: min(70vw, 420px);
+      height: min(80vh, 720px);
+      display: block;
+      filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.35));
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.06));
+      border: 1px solid var(--panel-border);
+      border-radius: 22px;
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      padding: 16px 18px 18px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .value-pill {
+      min-width: 78px;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      height: 16px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, rgba(77, 255, 120, 0.6), rgba(255, 200, 60, 0.6), rgba(255, 80, 80, 0.6));
+      outline: none;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        inset 0 1px 4px rgba(0, 0, 0, 0.35),
+        0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(210, 228, 255, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow:
+        0 5px 16px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(210, 228, 255, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow:
+        0 5px 16px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+    }
+
+    .hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      #scene {
+        width: min(88vw, 360px);
+        height: min(72vh, 640px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 420 720" aria-label="Animated glass cylinder filled with liquid">
+        <defs>
+          <linearGradient id="glassBodyGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.18)" />
+            <stop offset="12%" stop-color="rgba(255,255,255,0.06)" />
+            <stop offset="52%" stop-color="rgba(255,255,255,0.03)" />
+            <stop offset="88%" stop-color="rgba(255,255,255,0.08)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0.16)" />
+          </linearGradient>
+
+          <linearGradient id="innerGlassGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.13)" />
+            <stop offset="16%" stop-color="rgba(255,255,255,0.02)" />
+            <stop offset="84%" stop-color="rgba(255,255,255,0.02)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0.11)" />
+          </linearGradient>
+
+          <linearGradient id="highlightGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.72)" />
+            <stop offset="18%" stop-color="rgba(255,255,255,0.22)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0.02)" />
+          </linearGradient>
+
+          <radialGradient id="bgGlowGrad" cx="50%" cy="40%" r="50%">
+            <stop offset="0%" stop-color="rgba(150, 220, 255, 0.28)" />
+            <stop offset="45%" stop-color="rgba(80, 140, 255, 0.12)" />
+            <stop offset="100%" stop-color="rgba(0, 0, 0, 0)" />
+          </radialGradient>
+
+          <filter id="liquidGlow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="9" result="blur1"></feGaussianBlur>
+            <feColorMatrix in="blur1" type="matrix"
+              values="1 0 0 0 0
+                      0 1 0 0 0
+                      0 0 1 0 0
+                      0 0 0 1.1 0" result="glow"></feColorMatrix>
+            <feMerge>
+              <feMergeNode in="glow"></feMergeNode>
+              <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+          </filter>
+
+          <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.6"></feGaussianBlur>
+          </filter>
+
+          <clipPath id="liquidClip">
+            <rect id="clipRect" x="110" y="90" width="200" height="540" rx="100" ry="100"></rect>
+          </clipPath>
+        </defs>
+
+        <ellipse cx="210" cy="346" rx="165" ry="292" fill="url(#bgGlowGrad)"></ellipse>
+
+        <g id="cylinder">
+          <ellipse cx="210" cy="92" rx="106" ry="28" fill="rgba(210, 236, 255, 0.18)"></ellipse>
+          <ellipse cx="210" cy="94" rx="96" ry="22" fill="rgba(255, 255, 255, 0.04)"></ellipse>
+
+          <rect x="102" y="92" width="216" height="536" rx="108" ry="108" fill="url(#glassBodyGrad)" stroke="rgba(220,240,255,0.45)" stroke-width="2"></rect>
+          <rect x="114" y="104" width="192" height="512" rx="96" ry="96" fill="url(#innerGlassGrad)" stroke="rgba(255,255,255,0.10)" stroke-width="1.5"></rect>
+
+          <g clip-path="url(#liquidClip)">
+            <ellipse id="liquidAura" cx="210" cy="560" rx="112" ry="148" fill="rgba(85,255,120,0.22)" filter="url(#softBlur)"></ellipse>
+            <path id="liquidGlowPath" d="" fill="rgba(90,255,130,0.22)" filter="url(#liquidGlow)"></path>
+            <path id="liquidBack" d="" fill="rgba(120,255,180,0.42)"></path>
+            <path id="liquidFront" d="" fill="rgba(76,255,116,0.78)"></path>
+            <path id="surfaceShine" d="" fill="rgba(255,255,255,0.18)"></path>
+            <ellipse id="surfaceCap" cx="210" cy="420" rx="92" ry="18" fill="rgba(255,255,255,0.08)"></ellipse>
+          </g>
+
+          <ellipse cx="210" cy="628" rx="106" ry="28" fill="rgba(120, 180, 255, 0.10)"></ellipse>
+          <ellipse cx="210" cy="628" rx="96" ry="20" fill="rgba(255,255,255,0.03)"></ellipse>
+
+          <path d="M142 116 C128 170, 124 260, 132 580" fill="none" stroke="url(#highlightGrad)" stroke-width="12" stroke-linecap="round" opacity="0.75"></path>
+          <path d="M288 128 C298 220, 299 370, 286 594" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="5" stroke-linecap="round"></path>
+          <path d="M174 110 C166 200, 164 370, 172 606" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="2.5" stroke-linecap="round"></path>
+        </g>
+      </svg>
+    </div>
+
+    <div class="panel controls">
+      <div class="topline">
+        <div>
+          <div class="title">Cylinder Fill Level</div>
+          <div class="subtitle">Slide to raise or lower the glowing liquid.</div>
+        </div>
+        <div id="valuePill" class="value-pill">45%</div>
+      </div>
+      <input id="levelSlider" type="range" min="0" max="100" value="45" step="1" />
+      <div class="hint">The liquid color shifts from green toward red as the cylinder fills.</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slider = document.getElementById("levelSlider");
+      const valuePill = document.getElementById("valuePill");
+      const liquidFront = document.getElementById("liquidFront");
+      const liquidBack = document.getElementById("liquidBack");
+      const liquidGlowPath = document.getElementById("liquidGlowPath");
+      const surfaceShine = document.getElementById("surfaceShine");
+      const surfaceCap = document.getElementById("surfaceCap");
+      const liquidAura = document.getElementById("liquidAura");
+      const clipGroup = document.querySelector('#cylinder g[clip-path="url(#liquidClip)"]');
+      const svgNS = "http://www.w3.org/2000/svg";
+
+      const bubbleGroup = document.createElementNS(svgNS, "g");
+      const sputterGroup = document.createElementNS(svgNS, "g");
+      bubbleGroup.setAttribute("id", "bubbleGroup");
+      sputterGroup.setAttribute("id", "sputterGroup");
+      clipGroup.insertBefore(bubbleGroup, surfaceShine);
+      clipGroup.insertBefore(sputterGroup, surfaceCap);
+
+      const cx = 210;
+      const topY = 104;
+      const bottomY = 616;
+      const leftX = 114;
+      const width = 192;
+      const rightX = leftX + width;
+
+      let targetLevel = Number(slider.value) / 100;
+      let currentLevel = targetLevel;
+      let previousTargetLevel = targetLevel;
+      let sloshEnergy = 0.72;
+      let phase = 0;
+      let phase2 = 1.4;
+      let phase3 = 3.7;
+      let lastTime = performance.now();
+      let bubbleCooldown = 0;
+      let sputterCooldown = 0;
+
+      const bubbles = [];
+      const sputters = [];
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function hslaString(h, s, l, a) {
+        return `hsla(${h}, ${s}%, ${l}%, ${a})`;
+      }
+
+      function createCircle(parent) {
+        const circle = document.createElementNS(svgNS, "circle");
+        parent.appendChild(circle);
+        return circle;
+      }
+
+      function getLiquidColor(level) {
+        const hue = lerp(120, 0, level);
+        const sat = lerp(88, 96, level);
+        const light = lerp(58, 55, level);
+        return {
+          main: hslaString(hue, sat, light, 0.8),
+          back: hslaString(hue + 8, Math.max(60, sat - 18), Math.min(74, light + 10), 0.44),
+          glow: hslaString(hue, sat, Math.min(72, light + 10), 0.28),
+          shine: hslaString(hue + 18, 100, 90, 0.16),
+          aura: hslaString(hue, 95, 60, 0.2),
+          bubble: hslaString(hue + 12, 100, 88, 0.42),
+          sputter: hslaString(Math.max(0, hue - 8), 100, 72, 0.9)
+        };
+      }
+
+      function getSurfacePoint(points, x) {
+        if (points.length === 0) {
+          return { x: x, y: bottomY };
+        }
+
+        if (x <= points[0].x) {
+          return points[0];
+        }
+
+        if (x >= points[points.length - 1].x) {
+          return points[points.length - 1];
+        }
+
+        for (let i = 1; i < points.length; i += 1) {
+          const p0 = points[i - 1];
+          const p1 = points[i];
+          if (x >= p0.x && x <= p1.x) {
+            const t = (x - p0.x) / (p1.x - p0.x);
+            return {
+              x: x,
+              y: lerp(p0.y, p1.y, t)
+            };
+          }
+        }
+
+        return points[points.length - 1];
+      }
+
+      function buildLiquidPath(level, waveAmplitude, waveFrequency, wavePhase, crestTilt) {
+        const surfaceY = lerp(bottomY, topY + 22, level);
+        const points = [];
+        const segments = 56;
+
+        for (let i = 0; i <= segments; i += 1) {
+          const t = i / segments;
+          const x = leftX + t * width;
+          const edge = Math.sin(Math.PI * t);
+          const mainWave = Math.sin(t * Math.PI * 2 * waveFrequency + wavePhase) * waveAmplitude * edge;
+          const secondaryWave = Math.sin(t * Math.PI * 6 + wavePhase * 1.7) * waveAmplitude * 0.32 * edge;
+          const tertiaryWave = Math.cos(t * Math.PI * 11 - wavePhase * 0.85) * waveAmplitude * 0.16 * edge;
+          const microChop = Math.sin(t * Math.PI * 18 + wavePhase * 2.4) * (1.6 + waveAmplitude * 0.05) * edge;
+          const cross = Math.sin(t * Math.PI * 4 + wavePhase * 0.67) * waveAmplitude * 0.22 * edge;
+          const tilt = Math.cos(t * Math.PI) * crestTilt;
+          const y = surfaceY + mainWave + secondaryWave + tertiaryWave + microChop + cross + tilt;
+          points.push({ x, y });
+        }
+
+        let path = `M ${leftX} ${bottomY} L ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i += 1) {
+          const p0 = points[i - 1];
+          const p1 = points[i];
+          const cxm = (p0.x + p1.x) * 0.5;
+          path += ` Q ${cxm} ${p0.y} ${p1.x} ${p1.y}`;
+        }
+        path += ` L ${rightX} ${bottomY} Z`;
+
+        return {
+          path,
+          points,
+          surfaceY
+        };
+      }
+
+      function buildSurfaceShine(points) {
+        const trimmed = points.slice(6, points.length - 6);
+        if (trimmed.length < 2) {
+          return "";
+        }
+
+        let upper = `M ${trimmed[0].x} ${trimmed[0].y - 6}`;
+        for (let i = 1; i < trimmed.length; i += 1) {
+          const p0 = trimmed[i - 1];
+          const p1 = trimmed[i];
+          const cxm = (p0.x + p1.x) * 0.5;
+          upper += ` Q ${cxm} ${p0.y - 6} ${p1.x} ${p1.y - 6}`;
+        }
+
+        let lower = ` L ${trimmed[trimmed.length - 1].x} ${trimmed[trimmed.length - 1].y + 2}`;
+        for (let i = trimmed.length - 2; i >= 0; i -= 1) {
+          const p0 = trimmed[i + 1];
+          const p1 = trimmed[i];
+          const cxm = (p0.x + p1.x) * 0.5;
+          lower += ` Q ${cxm} ${p0.y + 2} ${p1.x} ${p1.y + 2}`;
+        }
+
+        return upper + lower + " Z";
+      }
+
+      function updatePill(level) {
+        const percent = Math.round(level * 100);
+        valuePill.textContent = `${percent}%`;
+        const color = getLiquidColor(level);
+        valuePill.style.boxShadow = `0 0 24px ${color.glow}, inset 0 1px 0 rgba(255,255,255,0.08)`;
+        valuePill.style.background = `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05)), ${color.glow}`;
+      }
+
+      function spawnBubble(redFactor) {
+        const bubble = {
+          x: leftX + 24 + Math.random() * (width - 48),
+          y: bottomY - 4 - Math.random() * 10,
+          r: 2 + Math.random() * (2.5 + redFactor * 3),
+          vy: 42 + Math.random() * 50 + redFactor * 70,
+          sway: 8 + Math.random() * 14,
+          freq: 1.4 + Math.random() * 2.6,
+          phase: Math.random() * Math.PI * 2,
+          age: 0,
+          maxAge: 5 + Math.random() * 1.5,
+          element: createCircle(bubbleGroup)
+        };
+        bubbles.push(bubble);
+      }
+
+      function spawnSputterBurst(x, y, redFactor, color) {
+        const count = 2 + Math.floor(redFactor * 5) + Math.floor(Math.random() * 3);
+        for (let i = 0; i < count; i += 1) {
+          const angle = (-Math.PI / 2) + (Math.random() - 0.5) * (0.95 + redFactor * 0.9);
+          const speed = 55 + Math.random() * 95 + redFactor * 110;
+          const sputter = {
+            x: x + (Math.random() - 0.5) * 8,
+            y: y - 2,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            r: 1.5 + Math.random() * (2.2 + redFactor * 2.4),
+            age: 0,
+            maxAge: 0.35 + Math.random() * 0.35,
+            fill: color,
+            element: createCircle(sputterGroup)
+          };
+          sputters.push(sputter);
+        }
+      }
+
+      function updateBubbles(dt, front, color, redFactor) {
+        bubbleCooldown -= dt;
+        sputterCooldown -= dt;
+
+        const baseBubbleRate = 0.22 + currentLevel * 0.35;
+        const desiredBursts = 1 + Math.floor(currentLevel * 2.2) + Math.floor(redFactor * 2.5);
+
+        if (bubbleCooldown <= 0) {
+          for (let i = 0; i < desiredBursts; i += 1) {
+            if (Math.random() < baseBubbleRate) {
+              spawnBubble(redFactor);
+            }
+          }
+          bubbleCooldown = Math.max(0.05, 0.34 - currentLevel * 0.16 - redFactor * 0.08);
+        }
+
+        if (redFactor > 0 && sputterCooldown <= 0 && Math.random() < redFactor * 0.65) {
+          const hotX = leftX + 36 + Math.random() * (width - 72);
+          const hotSurface = getSurfacePoint(front.points, hotX);
+          spawnSputterBurst(hotSurface.x, hotSurface.y, redFactor, color.sputter);
+          sputterCooldown = Math.max(0.05, 0.22 - redFactor * 0.12);
+        }
+
+        for (let i = bubbles.length - 1; i >= 0; i -= 1) {
+          const bubble = bubbles[i];
+          bubble.age += dt;
+          bubble.y -= bubble.vy * dt;
+          bubble.x += Math.sin(bubble.age * bubble.freq * Math.PI * 2 + bubble.phase) * bubble.sway * dt;
+          bubble.x = clamp(bubble.x, leftX + bubble.r + 8, rightX - bubble.r - 8);
+
+          const surface = getSurfacePoint(front.points, bubble.x);
+          const nearingSurface = bubble.y <= surface.y + bubble.r + 1;
+          const expired = bubble.age >= bubble.maxAge;
+
+          if (nearingSurface || expired) {
+            if (redFactor > 0.12) {
+              spawnSputterBurst(bubble.x, surface.y, redFactor, color.sputter);
+            }
+            bubble.element.remove();
+            bubbles.splice(i, 1);
+            continue;
+          }
+
+          const depthFactor = clamp((bubble.y - surface.y) / Math.max(1, bottomY - surface.y), 0, 1);
+          const pulse = 0.88 + Math.sin(bubble.age * 10 + bubble.phase) * 0.12;
+          bubble.element.setAttribute("cx", String(bubble.x));
+          bubble.element.setAttribute("cy", String(bubble.y));
+          bubble.element.setAttribute("r", String(bubble.r * pulse));
+          bubble.element.setAttribute("fill", color.bubble);
+          bubble.element.setAttribute("stroke", hslaString(0, 0, 100, 0.25));
+          bubble.element.setAttribute("stroke-width", "0.8");
+          bubble.element.setAttribute("opacity", String(0.22 + depthFactor * 0.5));
+        }
+
+        for (let i = sputters.length - 1; i >= 0; i -= 1) {
+          const sputter = sputters[i];
+          sputter.age += dt;
+          sputter.vy += 210 * dt;
+          sputter.x += sputter.vx * dt;
+          sputter.y += sputter.vy * dt;
+
+          const lifeT = clamp(1 - (sputter.age / sputter.maxAge), 0, 1);
+          if (lifeT <= 0 || sputter.x < leftX - 20 || sputter.x > rightX + 20 || sputter.y > bottomY + 10) {
+            sputter.element.remove();
+            sputters.splice(i, 1);
+            continue;
+          }
+
+          sputter.element.setAttribute("cx", String(sputter.x));
+          sputter.element.setAttribute("cy", String(sputter.y));
+          sputter.element.setAttribute("r", String(sputter.r * (0.65 + lifeT * 0.65)));
+          sputter.element.setAttribute("fill", sputter.fill);
+          sputter.element.setAttribute("opacity", String(lifeT * 0.95));
+        }
+      }
+
+      slider.addEventListener("input", function () {
+        targetLevel = Number(slider.value) / 100;
+        const delta = Math.abs(targetLevel - previousTargetLevel);
+        sloshEnergy += delta * 20;
+        previousTargetLevel = targetLevel;
+        updatePill(targetLevel);
+      });
+
+      updatePill(targetLevel);
+
+      function tick(now) {
+        const dt = Math.min(0.035, (now - lastTime) / 1000);
+        lastTime = now;
+
+        const levelDelta = targetLevel - currentLevel;
+        currentLevel += levelDelta * Math.min(1, dt * 4.2);
+        sloshEnergy += Math.abs(levelDelta) * dt * 45;
+        sloshEnergy *= Math.pow(0.955, dt * 60);
+        sloshEnergy = clamp(sloshEnergy, 0.5, 1.9);
+
+        phase += dt * (2.8 + sloshEnergy * 4.8);
+        phase2 += dt * (1.9 + sloshEnergy * 3.2);
+        phase3 += dt * (4.2 + sloshEnergy * 6.4);
+
+        const amplitudeFront = 8 + sloshEnergy * 15 + Math.abs(levelDelta) * 190;
+        const amplitudeBack = Math.max(5, amplitudeFront * 0.72);
+        const tilt = Math.sin(phase * 0.78) * (4 + sloshEnergy * 7.5);
+
+        const front = buildLiquidPath(currentLevel, amplitudeFront, 1.35, phase, tilt);
+        const back = buildLiquidPath(currentLevel, amplitudeBack, 2.05, phase2, -tilt * 0.42 + Math.sin(phase3) * 1.6);
+        const shine = buildSurfaceShine(front.points);
+        const color = getLiquidColor(currentLevel);
+        const redFactor = clamp((currentLevel - 0.72) / 0.28, 0, 1);
+
+        liquidFront.setAttribute("d", front.path);
+        liquidBack.setAttribute("d", back.path);
+        liquidGlowPath.setAttribute("d", front.path);
+        surfaceShine.setAttribute("d", shine);
+
+        liquidFront.setAttribute("fill", color.main);
+        liquidBack.setAttribute("fill", color.back);
+        liquidGlowPath.setAttribute("fill", color.glow);
+        surfaceShine.setAttribute("fill", color.shine);
+
+        surfaceCap.setAttribute("cx", String(cx));
+        surfaceCap.setAttribute("cy", String(front.surfaceY + Math.sin(phase * 1.1) * (0.9 + sloshEnergy * 0.9)));
+        surfaceCap.setAttribute("rx", String(84 + sloshEnergy * 12 + redFactor * 4));
+        surfaceCap.setAttribute("ry", String(12 + sloshEnergy * 3.6 + redFactor * 1.5));
+        surfaceCap.setAttribute("fill", hslaString(lerp(120, 0, currentLevel), 100, 96, 0.09 + redFactor * 0.04));
+
+        liquidAura.setAttribute("cx", String(cx + Math.sin(phase * 0.7) * 7));
+        liquidAura.setAttribute("cy", String(lerp(bottomY - 56, topY + 160, currentLevel)));
+        liquidAura.setAttribute("rx", String(98 + currentLevel * 24 + redFactor * 10));
+        liquidAura.setAttribute("ry", String(132 + currentLevel * 28 + redFactor * 16));
+        liquidAura.setAttribute("fill", color.aura);
+
+        updateBubbles(dt, front, color, redFactor);
+
+        requestAnimationFrame(tick);
+      }
+
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
