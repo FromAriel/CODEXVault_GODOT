@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atomic Orbital Hopper Prototype</title>
+  <style>
+    :root {
+      --bg0: #03040b;
+      --bg1: #071021;
+      --panel: rgba(9, 20, 40, 0.78);
+      --panel2: rgba(16, 34, 66, 0.78);
+      --line: rgba(122, 207, 255, 0.42);
+      --text: #dff7ff;
+      --muted: #8eb4c7;
+      --hot: #ff5c7a;
+      --good: #6dffbe;
+      --warn: #ffd36d;
+      --blue: #5bbcff;
+      --purple: #c07cff;
+      --cyan: #65fff1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(32, 84, 130, 0.35), transparent 44%),
+        radial-gradient(circle at 18% 85%, rgba(105, 45, 180, 0.18), transparent 34%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      user-select: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr minmax(260px, 340px);
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), rgba(2, 5, 12, 0.58));
+      border: 1px solid rgba(122, 207, 255, 0.28);
+      box-shadow:
+        0 0 22px rgba(80, 180, 255, 0.13),
+        inset 0 0 22px rgba(80, 180, 255, 0.05);
+      border-radius: 16px;
+      padding: 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .title {
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      text-shadow: 0 0 10px rgba(101, 255, 241, 0.45);
+    }
+
+    .small {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .stat {
+      border: 1px solid rgba(122, 207, 255, 0.19);
+      border-radius: 12px;
+      padding: 9px 10px;
+      background: rgba(5, 12, 24, 0.48);
+    }
+
+    .label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .value {
+      margin-top: 4px;
+      font-size: 18px;
+      color: var(--text);
+      text-shadow: 0 0 12px rgba(91, 188, 255, 0.35);
+    }
+
+    .right {
+      grid-column: 3;
+      grid-row: 1;
+    }
+
+    .bottom {
+      grid-column: 1 / span 3;
+      grid-row: 3;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: end;
+      gap: 14px;
+    }
+
+    .controls {
+      justify-self: center;
+      max-width: 860px;
+      text-align: center;
+      background: rgba(3, 8, 18, 0.68);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .pill {
+      border: 1px solid rgba(122, 207, 255, 0.22);
+      background: rgba(18, 42, 76, 0.55);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 11px;
+      color: #cdf5ff;
+    }
+
+    .message {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: center;
+      justify-self: center;
+      width: min(680px, calc(100vw - 36px));
+      text-align: center;
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .message.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .message h1 {
+      margin: 0 0 8px 0;
+      font-size: clamp(28px, 5vw, 58px);
+      letter-spacing: 0.08em;
+      color: white;
+      text-shadow:
+        0 0 12px rgba(101, 255, 241, 0.8),
+        0 0 38px rgba(101, 255, 241, 0.38);
+    }
+
+    .message p {
+      margin: 0;
+      color: #c8eaff;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      margin-top: 7px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 50%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--hot));
+      box-shadow: 0 0 14px rgba(255, 211, 109, 0.5);
+    }
+
+    .tiny-warning {
+      margin-top: 8px;
+      color: var(--warn);
+    }
+
+    @media (max-width: 940px) {
+      .hud {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+      }
+
+      .right {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .message {
+        grid-column: 1;
+        grid-row: 3;
+      }
+
+      .bottom {
+        grid-column: 1;
+        grid-row: 4;
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 11px;
+      }
+
+      .stat-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hud {
+        padding: 9px;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .right {
+        display: none;
+      }
+
+      .controls {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <section class="card">
+      <div class="title">Atomic Orbital Hopper // Prototype</div>
+      <div class="small">
+        Ride spinning orbitals, wait for jump-node alignment, absorb photons to gain energy, emit to drop inward, and cross bonds between atoms.
+      </div>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="label">Atom</div>
+          <div class="value" id="atomName">H</div>
+        </div>
+        <div class="stat">
+          <div class="label">Orbit</div>
+          <div class="value" id="orbitName">1s</div>
+        </div>
+        <div class="stat">
+          <div class="label">Target</div>
+          <div class="value" id="targetName">OUT</div>
+        </div>
+        <div class="stat">
+          <div class="label">Score</div>
+          <div class="value" id="scoreValue">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card right">
+      <div class="title">Particle State</div>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="label">Energy</div>
+          <div class="value" id="energyValue">1</div>
+        </div>
+        <div class="stat">
+          <div class="label">Spin</div>
+          <div class="value" id="spinValue">↑</div>
+        </div>
+        <div class="stat">
+          <div class="label">Combo</div>
+          <div class="value" id="comboValue">x1</div>
+        </div>
+        <div class="stat">
+          <div class="label">Lives</div>
+          <div class="value" id="livesValue">3</div>
+        </div>
+      </div>
+      <div class="label" style="margin-top: 12px;">Coherence</div>
+      <div class="bar"><div class="bar-fill" id="coherenceFill"></div></div>
+      <div class="small tiny-warning" id="hintText">Hint: jump windows glow yellow when valid.</div>
+    </section>
+
+    <section class="message card" id="messageBox">
+      <h1 id="messageTitle">READY</h1>
+      <p id="messageText">Press Space to jump when the orbit nodes line up.</p>
+    </section>
+
+    <section class="bottom">
+      <div></div>
+      <div class="card controls">
+        <div class="title">Controls</div>
+        <div class="pill-row">
+          <span class="pill">↑ / ↓ select inward/outward orbit</span>
+          <span class="pill">← / → select bond exit</span>
+          <span class="pill">Space jump</span>
+          <span class="pill">A absorb nearby photon</span>
+          <span class="pill">E emit energy</span>
+          <span class="pill">S flip spin</span>
+          <span class="pill">R reset</span>
+        </div>
+      </div>
+      <div></div>
+    </section>
+  </div>
+
+  <script>
+    "use strict";
+
+    const TAU = Math.PI * 2;
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const ui = {
+      atomName: document.getElementById("atomName"),
+      orbitName: document.getElementById("orbitName"),
+      targetName: document.getElementById("targetName"),
+      scoreValue: document.getElementById("scoreValue"),
+      energyValue: document.getElementById("energyValue"),
+      spinValue: document.getElementById("spinValue"),
+      comboValue: document.getElementById("comboValue"),
+      livesValue: document.getElementById("livesValue"),
+      coherenceFill: document.getElementById("coherenceFill"),
+      hintText: document.getElementById("hintText"),
+      messageBox: document.getElementById("messageBox"),
+      messageTitle: document.getElementById("messageTitle"),
+      messageText: document.getElementById("messageText")
+    };
+
+    const keys = new Set();
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let lastTime = performance.now();
+    let messageTimer = 0;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function wrapAngle(angle) {
+      let value = angle % TAU;
+      if (value < 0) {
+        value += TAU;
+      }
+      return value;
+    }
+
+    function angleDistance(a, b) {
+      const diff = Math.abs(wrapAngle(a) - wrapAngle(b));
+      return Math.min(diff, TAU - diff);
+    }
+
+    function polar(cx, cy, radius, angle) {
+      return {
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius
+      };
+    }
+
+    function distance(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function drawGlowLine(x1, y1, x2, y2, color, widthPx, glowPx) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = widthPx;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glowPx;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGlowCircle(x, y, radius, color, fill, glowPx, lineWidth) {
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glowPx;
+      ctx.lineWidth = lineWidth || 2;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = fill || "transparent";
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, TAU);
+      if (fill) {
+        ctx.fill();
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function showMessage(title, text, seconds) {
+      ui.messageTitle.textContent = title;
+      ui.messageText.textContent = text;
+      ui.messageBox.classList.add("show");
+      messageTimer = seconds || 1.4;
+    }
+
+    const palette = {
+      safe: "rgba(108, 255, 190, 0.95)",
+      blue: "rgba(91, 188, 255, 0.95)",
+      cyan: "rgba(101, 255, 241, 0.95)",
+      yellow: "rgba(255, 211, 109, 0.98)",
+      orange: "rgba(255, 153, 92, 0.95)",
+      red: "rgba(255, 92, 122, 0.95)",
+      purple: "rgba(192, 124, 255, 0.95)",
+      white: "rgba(240, 252, 255, 0.98)",
+      dimBlue: "rgba(91, 188, 255, 0.22)",
+      dimCyan: "rgba(101, 255, 241, 0.22)",
+      dimRed: "rgba(255, 92, 122, 0.20)",
+      dimPurple: "rgba(192, 124, 255, 0.21)"
+    };
+
+    const game = {
+      time: 0,
+      paused: false,
+      win: false,
+      atoms: [],
+      photons: [],
+      particles: [],
+      player: {
+        atomIndex: 0,
+        orbitIndex: 0,
+        angle: -Math.PI / 2,
+        energy: 1,
+        spin: 1,
+        coherence: 100,
+        lives: 3,
+        combo: 1,
+        score: 0,
+        invuln: 0,
+        jumping: false,
+        jumpFrom: { x: 0, y: 0 },
+        jumpTo: { x: 0, y: 0 },
+        jumpTimer: 0,
+        jumpDuration: 0.22,
+        targetMode: "orbit",
+        targetDirection: 1,
+        targetBondDirection: 1,
+        trail: []
+      }
+    };
+
+    function resizeCanvas() {
+      dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      width = Math.floor(window.innerWidth);
+      height = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      layoutAtoms();
+    }
+
+    function makeOrbit(id, label, radius, speed, energy, phase, color) {
+      return {
+        id,
+        label,
+        radius,
+        speed,
+        energy,
+        phase,
+        color,
+        jumpNodes: [0, Math.PI / 2, Math.PI, Math.PI * 1.5],
+        hazardSegments: [],
+        gateSegments: []
+      };
+    }
+
+    function createWorld() {
+      game.atoms = [
+        {
+          name: "HYDROGEN",
+          shortName: "H",
+          x: 0,
+          y: 0,
+          nucleusRadius: 24,
+          color: palette.blue,
+          glow: palette.dimBlue,
+          orbits: [
+            makeOrbit("h-1s", "1s", 78, 0.85, 0, 0.1, palette.blue),
+            makeOrbit("h-2s", "2s", 126, -0.58, 1, 1.3, palette.cyan)
+          ],
+          bonds: [
+            { to: 1, angle: 0, energy: 1, spin: 1 }
+          ],
+          goal: null
+        },
+        {
+          name: "CARBON",
+          shortName: "C",
+          x: 0,
+          y: 0,
+          nucleusRadius: 32,
+          color: palette.purple,
+          glow: palette.dimPurple,
+          orbits: [
+            makeOrbit("c-1s", "1s", 64, -1.05, 0, 0.4, palette.purple),
+            makeOrbit("c-2p", "2p", 108, 0.72, 1, -0.2, palette.cyan),
+            makeOrbit("c-3d", "3d", 154, -0.42, 2, 0.9, palette.yellow)
+          ],
+          bonds: [
+            { to: 0, angle: Math.PI, energy: 1, spin: 1 },
+            { to: 2, angle: 0, energy: 2, spin: -1 }
+          ],
+          goal: null
+        },
+        {
+          name: "NEON",
+          shortName: "Ne",
+          x: 0,
+          y: 0,
+          nucleusRadius: 30,
+          color: palette.safe,
+          glow: "rgba(108, 255, 190, 0.18)",
+          orbits: [
+            makeOrbit("ne-1s", "1s", 62, 0.95, 0, 1.2, palette.safe),
+            makeOrbit("ne-2p", "2p", 104, -0.76, 1, 0.1, palette.cyan),
+            makeOrbit("ne-3s", "3s", 146, 0.52, 2, -0.5, palette.blue)
+          ],
+          bonds: [
+            { to: 1, angle: Math.PI, energy: 2, spin: -1 }
+          ],
+          goal: { orbitIndex: 2, angle: 0.28, width: 0.22 }
+        }
+      ];
+
+      game.atoms[1].orbits[1].hazardSegments.push({ angle: Math.PI * 0.65, width: 0.32, pulse: 1.1 });
+      game.atoms[1].orbits[2].hazardSegments.push({ angle: Math.PI * 1.38, width: 0.28, pulse: 0.9 });
+      game.atoms[2].orbits[1].hazardSegments.push({ angle: Math.PI * 0.9, width: 0.36, pulse: 1.2 });
+      game.atoms[2].orbits[2].hazardSegments.push({ angle: Math.PI * 1.65, width: 0.32, pulse: 1.0 });
+
+      game.photons = [
+        { atomIndex: 0, orbitIndex: 1, angle: 2.2, speed: 1.35, energy: 1, color: palette.white, alive: true, respawn: 0 },
+        { atomIndex: 1, orbitIndex: 1, angle: 5.4, speed: -1.1, energy: 1, color: palette.cyan, alive: true, respawn: 0 },
+        { atomIndex: 1, orbitIndex: 2, angle: 1.1, speed: 0.88, energy: 1, color: palette.yellow, alive: true, respawn: 0 },
+        { atomIndex: 2, orbitIndex: 2, angle: 4.2, speed: -1.25, energy: 1, color: palette.safe, alive: true, respawn: 0 }
+      ];
+
+      game.particles = [
+        { atomIndex: 1, orbitIndex: 0, angle: 0.2, speed: 1.2, color: "rgba(255,255,255,0.72)", phase: 0 },
+        { atomIndex: 1, orbitIndex: 2, angle: 2.8, speed: -0.75, color: "rgba(255,92,122,0.80)", phase: 0.4 },
+        { atomIndex: 2, orbitIndex: 1, angle: 1.8, speed: 1.05, color: "rgba(255,255,255,0.70)", phase: 0.2 },
+        { atomIndex: 2, orbitIndex: 2, angle: 5.1, speed: -0.95, color: "rgba(255,92,122,0.82)", phase: 0.6 }
+      ];
+
+      layoutAtoms();
+      resetGame(false);
+    }
+
+    function layoutAtoms() {
+      if (!game.atoms || game.atoms.length === 0) {
+        return;
+      }
+
+      const centerY = height * 0.53;
+      const span = Math.min(width * 0.29, 360);
+      const centerX = width * 0.5;
+
+      game.atoms[0].x = centerX - span;
+      game.atoms[0].y = centerY + Math.sin(game.time * 0.3) * 8;
+      game.atoms[1].x = centerX;
+      game.atoms[1].y = centerY - 20;
+      game.atoms[2].x = centerX + span;
+      game.atoms[2].y = centerY + 16;
+
+      const scale = clamp(width / 1200, 0.72, 1.0);
+      for (const atom of game.atoms) {
+        atom.displayScale = scale;
+      }
+    }
+
+    function currentAtom() {
+      return game.atoms[game.player.atomIndex];
+    }
+
+    function currentOrbit() {
+      return currentAtom().orbits[game.player.orbitIndex];
+    }
+
+    function orbitWorldPosition(atomIndex, orbitIndex, angle) {
+      const atom = game.atoms[atomIndex];
+      const orbit = atom.orbits[orbitIndex];
+      return polar(atom.x, atom.y, orbit.radius * atom.displayScale, angle);
+    }
+
+    function playerPosition() {
+      if (game.player.jumping) {
+        const t = clamp(game.player.jumpTimer / game.player.jumpDuration, 0, 1);
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const arc = Math.sin(eased * Math.PI) * 38;
+        return {
+          x: lerp(game.player.jumpFrom.x, game.player.jumpTo.x, eased),
+          y: lerp(game.player.jumpFrom.y, game.player.jumpTo.y, eased) - arc
+        };
+      }
+      return orbitWorldPosition(game.player.atomIndex, game.player.orbitIndex, game.player.angle);
+    }
+
+    function setTargetMode(mode, direction) {
+      game.player.targetMode = mode;
+      if (mode === "orbit") {
+        game.player.targetDirection = direction;
+      }
+      if (mode === "bond") {
+        game.player.targetBondDirection = direction;
+      }
+    }
+
+    function resetGame(show) {
+      game.time = 0;
+      game.win = false;
+      game.player.atomIndex = 0;
+      game.player.orbitIndex = 0;
+      game.player.angle = -Math.PI / 2;
+      game.player.energy = 1;
+      game.player.spin = 1;
+      game.player.coherence = 100;
+      game.player.lives = 3;
+      game.player.combo = 1;
+      game.player.score = 0;
+      game.player.invuln = 1.2;
+      game.player.jumping = false;
+      game.player.targetMode = "orbit";
+      game.player.targetDirection = 1;
+      game.player.targetBondDirection = 1;
+      game.player.trail = [];
+      for (const photon of game.photons) {
+        photon.alive = true;
+        photon.respawn = 0;
+      }
+      if (show) {
+        showMessage("RESET", "Wait for the glowing jump window, then hop the track.", 1.4);
+      } else {
+        showMessage("READY", "Space jumps. A absorbs nearby photons. E emits energy. Reach Neon’s outer stable state.", 2.4);
+      }
+    }
+
+    function loseLife(reason) {
+      if (game.player.invuln > 0 || game.player.jumping || game.win) {
+        return;
+      }
+
+      game.player.lives -= 1;
+      game.player.combo = 1;
+      game.player.coherence = Math.max(35, game.player.coherence - 18);
+      game.player.invuln = 1.25;
+      game.player.energy = clamp(game.player.energy - 1, 0, 4);
+
+      if (game.player.lives <= 0) {
+        showMessage("DECOHERED", reason + " Press R to restart the atom chain.", 999);
+        game.player.coherence = 0;
+      } else {
+        showMessage("IONIZED", reason + " Lives remaining: " + game.player.lives + ".", 1.3);
+      }
+    }
+
+    function activeNodeAngle(orbit) {
+      let closest = orbit.jumpNodes[0];
+      let best = angleDistance(game.player.angle, closest + orbit.phase);
+      for (const node of orbit.jumpNodes) {
+        const nodeAngle = wrapAngle(node + orbit.phase);
+        const diff = angleDistance(game.player.angle, nodeAngle);
+        if (diff < best) {
+          best = diff;
+          closest = node;
+        }
+      }
+      return wrapAngle(closest + orbit.phase);
+    }
+
+    function getDesiredJump() {
+      const player = game.player;
+      const atom = currentAtom();
+      const orbit = currentOrbit();
+      const nodeAngle = activeNodeAngle(orbit);
+      const nodeDiff = angleDistance(player.angle, nodeAngle);
+      const baseWindow = player.energy >= 3 ? 0.23 : 0.17;
+
+      if (player.targetMode === "orbit") {
+        const targetIndex = player.orbitIndex + player.targetDirection;
+        if (targetIndex < 0 || targetIndex >= atom.orbits.length) {
+          return { valid: false, reason: "No orbit in that direction.", nodeAngle, nodeDiff };
+        }
+
+        const targetOrbit = atom.orbits[targetIndex];
+        const energyDelta = targetOrbit.energy - orbit.energy;
+        const needsEnergy = Math.max(0, energyDelta);
+        if (player.energy < needsEnergy) {
+          return { valid: false, reason: "Need energy " + needsEnergy + " to jump outward.", nodeAngle, nodeDiff, targetAtomIndex: player.atomIndex, targetOrbitIndex: targetIndex };
+        }
+
+        if (nodeDiff > baseWindow) {
+          return { valid: false, reason: "Wait for orbital alignment.", nodeAngle, nodeDiff, targetAtomIndex: player.atomIndex, targetOrbitIndex: targetIndex };
+        }
+
+        return {
+          valid: true,
+          kind: "orbit",
+          nodeAngle,
+          nodeDiff,
+          targetAtomIndex: player.atomIndex,
+          targetOrbitIndex: targetIndex,
+          targetAngle: player.angle + Math.sin(game.time * 3.0) * 0.015,
+          reason: "Orbit jump ready."
+        };
+      }
+
+      const directionIsRight = player.targetBondDirection >= 0;
+      const preferredAngle = directionIsRight ? 0 : Math.PI;
+      const bond = atom.bonds.find(function (candidate) {
+        return angleDistance(candidate.angle, preferredAngle) < 0.6;
+      });
+
+      if (!bond) {
+        return { valid: false, reason: "No bond exit that way.", nodeAngle: preferredAngle, nodeDiff: angleDistance(player.angle, preferredAngle) };
+      }
+
+      const targetAtom = game.atoms[bond.to];
+      const targetOrbitIndex = clamp(player.orbitIndex, 0, targetAtom.orbits.length - 1);
+      const bondDiff = angleDistance(player.angle, bond.angle);
+
+      if (player.energy < bond.energy) {
+        return { valid: false, reason: "Bond needs energy " + bond.energy + ".", nodeAngle: bond.angle, nodeDiff: bondDiff, targetAtomIndex: bond.to, targetOrbitIndex };
+      }
+
+      if (player.spin !== bond.spin) {
+        return { valid: false, reason: "Bond rejects spin. Press S to flip.", nodeAngle: bond.angle, nodeDiff: bondDiff, targetAtomIndex: bond.to, targetOrbitIndex };
+      }
+
+      if (bondDiff > baseWindow * 1.2) {
+        return { valid: false, reason: "Wait for bond alignment.", nodeAngle: bond.angle, nodeDiff: bondDiff, targetAtomIndex: bond.to, targetOrbitIndex };
+      }
+
+      return {
+        valid: true,
+        kind: "bond",
+        nodeAngle: bond.angle,
+        nodeDiff: bondDiff,
+        targetAtomIndex: bond.to,
+        targetOrbitIndex,
+        targetAngle: wrapAngle(bond.angle + Math.PI),
+        reason: "Bond jump ready."
+      };
+    }
+
+    function attemptJump() {
+      if (game.player.jumping || game.player.coherence <= 0 || game.win) {
+        return;
+      }
+
+      const jump = getDesiredJump();
+      if (!jump.valid) {
+        game.player.combo = 1;
+        game.player.score = Math.max(0, game.player.score - 5);
+        showMessage("MISJUMP", jump.reason, 0.75);
+        return;
+      }
+
+      const player = game.player;
+      const from = playerPosition();
+      const to = orbitWorldPosition(jump.targetAtomIndex, jump.targetOrbitIndex, jump.targetAngle);
+      const sourceOrbit = currentOrbit();
+      const targetAtom = game.atoms[jump.targetAtomIndex];
+      const targetOrbit = targetAtom.orbits[jump.targetOrbitIndex];
+      const energyDelta = targetOrbit.energy - sourceOrbit.energy;
+
+      player.jumpFrom = from;
+      player.jumpTo = to;
+      player.jumpTimer = 0;
+      player.jumpDuration = jump.kind === "bond" ? 0.34 : 0.20;
+      player.jumping = true;
+      player.pendingJump = jump;
+      player.energy = clamp(player.energy - Math.max(0, energyDelta), 0, 5);
+      player.combo = clamp(player.combo + 1, 1, 12);
+      player.score += 25 * player.combo + (jump.kind === "bond" ? 100 : 0);
+
+      const quality = 1 - clamp(jump.nodeDiff / 0.22, 0, 1);
+      if (quality > 0.75) {
+        player.score += 50 * player.combo;
+        showMessage("PERFECT", jump.kind === "bond" ? "Clean bond transfer." : "Clean orbital transition.", 0.55);
+      }
+    }
+
+    function absorbPhoton() {
+      if (game.player.jumping || game.player.coherence <= 0 || game.win) {
+        return;
+      }
+
+      const p = playerPosition();
+      let bestPhoton = null;
+      let bestDistance = Infinity;
+      for (const photon of game.photons) {
+        if (!photon.alive) {
+          continue;
+        }
+        const pos = orbitWorldPosition(photon.atomIndex, photon.orbitIndex, photon.angle);
+        const d = distance(p, pos);
+        if (d < bestDistance) {
+          bestDistance = d;
+          bestPhoton = photon;
+        }
+      }
+
+      if (bestPhoton && bestDistance < 46) {
+        bestPhoton.alive = false;
+        bestPhoton.respawn = 2.6;
+        game.player.energy = clamp(game.player.energy + bestPhoton.energy, 0, 5);
+        game.player.combo = clamp(game.player.combo + 1, 1, 12);
+        game.player.score += 75 * game.player.combo;
+        showMessage("ABSORBED", "Energy increased. Outward jumps are easier now.", 0.65);
+      } else {
+        game.player.score = Math.max(0, game.player.score - 2);
+        showMessage("NO PHOTON", "Get closer to a photon before absorbing.", 0.55);
+      }
+    }
+
+    function emitEnergy() {
+      if (game.player.jumping || game.player.coherence <= 0 || game.win) {
+        return;
+      }
+
+      if (game.player.energy <= 0) {
+        showMessage("EMPTY", "No stored energy to emit.", 0.55);
+        return;
+      }
+
+      game.player.energy -= 1;
+      game.player.coherence = clamp(game.player.coherence + 5, 0, 100);
+      game.player.score += 30 * game.player.combo;
+      game.player.combo = clamp(game.player.combo + 1, 1, 12);
+      const pos = playerPosition();
+      game.photons.push({
+        atomIndex: game.player.atomIndex,
+        orbitIndex: game.player.orbitIndex,
+        angle: wrapAngle(game.player.angle + Math.PI),
+        speed: -currentOrbit().speed * 1.5,
+        energy: 1,
+        color: palette.orange,
+        alive: true,
+        respawn: 0,
+        temporary: true,
+        life: 1.7,
+        burstX: pos.x,
+        burstY: pos.y
+      });
+      showMessage("EMITTED", "Energy vented. Coherence recovered slightly.", 0.55);
+    }
+
+    function flipSpin() {
+      if (game.player.coherence <= 0 || game.win) {
+        return;
+      }
+      game.player.spin *= -1;
+      game.player.score += 5;
+      showMessage("SPIN FLIP", game.player.spin > 0 ? "Spin up." : "Spin down.", 0.45);
+    }
+
+    function checkGoal() {
+      const atom = currentAtom();
+      if (!atom.goal || game.win) {
+        return;
+      }
+
+      if (game.player.orbitIndex !== atom.goal.orbitIndex || game.player.jumping) {
+        return;
+      }
+
+      if (angleDistance(game.player.angle, atom.goal.angle) < atom.goal.width) {
+        game.win = true;
+        game.player.score += Math.floor(game.player.coherence * 20) + game.player.combo * 250;
+        showMessage("STABLE STATE", "Prototype complete. You crossed the atom chain and landed the Neon shell.", 999);
+      }
+    }
+
+    function update(dt) {
+      game.time += dt;
+      layoutAtoms();
+
+      if (messageTimer > 0) {
+        messageTimer -= dt;
+        if (messageTimer <= 0) {
+          ui.messageBox.classList.remove("show");
+        }
+      }
+
+      if (game.player.invuln > 0) {
+        game.player.invuln -= dt;
+      }
+
+      if (game.player.coherence > 0 && !game.win) {
+        const overchargeDrain = game.player.energy >= 4 ? 2.6 : 0;
+        game.player.coherence -= dt * (2.2 + overchargeDrain);
+        if (game.player.coherence <= 0) {
+          game.player.coherence = 0;
+          showMessage("DECOHERED", "Coherence collapsed. Press R to restart.", 999);
+        }
+      }
+
+      for (const photon of game.photons) {
+        if (photon.alive) {
+          photon.angle = wrapAngle(photon.angle + photon.speed * dt);
+          if (photon.temporary) {
+            photon.life -= dt;
+            if (photon.life <= 0) {
+              photon.alive = false;
+            }
+          }
+        } else if (!photon.temporary) {
+          photon.respawn -= dt;
+          if (photon.respawn <= 0) {
+            photon.alive = true;
+            photon.angle = wrapAngle(photon.angle + Math.PI * 0.73);
+          }
+        }
+      }
+
+      for (const particle of game.particles) {
+        particle.angle = wrapAngle(particle.angle + particle.speed * dt);
+      }
+
+      if (game.player.jumping) {
+        game.player.jumpTimer += dt;
+        if (game.player.jumpTimer >= game.player.jumpDuration) {
+          const jump = game.player.pendingJump;
+          game.player.atomIndex = jump.targetAtomIndex;
+          game.player.orbitIndex = jump.targetOrbitIndex;
+          game.player.angle = wrapAngle(jump.targetAngle);
+          game.player.jumping = false;
+          game.player.pendingJump = null;
+          game.player.invuln = 0.22;
+        }
+      } else if (game.player.coherence > 0) {
+        const orbit = currentOrbit();
+        const energyBoost = game.player.energy >= 4 ? 1.2 : 1.0;
+        game.player.angle = wrapAngle(game.player.angle + orbit.speed * energyBoost * dt);
+      }
+
+      updateTrail(dt);
+      checkHazards();
+      checkGoal();
+      updateUi();
+    }
+
+    function updateTrail(dt) {
+      const pos = playerPosition();
+      game.player.trail.push({ x: pos.x, y: pos.y, life: 0.45 });
+      while (game.player.trail.length > 38) {
+        game.player.trail.shift();
+      }
+      for (const point of game.player.trail) {
+        point.life -= dt;
+      }
+      game.player.trail = game.player.trail.filter(function (point) {
+        return point.life > 0;
+      });
+    }
+
+    function checkHazards() {
+      if (game.player.jumping || game.player.invuln > 0 || game.player.coherence <= 0 || game.win) {
+        return;
+      }
+
+      const orbit = currentOrbit();
+      for (const segment of orbit.hazardSegments) {
+        const movingAngle = wrapAngle(segment.angle + Math.sin(game.time * segment.pulse) * 0.18);
+        if (angleDistance(game.player.angle, movingAngle) < segment.width * 0.5) {
+          loseLife("Radiation segment clipped your orbit.");
+          return;
+        }
+      }
+
+      const p = playerPosition();
+      for (const particle of game.particles) {
+        if (particle.atomIndex !== game.player.atomIndex || particle.orbitIndex !== game.player.orbitIndex) {
+          continue;
+        }
+        const pos = orbitWorldPosition(particle.atomIndex, particle.orbitIndex, particle.angle);
+        if (distance(p, pos) < 24) {
+          loseLife("Electron traffic collision.");
+          return;
+        }
+      }
+    }
+
+    function updateUi() {
+      const atom = currentAtom();
+      const orbit = currentOrbit();
+      const desired = getDesiredJump();
+      ui.atomName.textContent = atom.shortName;
+      ui.orbitName.textContent = orbit.label;
+      ui.energyValue.textContent = String(game.player.energy);
+      ui.spinValue.textContent = game.player.spin > 0 ? "↑" : "↓";
+      ui.comboValue.textContent = "x" + game.player.combo;
+      ui.livesValue.textContent = String(game.player.lives);
+      ui.scoreValue.textContent = String(Math.floor(game.player.score));
+      ui.coherenceFill.style.width = clamp(game.player.coherence, 0, 100) + "%";
+
+      if (game.player.targetMode === "orbit") {
+        ui.targetName.textContent = game.player.targetDirection > 0 ? "OUT" : "IN";
+      } else {
+        ui.targetName.textContent = game.player.targetBondDirection > 0 ? "BOND →" : "← BOND";
+      }
+
+      if (game.win) {
+        ui.hintText.textContent = "Stable state reached. Press R to replay.";
+      } else if (game.player.coherence <= 0) {
+        ui.hintText.textContent = "Coherence collapsed. Press R to restart.";
+      } else {
+        ui.hintText.textContent = desired.valid ? desired.reason : desired.reason;
+      }
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.strokeStyle = "rgba(122,207,255,0.16)";
+      ctx.lineWidth = 1;
+      const grid = 44;
+      const ox = (game.time * 7) % grid;
+      const oy = (game.time * 4) % grid;
+      for (let x = -grid; x < width + grid; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x + ox, 0);
+        ctx.lineTo(x + ox, height);
+        ctx.stroke();
+      }
+      for (let y = -grid; y < height + grid; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + oy);
+        ctx.lineTo(width, y + oy);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = "white";
+      for (let i = 0; i < 90; i += 1) {
+        const x = (Math.sin(i * 19.23) * 0.5 + 0.5) * width;
+        const y = (Math.sin(i * 7.71 + 2.0) * 0.5 + 0.5) * height;
+        const r = 0.7 + (Math.sin(i * 3.4) * 0.5 + 0.5) * 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawBond(atom, bond) {
+      const target = game.atoms[bond.to];
+      const color = bond.spin > 0 ? palette.cyan : palette.purple;
+      const pulse = 0.45 + 0.2 * Math.sin(game.time * 4 + bond.to);
+      drawGlowLine(atom.x, atom.y, target.x, target.y, "rgba(101,255,241," + pulse + ")", 2, 14);
+
+      const mx = (atom.x + target.x) * 0.5;
+      const my = (atom.y + target.y) * 0.5;
+      drawGlowCircle(mx, my, 8 + Math.sin(game.time * 5) * 2, color, "rgba(3,8,18,0.85)", 12, 2);
+    }
+
+    function drawAtom(atom, atomIndex) {
+      for (const bond of atom.bonds) {
+        if (bond.to > atomIndex) {
+          drawBond(atom, bond);
+        }
+      }
+
+      ctx.save();
+      ctx.translate(atom.x, atom.y);
+
+      drawGlowCircle(0, 0, atom.nucleusRadius * atom.displayScale, atom.color, atom.glow, 22, 2);
+      drawGlowCircle(0, 0, atom.nucleusRadius * 0.45 * atom.displayScale, palette.white, "rgba(255,255,255,0.12)", 8, 1);
+
+      ctx.font = Math.floor(14 * atom.displayScale) + "px ui-monospace, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(225,248,255,0.92)";
+      ctx.shadowColor = atom.color;
+      ctx.shadowBlur = 10;
+      ctx.fillText(atom.shortName, 0, 0);
+
+      for (let i = 0; i < atom.orbits.length; i += 1) {
+        drawOrbit(atom, atomIndex, atom.orbits[i], i);
+      }
+
+      if (atom.goal) {
+        const orbit = atom.orbits[atom.goal.orbitIndex];
+        const r = orbit.radius * atom.displayScale;
+        const pos = polar(0, 0, r, atom.goal.angle);
+        const glow = 0.5 + Math.sin(game.time * 7) * 0.3;
+        drawGlowCircle(pos.x, pos.y, 17, "rgba(108,255,190," + (0.75 + glow * 0.25) + ")", "rgba(108,255,190,0.12)", 22, 3);
+        ctx.fillStyle = "rgba(108,255,190,0.92)";
+        ctx.font = "11px ui-monospace, monospace";
+        ctx.fillText("STABLE", pos.x, pos.y - 28);
+      }
+
+      ctx.restore();
+    }
+
+    function drawOrbit(atom, atomIndex, orbit, orbitIndex) {
+      const r = orbit.radius * atom.displayScale;
+      const isCurrent = atomIndex === game.player.atomIndex && orbitIndex === game.player.orbitIndex;
+      const alpha = isCurrent ? 0.88 : 0.42;
+      const lineWidth = isCurrent ? 3 : 1.5;
+
+      ctx.save();
+      ctx.strokeStyle = orbit.color.replace("0.95", String(alpha));
+      ctx.shadowColor = orbit.color;
+      ctx.shadowBlur = isCurrent ? 18 : 9;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+
+      const tickCount = 24;
+      ctx.save();
+      ctx.strokeStyle = orbit.color.replace("0.95", "0.34");
+      ctx.lineWidth = 1;
+      for (let t = 0; t < tickCount; t += 1) {
+        const angle = t / tickCount * TAU + orbit.phase + game.time * orbit.speed * 0.18;
+        const a = polar(0, 0, r - 5, angle);
+        const b = polar(0, 0, r + 5, angle);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      for (const node of orbit.jumpNodes) {
+        const angle = wrapAngle(node + orbit.phase);
+        const pos = polar(0, 0, r, angle);
+        let color = palette.blue;
+        let fill = "rgba(91,188,255,0.12)";
+        let radius = 6;
+        if (isCurrent && angleDistance(game.player.angle, angle) < 0.19) {
+          color = palette.yellow;
+          fill = "rgba(255,211,109,0.24)";
+          radius = 9 + Math.sin(game.time * 12) * 2;
+        }
+        drawGlowCircle(pos.x, pos.y, radius, color, fill, 13, 2);
+      }
+
+      for (const segment of orbit.hazardSegments) {
+        const angle = wrapAngle(segment.angle + Math.sin(game.time * segment.pulse) * 0.18);
+        const start = angle - segment.width * 0.5;
+        const end = angle + segment.width * 0.5;
+        ctx.save();
+        ctx.strokeStyle = palette.red;
+        ctx.shadowColor = palette.red;
+        ctx.shadowBlur = 18;
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, start, end);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawPhotons() {
+      for (const photon of game.photons) {
+        if (!photon.alive) {
+          continue;
+        }
+        const pos = orbitWorldPosition(photon.atomIndex, photon.orbitIndex, photon.angle);
+        const size = photon.temporary ? 6 : 8 + Math.sin(game.time * 9 + photon.angle) * 2;
+        drawGlowCircle(pos.x, pos.y, size, photon.color, "rgba(255,255,255,0.22)", 18, 2);
+        const tail = orbitWorldPosition(photon.atomIndex, photon.orbitIndex, photon.angle - Math.sign(photon.speed) * 0.14);
+        drawGlowLine(tail.x, tail.y, pos.x, pos.y, photon.color, 2, 10);
+      }
+    }
+
+    function drawTrafficParticles() {
+      for (const particle of game.particles) {
+        const pos = orbitWorldPosition(particle.atomIndex, particle.orbitIndex, particle.angle);
+        const r = particle.color.includes("255,92") ? 10 : 7;
+        drawGlowCircle(pos.x, pos.y, r, particle.color, "rgba(255,255,255,0.10)", 16, 2);
+      }
+    }
+
+    function drawJumpPreview() {
+      if (game.player.coherence <= 0 || game.win) {
+        return;
+      }
+      const desired = getDesiredJump();
+      const playerPos = playerPosition();
+      let targetPos = null;
+      if (typeof desired.targetAtomIndex === "number" && typeof desired.targetOrbitIndex === "number") {
+        const angle = desired.targetAngle || desired.nodeAngle || game.player.angle;
+        targetPos = orbitWorldPosition(desired.targetAtomIndex, desired.targetOrbitIndex, angle);
+      } else {
+        const atom = currentAtom();
+        const orbit = currentOrbit();
+        targetPos = polar(atom.x, atom.y, orbit.radius * atom.displayScale, desired.nodeAngle || game.player.angle);
+      }
+
+      const color = desired.valid ? palette.yellow : "rgba(255,92,122,0.55)";
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = desired.valid ? 18 : 8;
+      ctx.lineWidth = desired.valid ? 3 : 1.5;
+      ctx.setLineDash(desired.valid ? [10, 7] : [4, 7]);
+      ctx.beginPath();
+      const midX = (playerPos.x + targetPos.x) * 0.5;
+      const midY = (playerPos.y + targetPos.y) * 0.5 - (desired.kind === "bond" ? 58 : 28);
+      ctx.moveTo(playerPos.x, playerPos.y);
+      ctx.quadraticCurveTo(midX, midY, targetPos.x, targetPos.y);
+      ctx.stroke();
+      ctx.restore();
+
+      drawGlowCircle(targetPos.x, targetPos.y, desired.valid ? 14 : 9, color, desired.valid ? "rgba(255,211,109,0.13)" : "rgba(255,92,122,0.10)", 13, 2);
+    }
+
+    function drawPlayer() {
+      const player = game.player;
+      const pos = playerPosition();
+      const energyColor = player.energy >= 4 ? palette.red : player.energy >= 3 ? palette.orange : player.energy >= 2 ? palette.yellow : palette.cyan;
+
+      ctx.save();
+      for (const point of player.trail) {
+        const alpha = clamp(point.life / 0.45, 0, 1);
+        ctx.globalAlpha = alpha * 0.58;
+        drawGlowCircle(point.x, point.y, 4 + alpha * 5, energyColor, "rgba(255,255,255,0.08)", 10, 1);
+      }
+      ctx.restore();
+
+      const flicker = player.invuln > 0 ? 0.45 + Math.sin(game.time * 40) * 0.35 : 1;
+      ctx.save();
+      ctx.globalAlpha = clamp(flicker, 0.22, 1);
+      drawGlowCircle(pos.x, pos.y, 13, energyColor, "rgba(240,252,255,0.96)", player.energy >= 4 ? 34 : 22, 3);
+      drawGlowCircle(pos.x, pos.y, 22 + Math.sin(game.time * 8) * 2, energyColor, null, 16, 1);
+
+      const spinAngle = game.time * 7 * player.spin;
+      const a = {
+        x: pos.x + Math.cos(spinAngle) * 22,
+        y: pos.y + Math.sin(spinAngle) * 22
+      };
+      const b = {
+        x: pos.x + Math.cos(spinAngle + Math.PI) * 22,
+        y: pos.y + Math.sin(spinAngle + Math.PI) * 22
+      };
+      drawGlowLine(a.x, a.y, b.x, b.y, player.spin > 0 ? palette.cyan : palette.purple, 2, 10);
+      ctx.restore();
+    }
+
+    function drawLabels() {
+      ctx.save();
+      ctx.font = "12px ui-monospace, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const atom of game.atoms) {
+        ctx.fillStyle = "rgba(206,245,255,0.82)";
+        ctx.shadowColor = atom.color;
+        ctx.shadowBlur = 8;
+        ctx.fillText(atom.name, atom.x, atom.y + atom.orbits[atom.orbits.length - 1].radius * atom.displayScale + 30);
+      }
+      ctx.restore();
+    }
+
+    function render() {
+      drawBackground();
+      for (let i = 0; i < game.atoms.length; i += 1) {
+        drawAtom(game.atoms[i], i);
+      }
+      drawPhotons();
+      drawTrafficParticles();
+      drawJumpPreview();
+      drawPlayer();
+      drawLabels();
+    }
+
+    function handleKeyDown(event) {
+      if (keys.has(event.code)) {
+        return;
+      }
+      keys.add(event.code);
+
+      if (event.code === "ArrowUp") {
+        setTargetMode("orbit", 1);
+      } else if (event.code === "ArrowDown") {
+        setTargetMode("orbit", -1);
+      } else if (event.code === "ArrowRight") {
+        setTargetMode("bond", 1);
+      } else if (event.code === "ArrowLeft") {
+        setTargetMode("bond", -1);
+      } else if (event.code === "Space") {
+        event.preventDefault();
+        attemptJump();
+      } else if (event.code === "KeyA") {
+        absorbPhoton();
+      } else if (event.code === "KeyE") {
+        emitEnergy();
+      } else if (event.code === "KeyS") {
+        flipSpin();
+      } else if (event.code === "KeyR") {
+        resetGame(true);
+      }
+    }
+
+    function handleKeyUp(event) {
+      keys.delete(event.code);
+    }
+
+    function handlePointerDown(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const pos = playerPosition();
+      const dx = x - pos.x;
+      const dy = y - pos.y;
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+        setTargetMode("bond", dx > 0 ? 1 : -1);
+      } else if (Math.abs(dy) > 40) {
+        setTargetMode("orbit", dy < 0 ? -1 : 1);
+      } else {
+        attemptJump();
+      }
+    }
+
+    function loop(now) {
+      const dt = clamp((now - lastTime) / 1000, 0, 0.033);
+      lastTime = now;
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    canvas.addEventListener("pointerdown", handlePointerDown);
+
+    createWorld();
+    resizeCanvas();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
