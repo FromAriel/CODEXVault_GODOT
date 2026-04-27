@@ -24,6 +24,12 @@ These scripts are designed to:
 ✔️ Set up robust, CI-friendly, reproducible dev environments  
 ✔️ Be modular and extensible to fit **any language stack** (not just Godot)
 
+
+I'll try to keep it upto date. The tools folder is just random stuff I'm hosting on my github page.
+https://fromariel.github.io/CODEXVault_GODOT/tools/glyphwars.html for example is a ASCII powered game. No Sprites used!
+https://fromariel.github.io/CODEXVault_GODOT/tools/ascii.html This is the best damn ASCII editor anyone ever asked for.
+https://fromariel.github.io/CODEXVault_GODOT/tools/askyvideo.html ASCII VIdeo codec and player.
+https://fromariel.github.io/CODEXVault_GODOT/tools/glyph.html Glyph mapping program.
 ---
 
 📂 FILE OVERVIEW
