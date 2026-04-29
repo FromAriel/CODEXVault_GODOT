@@ -1,0 +1,3806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RotoStick Pose Editor - Fixed Loader</title>
+  <style>
+    :root {
+      --bg: #090b12;
+      --panel: #121725;
+      --panel2: #182033;
+      --text: #f0f4ff;
+      --muted: #a8b3cf;
+      --accent: #73e8ff;
+      --accent2: #f470ff;
+      --warn: #ffd166;
+      --bad: #ff5c7a;
+      --good: #6dff9b;
+      --manual: #b084ff;
+      --estimated: #5ca8ff;
+      --line: #27314a;
+      --button: #242d46;
+      --buttonHover: #303b5b;
+      --shadow: rgba(0, 0, 0, 0.45);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(115, 232, 255, 0.13), transparent 32rem),
+        radial-gradient(circle at bottom right, rgba(244, 112, 255, 0.10), transparent 30rem),
+        var(--bg);
+      font-family: var(--sans);
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    select,
+    input[type="number"] {
+      color: var(--text);
+      background: var(--button);
+      border: 1px solid #3a466a;
+      border-radius: 10px;
+      padding: 8px 10px;
+      outline: none;
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease;
+      box-shadow: 0 4px 16px var(--shadow);
+    }
+
+    button:hover {
+      background: var(--buttonHover);
+      border-color: #596b9c;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #1e8aa5, #694bcf);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    button.danger {
+      background: #4a1e2c;
+      border-color: #a84058;
+    }
+
+    button.good {
+      background: #1e4a31;
+      border-color: #4cbe76;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    input[type="file"] {
+      max-width: 260px;
+      color: var(--muted);
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: auto auto auto auto auto auto auto auto 1fr;
+      gap: 10px;
+      align-items: end;
+      padding: 12px;
+      background: rgba(9, 11, 18, 0.92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      z-index: 3;
+    }
+
+    .topbar-group {
+      display: flex;
+      gap: 8px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) 340px;
+      gap: 12px;
+      padding: 12px;
+      min-height: 0;
+    }
+
+    .stage-panel,
+    .side-panel,
+    .timeline-panel {
+      background: rgba(18, 23, 37, 0.94);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 50px var(--shadow);
+    }
+
+    .stage-panel {
+      position: relative;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .stage-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
+        #060811;
+      background-size: 28px 28px;
+      background-position: 0 0, 0 14px, 14px -14px, -14px 0;
+    }
+
+    #mainCanvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      image-rendering: auto;
+      border-radius: 10px;
+      outline: 1px solid rgba(255, 255, 255, 0.08);
+      background: #05070d;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .stage-footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+      background: rgba(10, 13, 22, 0.62);
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .frame-readout {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .side-panel {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .section {
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 13px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .grid1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .tiny {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .timeline-panel {
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .timeline-controls {
+      display: grid;
+      grid-template-columns: auto auto auto auto 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #timelineCanvas {
+      width: 100%;
+      height: 44px;
+      border-radius: 10px;
+      background: #070a12;
+      border: 1px solid #27314a;
+      cursor: pointer;
+    }
+
+    .progress-wrap {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    progress {
+      width: 100%;
+      height: 14px;
+      accent-color: #73e8ff;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #202945;
+      color: var(--muted);
+      font-size: 12px;
+      border: 1px solid #3a466a;
+    }
+
+    video {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .stage-panel {
+        min-height: 62vh;
+      }
+
+      .timeline-controls {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <label>
+        MP4 File
+        <input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/*" />
+      </label>
+
+      <label>
+        Model
+        <select id="modelSelect">
+          <option value="lite">Lite, fastest</option>
+          <option value="full" selected>Full, balanced</option>
+          <option value="heavy">Heavy, slower</option>
+        </select>
+      </label>
+
+      <label>
+        Figures
+        <select id="maxFigures">
+          <option value="1">1 figure</option>
+          <option value="2" selected>2 figures</option>
+        </select>
+      </label>
+
+      <label>
+        Analyze FPS
+        <select id="analysisFps">
+          <option value="8">8</option>
+          <option value="12" selected>12</option>
+          <option value="15">15</option>
+          <option value="24">24</option>
+          <option value="30">30</option>
+          <option value="60">60</option>
+        </select>
+      </label>
+
+      <label>
+        Export FPS
+        <select id="exportFps">
+          <option value="8">8</option>
+          <option value="12" selected>12</option>
+          <option value="15">15</option>
+          <option value="24">24</option>
+          <option value="30">30</option>
+          <option value="60">60</option>
+        </select>
+      </label>
+
+      <label>
+        View
+        <select id="viewMode">
+          <option value="overlay" selected>Video + Stick</option>
+          <option value="video">Video Only</option>
+          <option value="stick">Stick Only</option>
+        </select>
+      </label>
+
+      <label>
+        Tool
+        <select id="toolMode">
+          <option value="drag-joints" selected>Drag Joints</option>
+          <option value="draw-segment">Draw Segment</option>
+          <option value="move-pose">Move Whole Pose</option>
+        </select>
+      </label>
+
+      <div class="topbar-group">
+        <button id="analyzeButton" class="primary">Analyze Video</button>
+        <button id="exportButton" class="good">Export Pose JSON</button>
+      </div>
+
+      <div class="progress-wrap">
+        <progress id="progressBar" value="0" max="1"></progress>
+        <span id="progressText" class="pill">Idle</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="stage-panel">
+        <div class="stage-wrap">
+          <canvas id="mainCanvas" width="1280" height="720"></canvas>
+          <video id="sourceVideo" muted playsinline preload="metadata"></video>
+        </div>
+
+        <footer class="stage-footer">
+          <div id="statusText" class="status">Load an MP4. If it fails, the app now reports the real browser video error.</div>
+          <div id="frameReadout" class="frame-readout">frame 0 / 0 | 0.000s</div>
+        </footer>
+      </section>
+
+      <aside class="side-panel">
+        <div class="section">
+          <h2>Selected Figure</h2>
+          <div class="grid2">
+            <label>
+              Track
+              <select id="trackSelect">
+                <option value="figure-1">Figure 1</option>
+                <option value="figure-2">Figure 2</option>
+              </select>
+            </label>
+
+            <label>
+              Segment
+              <select id="segmentSelect"></select>
+            </label>
+          </div>
+
+          <p class="tiny">
+            For failed frames, press Interpolate Current. It finds the nearest previous and next usable poses for the selected track, creates a starting skeleton, then you can drag joints, draw segments, or move the whole pose.
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>Frame Navigation</h2>
+          <div class="grid2">
+            <button id="prevFrameButton">Prev Frame</button>
+            <button id="nextFrameButton">Next Frame</button>
+            <button id="prevBadButton">Prev Bad</button>
+            <button id="nextBadButton">Next Bad</button>
+            <button id="prevGoodButton">Prev Good</button>
+            <button id="nextGoodButton">Next Good</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Manual Repair</h2>
+          <div class="grid1">
+            <button id="interpolateButton" class="primary">Interpolate Current</button>
+            <button id="copyPreviousButton">Copy Previous Good</button>
+            <button id="swapTracksButton">Swap Tracks From Here</button>
+            <button id="deleteFigureButton" class="danger">Delete Selected Figure On Frame</button>
+            <button id="markManualButton">Mark Selected Figure Manual</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Playback</h2>
+          <div class="grid2">
+            <button id="playButton">Play Preview</button>
+            <button id="pauseButton">Pause</button>
+          </div>
+
+          <label style="margin-top: 8px;">
+            Frame
+            <input id="frameSlider" type="range" min="0" max="0" value="0" step="1" />
+          </label>
+        </div>
+
+        <div class="section">
+          <h2>Detection Tuning</h2>
+          <div class="grid1">
+            <label>
+              Bad Frame Confidence Threshold
+              <input id="badThreshold" type="number" min="0" max="1" value="0.35" step="0.05" />
+            </label>
+
+            <label>
+              Export Interpolation
+              <select id="exportInterpolation">
+                <option value="always" selected>Always interpolate between nearest poses</option>
+                <option value="onlyManualAuto">Interpolate only when both sides exist</option>
+                <option value="nearest">Nearest pose only</option>
+              </select>
+            </label>
+
+            <label>
+              Export Background
+              <select id="exportBackground">
+                <option value="transparent" selected>Transparent</option>
+                <option value="solid">Solid dark</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Legend</h2>
+          <div class="legend">
+            <span class="legend-item"><i class="swatch" style="background: var(--good);"></i> Good auto</span>
+            <span class="legend-item"><i class="swatch" style="background: var(--warn);"></i> Low confidence</span>
+            <span class="legend-item"><i class="swatch" style="background: var(--bad);"></i> Missing</span>
+            <span class="legend-item"><i class="swatch" style="background: var(--manual);"></i> Manual</span>
+            <span class="legend-item"><i class="swatch" style="background: var(--estimated);"></i> Estimated</span>
+            <span class="legend-item"><i class="swatch" style="background: #ff9f1c;"></i> Conflict</span>
+            <span class="legend-item"><i class="swatch" style="background: #ffffff;"></i> Current</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Shortcuts</h2>
+          <p class="tiny">
+            Left/Right: previous/next frame. Space: play/pause. I: interpolate current. C: copy previous good. S: swap tracks from here. Delete: remove selected figure on this frame.
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <section class="timeline-panel">
+      <div class="timeline-controls">
+        <button id="jumpStartButton">Start</button>
+        <button id="jumpEndButton">End</button>
+        <button id="downloadFrameButton">Save Current PNG</button>
+        <button id="downloadSequenceButton">Save PNG ZIP</button>
+        <button id="downloadGifButton">Save GIF</button>
+        <button id="downloadApngButton">Save APNG</button>
+        <button id="clearButton" class="danger">Clear Pose Data</button>
+        <span id="clipInfo" class="tiny">No clip loaded.</span>
+        <span id="trackInfo" class="pill">0 tracks</span>
+        <span id="frameInfo" class="pill">0 frames</span>
+      </div>
+
+      <canvas id="timelineCanvas" width="1200" height="44"></canvas>
+    </section>
+  </div>
+
+  <script type="module">
+    import {
+      FilesetResolver,
+      PoseLandmarker
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs";
+
+    const MODEL_URLS = {
+      lite: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+      full: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
+      heavy: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task"
+    };
+
+    const WASM_ROOT = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+    const GIF_JS_URL = "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js";
+    const GIF_JS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js";
+
+    const POSE_LANDMARK_NAMES = [
+      "nose",
+      "left_eye_inner",
+      "left_eye",
+      "left_eye_outer",
+      "right_eye_inner",
+      "right_eye",
+      "right_eye_outer",
+      "left_ear",
+      "right_ear",
+      "mouth_left",
+      "mouth_right",
+      "left_shoulder",
+      "right_shoulder",
+      "left_elbow",
+      "right_elbow",
+      "left_wrist",
+      "right_wrist",
+      "left_pinky",
+      "right_pinky",
+      "left_index",
+      "right_index",
+      "left_thumb",
+      "right_thumb",
+      "left_hip",
+      "right_hip",
+      "left_knee",
+      "right_knee",
+      "left_ankle",
+      "right_ankle",
+      "left_heel",
+      "right_heel",
+      "left_foot_index",
+      "right_foot_index"
+    ];
+
+    const CORE_CONFIDENCE_INDICES = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+
+    const EDITABLE_POINT_INDICES = [
+      0,
+      7,
+      8,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      19,
+      20,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      31,
+      32
+    ];
+
+    const STICK_SEGMENTS = [
+      { id: "head-left-shoulder", label: "head → left shoulder", a: 0, b: 11 },
+      { id: "head-right-shoulder", label: "head → right shoulder", a: 0, b: 12 },
+      { id: "shoulders", label: "left shoulder → right shoulder", a: 11, b: 12 },
+      { id: "left-upper-arm", label: "left shoulder → left elbow", a: 11, b: 13 },
+      { id: "left-forearm", label: "left elbow → left wrist", a: 13, b: 15 },
+      { id: "right-upper-arm", label: "right shoulder → right elbow", a: 12, b: 14 },
+      { id: "right-forearm", label: "right elbow → right wrist", a: 14, b: 16 },
+      { id: "left-hand", label: "left wrist → left index", a: 15, b: 19 },
+      { id: "right-hand", label: "right wrist → right index", a: 16, b: 20 },
+      { id: "left-torso", label: "left shoulder → left hip", a: 11, b: 23 },
+      { id: "right-torso", label: "right shoulder → right hip", a: 12, b: 24 },
+      { id: "hips", label: "left hip → right hip", a: 23, b: 24 },
+      { id: "left-thigh", label: "left hip → left knee", a: 23, b: 25 },
+      { id: "left-shin", label: "left knee → left ankle", a: 25, b: 27 },
+      { id: "right-thigh", label: "right hip → right knee", a: 24, b: 26 },
+      { id: "right-shin", label: "right knee → right ankle", a: 26, b: 28 },
+      { id: "left-foot", label: "left ankle → left foot", a: 27, b: 31 },
+      { id: "right-foot", label: "right ankle → right foot", a: 28, b: 32 }
+    ];
+
+    const TRACK_COLORS = {
+      "figure-1": "#73e8ff",
+      "figure-2": "#f470ff"
+    };
+
+    const SOURCE_COLORS = {
+      mediapipe: "#6dff9b",
+      manual: "#b084ff",
+      interpolated: "#5ca8ff",
+      estimated: "#ffd166",
+      swap: "#ff9f1c",
+      empty: "#ff5c7a"
+    };
+
+    const RENDER_SEGMENTS = [
+      ["neck", "right_shoulder", "right_elbow", "right_wrist", "right_hand"],
+      ["neck", "left_shoulder", "left_elbow", "left_wrist", "left_hand"],
+      ["neck", "hip"],
+      ["hip", "right_knee", "right_ankle", "right_foot"],
+      ["hip", "left_knee", "left_ankle", "left_foot"]
+    ];
+
+    const TRACKING = {
+      maxAssignmentCost: 1.05,
+      highAssignmentCost: 0.78,
+      ambiguousMargin: 0.08,
+      missingAssignmentCost: 0.92,
+      missingGraceFrames: 2,
+      bboxPointConfidence: 0.18
+    };
+
+    const state = {
+      videoObjectUrl: "",
+      videoName: "",
+      durationSec: 0,
+      videoWidth: 1280,
+      videoHeight: 720,
+      analysisFps: 12,
+      exportFps: 12,
+      maxFigures: 2,
+      currentFrameIndex: 0,
+      poseFrames: [],
+      tracks: ["figure-1", "figure-2"],
+      poseLandmarker: null,
+      visionResolver: null,
+      currentModelKey: "",
+      currentMaxFiguresForModel: 0,
+      isAnalyzing: false,
+      isPreviewPlaying: false,
+      loadGeneration: 0,
+      analysisGeneration: 0,
+      isExporting: false,
+      gifWorkerObjectUrl: "",
+      lastAnimationRequest: 0,
+      dragState: null,
+      drawPreview: null
+    };
+
+    const ui = {
+      videoFile: byId("videoFile"),
+      sourceVideo: byId("sourceVideo"),
+      mainCanvas: byId("mainCanvas"),
+      timelineCanvas: byId("timelineCanvas"),
+      modelSelect: byId("modelSelect"),
+      maxFigures: byId("maxFigures"),
+      analysisFps: byId("analysisFps"),
+      exportFps: byId("exportFps"),
+      viewMode: byId("viewMode"),
+      toolMode: byId("toolMode"),
+      trackSelect: byId("trackSelect"),
+      segmentSelect: byId("segmentSelect"),
+      analyzeButton: byId("analyzeButton"),
+      exportButton: byId("exportButton"),
+      progressBar: byId("progressBar"),
+      progressText: byId("progressText"),
+      statusText: byId("statusText"),
+      frameReadout: byId("frameReadout"),
+      frameSlider: byId("frameSlider"),
+      prevFrameButton: byId("prevFrameButton"),
+      nextFrameButton: byId("nextFrameButton"),
+      prevBadButton: byId("prevBadButton"),
+      nextBadButton: byId("nextBadButton"),
+      prevGoodButton: byId("prevGoodButton"),
+      nextGoodButton: byId("nextGoodButton"),
+      interpolateButton: byId("interpolateButton"),
+      copyPreviousButton: byId("copyPreviousButton"),
+      swapTracksButton: byId("swapTracksButton"),
+      deleteFigureButton: byId("deleteFigureButton"),
+      markManualButton: byId("markManualButton"),
+      playButton: byId("playButton"),
+      pauseButton: byId("pauseButton"),
+      jumpStartButton: byId("jumpStartButton"),
+      jumpEndButton: byId("jumpEndButton"),
+      clearButton: byId("clearButton"),
+      downloadFrameButton: byId("downloadFrameButton"),
+      downloadSequenceButton: byId("downloadSequenceButton"),
+      downloadGifButton: byId("downloadGifButton"),
+      downloadApngButton: byId("downloadApngButton"),
+      badThreshold: byId("badThreshold"),
+      exportInterpolation: byId("exportInterpolation"),
+      exportBackground: byId("exportBackground"),
+      clipInfo: byId("clipInfo"),
+      trackInfo: byId("trackInfo"),
+      frameInfo: byId("frameInfo")
+    };
+
+    const ctx = ui.mainCanvas.getContext("2d", { alpha: true });
+    const timelineCtx = ui.timelineCanvas.getContext("2d", { alpha: true });
+
+    initializeUI();
+
+    function byId(id) {
+      const element = document.getElementById(id);
+
+      if (!element) {
+        throw new Error(`Missing element #${id}`);
+      }
+
+      return element;
+    }
+
+    function initializeUI() {
+      populateSegmentSelect();
+      wireEvents();
+      updateCanvasSize(1280, 720);
+      render();
+      renderTimeline();
+    }
+
+    function populateSegmentSelect() {
+      ui.segmentSelect.innerHTML = "";
+
+      for (const segment of STICK_SEGMENTS) {
+        const option = document.createElement("option");
+        option.value = segment.id;
+        option.textContent = segment.label;
+        ui.segmentSelect.appendChild(option);
+      }
+    }
+
+    function wireEvents() {
+      ui.videoFile.addEventListener("change", onVideoFileChanged);
+      ui.analyzeButton.addEventListener("click", analyzeVideo);
+      ui.exportButton.addEventListener("click", exportPoseJson);
+
+      ui.viewMode.addEventListener("change", render);
+      ui.trackSelect.addEventListener("change", render);
+      ui.toolMode.addEventListener("change", render);
+      ui.segmentSelect.addEventListener("change", render);
+      ui.badThreshold.addEventListener("change", renderTimeline);
+
+      ui.analysisFps.addEventListener("change", () => {
+        state.analysisFps = parseFloat(ui.analysisFps.value);
+      });
+
+      ui.exportFps.addEventListener("change", () => {
+        state.exportFps = parseFloat(ui.exportFps.value);
+      });
+
+      ui.maxFigures.addEventListener("change", () => {
+        state.maxFigures = parseInt(ui.maxFigures.value, 10);
+        state.tracks = makeTrackIds(state.maxFigures);
+        updateTrackOptions();
+        render();
+      });
+
+      ui.frameSlider.addEventListener("input", () => {
+        selectFrame(parseInt(ui.frameSlider.value, 10));
+      });
+
+      ui.prevFrameButton.addEventListener("click", () => selectFrame(state.currentFrameIndex - 1));
+      ui.nextFrameButton.addEventListener("click", () => selectFrame(state.currentFrameIndex + 1));
+      ui.prevBadButton.addEventListener("click", () => jumpToBadFrame(-1));
+      ui.nextBadButton.addEventListener("click", () => jumpToBadFrame(1));
+      ui.prevGoodButton.addEventListener("click", () => jumpToGoodFrame(-1));
+      ui.nextGoodButton.addEventListener("click", () => jumpToGoodFrame(1));
+
+      ui.interpolateButton.addEventListener("click", () => {
+        const figure = createInterpolatedFigureForCurrentFrame(getSelectedTrackId());
+        upsertFigureInCurrentFrame(figure);
+        markFrameEdited(state.currentFrameIndex, figure.trackId, "interpolated");
+        setStatus("Created an interpolated starting pose for this frame.");
+        render();
+        renderTimeline();
+      });
+
+      ui.copyPreviousButton.addEventListener("click", copyPreviousGoodFigureIntoCurrentFrame);
+      ui.swapTracksButton.addEventListener("click", swapTracksFromCurrentFrame);
+      ui.deleteFigureButton.addEventListener("click", deleteSelectedFigureOnCurrentFrame);
+
+      ui.markManualButton.addEventListener("click", () => {
+        const frame = getCurrentFrame();
+
+        if (!frame) {
+          return;
+        }
+
+        const figure = getFigureFromFrame(frame, getSelectedTrackId());
+
+        if (!figure) {
+          setStatus("No selected figure exists on this frame.");
+          return;
+        }
+
+        markFrameEdited(state.currentFrameIndex, figure.trackId, "manual");
+        setStatus("Selected figure marked manual.");
+        render();
+        renderTimeline();
+      });
+
+      ui.playButton.addEventListener("click", playPreview);
+      ui.pauseButton.addEventListener("click", pausePreview);
+      ui.jumpStartButton.addEventListener("click", () => selectFrame(0));
+      ui.jumpEndButton.addEventListener("click", () => selectFrame(state.poseFrames.length - 1));
+      ui.clearButton.addEventListener("click", clearPoseData);
+      ui.downloadFrameButton.addEventListener("click", downloadCurrentCanvasPng);
+      ui.downloadSequenceButton.addEventListener("click", () => exportRenderedAnimation("png-sequence"));
+      ui.downloadGifButton.addEventListener("click", () => exportRenderedAnimation("gif"));
+      ui.downloadApngButton.addEventListener("click", () => exportRenderedAnimation("apng"));
+
+      ui.mainCanvas.addEventListener("pointerdown", onCanvasPointerDown);
+      window.addEventListener("pointermove", onCanvasPointerMove);
+      window.addEventListener("pointerup", onCanvasPointerUp);
+      window.addEventListener("pointercancel", onCanvasPointerUp);
+      ui.timelineCanvas.addEventListener("click", onTimelineClicked);
+
+      window.addEventListener("resize", () => {
+        render();
+        renderTimeline();
+      });
+
+      window.addEventListener("keydown", onKeyDown);
+    }
+
+    function updateTrackOptions() {
+      ui.trackSelect.innerHTML = "";
+
+      for (const trackId of state.tracks) {
+        const option = document.createElement("option");
+        option.value = trackId;
+        option.textContent = trackId === "figure-1" ? "Figure 1" : "Figure 2";
+        ui.trackSelect.appendChild(option);
+      }
+    }
+
+    async function onVideoFileChanged(event) {
+      const file = event.target.files && event.target.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      await loadVideoFile(file);
+    }
+
+    async function loadVideoFile(file) {
+      const loadToken = beginNewVideoLoad(file.name);
+      pausePreview();
+
+      if (state.videoObjectUrl) {
+        URL.revokeObjectURL(state.videoObjectUrl);
+        state.videoObjectUrl = "";
+      }
+
+      resetVideoElement();
+
+      const guessedType = file.type || guessMimeFromFilename(file.name);
+      const support = guessedType ? ui.sourceVideo.canPlayType(guessedType) : "";
+
+      state.videoName = file.name;
+      setStatus(`Loading video: ${file.name}`);
+
+      if (guessedType && support === "") {
+        setStatus(`Trying to load "${file.name}", but browser reports weak/no support for ${guessedType}. If it fails, transcode to H.264 MP4.`);
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+
+      try {
+        await setVideoSourceAndWaitForMetadata(objectUrl);
+        if (!isCurrentLoad(loadToken)) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+
+        state.videoObjectUrl = objectUrl;
+      } catch (error) {
+        if (!isCurrentLoad(loadToken)) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+
+        URL.revokeObjectURL(objectUrl);
+        state.videoObjectUrl = "";
+        resetVideoElement();
+        resetClipMetadata();
+
+        const diagnostic = [
+          `Video load failed for "${file.name}".`,
+          `Browser media error: ${describeVideoError(ui.sourceVideo)}`,
+          `File type from browser: ${file.type || "unknown"}.`,
+          `Guessed type: ${guessedType || "unknown"}.`,
+          `canPlayType result: ${support || "empty / unsupported"}.`,
+          `Most likely fix: transcode to H.264/AAC MP4 using: ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac output_h264.mp4`
+        ].join(" ");
+
+        console.error(error);
+        console.error(diagnostic);
+        setStatus(diagnostic);
+        return;
+      }
+
+      state.durationSec = ui.sourceVideo.duration || 0;
+      state.videoWidth = ui.sourceVideo.videoWidth || 1280;
+      state.videoHeight = ui.sourceVideo.videoHeight || 720;
+
+      updateCanvasSize(state.videoWidth, state.videoHeight);
+      await seekVideo(0, loadToken);
+
+      if (!isCurrentLoad(loadToken)) {
+        return;
+      }
+
+      ui.clipInfo.textContent = `${state.videoName} | ${state.videoWidth}x${state.videoHeight} | ${state.durationSec.toFixed(3)}s | ${guessedType || "unknown type"} | ${support || "canPlayType empty"}`;
+      setStatus("Video loaded. Choose analysis FPS, then analyze.");
+      updateFrameUI();
+      render();
+      renderTimeline();
+    }
+
+    function beginNewVideoLoad(videoName) {
+      state.loadGeneration += 1;
+      state.analysisGeneration += 1;
+      state.isAnalyzing = false;
+      state.dragState = null;
+      state.drawPreview = null;
+      resetVideoElement();
+      resetClipMetadata();
+      clearPoseData(false, false);
+      ui.clipInfo.textContent = `Loading ${videoName}...`;
+      return state.loadGeneration;
+    }
+
+    function resetClipMetadata() {
+      state.videoName = "";
+      state.durationSec = 0;
+      state.videoWidth = 1280;
+      state.videoHeight = 720;
+      updateCanvasSize(state.videoWidth, state.videoHeight);
+      ui.clipInfo.textContent = "No clip loaded.";
+    }
+
+    function isCurrentLoad(loadToken) {
+      return loadToken === state.loadGeneration;
+    }
+
+    function isCurrentAnalysis(analysisToken, loadToken) {
+      return analysisToken === state.analysisGeneration && isCurrentLoad(loadToken);
+    }
+
+    function guessMimeFromFilename(filename) {
+      const lower = filename.toLowerCase();
+
+      if (lower.endsWith(".mp4") || lower.endsWith(".m4v")) {
+        return "video/mp4";
+      }
+
+      if (lower.endsWith(".webm")) {
+        return "video/webm";
+      }
+
+      if (lower.endsWith(".mov") || lower.endsWith(".qt")) {
+        return "video/quicktime";
+      }
+
+      if (lower.endsWith(".ogg") || lower.endsWith(".ogv")) {
+        return "video/ogg";
+      }
+
+      return "";
+    }
+
+    function resetVideoElement() {
+      ui.sourceVideo.pause();
+      ui.sourceVideo.removeAttribute("src");
+      ui.sourceVideo.load();
+    }
+
+    function setVideoSourceAndWaitForMetadata(url) {
+      const video = ui.sourceVideo;
+
+      video.pause();
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        let timeoutId = 0;
+
+        const cleanup = () => {
+          video.removeEventListener("loadedmetadata", onReady);
+          video.removeEventListener("durationchange", onReady);
+          video.removeEventListener("canplay", onReady);
+          video.removeEventListener("error", onError);
+          window.clearTimeout(timeoutId);
+        };
+
+        const finishResolve = () => {
+          if (settled) {
+            return;
+          }
+
+          if (video.readyState >= 1 && video.videoWidth > 0 && Number.isFinite(video.duration)) {
+            settled = true;
+            cleanup();
+            resolve();
+          }
+        };
+
+        const finishReject = (message) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          cleanup();
+          reject(new Error(message));
+        };
+
+        const onReady = () => {
+          finishResolve();
+        };
+
+        const onError = () => {
+          finishReject(`Video element error: ${describeVideoError(video)}`);
+        };
+
+        video.addEventListener("loadedmetadata", onReady);
+        video.addEventListener("durationchange", onReady);
+        video.addEventListener("canplay", onReady);
+        video.addEventListener("error", onError);
+
+        timeoutId = window.setTimeout(() => {
+          finishReject(`Timed out waiting for video metadata. ${describeVideoError(video)}`);
+        }, 12000);
+
+        video.src = url;
+        video.load();
+
+        window.setTimeout(finishResolve, 0);
+      });
+    }
+
+    function describeVideoError(video) {
+      if (!video.error) {
+        return "no MediaError object";
+      }
+
+      const code = video.error.code;
+      let name = "UNKNOWN";
+
+      if (code === 1) {
+        name = "MEDIA_ERR_ABORTED";
+      } else if (code === 2) {
+        name = "MEDIA_ERR_NETWORK";
+      } else if (code === 3) {
+        name = "MEDIA_ERR_DECODE";
+      } else if (code === 4) {
+        name = "MEDIA_ERR_SRC_NOT_SUPPORTED";
+      }
+
+      const message = video.error.message || "no browser message";
+      return `${name} (${code}): ${message}`;
+    }
+
+    function seekVideo(timeSec, loadToken = state.loadGeneration) {
+      return new Promise((resolve, reject) => {
+        const video = ui.sourceVideo;
+        const safeDuration = Math.max(0, state.durationSec || video.duration || 0);
+        const target = clamp(timeSec, 0, Math.max(0, safeDuration - 0.0005));
+
+        if (!isCurrentLoad(loadToken)) {
+          reject(createAbortError("Stale video seek ignored."));
+          return;
+        }
+
+        if (!Number.isFinite(target)) {
+          resolve();
+          return;
+        }
+
+        if (Math.abs(video.currentTime - target) < 0.001 && video.readyState >= 2) {
+          requestAnimationFrame(() => {
+            if (isCurrentLoad(loadToken)) {
+              resolve();
+            } else {
+              reject(createAbortError("Stale video seek ignored."));
+            }
+          });
+          return;
+        }
+
+        let settled = false;
+        let timeoutId = 0;
+
+        const cleanup = () => {
+          video.removeEventListener("seeked", onSeeked);
+          video.removeEventListener("canplay", onSeeked);
+          video.removeEventListener("error", onError);
+          window.clearTimeout(timeoutId);
+        };
+
+        const finish = () => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          cleanup();
+          requestAnimationFrame(() => {
+            if (isCurrentLoad(loadToken)) {
+              resolve();
+            } else {
+              reject(createAbortError("Stale video seek ignored."));
+            }
+          });
+        };
+
+        const onSeeked = () => finish();
+
+        const onError = () => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          cleanup();
+          reject(new Error(`Video seek failed. ${describeVideoError(video)}`));
+        };
+
+        timeoutId = window.setTimeout(finish, 2000);
+        video.addEventListener("seeked", onSeeked, { once: true });
+        video.addEventListener("canplay", onSeeked, { once: true });
+        video.addEventListener("error", onError, { once: true });
+
+        try {
+          if (!isCurrentLoad(loadToken)) {
+            cleanup();
+            reject(createAbortError("Stale video seek ignored."));
+            return;
+          }
+
+          video.currentTime = target;
+        } catch (error) {
+          cleanup();
+          reject(error);
+        }
+      });
+    }
+
+    function updateCanvasSize(width, height) {
+      ui.mainCanvas.width = Math.max(1, Math.floor(width));
+      ui.mainCanvas.height = Math.max(1, Math.floor(height));
+    }
+
+    async function initializePoseLandmarker() {
+      const modelKey = ui.modelSelect.value;
+      const maxFigures = parseInt(ui.maxFigures.value, 10);
+
+      if (
+        state.poseLandmarker &&
+        state.currentModelKey === modelKey &&
+        state.currentMaxFiguresForModel === maxFigures
+      ) {
+        return;
+      }
+
+      if (state.poseLandmarker && typeof state.poseLandmarker.close === "function") {
+        state.poseLandmarker.close();
+      }
+
+      setStatus("Loading MediaPipe Pose Landmarker...");
+
+      if (!state.visionResolver) {
+        state.visionResolver = await FilesetResolver.forVisionTasks(WASM_ROOT);
+      }
+
+      const options = {
+        baseOptions: {
+          modelAssetPath: MODEL_URLS[modelKey],
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numPoses: maxFigures,
+        minPoseDetectionConfidence: 0.35,
+        minPosePresenceConfidence: 0.35,
+        minTrackingConfidence: 0.35,
+        outputSegmentationMasks: false
+      };
+
+      try {
+        state.poseLandmarker = await PoseLandmarker.createFromOptions(state.visionResolver, options);
+      } catch (gpuError) {
+        console.warn("GPU delegate failed. Falling back to CPU.", gpuError);
+
+        const cpuOptions = structuredClone(options);
+        cpuOptions.baseOptions.delegate = "CPU";
+        state.poseLandmarker = await PoseLandmarker.createFromOptions(state.visionResolver, cpuOptions);
+      }
+
+      state.currentModelKey = modelKey;
+      state.currentMaxFiguresForModel = maxFigures;
+      setStatus("MediaPipe ready.");
+    }
+
+    async function analyzeVideo() {
+      if (!ui.sourceVideo.src || !state.durationSec) {
+        setStatus("Load an MP4 first. If loading failed, check the status text for codec details.");
+        return;
+      }
+
+      if (state.isAnalyzing) {
+        setStatus("Analysis already running.");
+        return;
+      }
+
+      state.isAnalyzing = true;
+      pausePreview();
+      const loadToken = state.loadGeneration;
+      const analysisToken = ++state.analysisGeneration;
+
+      try {
+        state.analysisFps = parseFloat(ui.analysisFps.value);
+        state.maxFigures = parseInt(ui.maxFigures.value, 10);
+        state.tracks = makeTrackIds(state.maxFigures);
+        updateTrackOptions();
+
+        await initializePoseLandmarker();
+
+        const totalFrames = Math.max(1, Math.ceil(state.durationSec * state.analysisFps));
+        const frames = [];
+        const trackStates = createTrackStates(state.maxFigures);
+
+        ui.progressBar.value = 0;
+        ui.progressText.textContent = "Analyzing";
+        setStatus(`Analyzing ${totalFrames} pose frames at ${state.analysisFps} fps...`);
+
+        for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
+          throwIfStaleAnalysis(analysisToken, loadToken);
+
+          const timeSec = clamp(frameIndex / state.analysisFps, 0, Math.max(0, state.durationSec - 0.0005));
+          await seekVideo(timeSec, loadToken);
+          throwIfStaleAnalysis(analysisToken, loadToken);
+
+          const result = detectPoseForCurrentVideoFrame(timeSec);
+          const rawLandmarkSets = getLandmarkSetsFromResult(result);
+          const rawWorldLandmarkSets = getWorldLandmarkSetsFromResult(result);
+
+          const detections = rawLandmarkSets.map((landmarks, index) => {
+            const worldLandmarks = rawWorldLandmarkSets[index] || null;
+            return makeFigureFromLandmarks(landmarks, worldLandmarks, "mediapipe");
+          });
+
+          const assignment = assignTracks(detections, trackStates, state.maxFigures);
+          const assignedFigures = assignment.figures;
+
+          frames.push({
+            timeSec,
+            frameIndex,
+            source: assignedFigures.length > 0 ? "mediapipe" : "empty",
+            userEdited: false,
+            figures: assignedFigures,
+            confidence: computeFrameConfidence(assignedFigures),
+            conflictReasons: assignment.conflictReasons
+          });
+
+          ui.progressBar.value = (frameIndex + 1) / totalFrames;
+          ui.progressText.textContent = `${frameIndex + 1}/${totalFrames}`;
+
+          if (frameIndex % 3 === 0) {
+            throwIfStaleAnalysis(analysisToken, loadToken);
+            state.poseFrames = frames;
+            state.currentFrameIndex = frameIndex;
+            updateFrameUI();
+            render();
+            renderTimeline();
+            await waitOneFrame();
+          }
+        }
+
+        throwIfStaleAnalysis(analysisToken, loadToken);
+        state.poseFrames = frames;
+        state.currentFrameIndex = 0;
+        ui.frameSlider.max = String(Math.max(0, state.poseFrames.length - 1));
+        ui.frameSlider.value = "0";
+
+        await seekVideo(0, loadToken);
+        throwIfStaleAnalysis(analysisToken, loadToken);
+
+        setStatus(`Analysis complete. ${state.poseFrames.length} pose frames created. Red/yellow frames are the ones to repair.`);
+        ui.progressText.textContent = "Done";
+        updateFrameUI();
+        render();
+        renderTimeline();
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+
+        console.error(error);
+        setStatus(`Analysis failed: ${error.message}`);
+        ui.progressText.textContent = "Failed";
+      } finally {
+        if (analysisToken === state.analysisGeneration) {
+          state.isAnalyzing = false;
+        }
+      }
+    }
+
+    function throwIfStaleAnalysis(analysisToken, loadToken) {
+      if (!isCurrentAnalysis(analysisToken, loadToken)) {
+        throw createAbortError("Stale analysis ignored.");
+      }
+    }
+
+    function detectPoseForCurrentVideoFrame(timeSec) {
+      if (!state.poseLandmarker) {
+        throw new Error("Pose landmarker is not initialized.");
+      }
+
+      const timestampMs = Math.round(timeSec * 1000);
+
+      try {
+        return state.poseLandmarker.detectForVideo(ui.sourceVideo, timestampMs);
+      } catch (withTimestampError) {
+        console.warn("detectForVideo(video, timestamp) failed. Trying detectForVideo(video).", withTimestampError);
+        return state.poseLandmarker.detectForVideo(ui.sourceVideo);
+      }
+    }
+
+    function getLandmarkSetsFromResult(result) {
+      if (!result) {
+        return [];
+      }
+
+      if (Array.isArray(result.landmarks)) {
+        return result.landmarks;
+      }
+
+      if (Array.isArray(result.poseLandmarks)) {
+        return result.poseLandmarks;
+      }
+
+      if (Array.isArray(result.pose_landmarks)) {
+        return result.pose_landmarks;
+      }
+
+      return [];
+    }
+
+    function getWorldLandmarkSetsFromResult(result) {
+      if (!result) {
+        return [];
+      }
+
+      if (Array.isArray(result.worldLandmarks)) {
+        return result.worldLandmarks;
+      }
+
+      if (Array.isArray(result.poseWorldLandmarks)) {
+        return result.poseWorldLandmarks;
+      }
+
+      if (Array.isArray(result.pose_world_landmarks)) {
+        return result.pose_world_landmarks;
+      }
+
+      return [];
+    }
+
+    function makeFigureFromLandmarks(landmarks, worldLandmarks, source) {
+      const points = [];
+
+      for (let index = 0; index < POSE_LANDMARK_NAMES.length; index += 1) {
+        const point = landmarks[index] || {};
+        const worldPoint = worldLandmarks && worldLandmarks[index] ? worldLandmarks[index] : null;
+        const confidence = getPointConfidence(point);
+
+        points.push({
+          index,
+          name: POSE_LANDMARK_NAMES[index],
+          x: finiteOr(point.x, 0.5),
+          y: finiteOr(point.y, 0.5),
+          z: finiteOr(point.z, 0),
+          worldX: worldPoint ? finiteOr(worldPoint.x, 0) : null,
+          worldY: worldPoint ? finiteOr(worldPoint.y, 0) : null,
+          worldZ: worldPoint ? finiteOr(worldPoint.z, 0) : null,
+          visibility: finiteOr(point.visibility, confidence),
+          presence: finiteOr(point.presence, confidence),
+          confidence,
+          source
+        });
+      }
+
+      return {
+        trackId: "unassigned",
+        points,
+        bbox: computeFigureBbox(points),
+        confidence: computeFigureConfidenceFromPoints(points),
+        source
+      };
+    }
+
+    function getPointConfidence(point) {
+      const visibility = finiteOr(point.visibility, NaN);
+      const presence = finiteOr(point.presence, NaN);
+
+      if (Number.isFinite(visibility) && Number.isFinite(presence)) {
+        return clamp((visibility + presence) * 0.5, 0, 1);
+      }
+
+      if (Number.isFinite(visibility)) {
+        return clamp(visibility, 0, 1);
+      }
+
+      if (Number.isFinite(presence)) {
+        return clamp(presence, 0, 1);
+      }
+
+      return 1;
+    }
+
+    function createTrackStates(maxFigures) {
+      const trackIds = makeTrackIds(maxFigures);
+
+      return trackIds.map((trackId, index) => ({
+        trackId,
+        trackIndex: index,
+        initialized: false,
+        lastFigure: null,
+        lastBbox: null,
+        previousBbox: null,
+        missingCount: 0
+      }));
+    }
+
+    function assignTracks(detections, trackStates, maxFigures) {
+      const trackIds = makeTrackIds(maxFigures);
+      const preparedDetections = detections
+        .map((figure, index) => ({
+          figure: withComputedBbox(figure),
+          index
+        }))
+        .filter((item) => item.figure.bbox)
+        .sort((a, b) => getFigureCenter(a.figure).x - getFigureCenter(b.figure).x);
+
+      if (!trackStates.some((trackState) => trackState.initialized)) {
+        return seedTrackAssignments(preparedDetections, trackStates, trackIds);
+      }
+
+      const predictedBboxes = trackStates.map((trackState) => predictTrackBbox(trackState));
+      const costMatrix = trackStates.map((trackState, trackIndex) =>
+        preparedDetections.map((detection) =>
+          computeAssignmentCost(trackState, detection.figure, predictedBboxes[trackIndex])
+        )
+      );
+      const assignments = solveAssignment(costMatrix, trackStates.length, preparedDetections.length);
+      const figures = [];
+      const conflictReasons = new Set();
+      const ambiguous = hasAmbiguousAssignments(costMatrix, assignments);
+
+      if (ambiguous) {
+        conflictReasons.add("competing-detections");
+      }
+
+      for (let trackIndex = 0; trackIndex < trackStates.length; trackIndex += 1) {
+        const trackState = trackStates[trackIndex];
+        const detectionIndex = assignments[trackIndex];
+        const predictedBbox = predictedBboxes[trackIndex];
+
+        if (detectionIndex === null) {
+          markTrackMissing(trackState, predictedBbox);
+
+          if (trackState.missingCount > TRACKING.missingGraceFrames) {
+            conflictReasons.add("track-missing-beyond-grace");
+          }
+
+          continue;
+        }
+
+        const assignmentCost = costMatrix[trackIndex][detectionIndex];
+
+        if (assignmentCost > TRACKING.maxAssignmentCost) {
+          markTrackMissing(trackState, predictedBbox);
+          conflictReasons.add("high-assignment-cost");
+          continue;
+        }
+
+        const figure = cloneFigure(preparedDetections[detectionIndex].figure);
+        figure.trackId = trackState.trackId;
+        figure.assignmentCost = round6(assignmentCost);
+        figure.bbox = computeFigureBbox(figure.points);
+        updateTrackState(trackState, figure);
+        figures.push(figure);
+
+        if (assignmentCost >= TRACKING.highAssignmentCost) {
+          conflictReasons.add("high-assignment-cost");
+        }
+      }
+
+      figures.sort((a, b) => trackIds.indexOf(a.trackId) - trackIds.indexOf(b.trackId));
+
+      return {
+        figures,
+        conflictReasons: [...conflictReasons]
+      };
+    }
+
+    function seedTrackAssignments(preparedDetections, trackStates, trackIds) {
+      const figures = [];
+
+      for (let trackIndex = 0; trackIndex < trackStates.length; trackIndex += 1) {
+        const detection = preparedDetections[trackIndex];
+        const trackState = trackStates[trackIndex];
+
+        if (!detection) {
+          markTrackMissing(trackState, createDefaultTrackBbox(trackIndex, trackStates.length));
+          continue;
+        }
+
+        const figure = cloneFigure(detection.figure);
+        figure.trackId = trackState.trackId;
+        figure.assignmentCost = 0;
+        figure.bbox = computeFigureBbox(figure.points);
+        updateTrackState(trackState, figure);
+        figures.push(figure);
+      }
+
+      figures.sort((a, b) => trackIds.indexOf(a.trackId) - trackIds.indexOf(b.trackId));
+
+      return {
+        figures,
+        conflictReasons: []
+      };
+    }
+
+    function poseDistance(a, b) {
+      const indices = [0, 11, 12, 23, 24];
+      let total = 0;
+      let count = 0;
+
+      for (const index of indices) {
+        const pointA = a.points[index];
+        const pointB = b.points[index];
+
+        if (!pointA || !pointB) {
+          continue;
+        }
+
+        const dx = pointA.x - pointB.x;
+        const dy = pointA.y - pointB.y;
+        total += Math.sqrt(dx * dx + dy * dy);
+        count += 1;
+      }
+
+      if (count === 0) {
+        return Number.POSITIVE_INFINITY;
+      }
+
+      return total / count;
+    }
+
+    function withComputedBbox(figure) {
+      const nextFigure = cloneFigure(figure);
+      nextFigure.bbox = figure.bbox || computeFigureBbox(figure.points);
+      return nextFigure;
+    }
+
+    function computeFigureBbox(points) {
+      const usablePoints = points.filter((point) =>
+        point && finiteOr(point.confidence, 0) >= TRACKING.bboxPointConfidence
+      );
+
+      if (usablePoints.length < 4) {
+        return null;
+      }
+
+      const minX = Math.min(...usablePoints.map((point) => point.x));
+      const maxX = Math.max(...usablePoints.map((point) => point.x));
+      const minY = Math.min(...usablePoints.map((point) => point.y));
+      const maxY = Math.max(...usablePoints.map((point) => point.y));
+      const margin = 0.04;
+
+      return clampBbox({
+        x: clamp(minX - margin, 0, 1),
+        y: clamp(minY - margin, 0, 1),
+        width: clamp(maxX - minX + margin * 2, 0.03, 1),
+        height: clamp(maxY - minY + margin * 2, 0.03, 1)
+      });
+    }
+
+    function predictTrackBbox(trackState) {
+      if (trackState.lastBbox && trackState.previousBbox) {
+        const lastCenter = bboxCenter(trackState.lastBbox);
+        const previousCenter = bboxCenter(trackState.previousBbox);
+        const width = clamp(
+          trackState.lastBbox.width + (trackState.lastBbox.width - trackState.previousBbox.width) * 0.35,
+          0.03,
+          1
+        );
+        const height = clamp(
+          trackState.lastBbox.height + (trackState.lastBbox.height - trackState.previousBbox.height) * 0.35,
+          0.03,
+          1
+        );
+
+        return clampBbox({
+          x: lastCenter.x + (lastCenter.x - previousCenter.x) * 0.65 - width / 2,
+          y: lastCenter.y + (lastCenter.y - previousCenter.y) * 0.65 - height / 2,
+          width,
+          height
+        });
+      }
+
+      if (trackState.lastBbox) {
+        return trackState.lastBbox;
+      }
+
+      return createDefaultTrackBbox(trackState.trackIndex, state.maxFigures);
+    }
+
+    function createDefaultTrackBbox(trackIndex, trackCount) {
+      const width = 0.22;
+      const height = 0.7;
+      const centerX = ((trackIndex + 1) / (trackCount + 1));
+
+      return clampBbox({
+        x: centerX - width / 2,
+        y: 0.15,
+        width,
+        height
+      });
+    }
+
+    function updateTrackState(trackState, figure) {
+      trackState.initialized = true;
+      trackState.previousBbox = trackState.lastBbox || figure.bbox;
+      trackState.lastBbox = figure.bbox || computeFigureBbox(figure.points);
+      trackState.lastFigure = cloneFigure(figure);
+      trackState.missingCount = 0;
+    }
+
+    function markTrackMissing(trackState, fallbackBbox) {
+      trackState.initialized = true;
+      trackState.previousBbox = trackState.lastBbox || fallbackBbox;
+      trackState.lastBbox = fallbackBbox;
+      trackState.missingCount += 1;
+    }
+
+    function computeAssignmentCost(trackState, figure, predictedBbox) {
+      const figureBbox = figure.bbox || computeFigureBbox(figure.points);
+
+      if (!figureBbox || !predictedBbox) {
+        return Number.POSITIVE_INFINITY;
+      }
+
+      const centerPenalty = distanceBetweenPoints(bboxCenter(predictedBbox), bboxCenter(figureBbox));
+      const iouPenalty = 1 - computeBboxIoU(predictedBbox, figureBbox);
+      const scalePenalty = Math.abs(
+        Math.log((bboxArea(figureBbox) + 0.001) / (bboxArea(predictedBbox) + 0.001))
+      );
+      const shapePenalty = Math.min(1, poseDistance(trackState.lastFigure || figure, figure) / 0.35);
+
+      return centerPenalty * 1.3 + iouPenalty * 0.65 + scalePenalty * 0.18 + shapePenalty * 0.65;
+    }
+
+    function solveAssignment(costMatrix, trackCount, detectionCount) {
+      let bestCost = Number.POSITIVE_INFINITY;
+      let bestAssignment = Array(trackCount).fill(null);
+
+      function visit(trackIndex, usedDetections, runningCost, assignment) {
+        if (runningCost >= bestCost) {
+          return;
+        }
+
+        if (trackIndex === trackCount) {
+          bestCost = runningCost;
+          bestAssignment = [...assignment];
+          return;
+        }
+
+        assignment[trackIndex] = null;
+        visit(trackIndex + 1, usedDetections, runningCost + TRACKING.missingAssignmentCost, assignment);
+
+        for (let detectionIndex = 0; detectionIndex < detectionCount; detectionIndex += 1) {
+          if (usedDetections.has(detectionIndex)) {
+            continue;
+          }
+
+          usedDetections.add(detectionIndex);
+          assignment[trackIndex] = detectionIndex;
+          visit(trackIndex + 1, usedDetections, runningCost + costMatrix[trackIndex][detectionIndex], assignment);
+          usedDetections.delete(detectionIndex);
+        }
+      }
+
+      visit(0, new Set(), 0, Array(trackCount).fill(null));
+      return bestAssignment;
+    }
+
+    function hasAmbiguousAssignments(costMatrix, assignments) {
+      const detectionCount = costMatrix[0] ? costMatrix[0].length : 0;
+
+      for (let detectionIndex = 0; detectionIndex < detectionCount; detectionIndex += 1) {
+        const ranked = costMatrix
+          .map((costs, trackIndex) => ({ cost: costs[detectionIndex], trackIndex }))
+          .sort((a, b) => a.cost - b.cost);
+
+        if (
+          ranked.length >= 2 &&
+          assignments.includes(detectionIndex) &&
+          ranked[0].cost < TRACKING.highAssignmentCost &&
+          ranked[1].cost < TRACKING.highAssignmentCost &&
+          ranked[1].cost - ranked[0].cost < TRACKING.ambiguousMargin
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function bboxCenter(bbox) {
+      return {
+        x: bbox.x + bbox.width / 2,
+        y: bbox.y + bbox.height / 2
+      };
+    }
+
+    function bboxArea(bbox) {
+      return bbox.width * bbox.height;
+    }
+
+    function computeBboxIoU(a, b) {
+      const left = Math.max(a.x, b.x);
+      const top = Math.max(a.y, b.y);
+      const right = Math.min(a.x + a.width, b.x + b.width);
+      const bottom = Math.min(a.y + a.height, b.y + b.height);
+      const overlapWidth = Math.max(0, right - left);
+      const overlapHeight = Math.max(0, bottom - top);
+      const overlapArea = overlapWidth * overlapHeight;
+
+      if (overlapArea <= 0) {
+        return 0;
+      }
+
+      return overlapArea / Math.max(0.000001, bboxArea(a) + bboxArea(b) - overlapArea);
+    }
+
+    function clampBbox(bbox) {
+      const width = clamp(bbox.width, 0.001, 1);
+      const height = clamp(bbox.height, 0.001, 1);
+
+      return {
+        x: clamp(bbox.x, 0, Math.max(0, 1 - width)),
+        y: clamp(bbox.y, 0, Math.max(0, 1 - height)),
+        width,
+        height
+      };
+    }
+
+    function distanceBetweenPoints(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function computeFrameConfidence(figures) {
+      if (!figures.length) {
+        return 0;
+      }
+
+      let total = 0;
+
+      for (const figure of figures) {
+        total += figure.confidence;
+      }
+
+      return total / figures.length;
+    }
+
+    function computeFigureConfidenceFromPoints(points) {
+      let total = 0;
+      let count = 0;
+
+      for (const index of CORE_CONFIDENCE_INDICES) {
+        const point = points[index];
+
+        if (!point) {
+          continue;
+        }
+
+        total += clamp(finiteOr(point.confidence, 0), 0, 1);
+        count += 1;
+      }
+
+      if (count === 0) {
+        return 0;
+      }
+
+      return total / count;
+    }
+
+    function getFigureCenter(figure) {
+      const leftHip = figure.points[23];
+      const rightHip = figure.points[24];
+      const leftShoulder = figure.points[11];
+      const rightShoulder = figure.points[12];
+
+      const usable = [leftHip, rightHip, leftShoulder, rightShoulder].filter(Boolean);
+
+      if (!usable.length) {
+        return { x: 0.5, y: 0.5 };
+      }
+
+      let x = 0;
+      let y = 0;
+
+      for (const point of usable) {
+        x += point.x;
+        y += point.y;
+      }
+
+      return {
+        x: x / usable.length,
+        y: y / usable.length
+      };
+    }
+
+    function makeTrackIds(count) {
+      const ids = [];
+
+      for (let index = 0; index < count; index += 1) {
+        ids.push(`figure-${index + 1}`);
+      }
+
+      return ids;
+    }
+
+    async function selectFrame(index) {
+      if (!state.poseFrames.length) {
+        return;
+      }
+
+      const nextIndex = clampInt(index, 0, state.poseFrames.length - 1);
+      state.currentFrameIndex = nextIndex;
+      ui.frameSlider.value = String(nextIndex);
+
+      const frame = state.poseFrames[nextIndex];
+      await seekVideo(frame.timeSec);
+
+      updateFrameUI();
+      render();
+      renderTimeline();
+    }
+
+    function getCurrentFrame() {
+      if (!state.poseFrames.length) {
+        return null;
+      }
+
+      return state.poseFrames[state.currentFrameIndex] || null;
+    }
+
+    function getSelectedTrackId() {
+      return ui.trackSelect.value || "figure-1";
+    }
+
+    function getSelectedSegment() {
+      const id = ui.segmentSelect.value;
+      return STICK_SEGMENTS.find((segment) => segment.id === id) || STICK_SEGMENTS[0];
+    }
+
+    function getFigureFromFrame(frame, trackId) {
+      if (!frame) {
+        return null;
+      }
+
+      return frame.figures.find((figure) => figure.trackId === trackId) || null;
+    }
+
+    function upsertFigureInCurrentFrame(figure) {
+      const frame = getCurrentFrame();
+
+      if (!frame) {
+        return;
+      }
+
+      const existingIndex = frame.figures.findIndex((candidate) => candidate.trackId === figure.trackId);
+
+      if (existingIndex >= 0) {
+        frame.figures[existingIndex] = figure;
+      } else {
+        frame.figures.push(figure);
+      }
+
+      frame.figures.sort((a, b) => state.tracks.indexOf(a.trackId) - state.tracks.indexOf(b.trackId));
+      frame.confidence = computeFrameConfidence(frame.figures);
+    }
+
+    function markFrameEdited(frameIndex, trackId, source) {
+      const frame = state.poseFrames[frameIndex];
+
+      if (!frame) {
+        return;
+      }
+
+      const figure = getFigureFromFrame(frame, trackId);
+
+      if (!figure) {
+        return;
+      }
+
+      frame.userEdited = true;
+      frame.source = source;
+      figure.source = source;
+      figure.bbox = computeFigureBbox(figure.points);
+      figure.confidence = source === "manual" ? 1 : Math.max(figure.confidence, 0.65);
+
+      for (const point of figure.points) {
+        if (point) {
+          point.source = source;
+          point.confidence = source === "manual" ? 1 : Math.max(point.confidence || 0, 0.65);
+          point.visibility = source === "manual" ? 1 : Math.max(point.visibility || 0, 0.65);
+          point.presence = source === "manual" ? 1 : Math.max(point.presence || 0, 0.65);
+        }
+      }
+
+      frame.confidence = computeFrameConfidence(frame.figures);
+    }
+
+    function createInterpolatedFigureForCurrentFrame(trackId) {
+      const targetFrame = getCurrentFrame();
+
+      if (!targetFrame) {
+        return createDefaultTemplateFigure(trackId, "estimated");
+      }
+
+      const previous = findNeighborFigure(state.currentFrameIndex, trackId, -1, true);
+      const next = findNeighborFigure(state.currentFrameIndex, trackId, 1, true);
+
+      if (previous && next) {
+        const span = Math.max(0.000001, next.frame.timeSec - previous.frame.timeSec);
+        const amount = clamp((targetFrame.timeSec - previous.frame.timeSec) / span, 0, 1);
+        return interpolateFigures(previous.figure, next.figure, amount, trackId, "interpolated");
+      }
+
+      if (previous) {
+        const figure = cloneFigure(previous.figure);
+        figure.trackId = trackId;
+        setFigureSource(figure, "estimated", 0.7);
+        return figure;
+      }
+
+      if (next) {
+        const figure = cloneFigure(next.figure);
+        figure.trackId = trackId;
+        setFigureSource(figure, "estimated", 0.7);
+        return figure;
+      }
+
+      return createDefaultTemplateFigure(trackId, "estimated");
+    }
+
+    function findNeighborFigure(startIndex, trackId, direction, requireUsable) {
+      let index = startIndex + direction;
+
+      while (index >= 0 && index < state.poseFrames.length) {
+        const frame = state.poseFrames[index];
+        const figure = getFigureFromFrame(frame, trackId);
+
+        if (figure) {
+          if (!requireUsable || isFigureUsable(figure)) {
+            return { frame, figure, index };
+          }
+        }
+
+        index += direction;
+      }
+
+      return null;
+    }
+
+    function isFigureUsable(figure) {
+      return figure && figure.points && figure.points.length >= 33 && figure.confidence >= 0.15;
+    }
+
+    function interpolateFigures(a, b, amount, trackId, source) {
+      const points = [];
+
+      for (let index = 0; index < POSE_LANDMARK_NAMES.length; index += 1) {
+        const pointA = a.points[index] || createTemplatePoint(index, 0.5, 0.5, source);
+        const pointB = b.points[index] || createTemplatePoint(index, 0.5, 0.5, source);
+
+        points.push({
+          index,
+          name: POSE_LANDMARK_NAMES[index],
+          x: lerp(pointA.x, pointB.x, amount),
+          y: lerp(pointA.y, pointB.y, amount),
+          z: lerp(finiteOr(pointA.z, 0), finiteOr(pointB.z, 0), amount),
+          worldX: nullableLerp(pointA.worldX, pointB.worldX, amount),
+          worldY: nullableLerp(pointA.worldY, pointB.worldY, amount),
+          worldZ: nullableLerp(pointA.worldZ, pointB.worldZ, amount),
+          visibility: lerp(finiteOr(pointA.visibility, 0.7), finiteOr(pointB.visibility, 0.7), amount),
+          presence: lerp(finiteOr(pointA.presence, 0.7), finiteOr(pointB.presence, 0.7), amount),
+          confidence: lerp(finiteOr(pointA.confidence, 0.7), finiteOr(pointB.confidence, 0.7), amount),
+          source
+        });
+      }
+
+      return {
+        trackId,
+        points,
+        bbox: computeFigureBbox(points),
+        confidence: computeFigureConfidenceFromPoints(points),
+        source
+      };
+    }
+
+    function nullableLerp(a, b, amount) {
+      if (a === null || b === null || !Number.isFinite(a) || !Number.isFinite(b)) {
+        return null;
+      }
+
+      return lerp(a, b, amount);
+    }
+
+    function createDefaultTemplateFigure(trackId, source) {
+      const offsetX = trackId === "figure-2" ? 0.16 : -0.16;
+      const cx = clamp(0.5 + offsetX, 0.15, 0.85);
+      const cy = 0.46;
+      const points = [];
+
+      const layout = {
+        0: [cx, cy - 0.24],
+        1: [cx - 0.018, cy - 0.255],
+        2: [cx - 0.028, cy - 0.258],
+        3: [cx - 0.038, cy - 0.255],
+        4: [cx + 0.018, cy - 0.255],
+        5: [cx + 0.028, cy - 0.258],
+        6: [cx + 0.038, cy - 0.255],
+        7: [cx - 0.065, cy - 0.225],
+        8: [cx + 0.065, cy - 0.225],
+        9: [cx - 0.022, cy - 0.205],
+        10: [cx + 0.022, cy - 0.205],
+        11: [cx - 0.090, cy - 0.120],
+        12: [cx + 0.090, cy - 0.120],
+        13: [cx - 0.145, cy + 0.005],
+        14: [cx + 0.145, cy + 0.005],
+        15: [cx - 0.130, cy + 0.145],
+        16: [cx + 0.130, cy + 0.145],
+        17: [cx - 0.145, cy + 0.155],
+        18: [cx + 0.145, cy + 0.155],
+        19: [cx - 0.120, cy + 0.170],
+        20: [cx + 0.120, cy + 0.170],
+        21: [cx - 0.105, cy + 0.155],
+        22: [cx + 0.105, cy + 0.155],
+        23: [cx - 0.070, cy + 0.110],
+        24: [cx + 0.070, cy + 0.110],
+        25: [cx - 0.065, cy + 0.290],
+        26: [cx + 0.065, cy + 0.290],
+        27: [cx - 0.065, cy + 0.465],
+        28: [cx + 0.065, cy + 0.465],
+        29: [cx - 0.085, cy + 0.480],
+        30: [cx + 0.085, cy + 0.480],
+        31: [cx - 0.045, cy + 0.505],
+        32: [cx + 0.045, cy + 0.505]
+      };
+
+      for (let index = 0; index < POSE_LANDMARK_NAMES.length; index += 1) {
+        const pair = layout[index] || [cx, cy];
+        points.push(createTemplatePoint(index, pair[0], pair[1], source));
+      }
+
+      return {
+        trackId,
+        points,
+        bbox: computeFigureBbox(points),
+        confidence: 0.7,
+        source
+      };
+    }
+
+    function createTemplatePoint(index, x, y, source) {
+      return {
+        index,
+        name: POSE_LANDMARK_NAMES[index],
+        x: clamp(x, 0, 1),
+        y: clamp(y, 0, 1),
+        z: 0,
+        worldX: null,
+        worldY: null,
+        worldZ: null,
+        visibility: 0.7,
+        presence: 0.7,
+        confidence: 0.7,
+        source
+      };
+    }
+
+    function setFigureSource(figure, source, confidence) {
+      figure.source = source;
+      figure.confidence = confidence;
+
+      for (const point of figure.points) {
+        point.source = source;
+        point.confidence = confidence;
+        point.visibility = confidence;
+        point.presence = confidence;
+      }
+    }
+
+    function copyPreviousGoodFigureIntoCurrentFrame() {
+      const trackId = getSelectedTrackId();
+      const previous = findNeighborFigure(state.currentFrameIndex, trackId, -1, true);
+
+      if (!previous) {
+        setStatus("No previous usable figure found for the selected track.");
+        return;
+      }
+
+      const figure = cloneFigure(previous.figure);
+      figure.trackId = trackId;
+      setFigureSource(figure, "estimated", 0.7);
+      upsertFigureInCurrentFrame(figure);
+      markFrameEdited(state.currentFrameIndex, trackId, "estimated");
+
+      setStatus(`Copied ${trackId} from frame ${previous.index}.`);
+      render();
+      renderTimeline();
+    }
+
+    function deleteSelectedFigureOnCurrentFrame() {
+      const frame = getCurrentFrame();
+
+      if (!frame) {
+        return;
+      }
+
+      const trackId = getSelectedTrackId();
+      const before = frame.figures.length;
+      frame.figures = frame.figures.filter((figure) => figure.trackId !== trackId);
+      frame.confidence = computeFrameConfidence(frame.figures);
+      frame.source = frame.figures.length ? frame.source : "empty";
+      frame.userEdited = true;
+
+      if (frame.figures.length === before) {
+        setStatus("No selected figure existed on this frame.");
+      } else {
+        setStatus(`Deleted ${trackId} on current frame.`);
+      }
+
+      render();
+      renderTimeline();
+    }
+
+    function swapTracksFromCurrentFrame() {
+      if (state.maxFigures < 2 || state.tracks.length < 2) {
+        setStatus("Swap needs two tracks.");
+        return;
+      }
+
+      const changed = swapTracksFromFrame(state.currentFrameIndex, state.tracks[0], state.tracks[1]);
+
+      if (!changed) {
+        setStatus("No track data found to swap from this frame.");
+        return;
+      }
+
+      setStatus(`Swapped ${state.tracks[0]} and ${state.tracks[1]} from frame ${state.currentFrameIndex + 1}.`);
+      render();
+      renderTimeline();
+    }
+
+    function swapTracksFromFrame(fromFrameIndex, trackIdA, trackIdB) {
+      let changedFrames = 0;
+
+      for (let index = fromFrameIndex; index < state.poseFrames.length; index += 1) {
+        const frame = state.poseFrames[index];
+        const figureA = getFigureFromFrame(frame, trackIdA);
+        const figureB = getFigureFromFrame(frame, trackIdB);
+
+        if (!figureA && !figureB) {
+          continue;
+        }
+
+        const otherFigures = frame.figures.filter(
+          (figure) => figure.trackId !== trackIdA && figure.trackId !== trackIdB
+        );
+
+        if (figureA && figureB) {
+          const nextA = cloneFigure(figureB);
+          const nextB = cloneFigure(figureA);
+          nextA.trackId = trackIdA;
+          nextB.trackId = trackIdB;
+          markFigureCorrected(nextA, "swap");
+          markFigureCorrected(nextB, "swap");
+          frame.figures = otherFigures.concat(nextA, nextB);
+        } else if (figureA) {
+          const nextB = cloneFigure(figureA);
+          nextB.trackId = trackIdB;
+          markFigureCorrected(nextB, "swap");
+          frame.figures = otherFigures.concat(nextB);
+        } else {
+          const nextA = cloneFigure(figureB);
+          nextA.trackId = trackIdA;
+          markFigureCorrected(nextA, "swap");
+          frame.figures = otherFigures.concat(nextA);
+        }
+
+        frame.figures.sort((a, b) => state.tracks.indexOf(a.trackId) - state.tracks.indexOf(b.trackId));
+        frame.userEdited = true;
+        frame.source = "swap";
+        frame.confidence = computeFrameConfidence(frame.figures);
+        frame.conflictReasons = [];
+        changedFrames += 1;
+      }
+
+      return changedFrames;
+    }
+
+    function markFigureCorrected(figure, source) {
+      figure.source = source;
+      figure.bbox = computeFigureBbox(figure.points);
+
+      for (const point of figure.points) {
+        point.source = source;
+      }
+    }
+
+    function jumpToBadFrame(direction) {
+      if (!state.poseFrames.length) {
+        return;
+      }
+
+      const threshold = getBadThreshold();
+      let index = state.currentFrameIndex + direction;
+
+      while (index >= 0 && index < state.poseFrames.length) {
+        if (isFrameBadForSelectedTrack(state.poseFrames[index], threshold)) {
+          selectFrame(index);
+          return;
+        }
+
+        index += direction;
+      }
+
+      setStatus(direction > 0 ? "No later bad frames found." : "No earlier bad frames found.");
+    }
+
+    function jumpToGoodFrame(direction) {
+      if (!state.poseFrames.length) {
+        return;
+      }
+
+      const threshold = getBadThreshold();
+      let index = state.currentFrameIndex + direction;
+
+      while (index >= 0 && index < state.poseFrames.length) {
+        if (!isFrameBadForSelectedTrack(state.poseFrames[index], threshold)) {
+          selectFrame(index);
+          return;
+        }
+
+        index += direction;
+      }
+
+      setStatus(direction > 0 ? "No later good frames found." : "No earlier good frames found.");
+    }
+
+    function isFrameBadForSelectedTrack(frame, threshold) {
+      if (frame.conflictReasons && frame.conflictReasons.length) {
+        return true;
+      }
+
+      const figure = getFigureFromFrame(frame, getSelectedTrackId());
+
+      if (!figure) {
+        return true;
+      }
+
+      return figure.confidence < threshold;
+    }
+
+    function getBadThreshold() {
+      return clamp(parseFloat(ui.badThreshold.value), 0, 1);
+    }
+
+    function clearPoseData(updateStatus = true, pausePlayback = true) {
+      if (pausePlayback) {
+        pausePreview();
+      }
+
+      state.poseFrames = [];
+      state.currentFrameIndex = 0;
+      state.dragState = null;
+      state.drawPreview = null;
+      ui.frameSlider.max = "0";
+      ui.frameSlider.value = "0";
+      ui.progressBar.value = 0;
+      ui.progressText.textContent = "Idle";
+
+      if (updateStatus) {
+        setStatus("Pose data cleared.");
+      }
+
+      updateFrameUI();
+      render();
+      renderTimeline();
+    }
+
+    function playPreview() {
+      if (!ui.sourceVideo.src) {
+        return;
+      }
+
+      state.isPreviewPlaying = true;
+      ui.sourceVideo.play().catch((error) => {
+        console.warn(error);
+        setStatus(`Preview play failed: ${error.message}`);
+      });
+
+      cancelAnimationFrame(state.lastAnimationRequest);
+      previewLoop();
+    }
+
+    function pausePreview() {
+      state.isPreviewPlaying = false;
+      ui.sourceVideo.pause();
+      cancelAnimationFrame(state.lastAnimationRequest);
+      render();
+    }
+
+    function previewLoop() {
+      if (!state.isPreviewPlaying) {
+        return;
+      }
+
+      if (state.poseFrames.length) {
+        state.currentFrameIndex = findNearestFrameIndex(ui.sourceVideo.currentTime);
+        ui.frameSlider.value = String(state.currentFrameIndex);
+        updateFrameUI();
+      }
+
+      render();
+
+      if (ui.sourceVideo.ended) {
+        pausePreview();
+        return;
+      }
+
+      state.lastAnimationRequest = requestAnimationFrame(previewLoop);
+    }
+
+    function findNearestFrameIndex(timeSec) {
+      if (!state.poseFrames.length) {
+        return 0;
+      }
+
+      let bestIndex = 0;
+      let bestDelta = Number.POSITIVE_INFINITY;
+
+      for (let index = 0; index < state.poseFrames.length; index += 1) {
+        const delta = Math.abs(state.poseFrames[index].timeSec - timeSec);
+
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          bestIndex = index;
+        }
+      }
+
+      return bestIndex;
+    }
+
+    function onCanvasPointerDown(event) {
+      event.preventDefault();
+
+      if (!state.poseFrames.length) {
+        return;
+      }
+
+      const frame = getCurrentFrame();
+
+      if (!frame) {
+        return;
+      }
+
+      const trackId = getSelectedTrackId();
+      let figure = getFigureFromFrame(frame, trackId);
+
+      if (!figure) {
+        figure = createInterpolatedFigureForCurrentFrame(trackId);
+        upsertFigureInCurrentFrame(figure);
+        setStatus("Created an estimated starting pose for editing.");
+      }
+
+      const point = getCanvasPointerAsNormalized(event);
+      const tool = ui.toolMode.value;
+
+      try {
+        ui.mainCanvas.setPointerCapture(event.pointerId);
+      } catch {
+        // Window-level listeners keep the drag alive if capture is unavailable.
+      }
+
+      if (tool === "drag-joints") {
+        const nearest = findNearestEditablePoint(figure, point);
+
+        if (!nearest || nearest.distancePixels > 42) {
+          setStatus("No nearby joint found. Try closer to a handle, or switch to Draw Segment.");
+          releaseCanvasPointer(event.pointerId);
+          return;
+        }
+
+        state.dragState = {
+          type: "drag-joint",
+          pointerId: event.pointerId,
+          trackId,
+          jointIndex: nearest.index
+        };
+      } else if (tool === "move-pose") {
+        state.dragState = {
+          type: "move-pose",
+          pointerId: event.pointerId,
+          trackId,
+          start: point,
+          originalPoints: figure.points.map((candidate) => ({ x: candidate.x, y: candidate.y }))
+        };
+      } else if (tool === "draw-segment") {
+        state.drawPreview = {
+          start: point,
+          end: point,
+          segment: getSelectedSegment(),
+          trackId
+        };
+
+        state.dragState = {
+          type: "draw-segment",
+          pointerId: event.pointerId,
+          trackId
+        };
+      }
+
+      render();
+    }
+
+    function onCanvasPointerMove(event) {
+      if (!state.dragState) {
+        return;
+      }
+
+      if (event.pointerId !== state.dragState.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const frame = getCurrentFrame();
+
+      if (!frame) {
+        return;
+      }
+
+      const point = getCanvasPointerAsNormalized(event);
+      const figure = getFigureFromFrame(frame, state.dragState.trackId);
+
+      if (!figure) {
+        return;
+      }
+
+      if (state.dragState.type === "drag-joint") {
+        const target = figure.points[state.dragState.jointIndex];
+
+        if (target) {
+          target.x = clamp(point.x, -0.5, 1.5);
+          target.y = clamp(point.y, -0.5, 1.5);
+          target.confidence = 1;
+          target.visibility = 1;
+          target.presence = 1;
+          target.source = "manual";
+        }
+
+        figure.confidence = 1;
+        figure.source = "manual";
+        figure.bbox = computeFigureBbox(figure.points);
+        frame.userEdited = true;
+        frame.source = "manual";
+        frame.confidence = computeFrameConfidence(frame.figures);
+      } else if (state.dragState.type === "move-pose") {
+        const dx = point.x - state.dragState.start.x;
+        const dy = point.y - state.dragState.start.y;
+
+        for (let index = 0; index < figure.points.length; index += 1) {
+          const original = state.dragState.originalPoints[index];
+          const target = figure.points[index];
+
+          target.x = clamp(original.x + dx, -0.5, 1.5);
+          target.y = clamp(original.y + dy, -0.5, 1.5);
+          target.confidence = Math.max(target.confidence || 0, 0.8);
+          target.visibility = Math.max(target.visibility || 0, 0.8);
+          target.presence = Math.max(target.presence || 0, 0.8);
+          target.source = "manual";
+        }
+
+        figure.confidence = 1;
+        figure.source = "manual";
+        figure.bbox = computeFigureBbox(figure.points);
+        frame.userEdited = true;
+        frame.source = "manual";
+        frame.confidence = computeFrameConfidence(frame.figures);
+      } else if (state.dragState.type === "draw-segment") {
+        if (state.drawPreview) {
+          state.drawPreview.end = point;
+        }
+      }
+
+      render();
+    }
+
+    function onCanvasPointerUp(event) {
+      if (!state.dragState) {
+        return;
+      }
+
+      if (event.pointerId !== state.dragState.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const frame = getCurrentFrame();
+
+      if (frame && state.dragState.type === "draw-segment" && state.drawPreview) {
+        const figure = getFigureFromFrame(frame, state.drawPreview.trackId);
+
+        if (figure) {
+          const segment = state.drawPreview.segment;
+          const pointA = figure.points[segment.a];
+          const pointB = figure.points[segment.b];
+
+          pointA.x = clamp(state.drawPreview.start.x, -0.5, 1.5);
+          pointA.y = clamp(state.drawPreview.start.y, -0.5, 1.5);
+          pointB.x = clamp(state.drawPreview.end.x, -0.5, 1.5);
+          pointB.y = clamp(state.drawPreview.end.y, -0.5, 1.5);
+
+          for (const point of [pointA, pointB]) {
+            point.confidence = 1;
+            point.visibility = 1;
+            point.presence = 1;
+            point.source = "manual";
+          }
+
+          figure.confidence = 1;
+          figure.source = "manual";
+          figure.bbox = computeFigureBbox(figure.points);
+          frame.userEdited = true;
+          frame.source = "manual";
+          frame.confidence = computeFrameConfidence(frame.figures);
+          setStatus(`Drew segment: ${segment.label}`);
+        }
+      }
+
+      releaseCanvasPointer(event.pointerId);
+
+      state.dragState = null;
+      state.drawPreview = null;
+      render();
+      renderTimeline();
+    }
+
+    function releaseCanvasPointer(pointerId) {
+      try {
+        if (ui.mainCanvas.hasPointerCapture(pointerId)) {
+          ui.mainCanvas.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // Ignore pointer capture release errors.
+      }
+    }
+
+    function getCanvasPointerAsNormalized(event) {
+      const rect = ui.mainCanvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / Math.max(1, rect.width);
+      const y = (event.clientY - rect.top) / Math.max(1, rect.height);
+
+      return { x, y };
+    }
+
+    function findNearestEditablePoint(figure, normalizedPoint) {
+      let best = null;
+      const width = ui.mainCanvas.width;
+      const height = ui.mainCanvas.height;
+
+      for (const index of EDITABLE_POINT_INDICES) {
+        const point = figure.points[index];
+
+        if (!point) {
+          continue;
+        }
+
+        const dx = (point.x - normalizedPoint.x) * width;
+        const dy = (point.y - normalizedPoint.y) * height;
+        const distancePixels = Math.sqrt(dx * dx + dy * dy);
+
+        if (!best || distancePixels < best.distancePixels) {
+          best = { index, distancePixels };
+        }
+      }
+
+      return best;
+    }
+
+    function onTimelineClicked(event) {
+      if (!state.poseFrames.length) {
+        return;
+      }
+
+      const rect = ui.timelineCanvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / Math.max(1, rect.width);
+      const index = Math.round(x * (state.poseFrames.length - 1));
+      selectFrame(index);
+    }
+
+    function onKeyDown(event) {
+      if (event.target && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        selectFrame(state.currentFrameIndex - 1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        selectFrame(state.currentFrameIndex + 1);
+      } else if (event.key.toLowerCase() === "i") {
+        event.preventDefault();
+        const figure = createInterpolatedFigureForCurrentFrame(getSelectedTrackId());
+        upsertFigureInCurrentFrame(figure);
+        markFrameEdited(state.currentFrameIndex, figure.trackId, "interpolated");
+        render();
+        renderTimeline();
+      } else if (event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        copyPreviousGoodFigureIntoCurrentFrame();
+      } else if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        swapTracksFromCurrentFrame();
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteSelectedFigureOnCurrentFrame();
+      } else if (event.key === " ") {
+        event.preventDefault();
+
+        if (state.isPreviewPlaying) {
+          pausePreview();
+        } else {
+          playPreview();
+        }
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, ui.mainCanvas.width, ui.mainCanvas.height);
+
+      const viewMode = ui.viewMode.value;
+
+      if (viewMode === "stick") {
+        ctx.fillStyle = "#05070d";
+        ctx.fillRect(0, 0, ui.mainCanvas.width, ui.mainCanvas.height);
+      } else if (ui.sourceVideo.src && ui.sourceVideo.readyState >= 1 && ui.sourceVideo.videoWidth > 0) {
+        try {
+          ctx.drawImage(ui.sourceVideo, 0, 0, ui.mainCanvas.width, ui.mainCanvas.height);
+        } catch {
+          drawEmptyStage();
+        }
+      } else {
+        drawEmptyStage();
+      }
+
+      if (viewMode !== "video") {
+        const frame = getCurrentFrame();
+
+        if (frame) {
+          for (const figure of frame.figures) {
+            drawFigure(figure, figure.trackId === getSelectedTrackId());
+          }
+        }
+      }
+
+      if (state.drawPreview) {
+        drawSegmentPreview(state.drawPreview);
+      }
+
+      updateFrameUI();
+    }
+
+    function drawEmptyStage() {
+      ctx.fillStyle = "#05070d";
+      ctx.fillRect(0, 0, ui.mainCanvas.width, ui.mainCanvas.height);
+
+      ctx.fillStyle = "#a8b3cf";
+      ctx.font = "20px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Load an MP4 to begin", ui.mainCanvas.width / 2, ui.mainCanvas.height / 2);
+    }
+
+    function drawFigure(figure, selected, drawCtx = ctx, options = {}) {
+      const width = drawCtx.canvas.width;
+      const height = drawCtx.canvas.height;
+      const trackColor = TRACK_COLORS[figure.trackId] || "#ffffff";
+      const sourceColor = SOURCE_COLORS[figure.source] || trackColor;
+      const renderPoints = buildClassicRenderPoints(figure);
+      const showHandles = options.showHandles ?? selected;
+      const showLabel = options.showLabel ?? true;
+
+      drawCtx.save();
+      drawCtx.lineCap = "round";
+      drawCtx.lineJoin = "round";
+      drawCtx.lineWidth = selected ? 5 : 3;
+      drawCtx.strokeStyle = selected ? trackColor : withAlpha(trackColor, 0.68);
+      drawCtx.shadowColor = selected ? withAlpha(sourceColor, 0.75) : "transparent";
+      drawCtx.shadowBlur = selected ? 9 : 0;
+
+      if (figure.confidence < getBadThreshold()) {
+        drawCtx.setLineDash([10, 8]);
+      } else {
+        drawCtx.setLineDash([]);
+      }
+
+      for (const segment of RENDER_SEGMENTS) {
+        drawClassicPolyline(drawCtx, renderPoints, segment, width, height);
+      }
+
+      drawCtx.setLineDash([]);
+
+      const headCenter = renderPoints.headCenter;
+      const neck = renderPoints.neck;
+
+      if (headCenter && neck) {
+        const radius = clamp(distanceBetweenPoints(headCenter, neck) * Math.min(width, height), 8, 40);
+        drawCtx.beginPath();
+        drawCtx.arc(headCenter.x * width, headCenter.y * height, radius, 0, Math.PI * 2);
+        drawCtx.fillStyle = selected ? sourceColor : withAlpha(trackColor, 0.68);
+        drawCtx.fill();
+      }
+
+      if (showHandles) {
+        drawEditableHandles(drawCtx, figure, sourceColor, width, height);
+      }
+
+      if (showLabel) {
+        const center = getFigureCenter(figure);
+        const label = `${figure.trackId} ${figure.source} ${Math.round(figure.confidence * 100)}%`;
+
+        drawCtx.font = "14px ui-monospace, monospace";
+        drawCtx.textAlign = "center";
+        drawCtx.textBaseline = "bottom";
+        drawCtx.fillStyle = "#05070d";
+        drawCtx.strokeStyle = sourceColor;
+        drawCtx.lineWidth = 4;
+        drawCtx.strokeText(label, center.x * width, center.y * height - 28);
+        drawCtx.fillStyle = "#ffffff";
+        drawCtx.fillText(label, center.x * width, center.y * height - 28);
+      }
+
+      drawCtx.restore();
+    }
+
+    function drawClassicPolyline(drawCtx, renderPoints, segment, width, height) {
+      const points = segment
+        .map((name) => renderPoints[name])
+        .filter(Boolean);
+
+      if (points.length < 2) {
+        return;
+      }
+
+      drawCtx.beginPath();
+      drawCtx.moveTo(points[0].x * width, points[0].y * height);
+
+      for (let index = 1; index < points.length; index += 1) {
+        drawCtx.lineTo(points[index].x * width, points[index].y * height);
+      }
+
+      drawCtx.stroke();
+    }
+
+    function drawEditableHandles(drawCtx, figure, sourceColor, width, height) {
+      for (const index of EDITABLE_POINT_INDICES) {
+        const point = figure.points[index];
+
+        if (!point) {
+          continue;
+        }
+
+        const x = point.x * width;
+        const y = point.y * height;
+
+        drawCtx.beginPath();
+        drawCtx.arc(x, y, 5.5, 0, Math.PI * 2);
+        drawCtx.fillStyle = sourceColor;
+        drawCtx.strokeStyle = "#05070d";
+        drawCtx.lineWidth = 2;
+        drawCtx.fill();
+        drawCtx.stroke();
+      }
+    }
+
+    function buildClassicRenderPoints(figure) {
+      const features = {};
+
+      for (const point of figure.points) {
+        if (point && point.name) {
+          features[point.name] = point;
+        }
+      }
+
+      const shoulderCenter = averagePoint(features.left_shoulder, features.right_shoulder);
+      const hip = averagePoint(features.left_hip, features.right_hip);
+      const neck = shoulderCenter && features.nose ? averagePoint(shoulderCenter, features.nose, 1 / 3) : shoulderCenter;
+      const earCenter = averagePoint(features.left_ear, features.right_ear);
+      const headCenter = earCenter && features.nose ? averagePoint(earCenter, features.nose, 0.5) : features.nose || neck;
+
+      return {
+        ...features,
+        neck,
+        headCenter,
+        hip,
+        left_hand: choosePoint(features.left_index, extendPoint(features.left_elbow, features.left_wrist, 0.25)),
+        right_hand: choosePoint(features.right_index, extendPoint(features.right_elbow, features.right_wrist, 0.25)),
+        left_foot: choosePoint(features.left_foot_index, extendPoint(features.left_knee, features.left_ankle, 0.25)),
+        right_foot: choosePoint(features.right_foot_index, extendPoint(features.right_knee, features.right_ankle, 0.25))
+      };
+    }
+
+    function averagePoint(a, b, mixB = 0.5) {
+      if (!a || !b) {
+        return a || b || null;
+      }
+
+      return {
+        x: a.x * (1 - mixB) + b.x * mixB,
+        y: a.y * (1 - mixB) + b.y * mixB,
+        confidence: Math.min(finiteOr(a.confidence, 1), finiteOr(b.confidence, 1))
+      };
+    }
+
+    function extendPoint(a, b, extension) {
+      if (!a || !b) {
+        return b || a || null;
+      }
+
+      return {
+        x: a.x + (b.x - a.x) * (1 + extension),
+        y: a.y + (b.y - a.y) * (1 + extension),
+        confidence: Math.min(finiteOr(a.confidence, 1), finiteOr(b.confidence, 1))
+      };
+    }
+
+    function choosePoint(preferred, fallback) {
+      if (preferred && finiteOr(preferred.confidence, 0) >= 0.35) {
+        return preferred;
+      }
+
+      return fallback || preferred || null;
+    }
+
+    function drawSegmentPreview(preview) {
+      const width = ui.mainCanvas.width;
+      const height = ui.mainCanvas.height;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(preview.start.x * width, preview.start.y * height);
+      ctx.lineTo(preview.end.x * width, preview.end.y * height);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = "#ffffff";
+      ctx.setLineDash([12, 8]);
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = 14;
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(preview.start.x * width, preview.start.y * height, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(preview.end.x * width, preview.end.y * height, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function renderTimeline() {
+      const canvas = ui.timelineCanvas;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const cssWidth = Math.max(1, Math.floor(rect.width || 1200));
+      const cssHeight = 44;
+
+      canvas.width = Math.floor(cssWidth * dpr);
+      canvas.height = Math.floor(cssHeight * dpr);
+      timelineCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      timelineCtx.clearRect(0, 0, cssWidth, cssHeight);
+      timelineCtx.fillStyle = "#070a12";
+      timelineCtx.fillRect(0, 0, cssWidth, cssHeight);
+
+      if (!state.poseFrames.length) {
+        timelineCtx.fillStyle = "#a8b3cf";
+        timelineCtx.font = "12px system-ui, sans-serif";
+        timelineCtx.textAlign = "center";
+        timelineCtx.fillText("No pose frames yet", cssWidth / 2, cssHeight / 2 + 4);
+        updateCounts();
+        return;
+      }
+
+      const threshold = getBadThreshold();
+      const frameCount = state.poseFrames.length;
+      const barWidth = cssWidth / frameCount;
+
+      for (let index = 0; index < frameCount; index += 1) {
+        const frame = state.poseFrames[index];
+        const x = Math.floor(index * barWidth);
+        const w = Math.max(1, Math.ceil(barWidth));
+        const color = getTimelineColor(frame, threshold);
+
+        timelineCtx.fillStyle = color;
+        timelineCtx.fillRect(x, 0, w, cssHeight);
+      }
+
+      const currentX = Math.round((state.currentFrameIndex / Math.max(1, frameCount - 1)) * cssWidth);
+
+      timelineCtx.strokeStyle = "#ffffff";
+      timelineCtx.lineWidth = 2;
+      timelineCtx.beginPath();
+      timelineCtx.moveTo(currentX, 0);
+      timelineCtx.lineTo(currentX, cssHeight);
+      timelineCtx.stroke();
+
+      timelineCtx.fillStyle = "rgba(255,255,255,0.10)";
+      timelineCtx.fillRect(0, 0, cssWidth, 1);
+      timelineCtx.fillRect(0, cssHeight - 1, cssWidth, 1);
+
+      updateCounts();
+    }
+
+    function getTimelineColor(frame, threshold) {
+      const figure = getFigureFromFrame(frame, getSelectedTrackId());
+
+      if (frame.conflictReasons && frame.conflictReasons.length) {
+        return "#ff9f1c";
+      }
+
+      if (!figure) {
+        return SOURCE_COLORS.empty;
+      }
+
+      if (figure.source === "swap") {
+        return SOURCE_COLORS.swap;
+      }
+
+      if (frame.userEdited || figure.source === "manual") {
+        return SOURCE_COLORS.manual;
+      }
+
+      if (figure.source === "interpolated") {
+        return SOURCE_COLORS.interpolated;
+      }
+
+      if (figure.source === "estimated") {
+        return SOURCE_COLORS.estimated;
+      }
+
+      if (figure.confidence < threshold) {
+        return SOURCE_COLORS.estimated;
+      }
+
+      return SOURCE_COLORS.mediapipe;
+    }
+
+    function updateFrameUI() {
+      const total = state.poseFrames.length;
+      const frame = getCurrentFrame();
+      const timeSec = frame ? frame.timeSec : ui.sourceVideo.currentTime || 0;
+
+      const conflictLabel = frame && frame.conflictReasons && frame.conflictReasons.length
+        ? ` | conflict: ${frame.conflictReasons.join(", ")}`
+        : "";
+      ui.frameReadout.textContent = `frame ${total ? state.currentFrameIndex + 1 : 0} / ${total} | ${timeSec.toFixed(3)}s${conflictLabel}`;
+      ui.frameSlider.max = String(Math.max(0, total - 1));
+      ui.frameSlider.value = String(state.currentFrameIndex);
+      updateCounts();
+    }
+
+    function updateCounts() {
+      const trackSet = new Set();
+
+      for (const frame of state.poseFrames) {
+        for (const figure of frame.figures) {
+          trackSet.add(figure.trackId);
+        }
+      }
+
+      ui.trackInfo.textContent = `${trackSet.size} tracks`;
+      ui.frameInfo.textContent = `${state.poseFrames.length} frames`;
+    }
+
+    function setStatus(message) {
+      ui.statusText.textContent = message;
+    }
+
+    function exportPoseJson() {
+      if (!state.poseFrames.length) {
+        setStatus("No pose data to export.");
+        return;
+      }
+
+      state.exportFps = parseFloat(ui.exportFps.value);
+
+      const exportFrameCount = Math.max(1, Math.ceil(state.durationSec * state.exportFps));
+      const outputFrames = [];
+
+      for (let index = 0; index < exportFrameCount; index += 1) {
+        const timeSec = clamp(index / state.exportFps, 0, Math.max(0, state.durationSec - 0.0005));
+        const figures = [];
+
+        for (const trackId of state.tracks) {
+          const figure = sampleFigureAtTime(trackId, timeSec);
+
+          if (figure) {
+            figures.push(figure);
+          }
+        }
+
+        outputFrames.push({
+          frameIndex: index,
+          timeSec,
+          figures
+        });
+      }
+
+      const data = {
+        schema: "rotostick-pose-v1",
+        createdAt: new Date().toISOString(),
+        source: {
+          videoName: state.videoName,
+          durationSec: state.durationSec,
+          width: state.videoWidth,
+          height: state.videoHeight,
+          analysisFps: state.analysisFps,
+          exportFps: state.exportFps,
+          model: ui.modelSelect.value,
+          maxFigures: state.maxFigures
+        },
+        landmarkNames: POSE_LANDMARK_NAMES,
+        renderModel: {
+          style: "classic-stick-v1",
+          virtualPoints: ["neck", "headCenter", "hip", "left_hand", "right_hand", "left_foot", "right_foot"],
+          segments: RENDER_SEGMENTS
+        },
+        stickSegments: STICK_SEGMENTS,
+        tracks: state.tracks,
+        frames: outputFrames
+      };
+
+      const baseName = state.videoName ? state.videoName.replace(/\.[^.]+$/, "") : "rotostick_pose";
+      downloadJson(data, `${baseName}_${state.exportFps}fps.pose.json`);
+      setStatus(`Exported ${outputFrames.length} frames at ${state.exportFps} fps.`);
+    }
+
+    function sampleFigureAtTime(trackId, timeSec) {
+      const mode = ui.exportInterpolation.value;
+
+      if (mode === "nearest") {
+        const nearestFrame = state.poseFrames[findNearestFrameIndex(timeSec)];
+        const nearestFigure = getFigureFromFrame(nearestFrame, trackId);
+        return nearestFigure ? cloneFigureForExport(nearestFigure) : null;
+      }
+
+      let previous = null;
+      let next = null;
+
+      for (let index = 0; index < state.poseFrames.length; index += 1) {
+        const frame = state.poseFrames[index];
+
+        if (frame.timeSec <= timeSec) {
+          const figure = getFigureFromFrame(frame, trackId);
+
+          if (figure) {
+            previous = { frame, figure };
+          }
+        }
+
+        if (frame.timeSec >= timeSec) {
+          const figure = getFigureFromFrame(frame, trackId);
+
+          if (figure) {
+            next = { frame, figure };
+            break;
+          }
+        }
+      }
+
+      if (previous && next) {
+        if (Math.abs(next.frame.timeSec - previous.frame.timeSec) < 0.000001) {
+          return cloneFigureForExport(previous.figure);
+        }
+
+        const amount = clamp(
+          (timeSec - previous.frame.timeSec) / (next.frame.timeSec - previous.frame.timeSec),
+          0,
+          1
+        );
+
+        return cloneFigureForExport(interpolateFigures(previous.figure, next.figure, amount, trackId, "interpolated"));
+      }
+
+      if (mode === "onlyManualAuto") {
+        return null;
+      }
+
+      if (previous) {
+        return cloneFigureForExport(previous.figure);
+      }
+
+      if (next) {
+        return cloneFigureForExport(next.figure);
+      }
+
+      return null;
+    }
+
+    function cloneFigureForExport(figure) {
+      return {
+        trackId: figure.trackId,
+        confidence: round6(figure.confidence),
+        source: figure.source,
+        assignmentCost: round6(figure.assignmentCost),
+        bbox: figure.bbox ? {
+          x: round6(figure.bbox.x),
+          y: round6(figure.bbox.y),
+          width: round6(figure.bbox.width),
+          height: round6(figure.bbox.height)
+        } : null,
+        points: figure.points.map((point) => ({
+          index: point.index,
+          name: point.name,
+          x: round6(point.x),
+          y: round6(point.y),
+          z: round6(point.z),
+          worldX: point.worldX === null ? null : round6(point.worldX),
+          worldY: point.worldY === null ? null : round6(point.worldY),
+          worldZ: point.worldZ === null ? null : round6(point.worldZ),
+          visibility: round6(point.visibility),
+          presence: round6(point.presence),
+          confidence: round6(point.confidence),
+          source: point.source
+        }))
+      };
+    }
+
+    function downloadJson(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadCurrentCanvasPng() {
+      const baseName = state.videoName ? state.videoName.replace(/\.[^.]+$/, "") : "rotostick_frame";
+      const filename = `${baseName}_frame_${String(state.currentFrameIndex).padStart(4, "0")}.png`;
+
+      ui.mainCanvas.toBlob((blob) => {
+        if (!blob) {
+          setStatus("Could not create PNG.");
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    }
+
+    async function exportRenderedAnimation(format) {
+      if (!state.poseFrames.length) {
+        setStatus("No pose data to export.");
+        return;
+      }
+
+      if (state.isExporting) {
+        setStatus("Export already running.");
+        return;
+      }
+
+      state.isExporting = true;
+
+      try {
+        state.exportFps = parseFloat(ui.exportFps.value);
+        const frameCount = Math.max(1, Math.ceil(state.durationSec * state.exportFps));
+        const baseName = state.videoName ? state.videoName.replace(/\.[^.]+$/, "") : "rotostick";
+        const exportFrames = [];
+        const renderCanvas = document.createElement("canvas");
+        renderCanvas.width = state.videoWidth;
+        renderCanvas.height = state.videoHeight;
+        const renderCtx = renderCanvas.getContext("2d", {
+          alpha: true,
+          willReadFrequently: format === "gif"
+        });
+
+        if (!renderCtx) {
+          setStatus("Could not create export canvas.");
+          return;
+        }
+
+        for (let index = 0; index < frameCount; index += 1) {
+          const timeSec = clamp(index / state.exportFps, 0, Math.max(0, state.durationSec - 0.0005));
+          const figures = [];
+
+          for (const trackId of state.tracks) {
+            const figure = sampleFigureAtTime(trackId, timeSec);
+
+            if (figure) {
+              figures.push(figure);
+            }
+          }
+
+          renderExportFrame(renderCtx, figures);
+          const blob = await canvasToBlob(renderCanvas);
+          const imageData = format === "gif"
+            ? renderCtx.getImageData(0, 0, renderCanvas.width, renderCanvas.height)
+            : null;
+
+          exportFrames.push({ blob, imageData });
+          ui.progressBar.value = (index + 1) / frameCount;
+          ui.progressText.textContent = `Export ${index + 1}/${frameCount}`;
+          await waitOneFrame();
+        }
+
+        if (format === "png-sequence") {
+          const entries = [];
+
+          for (let index = 0; index < exportFrames.length; index += 1) {
+            entries.push({
+              name: `${baseName}_frame_${String(index).padStart(6, "0")}.png`,
+              bytes: await blobToUint8Array(exportFrames[index].blob)
+            });
+          }
+
+          const zipBytes = encodeZip(entries);
+          downloadBlob(new Blob([zipBytes], { type: "application/zip" }), `${baseName}_${state.exportFps}fps_png_sequence.zip`);
+          setStatus(`Exported ${exportFrames.length} PNG frames in one ZIP.`);
+        } else if (format === "gif") {
+          ui.progressText.textContent = "Encoding GIF";
+          const gifBlob = await encodeGifWithGifJs(exportFrames.map((frame) => frame.imageData), state.exportFps);
+          downloadBlob(gifBlob, `${baseName}_${state.exportFps}fps.gif`);
+          setStatus(`Exported GIF with ${exportFrames.length} frames.`);
+        } else if (format === "apng") {
+          const pngBytes = [];
+
+          for (const frame of exportFrames) {
+            pngBytes.push(await blobToUint8Array(frame.blob));
+          }
+
+          const apngBytes = encodeApngFromPngFrames(pngBytes, state.exportFps);
+          downloadBlob(new Blob([apngBytes], { type: "image/png" }), `${baseName}_${state.exportFps}fps.animated.png`);
+          setStatus(`Exported APNG with ${exportFrames.length} frames.`);
+        }
+
+        ui.progressText.textContent = "Done";
+      } catch (error) {
+        console.error(error);
+        setStatus(`Export failed: ${error.message}`);
+        ui.progressText.textContent = "Failed";
+      } finally {
+        state.isExporting = false;
+      }
+    }
+
+    function renderExportFrame(renderCtx, figures) {
+      renderCtx.clearRect(0, 0, renderCtx.canvas.width, renderCtx.canvas.height);
+
+      if (ui.exportBackground.value === "solid") {
+        renderCtx.fillStyle = "#05070d";
+        renderCtx.fillRect(0, 0, renderCtx.canvas.width, renderCtx.canvas.height);
+      }
+
+      for (const figure of figures) {
+        drawFigure(figure, false, renderCtx, {
+          showHandles: false,
+          showLabel: false
+        });
+      }
+    }
+
+    function canvasToBlob(canvas) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Could not encode PNG frame."));
+          }
+        }, "image/png");
+      });
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function blobToUint8Array(blob) {
+      return blob.arrayBuffer().then((buffer) => new Uint8Array(buffer));
+    }
+
+    function waitForDownloadGap() {
+      return new Promise((resolve) => window.setTimeout(resolve, 90));
+    }
+
+    function encodeZip(entries) {
+      const bytes = [];
+      const centralDirectory = [];
+      const now = new Date();
+      const dosTime = ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | ((Math.floor(now.getSeconds() / 2)) & 31);
+      const dosDate = (((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31);
+
+      for (const entry of entries) {
+        const nameBytes = asciiBytes(entry.name);
+        const data = entry.bytes;
+        const crc = crc32(data);
+        const localOffset = bytes.length;
+
+        pushZipUint32(bytes, 0x04034b50);
+        pushZipUint16(bytes, 20);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, dosTime);
+        pushZipUint16(bytes, dosDate);
+        pushZipUint32(bytes, crc);
+        pushZipUint32(bytes, data.length);
+        pushZipUint32(bytes, data.length);
+        pushZipUint16(bytes, nameBytes.length);
+        pushZipUint16(bytes, 0);
+        pushByteArray(bytes, nameBytes);
+        pushByteArray(bytes, data);
+
+        centralDirectory.push({
+          nameBytes,
+          crc,
+          size: data.length,
+          localOffset,
+          dosTime,
+          dosDate
+        });
+      }
+
+      const centralStart = bytes.length;
+
+      for (const entry of centralDirectory) {
+        pushZipUint32(bytes, 0x02014b50);
+        pushZipUint16(bytes, 20);
+        pushZipUint16(bytes, 20);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, entry.dosTime);
+        pushZipUint16(bytes, entry.dosDate);
+        pushZipUint32(bytes, entry.crc);
+        pushZipUint32(bytes, entry.size);
+        pushZipUint32(bytes, entry.size);
+        pushZipUint16(bytes, entry.nameBytes.length);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, 0);
+        pushZipUint16(bytes, 0);
+        pushZipUint32(bytes, 0);
+        pushZipUint32(bytes, entry.localOffset);
+        pushByteArray(bytes, entry.nameBytes);
+      }
+
+      const centralSize = bytes.length - centralStart;
+      pushZipUint32(bytes, 0x06054b50);
+      pushZipUint16(bytes, 0);
+      pushZipUint16(bytes, 0);
+      pushZipUint16(bytes, centralDirectory.length);
+      pushZipUint16(bytes, centralDirectory.length);
+      pushZipUint32(bytes, centralSize);
+      pushZipUint32(bytes, centralStart);
+      pushZipUint16(bytes, 0);
+
+      return new Uint8Array(bytes);
+    }
+
+    function pushByteArray(bytes, data) {
+      for (let index = 0; index < data.length; index += 1) {
+        bytes.push(data[index]);
+      }
+    }
+
+    function pushZipUint16(bytes, value) {
+      bytes.push(value & 255, (value >>> 8) & 255);
+    }
+
+    function pushZipUint32(bytes, value) {
+      bytes.push(value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255);
+    }
+
+    async function encodeGifWithGifJs(frames, fps) {
+      if (!frames.length) {
+        throw new Error("No frames available for GIF export.");
+      }
+
+      await ensureGifJsLoaded();
+      const workerScript = await getSameOriginGifWorkerScript();
+
+      return await new Promise((resolve, reject) => {
+        const gif = new window.GIF({
+          workers: 2,
+          quality: 10,
+          workerScript
+        });
+        const delay = Math.max(20, Math.round(1000 / Math.max(1, fps)));
+
+        gif.on("finished", (blob) => resolve(blob));
+        gif.on("abort", () => reject(new Error("GIF encoding was aborted.")));
+        gif.on("progress", (progress) => {
+          ui.progressBar.value = progress;
+          ui.progressText.textContent = `GIF ${Math.round(progress * 100)}%`;
+        });
+
+        for (const frame of frames) {
+          gif.addFrame(frame, { delay, copy: true });
+        }
+
+        gif.render();
+      });
+    }
+
+    async function getSameOriginGifWorkerScript() {
+      if (state.gifWorkerObjectUrl) {
+        return state.gifWorkerObjectUrl;
+      }
+
+      const response = await fetch(GIF_JS_WORKER_URL);
+
+      if (!response.ok) {
+        throw new Error(`Could not load GIF worker: ${response.status}`);
+      }
+
+      const workerSource = await response.text();
+      const workerBlob = new Blob([workerSource], {
+        type: "text/javascript"
+      });
+      state.gifWorkerObjectUrl = URL.createObjectURL(workerBlob);
+      return state.gifWorkerObjectUrl;
+    }
+
+    function ensureGifJsLoaded() {
+      if (window.GIF) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${GIF_JS_URL}"]`);
+
+        if (existing) {
+          existing.addEventListener("load", () => resolve(), { once: true });
+          existing.addEventListener("error", () => reject(new Error("Could not load GIF encoder.")), { once: true });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = GIF_JS_URL;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Could not load GIF encoder."));
+        document.head.appendChild(script);
+      });
+    }
+
+    function encodeApngFromPngFrames(pngFrames, fps) {
+      if (!pngFrames.length) {
+        throw new Error("No frames available for APNG export.");
+      }
+
+      const firstPng = parsePngChunks(pngFrames[0]);
+      const ihdr = firstPng.chunks.find((chunk) => chunk.type === "IHDR");
+
+      if (!ihdr) {
+        throw new Error("PNG frame is missing IHDR.");
+      }
+
+      const width = readUint32(ihdr.data, 0);
+      const height = readUint32(ihdr.data, 4);
+      const bytes = [...PNG_SIGNATURE];
+      let sequence = 0;
+      const delayNum = Math.max(1, Math.round(1000 / Math.max(1, fps)));
+      const delayDen = 1000;
+
+      writePngChunk(bytes, "IHDR", ihdr.data);
+      writePngChunk(bytes, "acTL", uint32ArrayToBytes([pngFrames.length, 0]));
+
+      for (let frameIndex = 0; frameIndex < pngFrames.length; frameIndex += 1) {
+        const parsed = parsePngChunks(pngFrames[frameIndex]);
+        const frameIhdr = parsed.chunks.find((chunk) => chunk.type === "IHDR");
+
+        if (!frameIhdr || readUint32(frameIhdr.data, 0) !== width || readUint32(frameIhdr.data, 4) !== height) {
+          throw new Error("All APNG frames must have the same dimensions.");
+        }
+
+        const idatChunks = parsed.chunks.filter((chunk) => chunk.type === "IDAT");
+        const frameControl = new Uint8Array(26);
+        writeUint32(frameControl, 0, sequence);
+        sequence += 1;
+        writeUint32(frameControl, 4, width);
+        writeUint32(frameControl, 8, height);
+        writeUint32(frameControl, 12, 0);
+        writeUint32(frameControl, 16, 0);
+        writeUint16(frameControl, 20, delayNum);
+        writeUint16(frameControl, 22, delayDen);
+        frameControl[24] = 0;
+        frameControl[25] = 0;
+        writePngChunk(bytes, "fcTL", frameControl);
+
+        if (frameIndex === 0) {
+          for (const chunk of idatChunks) {
+            writePngChunk(bytes, "IDAT", chunk.data);
+          }
+        } else {
+          for (const chunk of idatChunks) {
+            const frameData = new Uint8Array(chunk.data.length + 4);
+            writeUint32(frameData, 0, sequence);
+            sequence += 1;
+            frameData.set(chunk.data, 4);
+            writePngChunk(bytes, "fdAT", frameData);
+          }
+        }
+      }
+
+      writePngChunk(bytes, "IEND", new Uint8Array());
+      return new Uint8Array(bytes);
+    }
+
+    const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+
+    function parsePngChunks(bytes) {
+      for (let index = 0; index < PNG_SIGNATURE.length; index += 1) {
+        if (bytes[index] !== PNG_SIGNATURE[index]) {
+          throw new Error("Invalid PNG frame.");
+        }
+      }
+
+      const chunks = [];
+      let offset = PNG_SIGNATURE.length;
+
+      while (offset + 12 <= bytes.length) {
+        const length = readUint32(bytes, offset);
+        const type = String.fromCharCode(bytes[offset + 4], bytes[offset + 5], bytes[offset + 6], bytes[offset + 7]);
+        const dataStart = offset + 8;
+        const dataEnd = dataStart + length;
+        chunks.push({
+          type,
+          data: bytes.slice(dataStart, dataEnd)
+        });
+        offset = dataEnd + 4;
+
+        if (type === "IEND") {
+          break;
+        }
+      }
+
+      return { chunks };
+    }
+
+    function writePngChunk(bytes, type, data) {
+      const typeBytes = asciiBytes(type);
+      pushUint32(bytes, data.length);
+      bytes.push(...typeBytes);
+      bytes.push(...data);
+
+      const crcInput = new Uint8Array(typeBytes.length + data.length);
+      crcInput.set(typeBytes, 0);
+      crcInput.set(data, typeBytes.length);
+      pushUint32(bytes, crc32(crcInput));
+    }
+
+    function crc32(bytes) {
+      let crc = 0xffffffff;
+
+      for (const byte of bytes) {
+        crc ^= byte;
+
+        for (let bit = 0; bit < 8; bit += 1) {
+          crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+        }
+      }
+
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    function asciiBytes(text) {
+      return Uint8Array.from(text, (char) => char.charCodeAt(0));
+    }
+
+    function pushAscii(bytes, text) {
+      for (let index = 0; index < text.length; index += 1) {
+        bytes.push(text.charCodeAt(index));
+      }
+    }
+
+    function pushUint16(bytes, value) {
+      bytes.push(value & 255, (value >>> 8) & 255);
+    }
+
+    function pushUint32(bytes, value) {
+      bytes.push((value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255);
+    }
+
+    function readUint32(bytes, offset) {
+      return ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
+    }
+
+    function writeUint16(bytes, offset, value) {
+      bytes[offset] = (value >>> 8) & 255;
+      bytes[offset + 1] = value & 255;
+    }
+
+    function writeUint32(bytes, offset, value) {
+      bytes[offset] = (value >>> 24) & 255;
+      bytes[offset + 1] = (value >>> 16) & 255;
+      bytes[offset + 2] = (value >>> 8) & 255;
+      bytes[offset + 3] = value & 255;
+    }
+
+    function uint32ArrayToBytes(values) {
+      const bytes = new Uint8Array(values.length * 4);
+
+      values.forEach((value, index) => writeUint32(bytes, index * 4, value));
+      return bytes;
+    }
+
+    function cloneFigure(figure) {
+      return {
+        trackId: figure.trackId,
+        confidence: figure.confidence,
+        source: figure.source,
+        bbox: figure.bbox ? { ...figure.bbox } : null,
+        assignmentCost: figure.assignmentCost,
+        points: figure.points.map((point) => ({ ...point }))
+      };
+    }
+
+    function waitOneFrame() {
+      return new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+
+    function createAbortError(message) {
+      const error = new Error(message);
+      error.name = "AbortError";
+      return error;
+    }
+
+    function isAbortError(error) {
+      return error && error.name === "AbortError";
+    }
+
+    function finiteOr(value, fallback) {
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function clamp(value, min, max) {
+      if (!Number.isFinite(value)) {
+        return min;
+      }
+
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function clampInt(value, min, max) {
+      return Math.round(clamp(value, min, max));
+    }
+
+    function lerp(a, b, amount) {
+      return a + (b - a) * amount;
+    }
+
+    function round6(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return null;
+      }
+
+      return Math.round(value * 1000000) / 1000000;
+    }
+
+    function withAlpha(hex, alpha) {
+      const clean = hex.replace("#", "");
+      const r = parseInt(clean.slice(0, 2), 16);
+      const g = parseInt(clean.slice(2, 4), 16);
+      const b = parseInt(clean.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+  </script>
+</body>
+</html>
