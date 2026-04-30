@@ -1,0 +1,6 @@
+{
+  "schema": "seventeen.motionSources.v1",
+  "libraryUrl": "../../.generated/stick17/mixamo_motion_clips/motion_library.json",
+  "classificationUrl": "../../motion_classification.overrides.json",
+  "sourceName": "Mixamo stick_17"
+}

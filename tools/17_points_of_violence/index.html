@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17 Points of Violence</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fffdf8;
+      --ink: #080808;
+      --red: #d90000;
+      --yellow: #f2c300;
+      font-family: Impact, "Arial Black", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: var(--paper);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #bootStatus {
+      position: absolute;
+      left: 14px;
+      bottom: 12px;
+      padding: 6px 9px;
+      color: var(--ink);
+      background: rgba(255, 253, 248, 0.84);
+      border: 2px solid var(--ink);
+      font: 700 12px system-ui, sans-serif;
+      pointer-events: none;
+    }
+    #debugOverlay {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      max-width: min(360px, calc(100vw - 24px));
+      padding: 10px 12px;
+      color: var(--paper);
+      background: rgba(8, 8, 8, 0.88);
+      border-left: 6px solid var(--red);
+      font: 12px/1.35 ui-monospace, "Cascadia Mono", Consolas, monospace;
+      pointer-events: none;
+    }
+    #debugOverlay ul {
+      margin: 6px 0 0;
+      padding-left: 18px;
+      overflow-wrap: anywhere;
+    }
+    #motionPanel {
+      position: absolute;
+      right: 12px;
+      top: 220px;
+      width: min(420px, calc(100vw - 24px));
+      max-height: calc(100vh - 232px);
+      overflow: auto;
+      padding: 12px;
+      color: var(--paper);
+      background: rgba(8, 8, 8, 0.9);
+      border-left: 6px solid var(--red);
+      font: 13px/1.3 system-ui, sans-serif;
+    }
+    #motionPanel label {
+      display: grid;
+      gap: 4px;
+      margin: 8px 0;
+    }
+    #motionPanel select,
+    #motionPanel button {
+      min-width: 0;
+      color: var(--paper);
+      background: #151515;
+      border: 1px solid var(--paper);
+      padding: 7px 8px;
+      font: inherit;
+    }
+    #motionPanel button {
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .motion-panel-title {
+      color: var(--yellow);
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .motion-panel-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .motion-intent-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin: 8px 0;
+    }
+    .motion-intent-grid button.active,
+    .motion-candidate.active {
+      color: var(--ink) !important;
+      background: var(--yellow) !important;
+      border-color: var(--yellow) !important;
+    }
+    .motion-panel-toggle {
+      display: flex !important;
+      grid-template-columns: auto 1fr;
+      gap: 8px !important;
+      align-items: center;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+    .motion-panel-summary {
+      margin-top: 8px;
+      color: var(--yellow);
+      overflow-wrap: anywhere;
+      font: 12px/1.35 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+    .motion-candidate-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .motion-candidate {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+    }
+    .motion-candidate small,
+    .motion-score {
+      font: 11px/1.25 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+    .motion-score {
+      white-space: nowrap;
+      color: var(--yellow);
+    }
+    .motion-candidate-empty {
+      padding: 8px;
+      border: 1px solid rgba(255, 253, 248, 0.4);
+      font: 12px/1.35 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+    .motion-direct-debug {
+      margin-top: 10px;
+      border-top: 1px solid rgba(255, 253, 248, 0.35);
+      padding-top: 8px;
+    }
+    .motion-direct-debug summary {
+      cursor: pointer;
+      color: var(--yellow);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    @media (max-width: 720px) {
+      #debugOverlay {
+        left: 8px;
+        right: 8px;
+        top: 8px;
+        max-width: none;
+        font-size: 11px;
+      }
+      #motionPanel {
+        left: 8px;
+        right: 8px;
+        top: 190px;
+        width: auto;
+        max-height: calc(100vh - 198px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <canvas id="gameCanvas" aria-label="17 Points of Violence game canvas"></canvas>
+    <div id="debugOverlay"></div>
+    <div id="motionPanel"></div>
+    <div id="bootStatus">Booting...</div>
+  </main>
+  <script type="module" src="src/app/main.js"></script>
+</body>
+</html>

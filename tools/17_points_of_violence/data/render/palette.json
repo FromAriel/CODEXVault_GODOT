@@ -1,0 +1,20 @@
+{
+  "schema": "seventeen.palette.v1",
+  "colors": {
+    "white": "#fffdf8",
+    "paperShadow": "#f0eee8",
+    "black": "#080808",
+    "inkSoft": "#222222",
+    "red": "#d90000",
+    "redDark": "#8b0000",
+    "yellow": "#f2c300",
+    "hazardBlack": "#111111",
+    "debugBlue": "#0b78ff"
+  },
+  "lineWidths": {
+    "thin": 2,
+    "normal": 4,
+    "bold": 8,
+    "hero": 9
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "schema": "seventeen.rootMotionPolicies.v1",
+  "debug": {
+    "enabled": false,
+    "rootColor": "rgba(217, 0, 0, 0.9)",
+    "poseBoundsColor": "rgba(0, 120, 255, 0.65)",
+    "gameplayBoundsColor": "rgba(242, 195, 0, 0.85)",
+    "pathColor": "rgba(217, 0, 0, 0.55)"
+  },
+  "boundsPadding": {
+    "x": 28,
+    "y": 18
+  },
+  "policies": {
+    "anchored": {
+      "id": "anchored",
+      "label": "Anchored",
+      "type": "anchored",
+      "travelX": 0,
+      "jumpHeight": 0,
+      "curve": "linear"
+    },
+    "combo_in_place": {
+      "id": "combo_in_place",
+      "label": "Combo In Place",
+      "type": "anchored",
+      "travelX": 0,
+      "jumpHeight": 0,
+      "curve": "linear"
+    },
+    "locomotion_advance": {
+      "id": "locomotion_advance",
+      "label": "Locomotion Advance",
+      "type": "travel",
+      "travelX": 130,
+      "jumpHeight": 0,
+      "curve": "smoothstep"
+    },
+    "locomotion_retreat": {
+      "id": "locomotion_retreat",
+      "label": "Locomotion Retreat",
+      "type": "travel",
+      "travelX": -105,
+      "jumpHeight": 0,
+      "curve": "smoothstep"
+    },
+    "locomotion_lateral": {
+      "id": "locomotion_lateral",
+      "label": "Locomotion Lateral",
+      "type": "travel",
+      "travelX": 70,
+      "jumpHeight": 0,
+      "curve": "smoothstep"
+    },
+    "attack_lunge": {
+      "id": "attack_lunge",
+      "label": "Attack Lunge",
+      "type": "travel",
+      "travelX": 48,
+      "retreatX": -34,
+      "jumpHeight": 0,
+      "curve": "smoothstep"
+    },
+    "dodge": {
+      "id": "dodge",
+      "label": "Dodge",
+      "type": "travel",
+      "travelX": 88,
+      "retreatX": -112,
+      "lateralX": 76,
+      "jumpHeight": 0,
+      "curve": "smoothstep"
+    },
+    "jump_up": {
+      "id": "jump_up",
+      "label": "Jump Up",
+      "type": "jump",
+      "travelX": 0,
+      "jumpHeight": 128,
+      "curve": "smoothstep"
+    },
+    "jump_forward": {
+      "id": "jump_forward",
+      "label": "Jump Forward",
+      "type": "jump",
+      "travelX": 128,
+      "jumpHeight": 128,
+      "curve": "smoothstep"
+    },
+    "jump_retreat": {
+      "id": "jump_retreat",
+      "label": "Jump Retreat",
+      "type": "jump",
+      "travelX": -112,
+      "jumpHeight": 120,
+      "curve": "smoothstep"
+    },
+    "mantle_up_placeholder": {
+      "id": "mantle_up_placeholder",
+      "label": "Mantle Up Placeholder",
+      "type": "placeholder",
+      "travelX": 0,
+      "jumpHeight": 0,
+      "curve": "linear"
+    },
+    "mantle_down_placeholder": {
+      "id": "mantle_down_placeholder",
+      "label": "Mantle Down Placeholder",
+      "type": "placeholder",
+      "travelX": 0,
+      "jumpHeight": 0,
+      "curve": "linear"
+    }
+  }
+}

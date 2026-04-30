@@ -1,0 +1,16 @@
+{
+  "schema": "seventeen.inputBindings.v1",
+  "keyboard": {
+    "start": ["Enter", "Space"],
+    "up": ["KeyW", "ArrowUp"],
+    "down": ["KeyS", "ArrowDown"],
+    "left": ["KeyA", "ArrowLeft"],
+    "right": ["KeyD", "ArrowRight"],
+    "debugToggle": ["Backquote"]
+  },
+  "gamepad": {
+    "start": ["Start"],
+    "move": ["LeftStick"],
+    "debugToggle": ["Select"]
+  }
+}
