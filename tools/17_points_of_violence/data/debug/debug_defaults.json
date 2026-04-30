@@ -1,8 +1,0 @@
-{
-  "schema": "seventeen.debugDefaults.v1",
-  "enabled": true,
-  "showFrameTime": true,
-  "showLoadedData": true,
-  "showInputMode": true,
-  "refreshSeconds": 0.12
-}
