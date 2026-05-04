@@ -78,6 +78,13 @@
         font outlines -> quadratic curves -> band data -> glyph instances -> WGSL renderer.
         WebGPU is the experimental target; Canvas2D remains the required fallback.
       </div>
+      <div class="glyph-font-note" aria-label="Generated glyph font selector">
+        <label>
+          glyph font
+          <select data-glyph-font></select>
+        </label>
+        <span data-glyph-font-detail>Generated glyph assets are loading.</span>
+      </div>
     </section>
 
     <section class="wgsl-lab" aria-label="WGSL static glyph renderer lab">
@@ -86,7 +93,7 @@
           <p class="eyebrow">Slice 6.5</p>
           <h2>WGSL Static Glyph Fidelity Review</h2>
           <p>
-            Tac One static QA: Canvas and WebGPU share one transformed curve geometry,
+            Multi-font static QA: Canvas and WebGPU share one transformed curve geometry,
             even-odd fill rule, stress presets, bounds, contour, segment, and segment-cap checks.
           </p>
         </div>
@@ -138,7 +145,7 @@
       </div>
       <div class="renderer-comparison">
         <figure>
-          <figcaption>Canvas fallback from Tac One curves</figcaption>
+          <figcaption>Canvas fallback from selected font curves</figcaption>
           <canvas width="512" height="220" data-static-canvas></canvas>
         </figure>
         <figure>
@@ -157,7 +164,7 @@
           <p class="eyebrow">Slice 7F</p>
           <h2>Continuous Word-Body Glyph Renderer</h2>
           <p>
-            Tac One glyph instances driven by one simulated word body:
+            Selected font glyph instances driven by one simulated word body:
             reveal, readable hold, force, drag, cohesion, scatter, and fade.
             The sample cards now use the same continuous glyph-controller path at a 1.5x review default.
             Slice 7F adds bounded runtime contour deformation for smear, dent, bend, spikes, and corkscrew exits.
@@ -167,19 +174,36 @@
           <label>
             preset
             <select data-anim-preset>
-              <option value="pow-force-wave" selected>POW force wave</option>
-              <option value="whiff-ribbon">WHIFF ribbon</option>
-              <option value="block-plate">BLOCK plate</option>
-              <option value="finisher-curl">Finisher curl</option>
-              <option value="mob-pressure">Mob pressure stress</option>
-              <option value="pow-rubber-smear">POW rubber smear</option>
-              <option value="bam-impact-dent">BAM impact dent</option>
-              <option value="whiff-ribbon-bend">WHIFF ribbon bend</option>
-              <option value="block-accordion">BLOCK accordion plate</option>
-              <option value="crack-spiky-fracture">CRACK spiky fracture</option>
-              <option value="wham-corkscrew-exit">WHAM corkscrew exit</option>
+              <optgroup label="wormhole / ripple">
+                <option value="pow-wormhole-dissolve">POW wormhole zoom in</option>
+                <option value="pow-wormhole-unfold">POW wormhole unfold</option>
+                <option value="pow-letter-twist-shrink">POW letter twist shrink</option>
+                <option value="pow-flow-ripple">POW flow ripple</option>
+              </optgroup>
+              <optgroup label="continuous motion">
+                <option value="pow-force-wave" selected>POW force wave</option>
+                <option value="whiff-ribbon">WHIFF ribbon</option>
+                <option value="block-plate">BLOCK plate</option>
+                <option value="finisher-curl">Finisher curl</option>
+                <option value="mob-pressure">Mob pressure stress</option>
+              </optgroup>
+              <optgroup label="deformation review">
+                <option value="pow-rubber-smear">POW rubber smear</option>
+                <option value="bam-impact-dent">BAM impact dent</option>
+                <option value="pow-crash-dent">POW crash dent</option>
+                <option value="whiff-ribbon-bend">WHIFF ribbon bend</option>
+                <option value="block-accordion">BLOCK accordion plate</option>
+                <option value="crack-spiky-fracture">CRACK spiky fracture</option>
+                <option value="wham-corkscrew-exit">WHAM corkscrew exit</option>
+              </optgroup>
             </select>
           </label>
+          <div class="anim-preset-shortcuts" aria-label="Quick deformation presets">
+            <button type="button" data-anim-preset-jump="pow-wormhole-dissolve">Worm In</button>
+            <button type="button" data-anim-preset-jump="pow-wormhole-unfold">Worm Out</button>
+            <button type="button" data-anim-preset-jump="pow-letter-twist-shrink">Twist</button>
+            <button type="button" data-anim-preset-jump="pow-flow-ripple">Ripple</button>
+          </div>
           <button type="button" data-anim-toggle>Pause</button>
           <button type="button" data-anim-restart>Restart</button>
           <label>
@@ -210,10 +234,15 @@
             <option value="off">off</option>
             <option value="rubber_smear">rubber smear</option>
             <option value="impact_dent">impact dent</option>
+            <option value="crash_dent">crash dent</option>
             <option value="ribbon_bend">ribbon bend</option>
             <option value="accordion_plate">accordion plate</option>
             <option value="spiky_fracture">spiky fracture</option>
             <option value="corkscrew_exit">corkscrew exit</option>
+            <option value="wormhole_spiral">wormhole spiral</option>
+            <option value="wormhole_unfold">wormhole unfold</option>
+            <option value="letter_twist_shrink">letter twist shrink</option>
+            <option value="flow_ripple">flow ripple</option>
           </select>
         </label>
         <label><input type="checkbox" data-anim-show-original /> original ghost</label>

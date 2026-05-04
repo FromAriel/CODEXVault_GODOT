@@ -30,6 +30,89 @@
     samples: []
   };
 
+  const glyphFontListeners = [];
+
+  function glyphAssetMap() {
+    const assets = window.STICKY_TYPOGRAPHY_GLYPH_ASSETS;
+    return assets && typeof assets === "object" ? assets : {};
+  }
+
+  function availableGlyphAssets() {
+    const assets = Object.values(glyphAssetMap()).filter(asset => asset?.fontId && asset?.glyphs);
+    return assets.sort((a, b) => {
+      if (a.fontId === "tac_one") return -1;
+      if (b.fontId === "tac_one") return 1;
+      return String(a.family || a.fontId).localeCompare(String(b.family || b.fontId));
+    });
+  }
+
+  function glyphAssetLabel(asset) {
+    return asset?.family || asset?.fontId || "Unknown font";
+  }
+
+  function selectedGlyphFontId() {
+    const select = document.querySelector("[data-glyph-font]");
+    const assets = glyphAssetMap();
+    if (select?.value && assets[select.value]) return select.value;
+    if (assets.tac_one) return "tac_one";
+    const first = availableGlyphAssets()[0];
+    return first?.fontId || "";
+  }
+
+  function selectedGlyphAsset() {
+    const assets = glyphAssetMap();
+    const selected = assets[selectedGlyphFontId()];
+    return selected || assets.tac_one || availableGlyphAssets()[0] || null;
+  }
+
+  function updateGlyphFontDetail() {
+    const detail = document.querySelector("[data-glyph-font-detail]");
+    if (!detail) return;
+    const asset = selectedGlyphAsset();
+    if (!asset) {
+      detail.textContent = "No generated glyph assets loaded.";
+      return;
+    }
+    const summary = asset.summary || {};
+    detail.textContent = `${glyphAssetLabel(asset)} · ${asset.role || "impact"} · ${summary.totalCurves || asset.curves?.length || 0} curves · max band ${summary.maxCurvesPerBand || 0}`;
+  }
+
+  function renderCurrentSamples() {
+    for (const sample of state.samples || []) {
+      sample.render(clamp(sample.elapsed || 0, 0, sample.definition.duration));
+    }
+  }
+
+  function onGlyphFontChange(listener) {
+    glyphFontListeners.push(listener);
+  }
+
+  function populateGlyphFontSelect() {
+    const select = document.querySelector("[data-glyph-font]");
+    if (!select) return;
+    const assets = availableGlyphAssets();
+    const previous = select.value || "tac_one";
+    select.textContent = "";
+    for (const asset of assets) {
+      const option = document.createElement("option");
+      option.value = asset.fontId;
+      option.textContent = glyphAssetLabel(asset);
+      select.appendChild(option);
+    }
+    if (assets.length > 0) {
+      select.value = assets.some(asset => asset.fontId === previous) ? previous : selectedGlyphFontId();
+    }
+    if (!select.dataset.glyphFontWired) {
+      select.dataset.glyphFontWired = "true";
+      select.addEventListener("change", () => {
+        updateGlyphFontDetail();
+        renderCurrentSamples();
+        for (const listener of glyphFontListeners) listener(selectedGlyphAsset());
+      });
+    }
+    updateGlyphFontDetail();
+  }
+
   class TextBody {
     constructor(options = {}) {
       this.id = options.id || "";
@@ -391,8 +474,7 @@
   }
 
   class StaticGlyphLab {
-    constructor(asset) {
-      this.asset = asset;
+    constructor() {
       this.wordSelect = document.querySelector("[data-wgsl-word]");
       this.sizeSelect = document.querySelector("[data-wgsl-size]");
       this.transformSelect = document.querySelector("[data-wgsl-transform]");
@@ -423,11 +505,13 @@
       for (const input of Object.values(this.debugControls)) {
         input?.addEventListener("change", rerender);
       }
+      onGlyphFontChange(rerender);
       this.render();
     }
 
     settings() {
-      const word = normalizeStaticWord(this.wordSelect?.value, this.asset);
+      const asset = selectedGlyphAsset();
+      const word = normalizeStaticWord(this.wordSelect?.value, asset);
       const size = STATIC_SIZE_PRESETS[this.sizeSelect?.value] ? this.sizeSelect.value : "normal";
       const transform = STATIC_TRANSFORM_PRESETS[this.transformSelect?.value] ? this.transformSelect.value : "none";
       return {
@@ -445,8 +529,9 @@
     }
 
     render() {
-      if (!this.asset) {
-        this.status.textContent = "Tac One asset bridge missing.";
+      const asset = selectedGlyphAsset();
+      if (!asset) {
+        this.status.textContent = "Glyph asset bridge missing.";
         this.detail.textContent = "Run the font preprocessor or check tac_one_glyph_asset.generated.js.";
         return;
       }
@@ -455,16 +540,16 @@
       if (this.sizeSelect) this.sizeSelect.value = settings.size;
       if (this.transformSelect) this.transformSelect.value = settings.transform;
       if (this.statusRow) this.statusRow.hidden = !settings.showStatus;
-      const geometry = this.canvasRenderer.draw(this.asset, settings);
-      this.metrics.textContent = staticMetricsText(this.asset, geometry);
+      const geometry = this.canvasRenderer.draw(asset, settings);
+      this.metrics.textContent = staticMetricsText(asset, geometry);
       this.metrics.classList.toggle("warning", Boolean(geometry.truncated && settings.showCapWarning));
-      this.status.textContent = "Canvas fallback rendered from glyph curves.";
+      this.status.textContent = `Canvas fallback rendered from ${glyphAssetLabel(asset)} curves.`;
       this.detail.textContent = `Attempting isolated WebGPU ${settings.fillRule} render for comparison.`;
       this.gpuRenderer.render(geometry);
     }
   }
 
-  const MAX_GPU_SEGMENTS = 256;
+  const MAX_GPU_SEGMENTS = 4096;
   const STATIC_SIZE_PRESETS = {
     small: { label: "small", scale: 0.48 },
     normal: { label: "normal", scale: 0.82 },
@@ -803,6 +888,50 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     }
   };
 
+  ANIMATED_GLYPH_PRESETS["pow-crash-dent"] = {
+    ...ANIMATED_GLYPH_PRESETS["pow-force-wave"],
+    title: "POW crash dent",
+    duration: 1.78,
+    fit: 0.72,
+    anchor: { x: 246, y: 116 },
+    direction: { x: 1, y: -0.01 },
+    recipe: {
+      ...ANIMATED_GLYPH_PRESETS["pow-force-wave"].recipe,
+      revealStarts: [0.03, 0.075, 0.12, 0.155],
+      revealSeconds: [0.12, 0.115, 0.11, 0.1],
+      entryDistance: 2,
+      readableHoldSeconds: 0.28,
+      impulses: [
+        { start: 1.05, seconds: 0.28, force: { x: 34, y: -18 }, torque: -0.58 }
+      ],
+      cohesion: { spring: 82, damping: 18, decayStart: 1.08, decaySeconds: 0.28, floor: 0.42 },
+      scatter: { start: 1.08, seconds: 0.42, force: 40, spread: 36, gravity: 16, torque: 1.05, curl: 12 },
+      fade: { start: 1.42, seconds: 0.32 },
+      livingDrift: { amount: 0.08, hz: 0.45 },
+      glyphAccents: []
+    },
+    deformation: {
+      type: "crash_dent",
+      start: 0.34,
+      seconds: 0.6,
+      strength: 1.22,
+      curve: "hold",
+      maxOffsetEm: 0.34,
+      direction: "up_right",
+      frontWidth: 0.74,
+      pushDepth: 1.08,
+      minSpacing: 0.18,
+      buckle: 1.05,
+      rebound: 0.24,
+      shoveNoise: 0.9,
+      chainWave: 1,
+      velocityShove: 0.58,
+      crumpleFrequency: 6.2,
+      phase: 0.08,
+      seed: "pow-crash-dent"
+    }
+  };
+
   ANIMATED_GLYPH_PRESETS["whiff-ribbon-bend"] = {
     ...ANIMATED_GLYPH_PRESETS["whiff-ribbon"],
     title: "WHIFF ribbon bend",
@@ -872,6 +1001,135 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       curve: "ramp",
       maxOffsetEm: 0.14,
       twist: 0.55
+    }
+  };
+
+  ANIMATED_GLYPH_PRESETS["pow-wormhole-dissolve"] = {
+    ...ANIMATED_GLYPH_PRESETS["pow-force-wave"],
+    title: "POW wormhole zoom in",
+    duration: 3.18,
+    fit: 0.72,
+    recipe: {
+      ...ANIMATED_GLYPH_PRESETS["pow-force-wave"].recipe,
+      impulses: [
+        { start: 0.92, seconds: 0.42, force: { x: 92, y: -6 }, torque: -0.03 }
+      ],
+      cohesion: { spring: 56, damping: 12.5, decayStart: 2.22, decaySeconds: 0.42, floor: 0.82 },
+      scatter: { start: 2.5, seconds: 0.42, force: 4, spread: 4, gravity: 0, torque: 0.02, curl: 0 },
+      fade: { start: 2.58, seconds: 0.42 },
+      livingDrift: { amount: 0.55, hz: 0.55 }
+    },
+    deformation: {
+      type: "wormhole_spiral",
+      start: 1.5,
+      seconds: 1.22,
+      glyphStagger: 0.16,
+      strength: 1,
+      curve: "ramp",
+      maxOffsetEm: 0.68,
+      turns: 2.35,
+      inward: 0.96,
+      direction: 1,
+      seed: "pow-wormhole-zoom-in"
+    }
+  };
+
+  ANIMATED_GLYPH_PRESETS["pow-wormhole-unfold"] = {
+    ...ANIMATED_GLYPH_PRESETS["pow-force-wave"],
+    title: "POW wormhole unfold",
+    duration: 3.18,
+    fit: 0.72,
+    recipe: {
+      ...ANIMATED_GLYPH_PRESETS["pow-force-wave"].recipe,
+      revealStarts: [0.04, 0.1, 0.16, 0.22],
+      revealSeconds: [0.26, 0.3, 0.28, 0.22],
+      entryDistance: 4,
+      impulses: [
+        { start: 1.18, seconds: 0.38, force: { x: 74, y: -5 }, torque: 0.035 }
+      ],
+      cohesion: { spring: 62, damping: 13, decayStart: 2.36, decaySeconds: 0.46, floor: 0.88 },
+      scatter: { start: 2.52, seconds: 0.36, force: 8, spread: 8, gravity: 0, torque: 0.035, curl: 0 },
+      fade: { start: 2.76, seconds: 0.34 },
+      livingDrift: { amount: 0.5, hz: 0.48 },
+      glyphAccents: []
+    },
+    deformation: {
+      type: "wormhole_spiral",
+      start: 0.02,
+      seconds: 1.32,
+      glyphStagger: 0.08,
+      strength: 1,
+      curve: "reverse_ramp",
+      maxOffsetEm: 0.68,
+      turns: 2.35,
+      inward: 0.96,
+      direction: -1,
+      readabilityGate: false,
+      seed: "pow-wormhole-unfold"
+    }
+  };
+
+  ANIMATED_GLYPH_PRESETS["pow-letter-twist-shrink"] = {
+    ...ANIMATED_GLYPH_PRESETS["pow-force-wave"],
+    title: "POW letter twist shrink",
+    duration: 3.15,
+    fit: 0.72,
+    recipe: {
+      ...ANIMATED_GLYPH_PRESETS["pow-force-wave"].recipe,
+      impulses: [
+        { start: 0.86, seconds: 0.38, force: { x: 126, y: -8 }, torque: -0.04 }
+      ],
+      cohesion: { spring: 52, damping: 11, decayStart: 1.65, decaySeconds: 0.72, floor: 0.72 },
+      scatter: { start: 2.2, seconds: 0.44, force: 6, spread: 6, gravity: 0, torque: 0.04, curl: 0 },
+      fade: { start: 2.52, seconds: 0.5 },
+      livingDrift: { amount: 0.7, hz: 0.65 }
+    },
+    deformation: {
+      type: "letter_twist_shrink",
+      start: 1.12,
+      seconds: 0.98,
+      glyphStagger: 0.2,
+      strength: 1,
+      curve: "ramp",
+      maxOffsetEm: 0.42,
+      turns: 1.45,
+      twistVariance: 0.75,
+      shrinkMin: 0.09,
+      direction: 1,
+      seed: "pow-letter-twist"
+    }
+  };
+
+  ANIMATED_GLYPH_PRESETS["pow-flow-ripple"] = {
+    ...ANIMATED_GLYPH_PRESETS["pow-force-wave"],
+    title: "POW flow ripple",
+    duration: 3.05,
+    fit: 0.72,
+    recipe: {
+      ...ANIMATED_GLYPH_PRESETS["pow-force-wave"].recipe,
+      impulses: [
+        { start: 0.86, seconds: 0.46, force: { x: 132, y: -8 }, torque: -0.035 },
+        { start: 1.82, seconds: 0.5, force: { x: 74, y: -3 }, torque: 0.045 }
+      ],
+      cohesion: { spring: 52, damping: 12, decayStart: 2.14, decaySeconds: 0.56, floor: 0.72 },
+      scatter: { start: 2.24, seconds: 0.54, force: 20, spread: 18, gravity: 5, torque: 0.14, curl: 2 },
+      fade: { start: 2.58, seconds: 0.4 },
+      livingDrift: { amount: 0.62, hz: 0.52 }
+    },
+    deformation: {
+      type: "flow_ripple",
+      start: 1.08,
+      seconds: 1.22,
+      glyphStagger: 0.05,
+      strength: 0.95,
+      curve: "hold",
+      maxOffsetEm: 0.2,
+      rippleWidth: 0.62,
+      rippleCycles: 0.72,
+      rippleAmplitude: 1.42,
+      direction: 1,
+      phase: 0.1,
+      seed: "pow-flow-ripple"
     }
   };
 
@@ -1178,9 +1436,9 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
   }
 
   class AnimatedGlyphLab {
-    constructor(asset) {
-      this.asset = asset;
+    constructor() {
       this.presetSelect = document.querySelector("[data-anim-preset]");
+      this.presetButtons = Array.from(document.querySelectorAll("[data-anim-preset-jump]"));
       this.toggleButton = document.querySelector("[data-anim-toggle]");
       this.restartButton = document.querySelector("[data-anim-restart]");
       this.speedSelect = document.querySelector("[data-anim-speed]");
@@ -1228,10 +1486,11 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
         this.render();
       });
       this.presetSelect?.addEventListener("change", () => {
-        this.time = 0;
-        this.lastPresetId = this.presetId();
-        this.render();
+        this.setPreset(this.presetId());
       });
+      for (const button of this.presetButtons) {
+        button.addEventListener("click", () => this.setPreset(button.dataset.animPresetJump));
+      }
       this.speedSelect?.addEventListener("change", () => this.render());
       this.scrub?.addEventListener("input", event => {
         this.time = Number(event.target.value) || 0;
@@ -1243,12 +1502,22 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       for (const input of Object.values(this.debugControls)) {
         input?.addEventListener("change", () => this.render());
       }
+      onGlyphFontChange(() => this.render());
     }
 
     presetId() {
       return ANIMATED_GLYPH_PRESETS[this.presetSelect?.value]
         ? this.presetSelect.value
         : "pow-force-wave";
+    }
+
+    setPreset(presetId) {
+      if (!ANIMATED_GLYPH_PRESETS[presetId]) return;
+      if (this.presetSelect) this.presetSelect.value = presetId;
+      this.time = 0;
+      this.playing = true;
+      this.lastPresetId = presetId;
+      this.render();
     }
 
     settings() {
@@ -1269,7 +1538,7 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     }
 
     update(dt) {
-      if (!this.asset) return;
+      if (!selectedGlyphAsset()) return;
       const settings = this.settings();
       const preset = ANIMATED_GLYPH_PRESETS[settings.presetId];
       if (this.playing) {
@@ -1280,8 +1549,9 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     }
 
     render() {
-      if (!this.asset) {
-        this.status.textContent = "Tac One asset bridge missing.";
+      const asset = selectedGlyphAsset();
+      if (!asset) {
+        this.status.textContent = "Glyph asset bridge missing.";
         this.detail.textContent = "Run the font preprocessor or check tac_one_glyph_asset.generated.js.";
         return;
       }
@@ -1298,7 +1568,7 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       if (this.deformStrengthOut) this.deformStrengthOut.textContent = settings.deformationStrength.toFixed(2);
       this.syncControls();
       const frame = buildAnimatedGlyphFrame(
-        this.asset,
+        asset,
         preset,
         this.time,
         settings.stressCount,
@@ -1309,7 +1579,7 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       this.canvasRenderer.draw(frame, settings);
       this.metrics.textContent = animatedMetricsText(frame);
       this.metrics.classList.toggle("warning", frame.truncated);
-      this.status.textContent = "Canvas animated fallback rendered from glyph curves.";
+      this.status.textContent = `Canvas animated fallback rendered from ${glyphAssetLabel(asset)} curves.`;
       this.detail.textContent = "Attempting isolated WebGPU animated glyph render for comparison.";
       this.gpuRenderer.render(frame);
     }
@@ -1537,7 +1807,7 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
   function renderChoreography(sample, presetId, t) {
     const preset = (sample.definition.choreographies || []).find(item => item.id === presetId);
     if (!preset) return null;
-    const asset = window.STICKY_TYPOGRAPHY_GLYPH_ASSETS?.tac_one;
+    const asset = selectedGlyphAsset();
     if (asset?.glyphs) {
       const report = buildControllerChoreographyReport(sample, preset, t, asset);
       drawControllerChoreography(sample.ctx, report);
@@ -2972,6 +3242,65 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     return { contours, segments };
   }
 
+  function crashDirectionVector(value) {
+    const diagonal = Math.SQRT1_2;
+    const directions = {
+      right: { x: 1, y: 0 },
+      down_right: { x: diagonal, y: diagonal },
+      down: { x: 0, y: 1 },
+      down_left: { x: -diagonal, y: diagonal },
+      left: { x: -1, y: 0 },
+      up_left: { x: -diagonal, y: -diagonal },
+      up: { x: 0, y: -1 },
+      up_right: { x: diagonal, y: -diagonal }
+    };
+    if (typeof value === "string" && directions[value]) return directions[value];
+    if (Number(value) < 0) return directions.left;
+    return directions.right;
+  }
+
+  function crashDentOffset(point, nx, ny, width, height, deformation, glyphLayout) {
+    const axis = crashDirectionVector(deformation.direction);
+    const normal = { x: -axis.y, y: axis.x };
+    const u = nx * axis.x + ny * axis.y;
+    const v = nx * normal.x + ny * normal.y;
+    const frontWidth = Math.max(0.08, deformation.frontWidth || 0.58);
+    const pushDepth = Math.max(0.08, deformation.pushDepth || 0.78);
+    const minSpacing = clamp(deformation.minSpacing ?? 0.18, 0.02, 0.86);
+    const buckle = Math.max(0, deformation.buckle || 0);
+    const rebound = Math.max(0, deformation.rebound || 0);
+    const shoveNoise = clamp(deformation.shoveNoise ?? 0.12, 0, 1.4);
+    const chainWave = clamp(deformation.chainWave ?? 0.5, 0, 1.5);
+    const velocityShove = clamp(deformation.velocityShove ?? 0.24, 0, 1.4);
+    const crumpleFrequency = Math.max(1, deformation.crumpleFrequency || 4.2);
+    const progress = clamp(deformation.weight ?? deformation.strength, 0, 1);
+    const front = easeOut(range(u, 1 - frontWidth, 1.08));
+    const wave = Math.exp(-Math.pow((1 - u) / pushDepth, 2));
+    const chainFront = 1.16 - progress * (1.85 + chainWave * 0.55);
+    const chain = Math.exp(-Math.pow((u - chainFront) / Math.max(0.12, pushDepth * 0.28), 2));
+    const hash = hash01(`${deformation.seed}:crash:${glyphLayout.index}:${point.x.toFixed(4)}:${point.y.toFixed(4)}`);
+    const hash2 = hash01(`${deformation.seed}:crumple:${glyphLayout.index}:${point.y.toFixed(4)}:${point.x.toFixed(4)}`);
+    const shoveVariance = clamp(1 + (hash - 0.5) * shoveNoise * 1.7, 0.18, 2.35);
+    const temporalPulse = 0.5 + Math.sin((deformation.localTime || 0) * 11.3 + hash2 * Math.PI * 2 + u * 2.2) * 0.5;
+    const velocityPulse = chain * velocityShove * (0.35 + temporalPulse) * (0.55 + hash2);
+    const cave = clamp((front * 0.82 + wave * 0.34 + chain * chainWave * 0.74 + velocityPulse * 0.46) * deformation.strength * shoveVariance, 0, 1 - minSpacing * 0.45);
+    const layerGuard = 0.42 + 0.58 * range(u, -1, 1);
+    const inward = cave * layerGuard;
+    const wrinkle = Math.sin(v * Math.PI * crumpleFrequency + (deformation.phase || 0) * Math.PI * 2 + u * 4.6 + hash * Math.PI * 2);
+    const corrugation = Math.sin((v + hash2 * 0.42) * Math.PI * (crumpleFrequency * 0.55) + progress * Math.PI * 3.2 + u * 1.8);
+    const edgeMask = clamp(front + wave * 0.42 + chain * 0.72, 0, 1);
+    const brace = Math.exp(-Math.pow(u + 0.72, 2) / 0.55) * rebound * deformation.strength;
+    const sideJolt = (hash2 - 0.5) * shoveNoise * chain * velocityShove * 0.05;
+    return {
+      x: -axis.x * width * 0.18 * inward
+        + normal.x * width * (0.034 * wrinkle + 0.018 * corrugation + sideJolt) * buckle * edgeMask * deformation.strength
+        + axis.x * width * 0.035 * brace,
+      y: -axis.y * height * 0.18 * inward
+        + normal.y * height * (0.034 * wrinkle + 0.018 * corrugation + sideJolt) * buckle * edgeMask * deformation.strength
+        + axis.y * height * 0.035 * brace
+    };
+  }
+
   function normalizeAnimatedDeformation(preset, options = {}) {
     const mode = options.deformationMode || "current";
     if (mode === "off") return { enabled: false, mode: "off", label: "off" };
@@ -2995,6 +3324,25 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       side: recipe.side || "left",
       seed: recipe.seed || preset.title || preset.word || recipe.type,
       twist: recipe.twist ?? 0.5,
+      turns: recipe.turns ?? 2.5,
+      inward: recipe.inward ?? 0.82,
+      glyphStagger: Math.max(0, recipe.glyphStagger ?? 0),
+      twistVariance: recipe.twistVariance ?? 0.45,
+      shrinkMin: recipe.shrinkMin ?? 0.12,
+      rippleWidth: recipe.rippleWidth ?? 0.42,
+      rippleCycles: recipe.rippleCycles ?? 1.15,
+      rippleAmplitude: recipe.rippleAmplitude ?? 1,
+      readabilityGate: recipe.readabilityGate !== false,
+      direction: recipe.direction ?? 1,
+      frontWidth: recipe.frontWidth ?? 0.58,
+      pushDepth: recipe.pushDepth ?? 0.78,
+      minSpacing: clamp(recipe.minSpacing ?? 0.18, 0.02, 0.86),
+      buckle: recipe.buckle ?? 0.55,
+      rebound: recipe.rebound ?? 0.14,
+      shoveNoise: recipe.shoveNoise ?? 0.12,
+      chainWave: recipe.chainWave ?? 0.5,
+      velocityShove: recipe.velocityShove ?? 0.24,
+      crumpleFrequency: recipe.crumpleFrequency ?? 4.2,
       phase: recipe.phase || 0
     };
   }
@@ -3006,15 +3354,24 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       ribbon_bend: { type, start: 0.58, seconds: 1.0, strength: 0.6, curve: "hold", maxOffsetEm: 0.1 },
       accordion_plate: { type, start: 0.32, seconds: 0.58, strength: 0.56, curve: "pulse", maxOffsetEm: 0.07 },
       spiky_fracture: { type, start: 0.76, seconds: 0.9, strength: 0.72, curve: "hold", maxOffsetEm: 0.075, seed: "manual-spike" },
-      corkscrew_exit: { type, start: 1.02, seconds: 0.9, strength: 0.72, curve: "ramp", maxOffsetEm: 0.14, twist: 0.55 }
+      corkscrew_exit: { type, start: 1.02, seconds: 0.9, strength: 0.72, curve: "ramp", maxOffsetEm: 0.14, twist: 0.55 },
+      wormhole_spiral: { type, start: 1.08, seconds: 0.82, strength: 0.9, curve: "ramp", maxOffsetEm: 0.32, turns: 3.0, inward: 0.9, seed: "manual-wormhole" },
+      wormhole_unfold: { type: "wormhole_spiral", start: 0.02, seconds: 1.28, strength: 1, curve: "reverse_ramp", maxOffsetEm: 0.68, turns: 2.35, inward: 0.96, direction: -1, readabilityGate: false, seed: "manual-wormhole-unfold" },
+      letter_twist_shrink: { type, start: 1.08, seconds: 0.98, glyphStagger: 0.2, strength: 1, curve: "ramp", maxOffsetEm: 0.42, turns: 1.45, twistVariance: 0.75, shrinkMin: 0.09, seed: "manual-letter-twist" },
+      flow_ripple: { type, start: 1.02, seconds: 1.22, glyphStagger: 0.05, strength: 0.95, curve: "hold", maxOffsetEm: 0.2, rippleWidth: 0.62, rippleCycles: 0.72, rippleAmplitude: 1.42, seed: "manual-flow-ripple" },
+      crash_dent: { type, start: 0.84, seconds: 0.78, strength: 1.08, curve: "hold", maxOffsetEm: 0.28, direction: "up_right", frontWidth: 0.68, pushDepth: 0.96, minSpacing: 0.18, buckle: 0.92, rebound: 0.22, shoveNoise: 0.72, chainWave: 0.82, velocityShove: 0.42, crumpleFrequency: 5.4, seed: "manual-crash-dent" }
     };
     return defaults[type] || null;
   }
 
   function animatedDeformationState(config, time, motion, glyphLayout, copyIndex) {
     if (!config?.enabled) return { active: false };
-    const curveWeight = animatedDeformationCurveWeight(config, time);
-    const readableGate = clamp((motion.channels?.readability || 0) * 1.35 - 0.18, 0, 1);
+    const glyphDelay = (config.glyphStagger || 0) * Math.max(0, glyphLayout.index || 0);
+    const localTime = time - glyphDelay;
+    const curveWeight = animatedDeformationCurveWeight(config, localTime);
+    const readableGate = config.readabilityGate === false
+      ? 1
+      : clamp((motion.channels?.readability || 0) * 1.35 - 0.18, 0, 1);
     const weight = clamp(curveWeight * readableGate, 0, 1);
     const strength = config.strength * config.strengthMultiplier * weight;
     return {
@@ -3023,6 +3380,8 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       weight,
       strength,
       time,
+      localTime,
+      glyphDelay,
       copyIndex,
       glyphIndex: glyphLayout.index
     };
@@ -3032,6 +3391,7 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     const start = config.start;
     const end = start + config.seconds;
     if (config.curve === "ramp") return easeInOut(range(time, start, end));
+    if (config.curve === "reverse_ramp") return 1 - easeInOut(range(time, start, end));
     if (config.curve === "hold") {
       const attack = easeOut(range(time, start, start + config.seconds * 0.28));
       const release = 1 - easeInOut(range(time, start + config.seconds * 0.74, end));
@@ -3092,6 +3452,10 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       dx += -sideSign * dent * width * 0.12 * deformation.strength;
       dx += sideSign * bulge * width * 0.052 * deformation.strength;
       dy += Math.sign(ny || 1) * bulge * height * 0.042 * deformation.strength;
+    } else if (deformation.type === "crash_dent") {
+      const crash = crashDentOffset(point, nx, ny, width, height, deformation, glyphLayout);
+      dx += crash.x;
+      dy += crash.y;
     } else if (deformation.type === "ribbon_bend") {
       const along = range(nx, -1.05, 1.05);
       const ribbon = Math.sin((along + deformation.phase) * Math.PI);
@@ -3121,6 +3485,80 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
       };
       dx += rotated.x - rel.x + nx * width * 0.028 * deformation.strength * radius;
       dy += rotated.y - rel.y + ny * height * 0.028 * deformation.strength * radius;
+    } else if (deformation.type === "wormhole_spiral") {
+      const rel = { x: point.x - center.x, y: point.y - center.y };
+      const length = Math.max(0.001, Math.hypot(rel.x, rel.y));
+      const radius = clamp(Math.hypot(nx, ny) / 1.35, 0, 1.25);
+      const progress = easeInOut(clamp(deformation.weight * deformation.strengthMultiplier, 0, 1));
+      const glyphHash = hash01(`${deformation.seed}:spiral:${glyphLayout.index}`);
+      const direction = Number(deformation.direction) < 0 ? -1 : 1;
+      const turns = Math.max(0.25, deformation.turns || 3);
+      const inward = clamp(deformation.inward ?? 0.9, 0, 0.96);
+      const collapseScale = Math.max(0.055, 1 - progress * inward);
+      const angle = direction * progress * (
+        turns * Math.PI * 2 +
+        radius * Math.PI * 1.35 +
+        (glyphHash - 0.5) * 0.75
+      );
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const rotated = {
+        x: rel.x * cos - rel.y * sin,
+        y: rel.x * sin + rel.y * cos
+      };
+      const target = {
+        x: center.x + rotated.x * collapseScale,
+        y: center.y + rotated.y * collapseScale
+      };
+      const tangent = { x: -rel.y / length, y: rel.x / length };
+      const coil = Math.sin(radius * turns * Math.PI * 2 + progress * Math.PI * 5 + glyphHash * Math.PI * 2);
+      const coilOffset = coil * maxOffset * 0.12 * progress * (1 - progress * 0.35);
+      dx += (target.x - point.x) * clamp(deformation.strength * 1.08, 0, 1.05);
+      dy += (target.y - point.y) * clamp(deformation.strength * 1.08, 0, 1.05);
+      dx += tangent.x * coilOffset;
+      dy += tangent.y * coilOffset;
+    } else if (deformation.type === "letter_twist_shrink") {
+      const rel = { x: point.x - center.x, y: point.y - center.y };
+      const radius = clamp(Math.hypot(nx, ny) / 1.4, 0, 1.25);
+      const progress = easeInOut(clamp(deformation.weight * deformation.strengthMultiplier, 0, 1));
+      const hash = hash01(`${deformation.seed}:letter:${glyphLayout.index}:${point.x.toFixed(4)}:${point.y.toFixed(4)}`);
+      const direction = Number(deformation.direction) < 0 ? -1 : 1;
+      const turns = Math.max(0.1, deformation.turns || 1.45);
+      const variance = Math.max(0, deformation.twistVariance || 0.75);
+      const pointTwist = 1 + (hash - 0.5) * variance + radius * variance * 0.45;
+      const angle = direction * progress * turns * Math.PI * 2 * pointTwist;
+      const shrinkFloor = clamp(deformation.shrinkMin ?? 0.1, 0.04, 0.45);
+      const pointShrink = shrinkFloor + hash * 0.045;
+      const shrink = 1 - progress * (1 - pointShrink);
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const rotated = {
+        x: rel.x * cos - rel.y * sin,
+        y: rel.x * sin + rel.y * cos
+      };
+      const target = {
+        x: center.x + rotated.x * shrink,
+        y: center.y + rotated.y * shrink
+      };
+      dx += target.x - point.x;
+      dy += target.y - point.y;
+    } else if (deformation.type === "flow_ripple") {
+      const progress = clamp((deformation.localTime - deformation.start) / deformation.seconds, 0, 1);
+      const direction = Number(deformation.direction) < 0 ? -1 : 1;
+      const sweep = direction > 0
+        ? -1.2 + progress * 2.4
+        : 1.2 - progress * 2.4;
+      const widthScale = Math.max(0.08, deformation.rippleWidth || 0.42);
+      const distance = nx - sweep;
+      const envelope = Math.exp(-Math.pow(distance / widthScale, 2));
+      const cycles = Math.max(0.2, deformation.rippleCycles || 1.15);
+      const phase = (distance / widthScale) * Math.PI * cycles + (deformation.phase || 0) * Math.PI * 2;
+      const wave = Math.sin(phase) * envelope * deformation.strength;
+      const verticalBias = 0.65 + Math.min(0.45, Math.abs(ny) * 0.18);
+      const drag = Math.cos(phase) * envelope * deformation.strength;
+      const amplitude = Math.max(0.05, deformation.rippleAmplitude || 1);
+      dx += direction * drag * width * 0.025 * amplitude;
+      dy += wave * height * 0.075 * verticalBias * amplitude;
     }
 
     const offsetLength = Math.hypot(dx, dy);
@@ -4487,10 +4925,10 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
     updateFocusVisibility();
     wireControls();
     syncControls();
+    populateGlyphFontSelect();
     detectWebGpu();
-    const tacOneAsset = window.STICKY_TYPOGRAPHY_GLYPH_ASSETS?.tac_one || null;
-    new StaticGlyphLab(tacOneAsset);
-    const animatedGlyphLab = new AnimatedGlyphLab(tacOneAsset);
+    new StaticGlyphLab();
+    const animatedGlyphLab = new AnimatedGlyphLab();
 
     let last = performance.now();
     function tick(now) {

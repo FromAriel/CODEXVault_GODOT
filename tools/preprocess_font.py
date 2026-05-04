@@ -1,4 +1,4 @@
-"""Preprocess the first 17POV typography font asset.
+"""Preprocess 17POV typography font assets.
 
 This V1 spike intentionally produces inspectable JSON, not a compact runtime
 binary. It extracts TrueType quadratic outlines with fontTools and writes enough
@@ -23,14 +23,62 @@ from fontTools.ttLib import TTFont
 REPO_ROOT = Path(__file__).resolve().parents[4]
 TYPOGRAPHY_ROOT = REPO_ROOT / "game" / "17_points_of_violence" / "data" / "typography"
 LAB_ROOT = REPO_ROOT / "game" / "17_points_of_violence" / "tools" / "typography_lab"
-FONT_ID = "tac_one"
-FONT_FAMILY = "Tac One"
-FONT_FILENAME = "TacOne-Regular.ttf"
-FONT_URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/tacone/TacOne-Regular.ttf"
-LICENSE_URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/tacone/OFL.txt"
 CHARACTER_SET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?.,- "
 BAND_COUNT = 32
 ROUND_DIGITS = 6
+
+FONT_CANDIDATES = [
+    {
+        "fontId": "tac_one",
+        "family": "Tac One",
+        "role": "baseline impact",
+        "filename": "TacOne-Regular.ttf",
+        "fontUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/tacone/TacOne-Regular.ttf",
+        "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/tacone/OFL.txt",
+        "licenseFilename": "OFL.txt",
+    },
+    {
+        "fontId": "bungee_inline",
+        "family": "Bungee Inline",
+        "role": "outlined comic impact",
+        "filename": "BungeeInline-Regular.ttf",
+        "fontUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/bungeeinline/BungeeInline-Regular.ttf",
+        "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/bungeeinline/OFL.txt",
+    },
+    {
+        "fontId": "barrio",
+        "family": "Barrio",
+        "role": "chunky irregular shout",
+        "filename": "Barrio-Regular.ttf",
+        "fontUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/barrio/Barrio-Regular.ttf",
+        "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/barrio/OFL.txt",
+    },
+    {
+        "fontId": "rubik_glitch",
+        "family": "Rubik Glitch",
+        "role": "broken glitch accent",
+        "filename": "RubikGlitch-Regular.ttf",
+        "fontUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/rubikglitch/RubikGlitch-Regular.ttf",
+        "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/rubikglitch/OFL.txt",
+    },
+    {
+        "fontId": "metal_mania",
+        "family": "Metal Mania",
+        "role": "sharp heavy aggression",
+        "filename": "MetalMania-Regular.ttf",
+        "fontUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/metalmania/MetalMania-Regular.ttf",
+        "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/metalmania/OFL.txt",
+    },
+    {
+        "fontId": "faster_one",
+        "family": "Faster One",
+        "role": "speed-line motion",
+        "filename": "FasterOne-Regular.ttf",
+        "fontUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/fasterone/FasterOne-Regular.ttf",
+        "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/fasterone/OFL.txt",
+    },
+]
+FONT_BY_ID = {font["fontId"]: font for font in FONT_CANDIDATES}
 
 
 def rel(path: Path) -> str:
@@ -286,7 +334,7 @@ def write_report(asset: dict, report_path: Path) -> None:
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tac One Glyph Inspection</title>
+  <title>{html.escape(asset['family'])} Glyph Inspection</title>
   <style>
     body {{ margin: 0; background: #050505; color: #f8f7f0; font-family: Arial, sans-serif; }}
     header {{ padding: 24px; border-bottom: 4px solid #d90000; }}
@@ -304,7 +352,7 @@ def write_report(asset: dict, report_path: Path) -> None:
 </head>
 <body>
   <header>
-    <h1>Tac One Glyph Inspection</h1>
+    <h1>{html.escape(asset['family'])} Glyph Inspection</h1>
     <p>Generated {html.escape(asset['generatedAt'])}. JSON: {html.escape(asset['fontId'])}.glyphs.json</p>
     <p>Worst curves per band: {asset['summary']['maxCurvesPerBand']} · Total curves: {len(asset['curves'])}</p>
   </header>
@@ -314,31 +362,32 @@ def write_report(asset: dict, report_path: Path) -> None:
 """, encoding="utf-8")
 
 
-def write_classic_script_bridge(asset: dict, bridge_path: Path, source_asset_path: Path) -> None:
+def write_classic_script_bridge(assets: list[dict], bridge_path: Path, source_asset_paths: list[Path]) -> None:
     """Write a classic-script wrapper so the standalone lab can load from file://."""
     bridge_path.parent.mkdir(parents=True, exist_ok=True)
-    source = rel(source_asset_path)
-    body = json.dumps(asset, indent=2, ensure_ascii=False)
+    source = ", ".join(rel(path) for path in source_asset_paths)
+    payload = {asset["fontId"]: asset for asset in assets}
+    body = json.dumps(payload, indent=2, ensure_ascii=False)
     bridge_path.write_text(
         "// Generated from "
         + source
         + ".\n"
-        + "// Keep the JSON asset as source of truth; this classic-script bridge preserves file:// lab loading.\n"
+        + "// Keep the JSON assets as source of truth; this classic-script bridge preserves file:// lab loading.\n"
         + "(function () {\n"
         + "  \"use strict\";\n"
         + "  window.STICKY_TYPOGRAPHY_GLYPH_ASSETS = window.STICKY_TYPOGRAPHY_GLYPH_ASSETS || {};\n"
-        + f"  window.STICKY_TYPOGRAPHY_GLYPH_ASSETS.{FONT_ID} = "
+        + "  Object.assign(window.STICKY_TYPOGRAPHY_GLYPH_ASSETS, "
         + body
-        + ";\n"
+        + ");\n"
         + "})();\n",
         encoding="utf-8",
     )
 
 
-def validate_asset(asset: dict) -> None:
+def validate_asset(asset: dict, font_id: str) -> None:
     required = list(CHARACTER_SET)
     missing = [char for char in required if char not in asset["glyphs"] or asset["glyphs"][char].get("missing")]
-    if asset["fontId"] != FONT_ID:
+    if asset["fontId"] != font_id:
         raise RuntimeError(f"fontId mismatch: {asset['fontId']}")
     if missing:
         raise RuntimeError(f"missing required glyphs: {missing}")
@@ -354,18 +403,24 @@ def validate_asset(asset: dict) -> None:
         raise RuntimeError("band metadata did not report any curves")
 
 
-def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Generate Tac One glyph JSON for the typography renderer spike.")
-    parser.add_argument("--force-download", action="store_true", help="Refresh cached source font and license files.")
-    parser.add_argument("--output-root", type=Path, default=TYPOGRAPHY_ROOT)
-    args = parser.parse_args(argv)
+def selected_candidates(font_args: list[str] | None) -> list[dict]:
+    requested = font_args or ["all"]
+    if "all" in requested:
+        return list(FONT_CANDIDATES)
+    seen: set[str] = set()
+    selected: list[dict] = []
+    for font_id in requested:
+        candidate = FONT_BY_ID.get(font_id)
+        if not candidate:
+            raise RuntimeError(f"unknown font id: {font_id}")
+        if font_id in seen:
+            continue
+        seen.add(font_id)
+        selected.append(candidate)
+    return selected
 
-    output_root = args.output_root.resolve()
-    source_font = output_root / "source_fonts" / FONT_FILENAME
-    license_file = output_root / "source_fonts" / "OFL.txt"
-    download_if_missing(FONT_URL, source_font, force=args.force_download)
-    download_if_missing(LICENSE_URL, license_file, force=args.force_download)
 
+def build_asset(candidate: dict, source_font: Path, license_file: Path) -> dict:
     font = TTFont(source_font)
     units = font["head"].unitsPerEm
     os2 = font.get("OS/2")
@@ -374,14 +429,15 @@ def main(argv: list[str]) -> int:
     curves: list[dict] = []
     glyphs = {char: extract_glyph(font, char, curves, units) for char in CHARACTER_SET}
     max_curves_per_band = max(glyph.get("bandSummary", {}).get("maxCurvesPerBand", 0) for glyph in glyphs.values())
-    asset = {
+    return {
         "schema": "sticky.typographyGlyphAsset.v1",
-        "fontId": FONT_ID,
-        "family": FONT_FAMILY,
+        "fontId": candidate["fontId"],
+        "family": candidate["family"],
+        "role": candidate.get("role", "impact"),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "source": {
-            "fontUrl": FONT_URL,
-            "licenseUrl": LICENSE_URL,
+            "fontUrl": candidate["fontUrl"],
+            "licenseUrl": candidate["licenseUrl"],
             "cachedFontPath": rel(source_font),
             "cachedLicensePath": rel(license_file),
             "license": "SIL Open Font License 1.1",
@@ -421,41 +477,81 @@ def main(argv: list[str]) -> int:
             "glyphsWithWarnings": [char for char, glyph in glyphs.items() if glyph.get("diagnostics")],
         },
     }
-    validate_asset(asset)
 
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description="Generate typography glyph JSON for the renderer spike.")
+    parser.add_argument("--force-download", action="store_true", help="Refresh cached source font and license files.")
+    parser.add_argument("--output-root", type=Path, default=TYPOGRAPHY_ROOT)
+    parser.add_argument(
+        "--font",
+        action="append",
+        choices=["all", *FONT_BY_ID.keys()],
+        help="Font id to generate. Repeat for multiple fonts. Defaults to all curated candidates.",
+    )
+    args = parser.parse_args(argv)
+
+    output_root = args.output_root.resolve()
     fonts_dir = output_root / "fonts"
     reports_dir = output_root / "reports"
+    source_dir = output_root / "source_fonts"
     fonts_dir.mkdir(parents=True, exist_ok=True)
     reports_dir.mkdir(parents=True, exist_ok=True)
-    asset_path = fonts_dir / f"{FONT_ID}.glyphs.json"
-    manifest_path = output_root / "font_manifest.json"
-    report_path = reports_dir / f"{FONT_ID}_inspection.html"
-    bridge_path = LAB_ROOT / f"{FONT_ID}_glyph_asset.generated.js"
+    source_dir.mkdir(parents=True, exist_ok=True)
 
-    asset_path.write_text(json.dumps(asset, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    manifest = {
-        "schema": "sticky.typographyFontManifest.v1",
-        "generatedAt": asset["generatedAt"],
-        "fonts": [{
-            "fontId": FONT_ID,
-            "family": FONT_FAMILY,
-            "role": "impact",
+    generated_assets: list[dict] = []
+    generated_asset_paths: list[Path] = []
+    manifest_fonts: list[dict] = []
+
+    for candidate in selected_candidates(args.font):
+        font_id = candidate["fontId"]
+        source_font = source_dir / candidate["filename"]
+        license_file = source_dir / candidate.get("licenseFilename", f"{font_id}_OFL.txt")
+        download_if_missing(candidate["fontUrl"], source_font, force=args.force_download)
+        download_if_missing(candidate["licenseUrl"], license_file, force=args.force_download)
+
+        asset = build_asset(candidate, source_font, license_file)
+        validate_asset(asset, font_id)
+
+        asset_path = fonts_dir / f"{font_id}.glyphs.json"
+        report_path = reports_dir / f"{font_id}_inspection.html"
+        asset_path.write_text(json.dumps(asset, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        write_report(asset, report_path)
+        generated_assets.append(asset)
+        generated_asset_paths.append(asset_path)
+        manifest_fonts.append({
+            "fontId": font_id,
+            "family": candidate["family"],
+            "role": candidate.get("role", "impact"),
             "asset": rel(asset_path),
             "inspectionReport": rel(report_path),
             "sourceFont": rel(source_font),
             "license": rel(license_file),
             "characterSet": "uppercase A-Z, digits 0-9, !?.,-, and space",
-        }],
+            "summary": asset["summary"],
+        })
+        print(f"wrote {rel(asset_path)}")
+        print(f"wrote {rel(report_path)}")
+        print(f"  total curves: {len(asset['curves'])}; max curves per band: {asset['summary']['maxCurvesPerBand']}")
+
+    if not generated_assets:
+        raise RuntimeError("no fonts were generated")
+
+    generated_at = datetime.now(timezone.utc).isoformat()
+    manifest_path = output_root / "font_manifest.json"
+    bridge_path = LAB_ROOT / "tac_one_glyph_asset.generated.js"
+    manifest = {
+        "schema": "sticky.typographyFontManifest.v1",
+        "generatedAt": generated_at,
+        "defaultFontId": "tac_one",
+        "fonts": manifest_fonts,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    write_report(asset, report_path)
-    write_classic_script_bridge(asset, bridge_path, asset_path)
+    write_classic_script_bridge(generated_assets, bridge_path, generated_asset_paths)
 
-    print(f"wrote {rel(asset_path)}")
     print(f"wrote {rel(manifest_path)}")
-    print(f"wrote {rel(report_path)}")
     print(f"wrote {rel(bridge_path)}")
-    print(f"total curves: {len(curves)}; max curves per band: {max_curves_per_band}")
+    print(f"generated fonts: {', '.join(asset['fontId'] for asset in generated_assets)}")
     return 0
 
 

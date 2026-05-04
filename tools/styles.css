@@ -204,6 +204,20 @@ select {
   color: #f0e6bc;
 }
 
+.glyph-font-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  margin-top: 10px;
+  color: #d8d0b8;
+}
+
+.glyph-font-note span {
+  color: var(--yellow);
+  font-weight: 800;
+}
+
 .wgsl-lab {
   display: grid;
   gap: 12px;
@@ -324,6 +338,20 @@ select {
 
 .animated-glyph-lab .wgsl-controls {
   justify-content: flex-start;
+}
+
+.anim-preset-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: end;
+  max-width: 360px;
+}
+
+.anim-preset-shortcuts button {
+  min-width: 78px;
+  border-color: var(--blue);
+  color: #e8f3ff;
 }
 
 .anim-scrub-control {
