@@ -1,579 +1,265 @@
 <!doctype html>
-<html lang="en" data-theme="terminal">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>17 POV Typography Lab</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="lab-header">
+    <div>
+      <p class="eyebrow">17 Points of Violence</p>
+      <h1>Typography Lab</h1>
+      <p class="intro">
+        Standalone text-VFX test bed for physical combat words, glyph timing, exit-side placement,
+        protected-lane instincts, and the first Slug/WGSL readiness check. Canvas2D is the active
+        renderer in this slice; no game runtime, motion solver, combat system, or generated clips are loaded.
+      </p>
+    </div>
+    <aside class="status-card" data-webgpu-card>
+      <strong>WebGPU readiness</strong>
+      <span data-webgpu-status>Checking browser capability...</span>
+      <small data-webgpu-detail>Slug/WGSL renderer pending; Canvas2D samples stay active.</small>
+      <ul class="readiness-list" data-webgpu-facts>
+        <li>Renderer: Canvas2D active</li>
+        <li>GPU backend: pending</li>
+      </ul>
+    </aside>
+  </header>
 
-    <title>Foxjammin Studios — Sigilry: The Braided Stair</title>
-    <meta
-      name="description"
-      content="Foxjammin Studios is building Sigilry: The Braided Stair — a 3D ASCII art shader dungeon looter about sigils, keys, and vertical labyrinths."
-    />
+  <main>
+    <section class="controls" aria-label="Typography lab controls">
+      <button type="button" data-play-all>Play all</button>
+      <button type="button" data-stagger>Stagger play</button>
+      <button type="button" data-toggle-play>Pause</button>
+      <button type="button" data-restart-focus>Restart focus</button>
+      <button type="button" data-step-back>-1 frame</button>
+      <button type="button" data-step-forward>+1 frame</button>
+      <button type="button" data-reset>Reset</button>
+      <label>
+        focus
+        <select data-focus></select>
+      </label>
+      <label>
+        speed
+        <select data-playback-speed>
+          <option value="0.25">0.25x</option>
+          <option value="0.5">0.5x</option>
+          <option value="1">1x</option>
+          <option value="1.5" selected>1.5x</option>
+        </select>
+      </label>
+      <label><input type="checkbox" data-autoplay checked /> autoplay loop</label>
+      <label><input type="checkbox" data-slow-motion /> slow motion</label>
+      <label><input type="checkbox" data-reduced-flash /> reduced flash</label>
+      <label><input type="checkbox" data-guides checked /> show guides</label>
+      <label><input type="checkbox" data-protected-lane checked /> protected lane</label>
+      <label><input type="checkbox" data-word-bounds /> word bounds</label>
+      <label class="range-label">
+        intensity
+        <input type="range" min="0.25" max="1.5" step="0.05" value="1" data-intensity />
+        <output data-intensity-out>1.00</output>
+      </label>
+      <label class="range-label timeline-control">
+        time
+        <input type="range" min="0" max="2" step="0.0166667" value="0" data-scrub-time />
+        <output data-scrub-out>0.00 / 2.00s</output>
+      </label>
+    </section>
 
-    <!-- Social preview (replace og:image when you have one) -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Foxjammin Studios — Sigilry: The Braided Stair" />
-    <meta
-      property="og:description"
-      content="A 3D ASCII art shader dungeon looter about sigils, keys, and vertical labyrinths."
-    />
-    <meta property="og:url" content="https://www.foxjammin.com/" />
+    <section class="identity-note">
+      <strong>Renderer target:</strong>
+      these samples use Canvas2D today, but every preset is shaped around future
+      <code>TextBody</code>, <code>GlyphBody</code>, and <code>TextRenderer</code> concepts so a later
+      Slug-style GPU backend can replace the drawing path.
+      <div class="pipeline-note" aria-label="Slug renderer pipeline">
+        <strong>Slug/WGSL path:</strong>
+        font outlines -> quadratic curves -> band data -> glyph instances -> WGSL renderer.
+        WebGPU is the experimental target; Canvas2D remains the required fallback.
+      </div>
+    </section>
 
-    <meta name="theme-color" content="#040707" />
-
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css" />
-
-    <!-- Iconify web component (official docs) -->
-    <script
-      src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js"
-      defer
-    ></script>
-  </head>
-
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-
-    <header class="site-header" data-state="closed">
-      <div class="container header-inner">
-        <a class="brand" href="#top" aria-label="Foxjammin Studios home">
-          <span class="brand__mark" aria-hidden="true">⌁</span>
-          <span class="brand__name">Foxjammin Studios</span>
-        </a>
-
-        <button
-          class="nav-toggle"
-          type="button"
-          aria-controls="primary-nav"
-          aria-expanded="false"
-        >
-          <span class="sr-only">Open menu</span>
-          <span aria-hidden="true">☰</span>
-        </button>
-
-        <nav id="primary-nav" class="nav" aria-label="Primary navigation">
-          <a href="#game">Game</a>
-          <a href="#media">Media</a>
-          <a href="#press">Press kit</a>
-          <a href="#studio">Studio</a>
-          <a href="#contact">Contact</a>
-          <a href="#icon-forge">Icon Forge</a>
-        </nav>
-
-        <div class="header-tools">
-          <label class="theme-picker">
-            <span class="sr-only">Theme</span>
-            <select id="themeSelect" aria-label="Theme">
-              <option value="terminal">Terminal Cathedral</option>
-              <option value="obsidian">Obsidian Atelier</option>
-              <option value="zine">Zine Workshop</option>
+    <section class="wgsl-lab" aria-label="WGSL static glyph renderer lab">
+      <header>
+        <div>
+          <p class="eyebrow">Slice 6.5</p>
+          <h2>WGSL Static Glyph Fidelity Review</h2>
+          <p>
+            Tac One static QA: Canvas and WebGPU share one transformed curve geometry,
+            even-odd fill rule, stress presets, bounds, contour, segment, and segment-cap checks.
+          </p>
+        </div>
+        <div class="wgsl-controls">
+          <label>
+            test word
+            <select data-wgsl-word>
+              <option value="POW!" selected>POW!</option>
+              <option value="WHAM">WHAM</option>
+              <option value="BLOCK">BLOCK</option>
+              <option value="17 POINTS">17 POINTS</option>
+              <option value="THUD">THUD</option>
+              <option value="POPO">POPO</option>
+              <option value="BOP">BOP</option>
+              <option value="A?O">A?O</option>
             </select>
           </label>
+          <label>
+            size
+            <select data-wgsl-size>
+              <option value="small">small</option>
+              <option value="normal" selected>normal</option>
+              <option value="huge">huge</option>
+            </select>
+          </label>
+          <label>
+            transform
+            <select data-wgsl-transform>
+              <option value="none" selected>none</option>
+              <option value="rotated">rotated</option>
+              <option value="wide">stretched wide</option>
+              <option value="tall">stretched tall</option>
+            </select>
+          </label>
+          <button type="button" data-wgsl-render>Render</button>
         </div>
+      </header>
+      <div class="wgsl-debug-toggles" aria-label="Static glyph debug overlays">
+        <label><input type="checkbox" data-wgsl-show-bounds checked /> glyph bounds</label>
+        <label><input type="checkbox" data-wgsl-show-contours /> contours</label>
+        <label><input type="checkbox" data-wgsl-show-segments /> segments</label>
+        <label><input type="checkbox" data-wgsl-show-baseline checked /> baseline</label>
+        <label><input type="checkbox" data-wgsl-show-status checked /> GPU status</label>
+        <label><input type="checkbox" data-wgsl-show-cap-warning checked /> segment-cap warning</label>
       </div>
-    </header>
-
-    <main id="main" tabindex="-1">
-      <section id="top" class="hero">
-        <div class="container hero-grid">
-          <div class="hero-copy">
-            <p class="kicker">
-              <iconify-icon icon="game-icons:3d-stairs" aria-hidden="true"></iconify-icon>
-              <span>New game in the works</span>
-            </p>
-
-            <h1>Sigilry: The Braided Stair</h1>
-
-            <p class="lede">
-              A <strong>3D ASCII art shader</strong> dungeon looter about
-              <strong>sigils</strong>, <strong>keys</strong>, and <strong>vertical</strong>
-              labyrinths—where builds feel like spellcraft and loot tells a story.
-            </p>
-
-            <div class="cta-row" role="group" aria-label="Primary calls to action">
-              <!-- TODO: replace # with your Steam/itch/etc link -->
-              <a class="btn primary" href="#contact">Wishlist (coming soon)</a>
-              <a class="btn" href="#media">Trailer / screenshots</a>
-              <a class="btn ghost" href="#press">Press kit</a>
-            </div>
-
-            <div class="mini-facts" aria-label="Quick feature highlights">
-              <div class="pill">
-                <iconify-icon icon="game-icons:cube" aria-hidden="true"></iconify-icon>
-                <span>3D ASCII shader</span>
-              </div>
-              <div class="pill">
-                <iconify-icon
-                  icon="game-icons:open-treasure-chest"
-                  aria-hidden="true"
-                ></iconify-icon>
-                <span>Loot + builds</span>
-              </div>
-              <div class="pill">
-                <iconify-icon icon="game-icons:dungeon-gate" aria-hidden="true"></iconify-icon>
-                <span>Dungeon crawler</span>
-              </div>
-            </div>
-
-            <div class="hero-note">
-              <p>
-                <strong>Status:</strong> early development. Want updates? Drop a note in the
-                contact section and I’ll hook you into the devlog/newsletter list.
-              </p>
-            </div>
-          </div>
-
-          <div class="hero-art">
-            <div class="sigil-frame" aria-label="Animated ASCII background">
-              <canvas id="asciiCanvas"></canvas>
-
-              <div class="sigil-overlay" aria-hidden="true">
-                <div class="sigil-title">Generated sigil</div>
-                <pre id="sigilOutput" class="sigil-ascii"></pre>
-                <div class="sigil-seed" id="sigilSeed"></div>
-              </div>
-            </div>
-
-            <div class="sigil-controls">
-              <button class="btn small" id="regenSigil" type="button">
-                <iconify-icon icon="game-icons:magic-swirl" aria-hidden="true"></iconify-icon>
-                <span>Regenerate</span>
-              </button>
-              <button class="btn small" id="pauseAscii" type="button" aria-pressed="false">
-                <iconify-icon icon="game-icons:portal" aria-hidden="true"></iconify-icon>
-                <span>Pause</span>
-              </button>
-            </div>
-
-            <p class="hero-aside">
-              Tip: switch themes in the header to preview 3 different brand directions.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section id="game" class="section">
-        <div class="container">
-          <header class="section-head">
-            <h2>The game</h2>
-            <p>
-              <strong>Sigilry: The Braided Stair</strong> aims to blend the clarity of old-school
-              glyph aesthetics with modern 3D readability—then put that look on top of a tight,
-              loot-driven progression loop.
-            </p>
-          </header>
-
-          <div class="feature-grid" role="list">
-            <article class="card feature" role="listitem">
-              <div class="feature__icon" aria-hidden="true">
-                <iconify-icon icon="game-icons:3d-stairs"></iconify-icon>
-              </div>
-              <h3>Braided vertical dungeon</h3>
-              <p>
-                A stair-focused structure that forks, reconnects, and loops—so “route planning” is
-                part of the build.
-              </p>
-            </article>
-
-            <article class="card feature" role="listitem">
-              <div class="feature__icon" aria-hidden="true">
-                <iconify-icon icon="game-icons:scroll-unfurled"></iconify-icon>
-              </div>
-              <h3>Sigils as systems</h3>
-              <p>
-                Sigils aren’t just lore—they’re knobs. Stack them, twist them, and let them shape
-                your runs.
-              </p>
-            </article>
-
-            <article class="card feature" role="listitem">
-              <div class="feature__icon" aria-hidden="true">
-                <iconify-icon icon="game-icons:open-treasure-chest"></iconify-icon>
-              </div>
-              <h3>Loot-first builds</h3>
-              <p>
-                Find, fuse, and refine gear. The fun is in turning “junk” into a weird synergy that
-                suddenly works.
-              </p>
-            </article>
-
-            <article class="card feature" role="listitem">
-              <div class="feature__icon" aria-hidden="true">
-                <iconify-icon icon="game-icons:rune-stone"></iconify-icon>
-              </div>
-              <h3>Runes & modifiers</h3>
-              <p>
-                Small modifiers matter. Runes change the rules of encounters and encourage
-                experimentation.
-              </p>
-            </article>
-
-            <article class="card feature" role="listitem">
-              <div class="feature__icon" aria-hidden="true">
-                <iconify-icon icon="game-icons:skeleton-key"></iconify-icon>
-              </div>
-              <h3>Keys, locks, shortcuts</h3>
-              <p>
-                Unlock routes and rooms. Your progress is spatial—not just numerical.
-              </p>
-            </article>
-
-            <article class="card feature" role="listitem">
-              <div class="feature__icon" aria-hidden="true">
-                <iconify-icon icon="game-icons:dungeon-gate"></iconify-icon>
-              </div>
-              <h3>Dungeon atmosphere</h3>
-              <p>
-                Gated chambers, ritual geometry, and “what is this place?” energy—wrapped in the
-                ASCII-rendered aesthetic.
-              </p>
-            </article>
-          </div>
-
-          <div class="split">
-            <div class="card">
-              <h3>What you can put here soon</h3>
-              <ul class="bullets">
-                <li><strong>Steam/itch link</strong> + “Wishlist” button</li>
-                <li><strong>30–60s trailer</strong></li>
-                <li><strong>3 GIFs</strong> showing the shader, loot, and combat loop</li>
-                <li><strong>One paragraph pitch</strong> + 4 bullet features</li>
-              </ul>
-              <p class="muted">
-                (This template is intentionally written so you can replace copy fast without
-                reworking layout.)
-              </p>
-            </div>
-
-            <div class="card">
-              <h3>One-sentence pitch</h3>
-              <p class="quote">
-                “A 3D ASCII dungeon looter where sigils rewrite reality and the dungeon itself is a
-                braided vertical puzzle.”
-              </p>
-
-              <h3>2–3 word pillars</h3>
-              <div class="pill-row" aria-label="Design pillars">
-                <span class="pill pill--soft">
-                  <iconify-icon icon="game-icons:cube" aria-hidden="true"></iconify-icon>
-                  <span>Glyph-lit</span>
-                </span>
-                <span class="pill pill--soft">
-                  <iconify-icon icon="game-icons:open-treasure-chest" aria-hidden="true"></iconify-icon>
-                  <span>Looty</span>
-                </span>
-                <span class="pill pill--soft">
-                  <iconify-icon icon="game-icons:3d-stairs" aria-hidden="true"></iconify-icon>
-                  <span>Vertical</span>
-                </span>
-                <span class="pill pill--soft">
-                  <iconify-icon icon="game-icons:magic-swirl" aria-hidden="true"></iconify-icon>
-                  <span>Sigilcraft</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="media" class="section section--alt">
-        <div class="container">
-          <header class="section-head">
-            <h2>Media</h2>
-            <p>
-              Drop your trailer, screenshots, and GIFs here. The layout is designed so you can start
-              with placeholders and upgrade as assets arrive.
-            </p>
-          </header>
-
-          <div class="media-grid">
-            <article class="card media">
-              <h3>Trailer</h3>
-              <div class="media-placeholder">
-                <p>
-                  <strong>TODO:</strong> Embed YouTube/Vimeo or self-hosted video.
-                </p>
-                <p class="muted">Recommended: 1920×1080, 30–60s.</p>
-              </div>
-            </article>
-
-            <article class="card media">
-              <h3>Screenshots</h3>
-              <div class="shot-grid" aria-label="Screenshot placeholders">
-                <div class="shot">Screenshot 1</div>
-                <div class="shot">Screenshot 2</div>
-                <div class="shot">Screenshot 3</div>
-                <div class="shot">Screenshot 4</div>
-              </div>
-            </article>
-
-            <article class="card media">
-              <h3>Animated GIFs</h3>
-              <div class="shot-grid shot-grid--wide" aria-label="GIF placeholders">
-                <div class="shot">Shader demo</div>
-                <div class="shot">Loot drop</div>
-                <div class="shot">Combat beat</div>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="press" class="section">
-        <div class="container">
-          <header class="section-head">
-            <h2>Press kit</h2>
-            <p>
-              A clean fact sheet + quick assets list. Replace the “TBA” fields as you lock details.
-            </p>
-          </header>
-
-          <div class="press-grid">
-            <article class="card">
-              <h3>Fact sheet</h3>
-              <dl class="facts">
-                <div>
-                  <dt>Developer</dt>
-                  <dd>Foxjammin Studios</dd>
-                </div>
-                <div>
-                  <dt>Game</dt>
-                  <dd>Sigilry: The Braided Stair</dd>
-                </div>
-                <div>
-                  <dt>Genre</dt>
-                  <dd>Dungeon looter / roguelite-ish (TBA)</dd>
-                </div>
-                <div>
-                  <dt>Platforms</dt>
-                  <dd>PC (TBA)</dd>
-                </div>
-                <div>
-                  <dt>Release window</dt>
-                  <dd>TBA</dd>
-                </div>
-                <div>
-                  <dt>Engine / tech</dt>
-                  <dd>TBA (3D ASCII shader)</dd>
-                </div>
-              </dl>
-
-              <div class="cta-row">
-                <!-- TODO: replace with a real link to a .zip -->
-                <a class="btn" href="#contact">
-                  <iconify-icon icon="game-icons:scroll-unfurled" aria-hidden="true"></iconify-icon>
-                  <span>Request press kit ZIP</span>
-                </a>
-              </div>
-            </article>
-
-            <article class="card">
-              <h3>Suggested assets</h3>
-              <ul class="bullets">
-                <li>Studio logo (SVG + PNG)</li>
-                <li>Game logo / wordmark</li>
-                <li>6–10 screenshots (PNG)</li>
-                <li>3 GIFs (shader / loot / combat)</li>
-                <li>Short trailer + raw capture clips</li>
-                <li>One-page PDF fact sheet (optional)</li>
-              </ul>
-
-              <h3>Boilerplate</h3>
-              <p class="muted">
-                Foxjammin Studios is an indie team creating multimedia projects—from games to books—
-                with a love for experimental tech and strong vibes.
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="studio" class="section section--alt">
-        <div class="container">
-          <header class="section-head">
-            <h2>Studio</h2>
-            <p>
-              Keep this short and punchy. Studio pages win when they feel human and specific.
-            </p>
-          </header>
-
-          <div class="split">
-            <article class="card">
-              <h3>What we make</h3>
-              <p>
-                We build worlds that feel like strange machines: readable on the surface, deeper the
-                longer you keep pushing buttons. Games, writing, tools, and whatever else the project
-                demands.
-              </p>
-
-              <h3>What we care about</h3>
-              <ul class="bullets">
-                <li>Mechanics that reinforce theme</li>
-                <li>Strong visual identity</li>
-                <li>Systems you can “learn by playing”</li>
-                <li>Weird tech used with intention</li>
-              </ul>
-            </article>
-
-            <article class="card">
-              <h3>Devlog</h3>
-              <div class="devlog">
-                <article class="devlog__entry">
-                  <h4>Devlog #1 — The shader moodboard</h4>
-                  <p class="muted">TBA • Replace with your first post</p>
-                  <p>
-                    Write 4–6 lines about what you’re exploring: lighting, glyph sets, readability,
-                    and what “3D ASCII” means for the player.
-                  </p>
-                </article>
-
-                <article class="devlog__entry">
-                  <h4>Devlog #2 — Loot that tells stories</h4>
-                  <p class="muted">TBA</p>
-                  <p>
-                    Share a couple item names + what systems they touch. (Players love seeing “build
-                    nouns” early.)
-                  </p>
-                </article>
-
-                <article class="devlog__entry">
-                  <h4>Devlog #3 — The Braided Stair layout</h4>
-                  <p class="muted">TBA</p>
-                  <p>
-                    Show a sketch of the dungeon structure (even ASCII diagrams work perfectly for
-                    this brand).
-                  </p>
-                </article>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="contact" class="section">
-        <div class="container">
-          <header class="section-head">
-            <h2>Contact</h2>
-            <p>
-              Easiest first version: a mail link. Later, swap this for a form service or a backend.
-            </p>
-          </header>
-
-          <div class="contact-grid">
-            <article class="card">
-              <h3>Email</h3>
-              <!-- TODO: replace with your real email -->
-              <p>
-                <a class="btn" href="mailto:hello@foxjammin.com">
-                  <iconify-icon icon="game-icons:scroll-quill" aria-hidden="true"></iconify-icon>
-                  <span>hello@foxjammin.com</span>
-                </a>
-              </p>
-              <p class="muted">
-                Press inquiries, partnerships, and “I want to playtest” all welcome.
-              </p>
-            </article>
-
-            <article class="card">
-              <h3>Social</h3>
-              <ul class="bullets">
-                <!-- TODO: replace links -->
-                <li><a href="#" rel="noopener">Steam (TBA)</a></li>
-                <li><a href="#" rel="noopener">itch.io (TBA)</a></li>
-                <li><a href="#" rel="noopener">Bluesky / Twitter (TBA)</a></li>
-                <li><a href="#" rel="noopener">YouTube (TBA)</a></li>
-              </ul>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="icon-forge" class="section section--alt">
-        <div class="container">
-          <header class="section-head">
-            <h2>Icon Forge</h2>
-            <p>
-              Search Iconify for icons (default: <code>game-icons</code>). Click a result to copy
-              the icon name, then paste it into your HTML like:
-              <code>&lt;iconify-icon icon="game-icons:stairs"&gt;&lt;/iconify-icon&gt;</code>
-            </p>
-          </header>
-
-          <div class="card">
-            <form id="iconSearchForm" class="icon-forge" autocomplete="off">
-              <label class="field">
-                <span>Query</span>
-                <input
-                  id="iconQuery"
-                  name="query"
-                  type="text"
-                  placeholder="stairs, potion, dungeon, skull…"
-                  required
-                />
-              </label>
-
-              <label class="field">
-                <span>Prefix</span>
-                <input id="iconPrefix" name="prefix" type="text" value="game-icons" />
-              </label>
-
-              <label class="field">
-                <span>Limit</span>
-                <input id="iconLimit" name="limit" type="number" min="32" max="999" value="64" />
-              </label>
-
-              <button class="btn primary" type="submit">
-                <iconify-icon icon="game-icons:magic-portal" aria-hidden="true"></iconify-icon>
-                <span>Search</span>
-              </button>
-            </form>
-
-            <div class="icon-status" id="iconStatus" aria-live="polite"></div>
-            <div class="icon-results" id="iconResults" role="list"></div>
-
-            <noscript>
-              <p class="muted">
-                Icon search needs JavaScript enabled.
-              </p>
-            </noscript>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <p class="fineprint">
-          © <span id="year"></span> Foxjammin Studios.
-        </p>
-
-        <p class="fineprint">
-          Icons used on this page: <strong>Game Icons</strong> (CC BY 3.0).
-          <a
-            href="https://github.com/game-icons/icons/blob/master/license.txt"
-            target="_blank"
-            rel="noopener noreferrer"
-            >License</a
-          >
-          • Rendered via
-          <a
-            href="https://iconify.design/"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Iconify</a
-          >.
-        </p>
+      <div class="wgsl-status-row">
+        <strong data-wgsl-status>Waiting for glyph asset...</strong>
+        <span data-wgsl-detail>Canvas fallback will render even when WebGPU is unavailable.</span>
       </div>
-    </footer>
+      <div class="renderer-comparison">
+        <figure>
+          <figcaption>Canvas fallback from Tac One curves</figcaption>
+          <canvas width="512" height="220" data-static-canvas></canvas>
+        </figure>
+        <figure>
+          <figcaption>WebGPU/WGSL static fill</figcaption>
+          <canvas width="512" height="220" data-wgsl-canvas></canvas>
+        </figure>
+      </div>
+      <div class="wgsl-metrics" data-wgsl-metrics>
+        Font asset not loaded yet.
+      </div>
+    </section>
 
-    <div
-      class="toast"
-      id="toast"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    ></div>
+    <section class="wgsl-lab animated-glyph-lab" aria-label="WGSL animated glyph renderer lab">
+      <header>
+        <div>
+          <p class="eyebrow">Slice 7F</p>
+          <h2>Continuous Word-Body Glyph Renderer</h2>
+          <p>
+            Tac One glyph instances driven by one simulated word body:
+            reveal, readable hold, force, drag, cohesion, scatter, and fade.
+            The sample cards now use the same continuous glyph-controller path at a 1.5x review default.
+            Slice 7F adds bounded runtime contour deformation for smear, dent, bend, spikes, and corkscrew exits.
+          </p>
+        </div>
+        <div class="wgsl-controls">
+          <label>
+            preset
+            <select data-anim-preset>
+              <option value="pow-force-wave" selected>POW force wave</option>
+              <option value="whiff-ribbon">WHIFF ribbon</option>
+              <option value="block-plate">BLOCK plate</option>
+              <option value="finisher-curl">Finisher curl</option>
+              <option value="mob-pressure">Mob pressure stress</option>
+              <option value="pow-rubber-smear">POW rubber smear</option>
+              <option value="bam-impact-dent">BAM impact dent</option>
+              <option value="whiff-ribbon-bend">WHIFF ribbon bend</option>
+              <option value="block-accordion">BLOCK accordion plate</option>
+              <option value="crack-spiky-fracture">CRACK spiky fracture</option>
+              <option value="wham-corkscrew-exit">WHAM corkscrew exit</option>
+            </select>
+          </label>
+          <button type="button" data-anim-toggle>Pause</button>
+          <button type="button" data-anim-restart>Restart</button>
+          <label>
+            speed
+            <select data-anim-speed>
+              <option value="0.25">0.25x</option>
+              <option value="0.5">0.5x</option>
+              <option value="1">1x</option>
+              <option value="1.5" selected>1.5x</option>
+            </select>
+          </label>
+          <label class="range-label anim-scrub-control">
+            time
+            <input type="range" min="0" max="2" step="0.0166667" value="0" data-anim-scrub />
+            <output data-anim-scrub-out>0.00 / 2.00s</output>
+          </label>
+        </div>
+      </header>
+      <div class="wgsl-debug-toggles" aria-label="Animated glyph debug overlays">
+        <label><input type="checkbox" data-anim-show-bounds checked /> glyph bounds</label>
+        <label><input type="checkbox" data-anim-show-phase checked /> phase</label>
+        <label><input type="checkbox" data-anim-show-flow /> flow vectors</label>
+        <label><input type="checkbox" data-anim-show-status checked /> GPU status</label>
+        <label>
+          deformation
+          <select data-anim-deform-mode>
+            <option value="current" selected>current recipe</option>
+            <option value="off">off</option>
+            <option value="rubber_smear">rubber smear</option>
+            <option value="impact_dent">impact dent</option>
+            <option value="ribbon_bend">ribbon bend</option>
+            <option value="accordion_plate">accordion plate</option>
+            <option value="spiky_fracture">spiky fracture</option>
+            <option value="corkscrew_exit">corkscrew exit</option>
+          </select>
+        </label>
+        <label><input type="checkbox" data-anim-show-original /> original ghost</label>
+        <label><input type="checkbox" data-anim-show-deformed-bounds checked /> deformed bounds</label>
+        <label><input type="checkbox" data-anim-reduced-deform /> reduced deformation</label>
+        <label class="range-label deformation-strength-control">
+          deform strength
+          <input type="range" min="0" max="1.6" step="0.05" value="1" data-anim-deform-strength />
+          <output data-anim-deform-strength-out>1.00</output>
+        </label>
+        <label class="range-label stress-count-control">
+          stress count
+          <input type="range" min="1" max="18" step="1" value="8" data-anim-stress-count />
+          <output data-anim-stress-out>8</output>
+        </label>
+      </div>
+      <div class="wgsl-status-row" data-anim-status-row>
+        <strong data-anim-status>Waiting for glyph asset...</strong>
+        <span data-anim-detail>Canvas fallback will render even when WebGPU is unavailable.</span>
+      </div>
+      <div class="renderer-comparison">
+        <figure>
+          <figcaption>Canvas animated glyph fallback</figcaption>
+          <canvas width="512" height="220" data-anim-canvas></canvas>
+        </figure>
+        <figure>
+          <figcaption>WebGPU/WGSL animated glyph fill</figcaption>
+          <canvas width="512" height="220" data-anim-wgsl-canvas></canvas>
+        </figure>
+      </div>
+      <div class="wgsl-metrics" data-anim-metrics>
+        Animated glyph asset not loaded yet.
+      </div>
+    </section>
 
-    <script src="script.js" defer></script>
-  </body>
+    <section id="sampleGrid" class="sample-grid" aria-live="polite"></section>
+  </main>
+
+  <footer class="lab-footer">
+    <p>
+      Usage: open this file directly in a browser, or serve this folder with any static server.
+      The implementation lives in <code>typography_lab.js</code> and has no external dependencies.
+    </p>
+  </footer>
+
+  <script src="./tac_one_glyph_asset.generated.js"></script>
+  <script src="./typography_lab.js"></script>
+</body>
 </html>
