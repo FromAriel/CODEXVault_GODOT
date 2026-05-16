@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VicVec Vector Authoring</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./vector_authoring.css?v=animation-foundation-1" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-brush" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m11 10l3 3m-7.5 8A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031L21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></g></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/></symbol>
+      <symbol id="icon-combine" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1m5-7a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1M7 15l3 3m-3 3l3-3H5a2 2 0 0 1-2-2v-2"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="3" rx="1"/></g></symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></g></symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></g></symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></g></symbol>
+      <symbol id="icon-eye-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575a1 1 0 0 1 0 .696a10.8 10.8 0 0 1-1.444 2.49m-6.41-.679a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 4.446-5.143M2 2l20 20"/></g></symbol>
+      <symbol id="icon-folder-open" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 14l1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+      <symbol id="icon-group" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 7V5c0-1.1.9-2 2-2h2m10 0h2c1.1 0 2 .9 2 2v2m0 10v2c0 1.1-.9 2-2 2h-2M7 21H5c-1.1 0-2-.9-2-2v-2"/><rect width="7" height="5" x="7" y="7" rx="1"/><rect width="7" height="5" x="10" y="12" rx="1"/></g></symbol>
+      <symbol id="icon-lasso-select" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M7 22a5 5 0 0 1-2-4m2-1.07c.96.43 1.96.74 2.99.91M3.34 14A6.8 6.8 0 0 1 2 10c0-4.42 4.48-8 10-8s10 3.58 10 8a7.2 7.2 0 0 1-.33 2"/><path d="M5 18a2 2 0 1 0 0-4a2 2 0 0 0 0 4m9.33 4h-.09a.35.35 0 0 1-.24-.32v-10a.34.34 0 0 1 .33-.34c.08 0 .15.03.21.08l7.34 6a.33.33 0 0 1-.21.59h-4.49l-2.57 3.85a.35.35 0 0 1-.28.14"/></g></symbol>
+      <symbol id="icon-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></g></symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/></symbol>
+      <symbol id="icon-mouse-pointer-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></symbol>
+      <symbol id="icon-move" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20m3-3l-3 3l-3-3M19 9l3 3l-3 3M2 12h20M5 9l-3 3l3 3M9 5l3-3l3 3"/></symbol>
+      <symbol id="icon-panel-right-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18M8 9l3 3l-3 3"/></g></symbol>
+      <symbol id="icon-panel-right-open" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18m-5-6l-3-3l3-3"/></g></symbol>
+      <symbol id="icon-pen-tool" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13l-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18M2.3 2.3l7.286 7.286"/><circle cx="11" cy="11" r="2"/></g></symbol>
+      <symbol id="icon-pipette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m12 9l-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12"/><path d="m18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4l3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414"/></g></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7v14"/></symbol>
+      <symbol id="icon-rotate-ccw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></g></symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></g></symbol>
+      <symbol id="icon-scissors" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12L12 12m8-8L8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8L20 20"/></g></symbol>
+      <symbol id="icon-sliders-horizontal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5H3m9 14H3M14 3v4m2 10v4m5-9h-9m9 7h-5m5-14h-7m-6 5v4m0-2H3"/></symbol>
+      <symbol id="icon-split" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M16 3h5v5M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3m12 6l6-6"/></g></symbol>
+      <symbol id="icon-trash-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11v6m4-6v6m5-11v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+      <symbol id="icon-ungroup" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="8" height="6" x="5" y="4" rx="1"/><rect width="8" height="6" x="11" y="14" rx="1"/></g></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m5-7l-5-5l-5 5m14 7v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+      <symbol id="icon-wand-sparkles" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21.64 3.64l-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72M14 7l3 3M5 6v4m14 4v4M10 2v2M7 8H3m18 8h-4M11 3H9"/></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12"/></symbol>
+    </svg>
+
+    <main class="app-shell" id="app-shell">
+      <header class="app-bar">
+        <div class="brand-block">
+          <div class="brand-mark">V</div>
+          <div>
+            <h1>VicVec</h1>
+            <span>Duhrng v1 vector authoring</span>
+          </div>
+        </div>
+        <nav class="app-menu-bar" aria-label="Application menus">
+          <div class="app-menu">
+            <button class="menu-button" type="button" data-menu-toggle="file" aria-expanded="false">File</button>
+            <div class="menu-popover" data-menu-panel="file">
+              <button type="button" data-click-target="image-input"><svg class="icon"><use href="#icon-folder-open"></use></svg>Open Source Image</button>
+              <button type="button" data-click-target="json-input"><svg class="icon"><use href="#icon-upload"></use></svg>Import JSON</button>
+              <button type="button" data-open-export><svg class="icon"><use href="#icon-download"></use></svg>Export Drawer</button>
+              <button type="button" data-click-target="save-json"><svg class="icon"><use href="#icon-save"></use></svg>Save JSON</button>
+            </div>
+          </div>
+          <div class="app-menu">
+            <button class="menu-button" type="button" data-menu-toggle="edit" aria-expanded="false">Edit</button>
+            <div class="menu-popover" data-menu-panel="edit">
+              <button type="button" data-click-target="delete-point"><svg class="icon"><use href="#icon-trash-2"></use></svg>Delete Point</button>
+              <button type="button" data-click-target="clear-handles"><svg class="icon"><use href="#icon-scissors"></use></svg>Clear Handles</button>
+              <button type="button" data-click-target="reverse-loop"><svg class="icon"><use href="#icon-rotate-ccw"></use></svg>Reverse Loop</button>
+            </div>
+          </div>
+          <div class="app-menu">
+            <button class="menu-button" type="button" data-menu-toggle="selection" aria-expanded="false">Selection</button>
+            <div class="menu-popover" data-menu-panel="selection">
+              <button type="button" data-click-target="group-paths"><svg class="icon"><use href="#icon-group"></use></svg>Group Selected</button>
+              <button type="button" data-click-target="separate-paths"><svg class="icon"><use href="#icon-split"></use></svg>Separate</button>
+              <button type="button" data-click-target="merge-into-active"><svg class="icon"><use href="#icon-combine"></use></svg>Merge Into Active</button>
+              <button type="button" data-click-target="clear-path-selection"><svg class="icon"><use href="#icon-x"></use></svg>Clear Selection</button>
+            </div>
+          </div>
+          <div class="app-menu">
+            <button class="menu-button" type="button" data-menu-toggle="view" aria-expanded="false">View</button>
+            <div class="menu-popover" data-menu-panel="view">
+              <button type="button" data-inspector-toggle><svg class="icon"><use href="#icon-panel-right-close"></use></svg>Toggle Inspector</button>
+              <button type="button" data-inspector-tab-shortcut="pack"><svg class="icon"><use href="#icon-eye"></use></svg>Source And Pack</button>
+              <button type="button" data-inspector-tab-shortcut="tools"><svg class="icon"><use href="#icon-sliders-horizontal"></use></svg>Tool Options</button>
+            </div>
+          </div>
+        </nav>
+        <div class="app-bar-actions">
+          <button class="compact-command" type="button" data-open-export>
+            <svg class="icon"><use href="#icon-download"></use></svg>
+            <span>Export v1</span>
+          </button>
+          <button class="icon-button" type="button" data-inspector-toggle aria-label="Toggle inspector" title="Toggle inspector">
+            <svg class="icon"><use href="#icon-panel-right-close"></use></svg>
+          </button>
+        </div>
+      </header>
+
+      <aside class="tool-rail" aria-label="Canvas tools">
+        <button class="tool-button mode-button active" type="button" data-tool-mode="point" aria-pressed="true" aria-label="Point tool" data-tooltip="Point (1)">
+          <svg class="icon"><use href="#icon-pen-tool"></use></svg>
+        </button>
+        <button class="tool-button mode-button" type="button" data-tool-mode="path" aria-pressed="false" aria-label="Path Select tool" data-tooltip="Path Select (2)">
+          <svg class="icon"><use href="#icon-mouse-pointer-2"></use></svg>
+        </button>
+        <button class="tool-button mode-button" type="button" data-tool-mode="move" aria-pressed="false" aria-label="Move tool" data-tooltip="Move (3)">
+          <svg class="icon"><use href="#icon-move"></use></svg>
+        </button>
+        <button class="tool-button mode-button" type="button" data-tool-mode="brush" aria-pressed="false" aria-label="Brush tool" data-tooltip="Brush (4/B)">
+          <svg class="icon"><use href="#icon-brush"></use></svg>
+        </button>
+        <button class="tool-button mode-button" type="button" data-tool-mode="lasso" aria-pressed="false" aria-label="Lasso tool" data-tooltip="Lasso (5/L)">
+          <svg class="icon"><use href="#icon-lasso-select"></use></svg>
+        </button>
+        <div class="rail-divider"></div>
+        <button id="pick-fill-color" class="tool-button" type="button" aria-label="Pick fill color" data-tooltip="Pick Fill">
+          <svg class="icon"><use href="#icon-pipette"></use></svg>
+          <span class="color-dot fill-dot"></span>
+        </button>
+        <button id="pick-stroke-color" class="tool-button" type="button" aria-label="Pick stroke color" data-tooltip="Pick Stroke">
+          <svg class="icon"><use href="#icon-pipette"></use></svg>
+          <span class="color-dot stroke-dot"></span>
+        </button>
+      </aside>
+
+      <section class="canvas-panel">
+        <div class="canvas-top-strip">
+          <div class="mode-summary">
+            <strong id="active-tool-readout">Point</strong>
+            <span id="mode-hint">Point: click to add/select points. Alt-drag creates an out handle.</span>
+          </div>
+          <div class="context-actions">
+            <button class="small-command" type="button" data-click-target="clear-path-selection">Clear Selection</button>
+            <button class="small-command" type="button" data-inspector-tab-shortcut="tools">Tool Options</button>
+          </div>
+        </div>
+        <canvas id="authoring-canvas" width="1200" height="820"></canvas>
+      </section>
+
+      <aside class="inspector-panel" id="inspector-panel" aria-label="Inspector">
+        <div class="inspector-header">
+          <div>
+            <span class="eyebrow">Inspector</span>
+            <div id="active-target" class="active-target">Active: Traced Shape / loop 1 / outer | 1 selected</div>
+          </div>
+          <button class="icon-button" type="button" data-inspector-toggle aria-label="Collapse inspector" title="Collapse inspector">
+            <svg class="icon"><use href="#icon-panel-right-close"></use></svg>
+          </button>
+        </div>
+
+        <div class="inspector-tabs" role="tablist" aria-label="Inspector sections">
+          <button class="inspector-tab active" type="button" role="tab" aria-selected="true" data-inspector-tab="object">Object</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="loop">Loop</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="style">Style</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="tools">Tools</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="pack">Pack</button>
+        </div>
+
+        <div class="inspector-body">
+          <section class="inspector-page active" data-inspector-page="object">
+            <div class="panel-card">
+              <label class="wide">
+                <span>Shape</span>
+                <select id="shape-select"></select>
+              </label>
+              <div class="form-grid">
+                <label>
+                  <span>Shape id</span>
+                  <input id="shape-id" value="traced_shape" />
+                </label>
+                <label>
+                  <span>Label</span>
+                  <input id="shape-label" value="Traced Shape" />
+                </label>
+                <label class="wide">
+                  <span>Tags</span>
+                  <input id="shape-tags" value="cabinet" />
+                </label>
+                <label>
+                  <span>Z</span>
+                  <input id="shape-z" type="number" value="10" />
+                </label>
+              </div>
+            </div>
+            <div class="command-grid">
+              <button id="add-shape" type="button"><svg class="icon"><use href="#icon-plus"></use></svg>Add</button>
+              <button id="duplicate-shape" type="button"><svg class="icon"><use href="#icon-copy"></use></svg>Duplicate</button>
+              <button id="delete-shape" class="danger" type="button"><svg class="icon"><use href="#icon-trash-2"></use></svg>Delete</button>
+              <button id="z-down" type="button"><svg class="icon"><use href="#icon-minus"></use></svg>Z Down</button>
+              <button id="z-up" type="button"><svg class="icon"><use href="#icon-plus"></use></svg>Z Up</button>
+            </div>
+            <div class="panel-card">
+              <label>
+                <span>Tag preset</span>
+                <select id="tag-preset"></select>
+              </label>
+              <div class="split-actions">
+                <button id="add-tag-preset" type="button">Add Tag</button>
+                <button id="apply-tag-zone" type="button">Tag + Role</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="inspector-page" data-inspector-page="loop">
+            <div class="panel-card">
+              <label class="wide">
+                <span>Loop</span>
+                <select id="loop-select"></select>
+              </label>
+              <label class="wide">
+                <span>Loop ID</span>
+                <input id="loop-id" value="outer_1" />
+              </label>
+              <label class="wide">
+                <span>Role</span>
+                <select id="loop-role">
+                  <option value="outer">outer</option>
+                  <option value="cutout">cutout</option>
+                  <option value="detail">detail</option>
+                  <option value="hitZone">hitZone</option>
+                  <option value="effectZone">effectZone</option>
+                </select>
+              </label>
+            </div>
+            <div class="command-grid">
+              <button id="add-loop" type="button"><svg class="icon"><use href="#icon-plus"></use></svg>Add</button>
+              <button id="duplicate-loop" type="button"><svg class="icon"><use href="#icon-copy"></use></svg>Duplicate</button>
+              <button id="delete-loop" class="danger" type="button"><svg class="icon"><use href="#icon-trash-2"></use></svg>Delete</button>
+              <button id="loop-up" type="button">Loop Up</button>
+              <button id="loop-down" type="button">Loop Down</button>
+              <button id="open-loop" type="button">Open</button>
+              <button id="close-loop" type="button">Close</button>
+              <button id="clear-points" class="danger subtle" type="button">Clear</button>
+            </div>
+          </section>
+
+          <section class="inspector-page" data-inspector-page="style">
+            <div class="panel-card">
+              <div class="field-block">
+                <label for="shape-fill"><span>Fill</span></label>
+                <div class="color-control">
+                  <input id="shape-fill" type="color" value="#7b4a22" />
+                  <button type="button" data-click-target="pick-fill-color">Sample</button>
+                </div>
+              </div>
+              <div class="field-block">
+                <label for="shape-stroke"><span>Stroke</span></label>
+                <div class="color-control">
+                  <input id="shape-stroke" type="color" value="#21140d" />
+                  <button type="button" data-click-target="pick-stroke-color">Sample</button>
+                </div>
+              </div>
+              <label>
+                <span>Stroke width</span>
+                <input id="shape-stroke-width" type="number" min="0" step="0.5" value="5" />
+              </label>
+            </div>
+            <div class="panel-card">
+              <label class="source-opacity-control">
+                <span>Source opacity <output id="image-opacity-value">100%</output></span>
+                <input id="image-opacity" type="range" min="0" max="100" value="100" />
+              </label>
+            </div>
+          </section>
+
+          <section class="inspector-page" data-inspector-page="tools">
+            <section class="panel-card path-tools-section" data-selection-context>
+              <div class="section-title">Selection</div>
+              <div class="command-grid">
+                <button id="group-paths" type="button"><svg class="icon"><use href="#icon-group"></use></svg>Group</button>
+                <button id="separate-paths" type="button"><svg class="icon"><use href="#icon-split"></use></svg>Separate</button>
+                <button id="merge-into-active" type="button"><svg class="icon"><use href="#icon-combine"></use></svg>Merge</button>
+                <button id="clear-path-selection" type="button"><svg class="icon"><use href="#icon-x"></use></svg>Clear Selection</button>
+              </div>
+            </section>
+
+            <section class="panel-card scale-section">
+              <div class="section-title">Scale Selection</div>
+              <label class="inline-toggle">
+                <input id="scale-uniform" type="checkbox" checked />
+                <span>Uniform</span>
+              </label>
+              <div class="form-grid">
+                <label>
+                  <span>X %</span>
+                  <input id="scale-x" type="number" min="1" max="400" step="1" value="100" />
+                </label>
+                <label>
+                  <span>Y %</span>
+                  <input id="scale-y" type="number" min="1" max="400" step="1" value="100" />
+                </label>
+              </div>
+              <div class="split-actions">
+                <button id="scale-apply" type="button">Apply</button>
+                <button id="scale-reset" type="button">Reset</button>
+              </div>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-title">Loop Cleanup</div>
+              <div class="command-grid">
+                <button id="remove-near-duplicates" type="button">Remove Near-Dups</button>
+                <button id="simplify-straight" type="button">Simplify Straight</button>
+                <button id="close-gap" type="button">Close Gap</button>
+                <button id="reverse-loop" type="button"><svg class="icon"><use href="#icon-rotate-ccw"></use></svg>Reverse</button>
+              </div>
+            </section>
+
+            <section class="panel-card optimize-section">
+              <div class="optimize-header">
+                <span>Optimize Path</span>
+                <output id="optimize-tolerance-value">3px</output>
+              </div>
+              <input id="optimize-tolerance" type="range" min="0.5" max="18" step="0.5" value="3" />
+              <label class="inline-toggle">
+                <input id="optimize-keep-corners" type="checkbox" checked />
+                <span>Keep Corners</span>
+              </label>
+              <div class="split-actions">
+                <button id="optimize-preview" type="button">Preview</button>
+                <button id="optimize-apply" type="button">Apply</button>
+                <button id="optimize-cancel" type="button">Cancel</button>
+              </div>
+              <div id="optimize-status" class="optimize-status">No preview.</div>
+            </section>
+
+            <section class="panel-card lasso-section tool-context" data-tool-context="lasso">
+              <div class="section-title">Point Lasso</div>
+              <div class="segmented-control" role="radiogroup" aria-label="Lasso mode">
+                <label>
+                  <input id="lasso-mode-box" name="lasso-mode" type="radio" value="box" checked />
+                  <span>Box</span>
+                </label>
+                <label>
+                  <input id="lasso-mode-freehand" name="lasso-mode" type="radio" value="freehand" />
+                  <span>Freehand</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel-card brush-section tool-context" data-tool-context="brush">
+              <div class="section-title">Falloff Brush</div>
+              <label class="slider-control">
+                <span>Radius <output id="brush-radius-value">80px</output></span>
+                <input id="brush-radius" type="range" min="8" max="320" step="1" value="80" />
+              </label>
+              <label class="slider-control">
+                <span>Strength <output id="brush-strength-value">55%</output></span>
+                <input id="brush-strength" type="range" min="0" max="100" step="1" value="55" />
+              </label>
+              <label class="slider-control">
+                <span>Falloff <output id="brush-falloff-value">55%</output></span>
+                <input id="brush-falloff" type="range" min="0" max="100" step="1" value="55" />
+              </label>
+              <label class="slider-control">
+                <span>Pinch <output id="brush-pinch-value">0%</output></span>
+                <input id="brush-pinch" type="range" min="0" max="100" step="1" value="0" />
+              </label>
+              <label class="slider-control">
+                <span>Bubble <output id="brush-bubble-value">0%</output></span>
+                <input id="brush-bubble" type="range" min="0" max="100" step="1" value="0" />
+              </label>
+              <label class="inline-toggle">
+                <input id="brush-affect-handles" type="checkbox" />
+                <span>Affect Handles</span>
+              </label>
+              <label class="inline-toggle">
+                <input id="brush-selected-only" type="checkbox" />
+                <span>Selected Only</span>
+              </label>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-title">Point Handles</div>
+              <div class="split-actions">
+                <button id="delete-point" class="danger subtle" type="button">Delete Point</button>
+                <button id="clear-handles" type="button">Clear Handles</button>
+              </div>
+            </section>
+          </section>
+
+          <section class="inspector-page" data-inspector-page="pack">
+            <div class="panel-card">
+              <label class="file-control">
+                <span>Source image</span>
+                <input id="image-input" type="file" accept="image/*" />
+              </label>
+              <label class="file-control">
+                <span>Import JSON</span>
+                <input id="json-input" type="file" accept=".json,application/json" />
+              </label>
+            </div>
+            <div class="panel-card">
+              <div class="section-title">Animation</div>
+              <div id="animation-readout" class="optimize-status">No animation</div>
+            </div>
+            <div class="panel-card pack-actions">
+              <button class="primary" type="button" data-open-export><svg class="icon"><use href="#icon-download"></use></svg>Export JSON</button>
+              <button id="save-json" class="primary" type="button"><svg class="icon"><use href="#icon-save"></use></svg>Save JSON</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <footer class="status-bar">
+        <div id="status">Ready. Add points with left click.</div>
+        <div id="stats">1536x1024 | 1 shapes | 1 loops | 0 points | open</div>
+      </footer>
+
+      <div class="drawer-backdrop" data-drawer-close hidden></div>
+      <aside id="export-drawer" class="export-drawer" aria-hidden="true" aria-label="Export JSON">
+        <div class="drawer-header">
+          <div>
+            <span class="eyebrow">Export</span>
+            <h2>Duhrng v1 JSON</h2>
+          </div>
+          <button class="icon-button" type="button" data-drawer-close aria-label="Close export drawer">
+            <svg class="icon"><use href="#icon-x"></use></svg>
+          </button>
+        </div>
+        <div class="drawer-actions">
+          <button id="export-json" class="primary" type="button"><svg class="icon"><use href="#icon-download"></use></svg>Refresh JSON</button>
+          <button type="button" data-click-target="save-json"><svg class="icon"><use href="#icon-save"></use></svg>Save File</button>
+        </div>
+        <label class="drawer-textarea">
+          <span>Export output</span>
+          <textarea id="json-output" readonly spellcheck="false"></textarea>
+        </label>
+      </aside>
+    </main>
+
+    <script src="./vector_authoring_core.js?v=animation-foundation-1"></script>
+    <script src="./vector_authoring.js?v=animation-foundation-1"></script>
+  </body>
+</html>
