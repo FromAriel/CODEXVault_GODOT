@@ -2,6 +2,7 @@
   'use strict';
 
   const core = globalThis.VectorAuthoringCore;
+  const historyCore = globalThis.VectorAuthoringHistory;
   const canvas = document.getElementById('authoring-canvas');
   const ctx = canvas.getContext('2d');
   const fields = {
@@ -20,6 +21,9 @@
     shapeFill: document.getElementById('shape-fill'),
     shapeStroke: document.getElementById('shape-stroke'),
     shapeStrokeWidth: document.getElementById('shape-stroke-width'),
+    editorModeRest: document.getElementById('editor-mode-rest'),
+    editorModeAnimate: document.getElementById('editor-mode-animate'),
+    animationAutoKey: document.getElementById('animation-auto-key'),
     pickFillColor: document.getElementById('pick-fill-color'),
     pickStrokeColor: document.getElementById('pick-stroke-color'),
     addShape: document.getElementById('add-shape'),
@@ -48,8 +52,27 @@
     scaleUniform: document.getElementById('scale-uniform'),
     scaleX: document.getElementById('scale-x'),
     scaleY: document.getElementById('scale-y'),
-    scaleApply: document.getElementById('scale-apply'),
-    scaleReset: document.getElementById('scale-reset'),
+    transformRotation: document.getElementById('transform-rotation'),
+    transformOriginMode: document.getElementById('transform-origin-mode'),
+    transformOriginFields: document.getElementById('transform-origin-fields'),
+    transformOriginX: document.getElementById('transform-origin-x'),
+    transformOriginY: document.getElementById('transform-origin-y'),
+    transformPickOrigin: document.getElementById('transform-pick-origin'),
+    transformPreview: document.getElementById('transform-preview'),
+    transformApply: document.getElementById('transform-apply'),
+    transformCancel: document.getElementById('transform-cancel'),
+    transformReset: document.getElementById('transform-reset'),
+    transformStatus: document.getElementById('transform-status'),
+    poseTx: document.getElementById('pose-tx'),
+    poseTy: document.getElementById('pose-ty'),
+    poseRotation: document.getElementById('pose-rotation'),
+    poseSx: document.getElementById('pose-sx'),
+    poseSy: document.getElementById('pose-sy'),
+    posePreview: document.getElementById('pose-preview'),
+    poseSetKey: document.getElementById('pose-set-key'),
+    poseLoadKey: document.getElementById('pose-load-key'),
+    poseClear: document.getElementById('pose-clear'),
+    poseStatus: document.getElementById('pose-status'),
     removeNearDuplicates: document.getElementById('remove-near-duplicates'),
     simplifyStraight: document.getElementById('simplify-straight'),
     closeGap: document.getElementById('close-gap'),
@@ -62,6 +85,48 @@
     optimizeCancel: document.getElementById('optimize-cancel'),
     optimizeStatus: document.getElementById('optimize-status'),
     animationReadout: document.getElementById('animation-readout'),
+    animationClipSelect: document.getElementById('animation-clip-select'),
+    animationAddClip: document.getElementById('animation-add-clip'),
+    animationDuplicateClip: document.getElementById('animation-duplicate-clip'),
+    animationDeleteClip: document.getElementById('animation-delete-clip'),
+    animationAddTrack: document.getElementById('animation-add-track'),
+    animationRestSelection: document.getElementById('animation-rest-selection'),
+    animationClipLabel: document.getElementById('animation-clip-label'),
+    animationClipDuration: document.getElementById('animation-clip-duration'),
+    animationClipLoop: document.getElementById('animation-clip-loop'),
+    animationTrackSelect: document.getElementById('animation-track-select'),
+    animationTrackTarget: document.getElementById('animation-track-target'),
+    keyframeTx: document.getElementById('keyframe-tx'),
+    keyframeTy: document.getElementById('keyframe-ty'),
+    keyframeRotation: document.getElementById('keyframe-rotation'),
+    keyframeSx: document.getElementById('keyframe-sx'),
+    keyframeSy: document.getElementById('keyframe-sy'),
+    keyframeEase: document.getElementById('keyframe-ease'),
+    keyframeUpsert: document.getElementById('keyframe-upsert'),
+    keyframeDelete: document.getElementById('keyframe-delete'),
+    keyframeRest: document.getElementById('keyframe-rest'),
+    keyframeCopy: document.getElementById('keyframe-copy'),
+    keyframePrevious: document.getElementById('keyframe-previous'),
+    animationBindingSelect: document.getElementById('animation-binding-select'),
+    animationBindingReadout: document.getElementById('animation-binding-readout'),
+    animationBindClip: document.getElementById('animation-bind-clip'),
+    animationUnbindClip: document.getElementById('animation-unbind-clip'),
+    timelineDock: document.getElementById('timeline-dock'),
+    timelineCollapse: document.getElementById('timeline-collapse'),
+    timelinePlay: document.getElementById('timeline-play'),
+    timelineClipSelect: document.getElementById('timeline-clip-select'),
+    timelineTime: document.getElementById('timeline-time'),
+    timelineDurationReadout: document.getElementById('timeline-duration-readout'),
+    timelineFps: document.getElementById('timeline-fps'),
+    timelineSnap: document.getElementById('timeline-snap'),
+    timelinePreviewEnabled: document.getElementById('timeline-preview-enabled'),
+    timelineZoom: document.getElementById('timeline-zoom'),
+    timelineZoomValue: document.getElementById('timeline-zoom-value'),
+    timelineLaneScroll: document.getElementById('timeline-lane-scroll'),
+    timelineTrack: document.getElementById('timeline-track'),
+    timelineTicks: document.getElementById('timeline-ticks'),
+    timelineKeyframes: document.getElementById('timeline-keyframes'),
+    timelinePlayhead: document.getElementById('timeline-playhead'),
     brushRadius: document.getElementById('brush-radius'),
     brushRadiusValue: document.getElementById('brush-radius-value'),
     brushStrength: document.getElementById('brush-strength'),
@@ -75,9 +140,13 @@
     brushAffectHandles: document.getElementById('brush-affect-handles'),
     brushSelectedOnly: document.getElementById('brush-selected-only'),
     lassoModeInputs: Array.from(document.querySelectorAll('input[name="lasso-mode"]')),
+    undoCommand: document.getElementById('undo-command'),
+    redoCommand: document.getElementById('redo-command'),
     deletePoint: document.getElementById('delete-point'),
     clearHandles: document.getElementById('clear-handles'),
     exportJson: document.getElementById('export-json'),
+    exportGraphJson: document.getElementById('export-graph-json'),
+    exportGraphJsonDrawer: document.getElementById('export-graph-json-drawer'),
     saveJson: document.getElementById('save-json'),
     jsonOutput: document.getElementById('json-output'),
     status: document.getElementById('status'),
@@ -90,12 +159,14 @@
     inspectorToggleButtons: Array.from(document.querySelectorAll('[data-inspector-toggle]')),
     menuButtons: Array.from(document.querySelectorAll('[data-menu-toggle]')),
     menus: Array.from(document.querySelectorAll('.app-menu')),
+    historyButtons: Array.from(document.querySelectorAll('[data-history-command]')),
     clickTargetButtons: Array.from(document.querySelectorAll('[data-click-target]')),
     openExportButtons: Array.from(document.querySelectorAll('[data-open-export]')),
     drawerCloseButtons: Array.from(document.querySelectorAll('[data-drawer-close]')),
     exportDrawer: document.getElementById('export-drawer'),
     drawerBackdrop: document.querySelector('.drawer-backdrop'),
     toolContextPanels: Array.from(document.querySelectorAll('[data-tool-context]')),
+    selectionActionButtons: Array.from(document.querySelectorAll('[data-selection-action]')),
   };
 
   let state = core.createInitialState();
@@ -109,6 +180,10 @@
   let dragHandleName = null;
   let pointerMoved = false;
   let activeToolMode = 'point';
+  let editorMode = 'rest';
+  let animationAutoKey = true;
+  let animationDrag = null;
+  let animationBrushDeltas = new Map();
   let colorPickTarget = null;
   let spaceDown = false;
   let selectFillDown = false;
@@ -117,17 +192,42 @@
   let drawAnimationFrame = 0;
   let optimizationPreview = null;
   let optimizationPreviewTimer = 0;
+  let transformPreview = null;
+  let transformOriginPickActive = false;
+  let animationPreview = null;
+  let animationPosePreview = null;
+  let timelineCollapsed = false;
+  let timelinePlaying = false;
+  let timelineAnimationFrame = 0;
+  let timelineLastTimestamp = 0;
+  let timelineDragMode = null;
   let hoverCanvasPoint = null;
   let brushStrokeStats = null;
   let inspectorUserToggled = false;
+  let selectedClipId = '';
+  let selectedTrackIndex = -1;
+  let selectedKeyframeIndex = -1;
+  let timelineTimeMs = 0;
+  let timelineZoom = 1;
+  let timelineFps = 24;
+  let timelineSnap = true;
+  let exportAnimationMode = 'compat';
   let lassoStartCanvasPoint = null;
   let lassoCurrentCanvasPoint = null;
   let lassoPoints = [];
   let lassoToggleSelection = false;
+  let lassoSelectPaths = false;
+  let historyInteraction = null;
+  let fieldEditHistory = null;
+  let restoringHistory = false;
+  let currentImageSessionId = null;
+  let nextImageSessionId = 1;
   const hitCanvas = document.createElement('canvas');
   const hitCtx = hitCanvas.getContext('2d');
   const sourceSampleCanvas = document.createElement('canvas');
   const sourceSampleCtx = sourceSampleCanvas.getContext('2d', { willReadFrequently: true });
+  const sourceImageSessions = new Map();
+  const editorHistory = historyCore.createHistory({ limit: 100 });
   const loopPathCache = new WeakMap();
   const FULL_POINT_MARKER_LIMIT = 900;
   const JSON_OUTPUT_INLINE_LIMIT = 180000;
@@ -150,7 +250,7 @@
     path: 'Path Select: click a filled loop. Shift-click toggles multiple paths.',
     move: 'Move: drag selected paths or selected points. Shift-click toggles selection.',
     brush: 'Brush: drag to pull nearby points with the falloff curve.',
-    lasso: 'Lasso: drag a box or freehand loop around points in selected paths.',
+    lasso: 'Lasso: drag around points in selected paths. Hold S to lasso filled paths.',
   });
 
   function populateTagPresetOptions() {
@@ -175,6 +275,528 @@
     }
   }
 
+  function populateAnimationStaticOptions() {
+    fields.keyframeEase.innerHTML = '';
+    for (const ease of core.KNOWN_EASES) {
+      const option = document.createElement('option');
+      option.value = ease;
+      option.textContent = ease;
+      fields.keyframeEase.appendChild(option);
+    }
+    fields.animationBindingSelect.innerHTML = '';
+    for (const binding of core.ANIMATION_BINDING_PRESETS) {
+      const option = document.createElement('option');
+      option.value = binding;
+      option.textContent = binding;
+      fields.animationBindingSelect.appendChild(option);
+    }
+  }
+
+  function captureEditorSnapshot() {
+    const snapshotState = historyCore.cloneSnapshot(state);
+    delete snapshotState.viewport;
+    return {
+      state: snapshotState,
+      selectedClipId,
+      selectedTrackIndex,
+      selectedKeyframeIndex,
+      sourceImageSessionId: currentImageSessionId,
+    };
+  }
+
+  function restoreEditorSnapshot(snapshot, label = '') {
+    if (!snapshot?.state) {
+      return;
+    }
+    restoringHistory = true;
+    const viewport = state.viewport;
+    state = historyCore.cloneSnapshot(snapshot.state);
+    state.viewport = viewport;
+    selectedClipId = snapshot.selectedClipId || '';
+    selectedTrackIndex = Number.isInteger(snapshot.selectedTrackIndex) ? snapshot.selectedTrackIndex : -1;
+    selectedKeyframeIndex = Number.isInteger(snapshot.selectedKeyframeIndex) ? snapshot.selectedKeyframeIndex : -1;
+    currentImageSessionId = snapshot.sourceImageSessionId || null;
+    restoreSourceImageSession(currentImageSessionId);
+    stopTimelinePlayback();
+    discardOptimizationPreviewOnly();
+    discardTransformPreview(false);
+    discardAnimationPosePreview(false);
+    discardAnimationPreview();
+    historyInteraction = null;
+    fieldEditHistory = null;
+    syncFieldsFromState();
+    syncHistoryControls();
+    restoringHistory = false;
+    if (label) {
+      setStatus(label);
+    }
+    draw();
+  }
+
+  function restoreSourceImageSession(sessionId) {
+    const session = sessionId ? sourceImageSessions.get(sessionId) : null;
+    if (!session) {
+      image = null;
+      currentImageSessionId = null;
+      resetSourceSampleCanvas();
+      return;
+    }
+    image = session.image;
+    currentImageSessionId = session.id;
+    sourceSampleCanvas.width = image.width;
+    sourceSampleCanvas.height = image.height;
+    sourceSampleCtx.clearRect(0, 0, sourceSampleCanvas.width, sourceSampleCanvas.height);
+    sourceSampleCtx.drawImage(image, 0, 0);
+  }
+
+  function rememberSourceImageSession(loadedImage, fileName) {
+    const id = `source-${nextImageSessionId}`;
+    nextImageSessionId += 1;
+    sourceImageSessions.set(id, {
+      id,
+      image: loadedImage,
+      fileName: fileName || '',
+    });
+    currentImageSessionId = id;
+  }
+
+  function commitHistory(label, beforeSnapshot) {
+    if (!beforeSnapshot || restoringHistory) {
+      return false;
+    }
+    const pushed = editorHistory.push(label, beforeSnapshot, captureEditorSnapshot());
+    if (pushed) {
+      syncHistoryControls();
+    }
+    return pushed;
+  }
+
+  function beginHistoryInteraction(label) {
+    if (historyInteraction || restoringHistory) {
+      return;
+    }
+    flushPendingFieldHistory();
+    historyInteraction = {
+      label: label || 'Edit',
+      before: captureEditorSnapshot(),
+      dirty: false,
+    };
+  }
+
+  function markHistoryInteractionDirty() {
+    if (historyInteraction) {
+      historyInteraction.dirty = true;
+    }
+  }
+
+  function commitHistoryInteraction(label = '') {
+    if (!historyInteraction) {
+      return false;
+    }
+    const interaction = historyInteraction;
+    historyInteraction = null;
+    return commitHistory(label || interaction.label, interaction.before);
+  }
+
+  function cancelHistoryInteraction() {
+    historyInteraction = null;
+  }
+
+  function withHistory(label, updater) {
+    if (restoringHistory) {
+      return updater();
+    }
+    flushPendingFieldHistory();
+    const before = captureEditorSnapshot();
+    const result = updater();
+    commitHistory(label, before);
+    return result;
+  }
+
+  function startFieldHistory(label) {
+    if (restoringHistory || fieldEditHistory) {
+      return;
+    }
+    fieldEditHistory = {
+      label: label || 'Edit fields',
+      before: captureEditorSnapshot(),
+    };
+  }
+
+  function flushPendingFieldHistory() {
+    if (!fieldEditHistory || restoringHistory) {
+      return false;
+    }
+    syncStateFromFields();
+    const edit = fieldEditHistory;
+    fieldEditHistory = null;
+    return commitHistory(edit.label, edit.before);
+  }
+
+  function resetHistory() {
+    editorHistory.reset();
+    historyInteraction = null;
+    fieldEditHistory = null;
+    syncHistoryControls();
+  }
+
+  function undoHistory() {
+    flushPendingFieldHistory();
+    const entry = editorHistory.undo(captureEditorSnapshot());
+    if (!entry) {
+      setStatus('Nothing to undo.');
+      syncHistoryControls();
+      return;
+    }
+    restoreEditorSnapshot(entry.snapshot, `Undo: ${entry.label}.`);
+  }
+
+  function redoHistory() {
+    const entry = editorHistory.redo(captureEditorSnapshot());
+    if (!entry) {
+      setStatus('Nothing to redo.');
+      syncHistoryControls();
+      return;
+    }
+    restoreEditorSnapshot(entry.snapshot, `Redo: ${entry.label}.`);
+  }
+
+  function syncHistoryControls() {
+    if (fields.undoCommand) {
+      fields.undoCommand.disabled = !editorHistory.canUndo();
+    }
+    if (fields.redoCommand) {
+      fields.redoCommand.disabled = !editorHistory.canRedo();
+    }
+    for (const button of fields.historyButtons) {
+      const command = button.dataset.historyCommand;
+      button.disabled = command === 'undo' ? !editorHistory.canUndo() : !editorHistory.canRedo();
+    }
+  }
+
+  function currentAnimation() {
+    return state.animation || { schemaVersion: 1, clips: [], bindings: {} };
+  }
+
+  function isAnimateMode() {
+    return editorMode === 'animate';
+  }
+
+  function getSelectedClip() {
+    return currentAnimation().clips.find((clip) => clip.id === selectedClipId) || null;
+  }
+
+  function getSelectedTrack() {
+    const row = getSelectedTimelineRow();
+    return row?.kind === 'track' ? row.item : null;
+  }
+
+  function getSelectedTimelineRow() {
+    const clip = getSelectedClip();
+    return animationTimelineRows(clip)[selectedTrackIndex] || null;
+  }
+
+  function getSelectedKeyframe() {
+    const row = getSelectedTimelineRow();
+    return row?.keyframes?.[selectedKeyframeIndex] || null;
+  }
+
+  function animationTimelineRows(clip) {
+    if (!clip) {
+      return [];
+    }
+    const rows = [];
+    (clip.tracks || []).forEach((track, trackIndex) => {
+      rows.push({
+        kind: 'track',
+        item: track,
+        trackIndex,
+        label: describeTrackTarget(track.target),
+        property: track.property || 'transform',
+        keyframes: track.keyframes || [],
+      });
+    });
+    const graph = clip.graph;
+    if (graph?.outputs?.length) {
+      const nodeMap = new Map((graph.nodes || []).map((node) => [node.id, node]));
+      graph.outputs.forEach((output, outputIndex) => {
+        const node = nodeMap.get(output.source);
+        rows.push({
+          kind: 'graph',
+          item: output,
+          output,
+          outputIndex,
+          node,
+          label: `${describeTrackTarget(output.target)} / ${shortGraphProperty(output.property)}`,
+          property: output.property,
+          keyframes: node?.keys || [],
+        });
+      });
+    }
+    return rows;
+  }
+
+  function shortGraphProperty(property) {
+    const labels = {
+      'loop.transform': 'loop transform',
+      'point.positionDelta': 'point delta',
+      'point.inHandleDelta': 'in handle',
+      'point.outHandleDelta': 'out handle',
+      'shape.style.fill': 'fill',
+      'shape.style.stroke': 'stroke',
+      'shape.style.strokeWidth': 'stroke width',
+      'shape.opacity': 'opacity',
+    };
+    return labels[String(property || '')] || String(property || '');
+  }
+
+  function syncAnimationUi() {
+    const animation = currentAnimation();
+    if (!animation.clips.some((clip) => clip.id === selectedClipId)) {
+      selectedClipId = animation.clips[0]?.id || '';
+      selectedTrackIndex = selectedClipId ? 0 : -1;
+      selectedKeyframeIndex = 0;
+      timelineTimeMs = 0;
+      stopTimelinePlayback();
+    }
+    const clip = getSelectedClip();
+    if (!clip) {
+      selectedTrackIndex = -1;
+      selectedKeyframeIndex = -1;
+      timelineTimeMs = 0;
+    } else {
+      const rows = animationTimelineRows(clip);
+      selectedTrackIndex = clampUiIndex(selectedTrackIndex, rows.length);
+      const row = getSelectedTimelineRow();
+      selectedKeyframeIndex = clampUiIndex(selectedKeyframeIndex, row?.keyframes?.length || 0);
+      timelineTimeMs = clampTimelineTime(timelineTimeMs, clip.durationMs);
+    }
+    syncClipSelect(fields.animationClipSelect, animation.clips);
+    syncClipSelect(fields.timelineClipSelect, animation.clips);
+    syncClipFields(clip);
+    syncTrackFields(clip);
+    syncKeyframeFields();
+    syncPoseFields();
+    syncBindingFields(animation);
+    syncTimelineUi();
+    updateAnimationPreview();
+  }
+
+  function syncClipSelect(select, clips) {
+    const current = selectedClipId;
+    select.innerHTML = '';
+    if (!clips.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'No clips';
+      select.appendChild(option);
+    } else {
+      for (const clip of clips) {
+        const option = document.createElement('option');
+        option.value = clip.id;
+        option.textContent = `${clip.label || clip.id} (${clip.durationMs || 0}ms)`;
+        select.appendChild(option);
+      }
+    }
+    select.value = current;
+  }
+
+  function syncClipFields(clip) {
+    const hasClip = Boolean(clip);
+    fields.animationClipLabel.disabled = !hasClip;
+    fields.animationClipDuration.disabled = !hasClip;
+    fields.animationClipLoop.disabled = !hasClip;
+    fields.animationDuplicateClip.disabled = !hasClip;
+    fields.animationDeleteClip.disabled = !hasClip;
+    fields.animationAddTrack.disabled = !hasClip;
+    if (fields.animationRestSelection) {
+      fields.animationRestSelection.disabled = (
+        !hasClip &&
+        !core.getSelectedPathRefs(state).length &&
+        !core.getSelectedPointRefs(state).length
+      );
+    }
+    fields.keyframeUpsert.disabled = !hasClip || !getSelectedTimelineRow();
+    fields.keyframeDelete.disabled = !hasClip || !getSelectedKeyframe();
+    fields.keyframeRest.disabled = !hasClip || !getSelectedTimelineRow();
+    fields.keyframeCopy.disabled = !hasClip || !getSelectedKeyframe();
+    fields.keyframePrevious.disabled = !hasClip || !getSelectedTimelineRow();
+    fields.posePreview.disabled = !hasClip || !getSelectedTrack();
+    fields.poseSetKey.disabled = !hasClip || !getSelectedTrack();
+    fields.poseLoadKey.disabled = !hasClip || !getSelectedKeyframe();
+    fields.poseClear.disabled = !animationPosePreview;
+    fields.animationBindClip.disabled = !hasClip;
+    if (!clip) {
+      fields.animationClipLabel.value = '';
+      fields.animationClipDuration.value = '1000';
+      fields.animationClipLoop.checked = false;
+      return;
+    }
+    fields.animationClipLabel.value = clip.label || '';
+    fields.animationClipDuration.value = String(Math.max(1, Number(clip.durationMs) || 1));
+    fields.animationClipLoop.checked = Boolean(clip.loop);
+  }
+
+  function syncTrackFields(clip) {
+    fields.animationTrackSelect.innerHTML = '';
+    const rows = animationTimelineRows(clip);
+    if (!clip || !rows.length) {
+      const option = document.createElement('option');
+      option.value = '-1';
+      option.textContent = 'No tracks';
+      fields.animationTrackSelect.appendChild(option);
+      fields.animationTrackSelect.value = '-1';
+      fields.animationTrackTarget.textContent = 'No track selected.';
+      return;
+    }
+    rows.forEach((row, index) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = `${index + 1}: ${row.label}`;
+      fields.animationTrackSelect.appendChild(option);
+    });
+    fields.animationTrackSelect.value = String(selectedTrackIndex);
+    fields.animationTrackTarget.textContent = getSelectedTimelineRow()?.label || 'No track selected.';
+  }
+
+  function syncKeyframeFields() {
+    const keyframe = getSelectedKeyframe();
+    const row = getSelectedTimelineRow();
+    const value = keyframe?.value || {};
+    if (row?.kind === 'graph' && String(row.property || '').startsWith('point.')) {
+      fields.keyframeTx.value = formatCoordinate(value.x ?? 0);
+      fields.keyframeTy.value = formatCoordinate(value.y ?? 0);
+      fields.keyframeRotation.value = '0';
+      fields.keyframeSx.value = '100';
+      fields.keyframeSy.value = '100';
+    } else {
+      fields.keyframeTx.value = formatCoordinate(value.tx ?? 0);
+      fields.keyframeTy.value = formatCoordinate(value.ty ?? 0);
+      fields.keyframeRotation.value = formatCoordinate(radiansToDegrees(value.rotation ?? 0));
+      fields.keyframeSx.value = String(Math.round(Number(value.sx ?? 1) * 100));
+      fields.keyframeSy.value = String(Math.round(Number(value.sy ?? 1) * 100));
+    }
+    fields.keyframeEase.value = keyframe?.interp || keyframe?.ease || (row?.kind === 'graph' ? 'smooth' : 'linear');
+  }
+
+  function syncPoseFields() {
+    fields.poseClear.disabled = !animationPosePreview;
+  }
+
+  function syncBindingFields(animation) {
+    const binding = fields.animationBindingSelect.value || core.ANIMATION_BINDING_PRESETS[0];
+    if (!fields.animationBindingSelect.value && core.ANIMATION_BINDING_PRESETS.length) {
+      fields.animationBindingSelect.value = binding;
+    }
+    const targetClipId = animation.bindings?.[binding] || '';
+    fields.animationBindingReadout.textContent = targetClipId
+      ? `${binding} -> ${targetClipId}`
+      : `${binding}: no binding`;
+  }
+
+  function syncTimelineUi() {
+    const clip = getSelectedClip();
+    const duration = Math.max(0, Number(clip?.durationMs) || 0);
+    fields.timelineTime.value = String(Math.round(timelineTimeMs));
+    fields.timelineDurationReadout.textContent = `/ ${duration}ms`;
+    fields.timelinePlay.textContent = timelinePlaying ? 'Pause' : 'Play';
+    fields.timelineFps.value = String(timelineFps);
+    fields.timelineSnap.checked = timelineSnap;
+    fields.timelineZoom.value = String(timelineZoom);
+    fields.timelineZoomValue.textContent = `${timelineZoom}x`;
+    fields.appShell?.classList.toggle('timeline-collapsed', timelineCollapsed);
+    fields.timelineTrack.style.width = `${Math.max(1, timelineZoom) * 100}%`;
+    renderTimelineTicks(duration);
+    renderTimelineRows(duration);
+    updateTimelinePlayhead(duration);
+  }
+
+  function renderTimelineTicks(duration) {
+    fields.timelineTicks.innerHTML = '';
+    const tickCount = duration > 0 ? 10 : 1;
+    for (let index = 0; index <= tickCount; index += 1) {
+      const tick = document.createElement('div');
+      tick.className = `timeline-tick${index % 5 === 0 ? ' major' : ''}`;
+      tick.style.setProperty('--tick-left', String(index / tickCount));
+      fields.timelineTicks.appendChild(tick);
+    }
+  }
+
+  function renderTimelineRows(duration) {
+    fields.timelineKeyframes.innerHTML = '';
+    const clip = getSelectedClip();
+    const rows = animationTimelineRows(clip);
+    if (!clip || !rows.length) {
+      const row = document.createElement('div');
+      row.className = 'timeline-empty-row';
+      row.textContent = clip ? 'No tracks yet. Add Track from the Animation inspector.' : 'No animation clip selected.';
+      fields.timelineKeyframes.appendChild(row);
+      return;
+    }
+    rows.forEach((timelineRow, rowIndex) => {
+      const row = document.createElement('div');
+      row.className = 'timeline-row';
+      row.dataset.trackIndex = String(rowIndex);
+      row.classList.toggle('selected', rowIndex === selectedTrackIndex);
+
+      const label = document.createElement('button');
+      label.type = 'button';
+      label.className = 'timeline-row-label';
+      label.dataset.trackIndex = String(rowIndex);
+      label.textContent = timelineRow.label;
+      label.title = label.textContent;
+      row.appendChild(label);
+
+      const lane = document.createElement('div');
+      lane.className = 'timeline-row-lane';
+      lane.dataset.trackIndex = String(rowIndex);
+      (timelineRow.keyframes || []).forEach((keyframe, keyframeIndex) => {
+        const node = document.createElement('button');
+        node.type = 'button';
+        node.className = 'timeline-keyframe';
+        node.dataset.trackIndex = String(rowIndex);
+        node.dataset.keyframeIndex = String(keyframeIndex);
+        node.style.left = `${clampUnit((Number(keyframe.timeMs) || 0) / duration) * 100}%`;
+        node.title = `Track ${rowIndex + 1} @ ${keyframe.timeMs}ms`;
+        node.classList.toggle('active', rowIndex === selectedTrackIndex && keyframeIndex === selectedKeyframeIndex);
+        lane.appendChild(node);
+      });
+      row.appendChild(lane);
+      fields.timelineKeyframes.appendChild(row);
+    });
+  }
+
+  function updateTimelinePlayhead(duration) {
+    const percent = duration > 0 ? clampUnit(timelineTimeMs / duration) : 0;
+    fields.timelineTrack.style.setProperty('--playhead-percent', String(percent));
+  }
+
+  function clampUnit(value) {
+    return Math.min(1, Math.max(0, Number(value) || 0));
+  }
+
+  function describeTrackTarget(target) {
+    if (!target) {
+      return 'No target';
+    }
+    if (target.tags?.length) {
+      return `tags: ${target.tags.join(', ')}`;
+    }
+    const loopText = target.loopId
+      ? ` / ${target.loopId}`
+      : target.loopIndex != null
+        ? ` / loop ${Number(target.loopIndex) + 1}`
+        : '';
+    return `${target.shapeId || 'shape'}${loopText}`;
+  }
+
+  function clampUiIndex(index, length) {
+    if (!length) {
+      return -1;
+    }
+    return Math.min(length - 1, Math.max(0, Number.isInteger(index) ? index : 0));
+  }
+
   function syncFieldsFromState() {
     const validation = core.validateState(state);
     syncShapeList(validation);
@@ -192,21 +814,57 @@
     fields.loopRole.value = loop?.role || 'outer';
     syncActiveTargetReadout();
     syncAnimationReadout(validation);
+    syncAnimationUi();
+    syncRailSwatches();
+    syncEditorModeUi();
     updateStats(validation);
   }
 
-  function applySelectedTagPreset(applySemanticRole) {
-    syncStateFromFields();
-    const tag = fields.tagPreset.value;
-    const role = applySemanticRole ? core.tagPresetLoopRole(tag) : null;
-    state = core.addTagPresetToSelectedShape(state, tag, applySemanticRole);
+  function setEditorMode(mode) {
+    if (!['rest', 'animate'].includes(mode)) {
+      return;
+    }
+    flushPendingFieldHistory();
+    editorMode = mode;
+    discardOptimizationPreviewOnly();
+    discardTransformPreview(false);
+    discardAnimationPosePreview(false);
+    updateAnimationPreview();
+    syncEditorModeUi();
     setStatus(
-      role
-        ? `Added ${tag} and set selected loop to ${role}.`
-        : `Added ${tag} to selected shape.`,
+      isAnimateMode()
+        ? 'Animate mode: canvas edits write sparse keys at the playhead.'
+        : 'Edit Rest mode: canvas edits change the base vector art.',
     );
-    syncFieldsFromState();
     draw();
+  }
+
+  function syncEditorModeUi() {
+    fields.editorModeRest?.classList.toggle('active', editorMode === 'rest');
+    fields.editorModeAnimate?.classList.toggle('active', editorMode === 'animate');
+    fields.editorModeRest?.setAttribute('aria-pressed', String(editorMode === 'rest'));
+    fields.editorModeAnimate?.setAttribute('aria-pressed', String(editorMode === 'animate'));
+    if (fields.animationAutoKey) {
+      fields.animationAutoKey.checked = animationAutoKey;
+      fields.animationAutoKey.disabled = !isAnimateMode();
+    }
+    fields.appShell?.setAttribute('data-editor-mode', editorMode);
+  }
+
+  function applySelectedTagPreset(applySemanticRole) {
+    withHistory(applySemanticRole ? 'Add tag and role' : 'Add tag', () => {
+      syncStateFromFields();
+      const tag = fields.tagPreset.value;
+      const role = applySemanticRole ? core.tagPresetLoopRole(tag) : null;
+      state = core.addTagPresetToSelectedShape(state, tag, applySemanticRole);
+      setStatus(
+        role
+          ? `Added ${tag} and set selected loop to ${role}.`
+          : `Added ${tag} to selected shape.`,
+      );
+      syncFieldsFromState();
+      draw();
+    });
   }
 
   function setToolMode(mode, announce = true) {
@@ -247,6 +905,8 @@
     } else {
       delete canvas.dataset.colorPickTarget;
     }
+    fields.pickFillColor?.setAttribute('data-color-active', String(colorPickTarget === 'fill'));
+    fields.pickStrokeColor?.setAttribute('data-color-active', String(colorPickTarget === 'stroke'));
     canvas.classList.toggle('fill-select-active', isPathSelectActive());
     updateContextualPanels();
   }
@@ -330,6 +990,22 @@
     for (const panel of fields.toolContextPanels) {
       panel.classList.toggle('is-visible', panel.dataset.toolContext === activeToolMode);
     }
+    syncContextActions();
+  }
+
+  function syncContextActions() {
+    const hasSelectedPaths = core.getSelectedPathRefs(state).length > 0;
+    for (const button of fields.selectionActionButtons) {
+      button.hidden = !hasSelectedPaths;
+    }
+  }
+
+  function syncRailSwatches() {
+    const shape = core.getSelectedShape(state);
+    const fill = (shape?.style.fill || fields.shapeFill?.value || core.DEFAULT_STYLE.fill).slice(0, 7);
+    const stroke = (shape?.style.stroke || fields.shapeStroke?.value || core.DEFAULT_STYLE.stroke).slice(0, 7);
+    fields.pickFillColor?.style.setProperty('--swatch-color', fill);
+    fields.pickStrokeColor?.style.setProperty('--swatch-color', stroke);
   }
 
   function clearLassoPreview() {
@@ -337,6 +1013,7 @@
     lassoCurrentCanvasPoint = null;
     lassoPoints = [];
     lassoToggleSelection = false;
+    lassoSelectPaths = false;
   }
 
   function openExportDrawer(refreshOutput = false) {
@@ -370,6 +1047,7 @@
     fields.activeTarget.textContent =
       `Active: ${shapeName} / loop ${loopNumber}${loopId} / ${role} | ` +
       `${selectedCount} paths | ${selectedPointCount} pts`;
+    syncContextActions();
   }
 
   function syncAnimationReadout(validation = core.validateState(state)) {
@@ -446,12 +1124,26 @@
     }
   }
 
-  function readScaleOptions() {
+  function syncTransformControls(changedAxis = 'x') {
+    syncScaleControls(changedAxis);
+    const isCustom = fields.transformOriginMode.value === 'custom';
+    fields.transformOriginX.disabled = !isCustom;
+    fields.transformOriginY.disabled = !isCustom;
+    fields.transformOriginFields.classList.toggle('is-disabled', !isCustom);
+    updateTransformPreviewFromControls();
+  }
+
+  function readTransformOptions() {
     const scaleX = readScalePercent(fields.scaleX.value);
     const scaleY = fields.scaleUniform.checked
       ? scaleX
       : readScalePercent(fields.scaleY.value);
-    return { scaleX, scaleY };
+    return {
+      scaleX,
+      scaleY,
+      rotation: degreesToRadians(fields.transformRotation.value),
+      origin: readTransformOriginOption(),
+    };
   }
 
   function readScalePercent(value) {
@@ -462,30 +1154,807 @@
     return parsed / 100;
   }
 
-  function applyScaleSelection() {
+  function readTransformOriginOption() {
+    const mode = fields.transformOriginMode.value || 'selection';
+    if (mode !== 'custom') {
+      return { mode };
+    }
+    return {
+      mode: 'custom',
+      x: readNumberOrNull(fields.transformOriginX.value),
+      y: readNumberOrNull(fields.transformOriginY.value),
+    };
+  }
+
+  function readNumberOrNull(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function degreesToRadians(value) {
+    const degrees = Number(value);
+    return Number.isFinite(degrees) ? degrees * Math.PI / 180 : 0;
+  }
+
+  function radiansToDegrees(value) {
+    const radians = Number(value);
+    return Number.isFinite(radians) ? radians * 180 / Math.PI : 0;
+  }
+
+  function buildTransformPreview(announce = true) {
     syncStateFromFields();
-    discardOptimizationPreview();
-    const selectedPointCount = core.getSelectedPointRefs(state).length;
-    const result = core.scaleSelection(state, readScaleOptions());
-    state = result.state;
-    const stats = result.stats;
-    const target = selectedPointCount ? 'points' : 'paths';
-    const targetText = target === 'points'
-      ? `${stats.targetCount} selected point${stats.targetCount === 1 ? '' : 's'}`
-      : `${stats.targetCount} selected path${stats.targetCount === 1 ? '' : 's'}`;
-    setStatus(
-      stats.targetCount
-        ? `Scaled ${targetText} (${formatScale(stats.scaleX)} x ${formatScale(stats.scaleY)}).`
-        : 'Select points or paths before scaling.',
-    );
+    discardOptimizationPreviewOnly();
+    discardAnimationPosePreview(false);
+    discardAnimationPreview();
+    transformPreview = core.previewSelectionTransform(state, readTransformOptions());
+    updateResolvedCustomOrigin(transformPreview.stats.origin);
+    const message = formatTransformStats(transformPreview.stats, 'Preview');
+    fields.transformStatus.textContent = transformPreview.stats.targetCount
+      ? message
+      : 'No transform target.';
+    if (announce) {
+      setStatus(
+        transformPreview.stats.targetCount
+          ? `${message}.`
+          : 'Select points or paths before transforming.',
+      );
+    }
+    draw();
+  }
+
+  function applyTransformSelection() {
+    withHistory('Transform selection', () => {
+      syncStateFromFields();
+      discardOptimizationPreviewOnly();
+      const selectedPointCount = core.getSelectedPointRefs(state).length;
+      const result = core.transformSelection(state, readTransformOptions());
+      state = result.state;
+      const stats = result.stats;
+      const target = selectedPointCount ? 'points' : 'paths';
+      const targetText = target === 'points'
+        ? `${stats.targetCount} selected point${stats.targetCount === 1 ? '' : 's'}`
+        : `${stats.targetCount} selected path${stats.targetCount === 1 ? '' : 's'}`;
+      setStatus(
+        stats.targetCount
+          ? `Transformed ${targetText} (${formatScale(stats.scaleX)} x ${formatScale(stats.scaleY)}, ${formatDegrees(stats.rotation)}).`
+          : 'Select points or paths before transforming.',
+      );
+      discardTransformPreview(false);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function updateTransformPreviewFromControls() {
+    if (transformPreview) {
+      buildTransformPreview(false);
+    }
+  }
+
+  function clearTransformPreview(announce = true) {
+    discardTransformPreview(false);
+    if (announce) {
+      setStatus('Transform preview cleared.');
+    }
+    draw();
+  }
+
+  function discardTransformPreview(updateStatus = true) {
+    transformPreview = null;
+    transformOriginPickActive = false;
+    if (updateStatus && fields.transformStatus) {
+      fields.transformStatus.textContent = 'No preview.';
+    } else if (fields.transformStatus) {
+      fields.transformStatus.textContent = 'No preview.';
+    }
+  }
+
+  function beginTransformOriginPick() {
+    syncStateFromFields();
+    const resolved = core.resolveTransformOrigin(state, readTransformOptions());
+    if (resolved) {
+      setCustomTransformOrigin(resolved);
+    }
+    fields.transformOriginMode.value = 'custom';
+    syncTransformControls();
+    transformOriginPickActive = true;
+    setStatus('Pick transform origin: click the canvas.');
+    draw();
+  }
+
+  function setCustomTransformOrigin(point) {
+    fields.transformOriginX.value = formatCoordinate(point.x);
+    fields.transformOriginY.value = formatCoordinate(point.y);
+  }
+
+  function updateResolvedCustomOrigin(origin) {
+    if (fields.transformOriginMode.value === 'custom' || !origin) {
+      return;
+    }
+    setCustomTransformOrigin(origin);
+  }
+
+  function resetTransformControls() {
+    fields.scaleX.value = '100';
+    fields.scaleY.value = '100';
+    fields.transformRotation.value = '0';
+    fields.transformOriginMode.value = 'selection';
+    fields.transformOriginX.value = '';
+    fields.transformOriginY.value = '';
+    syncTransformControls();
+    discardTransformPreview();
+  }
+
+  function createAnimationClip() {
+    withHistory('Add animation clip', () => {
+      state = core.addAnimationClip(state, {
+        id: `clip_${currentAnimation().clips.length + 1}`,
+        durationMs: 1000,
+        loop: true,
+      });
+      selectedClipId = currentAnimation().clips[currentAnimation().clips.length - 1]?.id || '';
+      selectedTrackIndex = -1;
+      selectedKeyframeIndex = -1;
+      timelineTimeMs = 0;
+      setStatus(`Added animation clip ${selectedClipId}.`);
+      syncFieldsFromState();
+      activateInspectorTab('anim');
+      draw();
+    });
+  }
+
+  function duplicateAnimationClip() {
+    if (!selectedClipId) {
+      setStatus('Create or select a clip first.');
+      return;
+    }
+    withHistory('Duplicate animation clip', () => {
+      const beforeIds = new Set(currentAnimation().clips.map((clip) => clip.id));
+      state = core.duplicateAnimationClip(state, selectedClipId);
+      const nextClip = currentAnimation().clips.find((clip) => !beforeIds.has(clip.id));
+      selectedClipId = nextClip?.id || selectedClipId;
+      selectedTrackIndex = 0;
+      selectedKeyframeIndex = 0;
+      timelineTimeMs = 0;
+      setStatus(`Duplicated clip ${selectedClipId}.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function deleteAnimationClip() {
+    if (!selectedClipId) {
+      setStatus('No animation clip selected.');
+      return;
+    }
+    withHistory('Delete animation clip', () => {
+      const deleted = selectedClipId;
+      state = core.deleteAnimationClip(state, selectedClipId);
+      selectedClipId = '';
+      selectedTrackIndex = -1;
+      selectedKeyframeIndex = -1;
+      timelineTimeMs = 0;
+      stopTimelinePlayback();
+      setStatus(`Deleted animation clip ${deleted}.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function updateSelectedClipFromFields() {
+    const clip = getSelectedClip();
+    if (!clip) {
+      return;
+    }
+    state = core.updateAnimationClip(state, clip.id, {
+      label: fields.animationClipLabel.value,
+      durationMs: Number(fields.animationClipDuration.value),
+      loop: fields.animationClipLoop.checked,
+    });
+    selectedClipId = getSelectedClip()?.id || clip.id;
     syncFieldsFromState();
     draw();
   }
 
-  function resetScaleControls() {
-    fields.scaleX.value = '100';
-    fields.scaleY.value = '100';
-    syncScaleControls();
+  function addTrackFromSelection() {
+    withHistory('Add animation track', () => {
+      if (!selectedClipId) {
+        state = core.addAnimationClip(state, {
+          id: `clip_${currentAnimation().clips.length + 1}`,
+          durationMs: 1000,
+          loop: true,
+        });
+        selectedClipId = currentAnimation().clips[currentAnimation().clips.length - 1]?.id || '';
+        selectedTrackIndex = -1;
+        selectedKeyframeIndex = -1;
+        timelineTimeMs = 0;
+      }
+      const clipId = selectedClipId || currentAnimation().clips[0]?.id || '';
+      if (!clipId) {
+        setStatus('Create a clip before adding tracks.');
+        return;
+      }
+      if (isAnimateMode()) {
+        const refs = core.getSelectedPathRefs(state);
+        if (!refs.length) {
+          setStatus('Select one or more loops before adding graph rows.');
+          return;
+        }
+        const beforeCount = animationTimelineRows(getSelectedClip()).length;
+        state = core.upsertLoopTransformGraphKeys(state, clipId, refs, {
+          timeMs: snapTimelineTime(timelineTimeMs),
+          interp: 'smooth',
+          value: core.restTransformValue(),
+        }, {
+          origin: readTransformOptions().origin,
+        });
+        selectedClipId = clipId;
+        selectedTrackIndex = Math.max(0, animationTimelineRows(getSelectedClip()).length - 1);
+        selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+        const afterCount = animationTimelineRows(getSelectedClip()).length;
+        setStatus(afterCount > beforeCount ? `Added ${afterCount - beforeCount} graph row(s).` : 'Updated graph row rest key.');
+        syncFieldsFromState();
+        activateInspectorTab('anim');
+        draw();
+        return;
+      }
+      const beforeCount = getSelectedClip()?.tracks.length || 0;
+      state = core.addTransformTracksFromSelection(state, clipId, {
+        origin: readTransformOptions().origin,
+      });
+      selectedClipId = clipId;
+      const afterCount = getSelectedClip()?.tracks.length || 0;
+      selectedTrackIndex = afterCount > beforeCount ? beforeCount : clampUiIndex(selectedTrackIndex, afterCount);
+      selectedKeyframeIndex = 0;
+      setStatus(afterCount > beforeCount ? `Added ${afterCount - beforeCount} transform track(s).` : 'No selection target for animation track.');
+      syncFieldsFromState();
+      activateInspectorTab('anim');
+      draw();
+    });
+  }
+
+  function setRestKeyForSelection() {
+    const pointRefs = core.getSelectedPointRefs(state);
+    const pathRefs = core.getSelectedPathRefs(state);
+    if (!pointRefs.length && !pathRefs.length) {
+      setStatus('Select loops or points before setting a rest key.');
+      return;
+    }
+    withHistory('Rest key selected', () => {
+      const clipId = ensureActiveClipForAnimation();
+      if (!clipId) {
+        setStatus('Create or select a clip before setting rest keys.');
+        return;
+      }
+      const timeOptions = graphKeyOptions();
+      if (pointRefs.length) {
+        state = core.upsertPointDeltaGraphKeys(
+          state,
+          clipId,
+          pointRefs.map((ref) => ({ ref, value: { x: 0, y: 0 } })),
+          timeOptions,
+        );
+        setStatus(`Rest-keyed ${pointRefs.length} point delta target(s) at ${Math.round(timeOptions.timeMs)}ms.`);
+      } else {
+        state = core.upsertLoopTransformGraphKeys(state, clipId, pathRefs, {
+          ...timeOptions,
+          value: core.restTransformValue(),
+        }, {
+          origin: readTransformOptions().origin,
+        });
+        setStatus(`Rest-keyed ${pathRefs.length} loop transform target(s) at ${Math.round(timeOptions.timeMs)}ms.`);
+      }
+      selectedClipId = clipId;
+      selectLatestAnimationRowAtPlayhead();
+      updateAnimationPreview();
+      syncFieldsFromState();
+      activateInspectorTab('anim');
+      draw();
+    });
+  }
+
+  function selectAnimationClip(clipId) {
+    discardAnimationPosePreview(false);
+    selectedClipId = clipId || '';
+    selectedTrackIndex = 0;
+    selectedKeyframeIndex = 0;
+    timelineTimeMs = 0;
+    stopTimelinePlayback();
+    syncFieldsFromState();
+    draw();
+  }
+
+  function selectAnimationTrack(index) {
+    discardAnimationPosePreview(false);
+    selectedTrackIndex = parseIntegerSafe(index, -1);
+    selectedKeyframeIndex = 0;
+    syncFieldsFromState();
+    draw();
+  }
+
+  function selectAnimationKeyframe(trackIndex, keyframeIndex) {
+    selectedTrackIndex = parseIntegerSafe(trackIndex, selectedTrackIndex);
+    selectedKeyframeIndex = parseIntegerSafe(keyframeIndex, selectedKeyframeIndex);
+    const keyframe = getSelectedKeyframe();
+    if (keyframe) {
+      timelineTimeMs = Number(keyframe.timeMs) || 0;
+    }
+    syncFieldsFromState();
+    draw();
+  }
+
+  function upsertKeyframeFromFields() {
+    const clip = getSelectedClip();
+    const row = getSelectedTimelineRow();
+    if (!clip || !row) {
+      setStatus('Add a clip and animation row before keyframing.');
+      return;
+    }
+    withHistory('Set keyframe', () => {
+      timelineTimeMs = snapTimelineTime(timelineTimeMs);
+      if (row.kind === 'graph') {
+        state = core.upsertGraphOutputKeyframe(state, clip.id, row.outputIndex, {
+          timeMs: timelineTimeMs,
+          interp: fields.keyframeEase.value,
+          value: readKeyframeValueForRow(row),
+        });
+      } else {
+        state = core.upsertTransformKeyframe(state, clip.id, row.trackIndex, {
+          timeMs: timelineTimeMs,
+          ease: fields.keyframeEase.value,
+          value: readKeyframeValue(),
+        });
+      }
+      selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+      setStatus(`Keyframe set at ${Math.round(timelineTimeMs)}ms.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function setRestKeyframeAtPlayhead() {
+    const clip = getSelectedClip();
+    const row = getSelectedTimelineRow();
+    if (!clip || !row) {
+      setStatus('Add a clip and animation row before keyframing.');
+      return;
+    }
+    withHistory('Set rest keyframe', () => {
+      timelineTimeMs = snapTimelineTime(timelineTimeMs);
+      if (row.kind === 'graph') {
+        state = core.setRestGraphOutputKeyframe(state, clip.id, row.outputIndex, timelineTimeMs, {
+          interp: fields.keyframeEase.value,
+        });
+      } else {
+        state = core.setRestTransformKeyframe(state, clip.id, row.trackIndex, timelineTimeMs, {
+          ease: fields.keyframeEase.value,
+        });
+      }
+      selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+      setStatus(`Rest key set at ${Math.round(timelineTimeMs)}ms.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function copySelectedKeyframeToPlayhead() {
+    const clip = getSelectedClip();
+    const row = getSelectedTimelineRow();
+    if (!clip || !row || selectedKeyframeIndex < 0) {
+      setStatus('Select a keyframe to copy first.');
+      return;
+    }
+    withHistory('Copy keyframe', () => {
+      timelineTimeMs = snapTimelineTime(timelineTimeMs);
+      state = row.kind === 'graph'
+        ? core.copyGraphOutputKeyframeToTime(state, clip.id, row.outputIndex, selectedKeyframeIndex, timelineTimeMs)
+        : core.copyTransformKeyframeToTime(state, clip.id, row.trackIndex, selectedKeyframeIndex, timelineTimeMs);
+      selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+      setStatus(`Copied key to ${Math.round(timelineTimeMs)}ms.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function copyPreviousKeyframeToPlayhead() {
+    const clip = getSelectedClip();
+    const row = getSelectedTimelineRow();
+    if (!clip || !row) {
+      setStatus('Add a clip and animation row before copying keys.');
+      return;
+    }
+    withHistory('Copy previous keyframe', () => {
+      timelineTimeMs = snapTimelineTime(timelineTimeMs);
+      const before = JSON.stringify(row.keyframes || []);
+      state = row.kind === 'graph'
+        ? core.copyPreviousGraphOutputKeyframeToTime(state, clip.id, row.outputIndex, timelineTimeMs)
+        : core.copyPreviousTransformKeyframeToTime(state, clip.id, row.trackIndex, timelineTimeMs);
+      const changed = before !== JSON.stringify(getSelectedTimelineRow()?.keyframes || []);
+      selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+      setStatus(changed ? `Copied previous key to ${Math.round(timelineTimeMs)}ms.` : 'No previous keyframe to copy.');
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function deleteSelectedKeyframe() {
+    const clip = getSelectedClip();
+    const row = getSelectedTimelineRow();
+    if (!clip || !row || selectedKeyframeIndex < 0) {
+      setStatus('Select a keyframe first.');
+      return;
+    }
+    withHistory('Delete keyframe', () => {
+      state = row.kind === 'graph'
+        ? core.deleteGraphOutputKeyframe(state, clip.id, row.outputIndex, selectedKeyframeIndex)
+        : core.deleteTransformKeyframe(state, clip.id, row.trackIndex, selectedKeyframeIndex);
+      selectedKeyframeIndex = Math.max(0, selectedKeyframeIndex - 1);
+      setStatus('Deleted keyframe.');
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function readKeyframeValue() {
+    return {
+      tx: Number(fields.keyframeTx.value) || 0,
+      ty: Number(fields.keyframeTy.value) || 0,
+      rotation: degreesToRadians(fields.keyframeRotation.value),
+      sx: readScalePercent(fields.keyframeSx.value),
+      sy: readScalePercent(fields.keyframeSy.value),
+    };
+  }
+
+  function readKeyframeValueForRow(row) {
+    const property = String(row?.property || '');
+    if (property.startsWith('point.')) {
+      return {
+        x: Number(fields.keyframeTx.value) || 0,
+        y: Number(fields.keyframeTy.value) || 0,
+      };
+    }
+    if (property === 'shape.style.strokeWidth' || property === 'shape.opacity') {
+      return Number(fields.keyframeTx.value) || 0;
+    }
+    if (property === 'shape.style.fill' || property === 'shape.style.stroke') {
+      return fields.shapeFill.value || '#ffffff';
+    }
+    const existing = getSelectedKeyframe()?.value || {};
+    return {
+      ...readKeyframeValue(),
+      skewX: Number(existing.skewX) || 0,
+      skewY: Number(existing.skewY) || 0,
+    };
+  }
+
+  function readPoseValue() {
+    return {
+      tx: Number(fields.poseTx.value) || 0,
+      ty: Number(fields.poseTy.value) || 0,
+      rotation: degreesToRadians(fields.poseRotation.value),
+      sx: readScalePercent(fields.poseSx.value),
+      sy: readScalePercent(fields.poseSy.value),
+    };
+  }
+
+  function ensureActiveClipForAnimation() {
+    if (!selectedClipId || !getSelectedClip()) {
+      state = core.addAnimationClip(state, {
+        id: `clip_${currentAnimation().clips.length + 1}`,
+        durationMs: 1000,
+        loop: true,
+      });
+      selectedClipId = currentAnimation().clips[currentAnimation().clips.length - 1]?.id || '';
+      selectedTrackIndex = -1;
+      selectedKeyframeIndex = -1;
+      timelineTimeMs = 0;
+    }
+    return selectedClipId;
+  }
+
+  function graphKeyOptions() {
+    return {
+      timeMs: snapTimelineTime(timelineTimeMs),
+      interp: fields.keyframeEase.value || 'smooth',
+    };
+  }
+
+  function graphLoopTransformValue(ref, clipId, timeMs, origin) {
+    return core.graphValueForTarget(
+      state,
+      clipId,
+      'loop.transform',
+      core.pathRefToAnimationTarget(state, ref),
+      timeMs,
+      { origin },
+    );
+  }
+
+  function graphPointValue(ref, clipId, property, timeMs) {
+    return core.graphValueForTarget(
+      state,
+      clipId,
+      property,
+      core.pointRefToAnimationTarget(state, ref),
+      timeMs,
+    );
+  }
+
+  function createLoopTransformBaseValues(refs, clipId, timeMs, origin) {
+    return new Map(refs.map((ref) => [
+      pointRefKey(ref),
+      graphLoopTransformValue(ref, clipId, timeMs, origin),
+    ]));
+  }
+
+  function createPointBaseValues(refs, clipId, property, timeMs) {
+    return new Map(refs.map((ref) => [
+      pointRefKey(ref),
+      graphPointValue(ref, clipId, property, timeMs),
+    ]));
+  }
+
+  function keyShapeStyleFromFields(property) {
+    if (!isAnimateMode() || !animationAutoKey) {
+      return false;
+    }
+    const shapeIndex = state.selectedShapeIndex;
+    const clipId = ensureActiveClipForAnimation();
+    const timeOptions = graphKeyOptions();
+    if (property === 'fill') {
+      state = core.upsertShapeStyleGraphKey(state, clipId, shapeIndex, 'fill', fields.shapeFill.value, timeOptions);
+    } else if (property === 'stroke') {
+      state = core.upsertShapeStyleGraphKey(state, clipId, shapeIndex, 'stroke', fields.shapeStroke.value, timeOptions);
+    } else if (property === 'strokeWidth') {
+      state = core.upsertShapeStyleGraphKey(state, clipId, shapeIndex, 'strokeWidth', Number(fields.shapeStrokeWidth.value), timeOptions);
+    }
+    selectedTrackIndex = Math.max(0, animationTimelineRows(getSelectedClip()).length - 1);
+    selectedKeyframeIndex = keyframeIndexAtTime(timeOptions.timeMs);
+    updateAnimationPreview();
+    syncAnimationUi();
+    updateStats();
+    draw();
+    setStatus(`Auto-keyed ${property} at ${Math.round(timeOptions.timeMs)}ms.`);
+    return true;
+  }
+
+  function selectLatestAnimationRowAtPlayhead() {
+    const rows = animationTimelineRows(getSelectedClip());
+    if (!rows.length) {
+      selectedTrackIndex = -1;
+      selectedKeyframeIndex = -1;
+      return;
+    }
+    selectedTrackIndex = rows.length - 1;
+    selectedKeyframeIndex = keyframeIndexAtTime(snapTimelineTime(timelineTimeMs));
+  }
+
+  function writePoseValue(value = {}) {
+    fields.poseTx.value = formatCoordinate(value.tx ?? 0);
+    fields.poseTy.value = formatCoordinate(value.ty ?? 0);
+    fields.poseRotation.value = formatCoordinate(radiansToDegrees(value.rotation ?? 0));
+    fields.poseSx.value = String(Math.round(Number(value.sx ?? 1) * 100));
+    fields.poseSy.value = String(Math.round(Number(value.sy ?? 1) * 100));
+  }
+
+  function buildAnimationPosePreview(announce = true) {
+    const clip = getSelectedClip();
+    const track = getSelectedTrack();
+    if (!clip || !track) {
+      setStatus('Select an animation track before previewing a pose.');
+      return;
+    }
+    discardOptimizationPreviewOnly();
+    discardTransformPreview(false);
+    discardAnimationPreview();
+    animationPosePreview = core.previewAnimationTrackPose(state, clip.id, selectedTrackIndex, readPoseValue());
+    const message = formatPoseStats(animationPosePreview.stats);
+    fields.poseStatus.textContent = message;
+    if (announce) {
+      setStatus(message);
+    }
+    syncFieldsFromState();
+    draw();
+  }
+
+  function setKeyFromPose() {
+    const clip = getSelectedClip();
+    const track = getSelectedTrack();
+    if (!clip || !track) {
+      setStatus('Select an animation track before setting a pose key.');
+      return;
+    }
+    withHistory('Set pose keyframe', () => {
+      timelineTimeMs = snapTimelineTime(timelineTimeMs);
+      state = core.upsertTransformKeyframe(state, clip.id, selectedTrackIndex, {
+        timeMs: timelineTimeMs,
+        ease: fields.keyframeEase.value,
+        value: readPoseValue(),
+      });
+      selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+      setStatus(`Pose key set at ${Math.round(timelineTimeMs)}ms.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function loadSelectedKeyIntoPose() {
+    const keyframe = getSelectedKeyframe();
+    if (!keyframe) {
+      setStatus('Select a keyframe before loading a pose.');
+      return;
+    }
+    writePoseValue(keyframe.value || {});
+    if (animationPosePreview) {
+      buildAnimationPosePreview(false);
+    }
+    setStatus(`Loaded keyframe ${Math.round(Number(keyframe.timeMs) || 0)}ms into pose controls.`);
+  }
+
+  function clearAnimationPosePreview(announce = true) {
+    discardAnimationPosePreview(false);
+    fields.poseStatus.textContent = 'No pose preview.';
+    if (announce) {
+      setStatus('Animation pose preview cleared.');
+    }
+    updateAnimationPreview();
+    syncFieldsFromState();
+    draw();
+  }
+
+  function discardAnimationPosePreview(updateStatus = true) {
+    animationPosePreview = null;
+    if (fields.poseStatus && updateStatus) {
+      fields.poseStatus.textContent = 'No pose preview.';
+    }
+  }
+
+  function formatPoseStats(stats) {
+    if (!stats?.targetCount) {
+      return 'No animation pose target.';
+    }
+    const targetText = stats.targetCount === 1 ? '1 loop' : `${stats.targetCount} loops`;
+    return `Pose preview: ${targetText} on track ${Number(stats.trackIndex) + 1}.`;
+  }
+
+  function keyframeIndexAtTime(timeMs) {
+    const row = getSelectedTimelineRow();
+    if (!row?.keyframes?.length) {
+      return -1;
+    }
+    const roundedTime = Math.round(Number(timeMs) || 0);
+    let nearestIndex = -1;
+    let nearestDistance = Infinity;
+    row.keyframes.forEach((keyframe, index) => {
+      const distance = Math.abs(Number(keyframe.timeMs) - roundedTime);
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    });
+    return nearestDistance <= 1 ? nearestIndex : -1;
+  }
+
+  function updateSelectedBinding(bindClip) {
+    withHistory(bindClip ? 'Bind animation clip' : 'Unbind animation clip', () => {
+      const binding = fields.animationBindingSelect.value;
+      state = core.updateAnimationBinding(state, binding, bindClip ? selectedClipId : '');
+      setStatus(bindClip ? `Bound ${binding} to ${selectedClipId}.` : `Unbound ${binding}.`);
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function setTimelineTime(timeMs, announce = false) {
+    const clip = getSelectedClip();
+    discardAnimationPosePreview(false);
+    timelineTimeMs = snapTimelineTime(timeMs);
+    updateAnimationPreview();
+    syncTimelineUi();
+    if (announce) {
+      setStatus(`Timeline ${Math.round(timelineTimeMs)}ms.`);
+    }
+    draw();
+  }
+
+  function clampTimelineTime(timeMs, durationMs) {
+    const duration = Math.max(0, Number(durationMs) || 0);
+    return Math.min(duration, Math.max(0, Number(timeMs) || 0));
+  }
+
+  function snapTimelineTime(timeMs, forceSnap = timelineSnap) {
+    const clip = getSelectedClip();
+    return core.snapAnimationTimeToFrame(timeMs, {
+      fps: timelineFps,
+      snap: forceSnap,
+      durationMs: clip?.durationMs || 0,
+    });
+  }
+
+  function updateAnimationPreview() {
+    if (animationPosePreview) {
+      animationPreview = null;
+      return;
+    }
+    if (!fields.timelinePreviewEnabled.checked || !selectedClipId) {
+      animationPreview = null;
+      return;
+    }
+    discardTransformPreview(false);
+    const clip = getSelectedClip();
+    animationPreview = clip?.graph?.outputs?.length
+      ? core.evaluateGraphClip(state, selectedClipId, timelineTimeMs)
+      : core.evaluateTransformClip(state, selectedClipId, timelineTimeMs);
+  }
+
+  function discardAnimationPreview() {
+    animationPreview = null;
+  }
+
+  function toggleTimelinePlayback() {
+    if (!getSelectedClip()) {
+      setStatus('Create or select an animation clip first.');
+      return;
+    }
+    timelinePlaying = !timelinePlaying;
+    timelineLastTimestamp = 0;
+    if (timelinePlaying) {
+      scheduleTimelinePlayback();
+      setStatus('Timeline playback started.');
+    } else {
+      setStatus('Timeline playback paused.');
+    }
+    syncTimelineUi();
+  }
+
+  function scheduleTimelinePlayback() {
+    if (!timelinePlaying || timelineAnimationFrame) {
+      return;
+    }
+    timelineAnimationFrame = requestAnimationFrame(stepTimelinePlayback);
+  }
+
+  function stepTimelinePlayback(timestamp) {
+    timelineAnimationFrame = 0;
+    if (!timelinePlaying) {
+      return;
+    }
+    const clip = getSelectedClip();
+    if (!clip) {
+      stopTimelinePlayback();
+      return;
+    }
+    const duration = Math.max(1, Number(clip.durationMs) || 1);
+    const elapsed = timelineLastTimestamp ? timestamp - timelineLastTimestamp : 0;
+    timelineLastTimestamp = timestamp;
+    let nextTime = timelineTimeMs + elapsed;
+    if (nextTime > duration) {
+      if (clip.loop) {
+        nextTime %= duration;
+      } else {
+        nextTime = duration;
+        stopTimelinePlayback();
+      }
+    }
+    timelineTimeMs = nextTime;
+    updateAnimationPreview();
+    syncTimelineUi();
+    draw();
+    scheduleTimelinePlayback();
+  }
+
+  function stopTimelinePlayback() {
+    timelinePlaying = false;
+    timelineLastTimestamp = 0;
+    if (timelineAnimationFrame) {
+      cancelAnimationFrame(timelineAnimationFrame);
+      timelineAnimationFrame = 0;
+    }
+  }
+
+  function parseIntegerSafe(value, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
   }
 
   function clearOptimizationPreview(announce = true) {
@@ -497,6 +1966,11 @@
   }
 
   function discardOptimizationPreview() {
+    discardOptimizationPreviewOnly();
+    discardTransformPreview();
+  }
+
+  function discardOptimizationPreviewOnly() {
     if (optimizationPreviewTimer) {
       clearTimeout(optimizationPreviewTimer);
       optimizationPreviewTimer = 0;
@@ -521,6 +1995,7 @@
 
   function buildOptimizationPreview(announce = true) {
     syncStateFromFields();
+    discardTransformPreview(false);
     optimizationPreview = core.previewSelectedLoopOptimization(state, readOptimizationOptions());
     const summary = formatOptimizationStats(optimizationPreview.stats);
     fields.optimizeStatus.textContent = summary;
@@ -532,15 +2007,18 @@
   }
 
   function applyOptimizationPreview() {
-    syncStateFromFields();
-    const result = core.applySelectedLoopOptimization(state, readOptimizationOptions());
-    state = result.state;
-    optimizationPreview = null;
-    const summary = formatOptimizationStats(result.stats);
-    fields.optimizeStatus.textContent = summary;
-    setStatus(`Optimize applied: ${summary}.`);
-    syncFieldsFromState();
-    draw();
+    withHistory('Optimize path', () => {
+      syncStateFromFields();
+      discardTransformPreview(false);
+      const result = core.applySelectedLoopOptimization(state, readOptimizationOptions());
+      state = result.state;
+      optimizationPreview = null;
+      const summary = formatOptimizationStats(result.stats);
+      fields.optimizeStatus.textContent = summary;
+      setStatus(`Optimize applied: ${summary}.`);
+      syncFieldsFromState();
+      draw();
+    });
   }
 
   function formatOptimizationStats(stats) {
@@ -564,6 +2042,26 @@
 
   function formatScale(value) {
     return `${Math.round(Number(value) * 100)}%`;
+  }
+
+  function formatDegrees(radians) {
+    const degrees = Math.round(radiansToDegrees(radians) * 10) / 10;
+    return `${Number.isInteger(degrees) ? degrees.toFixed(0) : degrees.toFixed(1)}deg`;
+  }
+
+  function formatCoordinate(value) {
+    const rounded = Math.round(Number(value) * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  }
+
+  function formatTransformStats(stats, prefix = 'Transform') {
+    if (!stats || !stats.targetCount) {
+      return 'No transform target';
+    }
+    const target = stats.target === 'points'
+      ? `${stats.targetCount} point${stats.targetCount === 1 ? '' : 's'}`
+      : `${stats.targetCount} path${stats.targetCount === 1 ? '' : 's'}`;
+    return `${prefix}: ${target} | scale ${formatScale(stats.scaleX)} x ${formatScale(stats.scaleY)} | rotate ${formatDegrees(stats.rotation)}`;
   }
 
   function syncShapeList(validation = core.validateState(state)) {
@@ -652,6 +2150,9 @@
   }
 
   function syncStateFromFields() {
+    if (isAnimateMode()) {
+      return;
+    }
     state = core.updateSelectedShapeFields(state, {
       id: fields.shapeId.value,
       label: fields.shapeLabel.value,
@@ -718,7 +2219,11 @@
     drawCanvasBounds();
     drawShapes();
     drawSelectedBounds();
+    drawAnimationPreview();
+    drawAnimationPosePreview();
+    drawTransformPreview();
     drawOptimizationPreview();
+    drawTransformOriginMarker();
     drawSelectedHandles();
     drawLassoPreview();
     drawBrushCursor();
@@ -1058,6 +2563,118 @@
     ctx.restore();
   }
 
+  function drawTransformPreview() {
+    const previews = transformPreview?.previews || [];
+    if (!previews.length) {
+      return;
+    }
+    ctx.save();
+    for (const preview of previews) {
+      if (!preview?.originalLoop || !preview?.loop) {
+        continue;
+      }
+      ctx.setLineDash([3 / state.viewport.scale, 5 / state.viewport.scale]);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.lineWidth = 1 / state.viewport.scale;
+      ctx.stroke(buildLoopPath(preview.originalLoop));
+
+      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(84, 216, 255, 0.78)';
+      ctx.lineWidth = 1.5 / state.viewport.scale;
+      ctx.stroke(buildLoopPath(preview.loop));
+    }
+    ctx.restore();
+  }
+
+  function drawAnimationPreview() {
+    const previews = animationPreview?.previews || [];
+    if (!previews.length) {
+      return;
+    }
+    ctx.save();
+    for (const preview of previews) {
+      if (!preview?.loop) {
+        continue;
+      }
+      if (preview.originalLoop) {
+        ctx.setLineDash([3 / state.viewport.scale, 5 / state.viewport.scale]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.lineWidth = 1 / state.viewport.scale;
+        ctx.stroke(buildLoopPath(preview.originalLoop));
+      }
+      ctx.setLineDash([]);
+      const path = buildLoopPath(preview.loop);
+      const style = preview.style || state.shapes[preview.ref?.shapeIndex]?.style || core.DEFAULT_STYLE;
+      if (preview.loop.closed && preview.loop.role !== 'detail') {
+        ctx.globalAlpha = Math.max(0, Math.min(1, Number(preview.opacity ?? 1))) * 0.52;
+        ctx.fillStyle = style.fill || 'rgba(84, 216, 255, 0.3)';
+        ctx.fill(path, fillRuleForLoop(preview.loop));
+        ctx.globalAlpha = 1;
+      }
+      ctx.strokeStyle = style.stroke || 'rgba(84, 216, 255, 0.74)';
+      ctx.lineWidth = Math.max(1.4, Number(style.strokeWidth) || 1.4) / state.viewport.scale;
+      ctx.stroke(path);
+      ctx.strokeStyle = 'rgba(84, 216, 255, 0.74)';
+      ctx.lineWidth = 1 / state.viewport.scale;
+      ctx.stroke(path);
+    }
+    ctx.restore();
+  }
+
+  function drawAnimationPosePreview() {
+    const previews = animationPosePreview?.previews || [];
+    if (!previews.length) {
+      return;
+    }
+    ctx.save();
+    for (const preview of previews) {
+      if (!preview?.loop || !preview?.originalLoop) {
+        continue;
+      }
+      ctx.setLineDash([3 / state.viewport.scale, 5 / state.viewport.scale]);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.24)';
+      ctx.lineWidth = 1 / state.viewport.scale;
+      ctx.stroke(buildLoopPath(preview.originalLoop));
+
+      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(84, 216, 255, 0.82)';
+      ctx.lineWidth = 1.5 / state.viewport.scale;
+      ctx.stroke(buildLoopPath(preview.loop));
+    }
+    ctx.restore();
+  }
+
+  function drawTransformOriginMarker() {
+    const origin = transformOriginPickActive && hoverCanvasPoint
+      ? hoverCanvasPoint
+      : transformPreview?.stats?.origin || (transformOriginPickActive ? readTransformOriginMarkerPoint() : null);
+    if (!origin) {
+      return;
+    }
+    const radius = 5 / state.viewport.scale;
+    const arm = 9 / state.viewport.scale;
+    ctx.save();
+    ctx.strokeStyle = transformOriginPickActive
+      ? 'rgba(84, 216, 255, 0.82)'
+      : 'rgba(215, 251, 255, 0.48)';
+    ctx.lineWidth = 1 / state.viewport.scale;
+    ctx.setLineDash([2 / state.viewport.scale, 3 / state.viewport.scale]);
+    ctx.beginPath();
+    ctx.arc(origin.x, origin.y, radius, 0, Math.PI * 2);
+    ctx.moveTo(origin.x - arm, origin.y);
+    ctx.lineTo(origin.x + arm, origin.y);
+    ctx.moveTo(origin.x, origin.y - arm);
+    ctx.lineTo(origin.x, origin.y + arm);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function readTransformOriginMarkerPoint() {
+    const x = Number(fields.transformOriginX.value);
+    const y = Number(fields.transformOriginY.value);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+  }
+
   function drawSelectedHandles() {
     const loop = core.getSelectedLoop(state);
     if (!loop) {
@@ -1290,6 +2907,143 @@
     );
   }
 
+  function beginAnimateInteraction(label) {
+    if (!isAnimateMode()) {
+      return false;
+    }
+    if (!animationAutoKey) {
+      cancelHistoryInteraction();
+      setStatus('Auto Key is off. Turn it on to write animation keys from canvas edits.');
+      return false;
+    }
+    const clipId = ensureActiveClipForAnimation();
+    if (!clipId) {
+      setStatus('Create or select a clip before animating.');
+      return false;
+    }
+    beginHistoryInteraction(label);
+    return true;
+  }
+
+  function keyAnimatedPathMove() {
+    if (!animationDrag?.refs?.length) {
+      return;
+    }
+    const timeOptions = graphKeyOptions();
+    for (const ref of animationDrag.refs) {
+      const base = animationDrag.baseValues?.get(pointRefKey(ref)) || core.restTransformValue();
+      state = core.upsertLoopTransformGraphKeys(state, animationDrag.clipId, [ref], {
+        timeMs: timeOptions.timeMs,
+        interp: timeOptions.interp,
+        value: {
+          ...base,
+          tx: (Number(base.tx) || 0) + animationDrag.totalDx,
+          ty: (Number(base.ty) || 0) + animationDrag.totalDy,
+        },
+      }, {
+        origin: animationDrag.origin || readTransformOptions().origin,
+      });
+    }
+    markHistoryInteractionDirty();
+    selectLatestAnimationRowAtPlayhead();
+    updateAnimationPreview();
+  }
+
+  function keyAnimatedPointMove() {
+    if (!animationDrag?.refs?.length) {
+      return;
+    }
+    const timeOptions = graphKeyOptions();
+    state = core.upsertPointDeltaGraphKeys(
+      state,
+      animationDrag.clipId,
+      animationDrag.refs.map((ref) => ({
+        ref,
+        value: {
+          x: (animationDrag.baseValues?.get(pointRefKey(ref))?.x || 0) + animationDrag.totalDx,
+          y: (animationDrag.baseValues?.get(pointRefKey(ref))?.y || 0) + animationDrag.totalDy,
+        },
+      })),
+      timeOptions,
+    );
+    markHistoryInteractionDirty();
+    selectLatestAnimationRowAtPlayhead();
+    updateAnimationPreview();
+  }
+
+  function keyAnimatedHandleMove(canvasPoint) {
+    const ref = animationDrag?.ref;
+    if (!ref) {
+      return;
+    }
+    if (!animationDrag.startCanvasPoint) {
+      return;
+    }
+    const base = animationDrag.baseValue || { x: 0, y: 0 };
+    const delta = {
+      x: canvasPoint.x - animationDrag.startCanvasPoint.x,
+      y: canvasPoint.y - animationDrag.startCanvasPoint.y,
+    };
+    state = core.upsertPointHandleDeltaGraphKey(
+      state,
+      animationDrag.clipId,
+      ref,
+      animationDrag.handleName,
+      {
+        ...graphKeyOptions(),
+        value: {
+          x: (Number(base.x) || 0) + delta.x,
+          y: (Number(base.y) || 0) + delta.y,
+        },
+      },
+    );
+    markHistoryInteractionDirty();
+    selectLatestAnimationRowAtPlayhead();
+    updateAnimationPreview();
+  }
+
+  function keyAnimatedBrushStroke(delta, center) {
+    const timeOptions = graphKeyOptions();
+    const increments = core.brushPointDeltas(state, {
+      center,
+      delta,
+      ...readBrushOptions(),
+    });
+    if (!increments.length) {
+      return;
+    }
+    for (const item of increments) {
+      const key = pointRefKey(item.ref);
+      const previous = animationBrushDeltas.get(key) || {
+        ref: item.ref,
+        value: graphPointValue(item.ref, animationDrag.clipId, 'point.positionDelta', timeOptions.timeMs),
+      };
+      previous.value = {
+        x: previous.value.x + item.value.x,
+        y: previous.value.y + item.value.y,
+      };
+      animationBrushDeltas.set(key, previous);
+    }
+    state = core.upsertPointDeltaGraphKeys(
+      state,
+      animationDrag.clipId,
+      Array.from(animationBrushDeltas.values()),
+      timeOptions,
+    );
+    brushStrokeStats.affectedPointCount = Math.max(brushStrokeStats.affectedPointCount, animationBrushDeltas.size);
+    brushStrokeStats.maxDisplacement = Math.max(
+      brushStrokeStats.maxDisplacement,
+      ...Array.from(animationBrushDeltas.values()).map((item) => Math.hypot(item.value.x, item.value.y)),
+    );
+    markHistoryInteractionDirty();
+    selectLatestAnimationRowAtPlayhead();
+    updateAnimationPreview();
+  }
+
+  function pointRefKey(ref) {
+    return `${ref.shapeIndex}:${ref.loopIndex}:${ref.pointIndex}`;
+  }
+
   function handleArrowNudge(event) {
     const deltaByKey = {
       ArrowLeft: { dx: -1, dy: 0 },
@@ -1308,36 +3062,63 @@
       return true;
     }
     event.preventDefault();
-    const step = event.shiftKey ? 10 : 1;
-    syncStateFromFields();
-    discardOptimizationPreview();
-    const moveDelta = {
-      dx: delta.dx * step,
-      dy: delta.dy * step,
-    };
-    if (selectedPointCount) {
-      state = core.moveSelectedPoints(state, moveDelta);
-      setStatus(`Nudged ${selectedPointCount} selected points by ${step}px.`);
-    } else {
-      state = core.moveSelectedPaths(state, moveDelta);
-      setStatus(`Nudged ${selectedCount} selected paths by ${step}px.`);
-    }
-    syncFieldsFromState();
-    draw();
+    withHistory('Nudge selection', () => {
+      const step = event.shiftKey ? 10 : 1;
+      syncStateFromFields();
+      discardOptimizationPreview();
+      const moveDelta = {
+        dx: delta.dx * step,
+        dy: delta.dy * step,
+      };
+      if (isAnimateMode()) {
+        if (!animationAutoKey) {
+          setStatus('Auto Key is off. Turn it on to nudge animation keys.');
+          return;
+        }
+        const clipId = ensureActiveClipForAnimation();
+        if (selectedPointCount) {
+          state = core.upsertPointDeltaGraphKeys(
+            state,
+            clipId,
+            core.getSelectedPointRefs(state).map((ref) => ({ ref, value: { x: moveDelta.dx, y: moveDelta.dy } })),
+            graphKeyOptions(),
+          );
+          setStatus(`Keyed ${selectedPointCount} point nudge(s) by ${step}px.`);
+        } else {
+          state = core.upsertLoopTransformGraphKeys(state, clipId, core.getSelectedPathRefs(state), {
+            ...graphKeyOptions(),
+            value: { tx: moveDelta.dx, ty: moveDelta.dy, rotation: 0, sx: 1, sy: 1 },
+          }, { origin: readTransformOptions().origin });
+          setStatus(`Keyed ${selectedCount} loop nudge(s) by ${step}px.`);
+        }
+        selectLatestAnimationRowAtPlayhead();
+        updateAnimationPreview();
+      } else if (selectedPointCount) {
+        state = core.moveSelectedPoints(state, moveDelta);
+        setStatus(`Nudged ${selectedPointCount} selected points by ${step}px.`);
+      } else {
+        state = core.moveSelectedPaths(state, moveDelta);
+        setStatus(`Nudged ${selectedCount} selected paths by ${step}px.`);
+      }
+      syncFieldsFromState();
+      draw();
+    });
     return true;
   }
 
   function applyLoopCleanup(label, updater) {
-    syncStateFromFields();
-    discardOptimizationPreview();
-    const refs = core.getLoopEditPathRefs(state);
-    const before = core.countPathRefPoints(state, refs);
-    state = updater(state);
-    const after = core.countPathRefPoints(state, refs);
-    const selectedLabel = refs.length === 1 ? 'loop' : 'loops';
-    setStatus(`${label}: ${before} -> ${after} points across ${refs.length} ${selectedLabel}.`);
-    syncFieldsFromState();
-    draw();
+    withHistory(label, () => {
+      syncStateFromFields();
+      discardOptimizationPreview();
+      const refs = core.getLoopEditPathRefs(state);
+      const before = core.countPathRefPoints(state, refs);
+      state = updater(state);
+      const after = core.countPathRefPoints(state, refs);
+      const selectedLabel = refs.length === 1 ? 'loop' : 'loops';
+      setStatus(`${label}: ${before} -> ${after} points across ${refs.length} ${selectedLabel}.`);
+      syncFieldsFromState();
+      draw();
+    });
   }
 
   function selectFilledPathAt(canvasPoint, addToSelection) {
@@ -1369,8 +3150,10 @@
     lassoCurrentCanvasPoint = canvasPoint;
     lassoPoints = [canvasPoint];
     lassoToggleSelection = Boolean(toggleSelection);
+    lassoSelectPaths = Boolean(selectFillDown);
     pointerMoved = false;
-    setStatus(`${readLassoMode() === 'freehand' ? 'Freehand' : 'Box'} lasso: drag around points in selected paths.`);
+    const target = lassoSelectPaths ? 'filled paths' : 'points in selected paths';
+    setStatus(`${readLassoMode() === 'freehand' ? 'Freehand' : 'Box'} lasso: drag around ${target}.`);
     syncFieldsFromState();
     draw();
   }
@@ -1390,27 +3173,37 @@
       setStatus('Lasso canceled.');
       return;
     }
-    const before = core.getSelectedPointRefs(state).length;
+    const pathLasso = lassoSelectPaths;
+    const before = pathLasso
+      ? core.getSelectedPathRefs(state).length
+      : core.getSelectedPointRefs(state).length;
     if (readLassoMode() === 'freehand') {
       const polygon = lassoPoints.length >= 3 ? lassoPoints : [
         lassoStartCanvasPoint,
         lassoCurrentCanvasPoint,
         lassoStartCanvasPoint,
       ];
-      state = core.selectPointsInPolygon(state, polygon, { toggle: lassoToggleSelection });
+      state = pathLasso
+        ? core.selectPathsInPolygon(state, polygon, { toggle: lassoToggleSelection, filledOnly: true })
+        : core.selectPointsInPolygon(state, polygon, { toggle: lassoToggleSelection });
     } else {
-      state = core.selectPointsInRect(state, {
+      const rect = {
         x1: lassoStartCanvasPoint.x,
         y1: lassoStartCanvasPoint.y,
         x2: lassoCurrentCanvasPoint.x,
         y2: lassoCurrentCanvasPoint.y,
-      }, { toggle: lassoToggleSelection });
+      };
+      state = pathLasso
+        ? core.selectPathsInRect(state, rect, { toggle: lassoToggleSelection, filledOnly: true })
+        : core.selectPointsInRect(state, rect, { toggle: lassoToggleSelection });
     }
-    const after = core.getSelectedPointRefs(state).length;
+    const after = pathLasso
+      ? core.getSelectedPathRefs(state).length
+      : core.getSelectedPointRefs(state).length;
     setStatus(
       lassoToggleSelection
-        ? `Point lasso toggled selection: ${before} -> ${after} points.`
-        : `Point lasso selected ${after} points.`,
+        ? `${pathLasso ? 'Path' : 'Point'} lasso toggled selection: ${before} -> ${after} ${pathLasso ? 'paths' : 'points'}.`
+        : `${pathLasso ? 'Path' : 'Point'} lasso selected ${after} ${pathLasso ? 'paths' : 'points'}.`,
     );
   }
 
@@ -1433,13 +3226,27 @@
     if (!color) {
       return false;
     }
-    const applyToStroke = target === 'stroke';
-    state = core.updateSelectedShapeFields(state, {
-      style: applyToStroke ? { stroke: color } : { fill: color },
+    withHistory(target === 'stroke' ? 'Sample stroke color' : 'Sample fill color', () => {
+      const applyToStroke = target === 'stroke';
+      if (isAnimateMode()) {
+        if (applyToStroke) {
+          fields.shapeStroke.value = color;
+          keyShapeStyleFromFields('stroke');
+        } else {
+          fields.shapeFill.value = color;
+          keyShapeStyleFromFields('fill');
+        }
+      } else {
+        state = core.updateSelectedShapeFields(state, {
+          style: applyToStroke ? { stroke: color } : { fill: color },
+        });
+      }
+      setStatus(`${applyToStroke ? 'Stroke' : 'Fill'} sampled ${color} from source image.`);
+      if (!isAnimateMode()) {
+        syncFieldsFromState();
+      }
+      draw();
     });
-    setStatus(`${applyToStroke ? 'Stroke' : 'Fill'} sampled ${color} from source image.`);
-    syncFieldsFromState();
-    draw();
     return true;
   }
 
@@ -1463,6 +3270,16 @@
     }
 
     syncStateFromFields();
+    if (transformOriginPickActive) {
+      fields.transformOriginMode.value = 'custom';
+      setCustomTransformOrigin(canvasPoint);
+      transformOriginPickActive = false;
+      updateTransformPreviewFromControls();
+      setStatus(`Transform origin set to ${formatCoordinate(canvasPoint.x)}, ${formatCoordinate(canvasPoint.y)}.`);
+      syncFieldsFromState();
+      draw();
+      return;
+    }
     discardOptimizationPreview();
     if (colorPickTarget) {
       if (applySampledColor(sampleSourceImageColor(canvasPoint), colorPickTarget)) {
@@ -1471,13 +3288,13 @@
       return;
     }
 
-    if (isPathSelectActive()) {
-      selectFilledPathAt(canvasPoint, event.shiftKey);
+    if (activeToolMode === TOOL_MODES.lasso) {
+      startLassoSelection(canvasPoint, event.shiftKey);
       return;
     }
 
-    if (activeToolMode === TOOL_MODES.lasso) {
-      startLassoSelection(canvasPoint, event.shiftKey);
+    if (isPathSelectActive()) {
+      selectFilledPathAt(canvasPoint, event.shiftKey);
       return;
     }
 
@@ -1486,6 +3303,23 @@
       const refs = brushOptions.selectedOnly
         ? core.getLoopEditPathRefs(state)
         : state.shapes.flatMap((shape) => shape.loops);
+      if (isAnimateMode()) {
+        if (!beginAnimateInteraction('Animate brush pose')) {
+          return;
+        }
+        dragMode = 'animate-brush';
+        dragCanvasPoint = canvasPoint;
+        hoverCanvasPoint = canvasPoint;
+        animationDrag = { clipId: selectedClipId };
+        animationBrushDeltas = new Map();
+        brushStrokeStats = createBrushStrokeStats(refs.length);
+        pointerMoved = false;
+        setStatus('Brush pose ready: drag to key sparse point deltas.');
+        syncFieldsFromState();
+        draw();
+        return;
+      }
+      beginHistoryInteraction('Brush stroke');
       dragMode = 'brush';
       dragCanvasPoint = canvasPoint;
       hoverCanvasPoint = canvasPoint;
@@ -1523,8 +3357,30 @@
           draw();
           return;
         }
+        beginHistoryInteraction('Move points');
         if (!core.isPointSelected(state, pointHit.shapeIndex, pointHit.loopIndex, pointHit.pointIndex)) {
           state = core.selectPointRef(state, pointHit.shapeIndex, pointHit.loopIndex, pointHit.pointIndex);
+        }
+        if (isAnimateMode()) {
+          if (!beginAnimateInteraction('Animate point pose')) {
+            return;
+          }
+          const refs = core.getSelectedPointRefs(state);
+          const timeOptions = graphKeyOptions();
+          dragMode = 'animate-point-move';
+          animationDrag = {
+            clipId: selectedClipId,
+            refs,
+            baseValues: createPointBaseValues(refs, selectedClipId, 'point.positionDelta', timeOptions.timeMs),
+            totalDx: 0,
+            totalDy: 0,
+          };
+          dragCanvasPoint = canvasPoint;
+          pointerMoved = false;
+          setStatus('Drag to key selected point deltas.');
+          syncFieldsFromState();
+          draw();
+          return;
         }
         dragMode = 'point-move';
         dragCanvasPoint = canvasPoint;
@@ -1548,8 +3404,32 @@
         draw();
         return;
       }
+      beginHistoryInteraction('Move paths');
       if (!core.isPathSelected(state, pathHit.shapeIndex, pathHit.loopIndex)) {
         state = core.selectPath(state, pathHit.shapeIndex, pathHit.loopIndex);
+      }
+      if (isAnimateMode()) {
+        if (!beginAnimateInteraction('Animate loop pose')) {
+          return;
+        }
+        const refs = core.getSelectedPathRefs(state);
+        const timeOptions = graphKeyOptions();
+        const origin = readTransformOptions().origin;
+        dragMode = 'animate-path-move';
+        animationDrag = {
+          clipId: selectedClipId,
+          refs,
+          origin,
+          baseValues: createLoopTransformBaseValues(refs, selectedClipId, timeOptions.timeMs, origin),
+          totalDx: 0,
+          totalDy: 0,
+        };
+        dragCanvasPoint = canvasPoint;
+        pointerMoved = false;
+        setStatus('Drag to key selected loop transforms.');
+        syncFieldsFromState();
+        draw();
+        return;
       }
       dragMode = 'path-move';
       dragCanvasPoint = canvasPoint;
@@ -1576,7 +3456,33 @@
 
     const handleHit = core.nearestHandleHit(state, canvasPoint, hitRadiusCanvas());
     if (handleHit) {
+      beginHistoryInteraction('Move handle');
       state = core.selectPoint(state, handleHit.pointIndex);
+      if (isAnimateMode()) {
+        if (!beginAnimateInteraction('Animate handle pose')) {
+          return;
+        }
+        dragMode = 'animate-handle';
+        const ref = {
+          shapeIndex: state.selectedShapeIndex,
+          loopIndex: state.selectedLoopIndex,
+          pointIndex: handleHit.pointIndex,
+        };
+        const property = handleHit.handleName === 'inHandle' ? 'point.inHandleDelta' : 'point.outHandleDelta';
+        animationDrag = {
+          clipId: selectedClipId,
+          ref,
+          handleName: handleHit.handleName,
+          startCanvasPoint: canvasPoint,
+          baseValue: graphPointValue(ref, selectedClipId, property, graphKeyOptions().timeMs),
+        };
+        dragPointIndex = handleHit.pointIndex;
+        dragHandleName = handleHit.handleName;
+        pointerMoved = false;
+        syncFieldsFromState();
+        draw();
+        return;
+      }
       dragMode = 'handle';
       dragPointIndex = handleHit.pointIndex;
       dragHandleName = handleHit.handleName;
@@ -1588,8 +3494,34 @@
 
     const pointHit = core.nearestPointHit(state, canvasPoint, hitRadiusCanvas());
     if (pointHit) {
+      beginHistoryInteraction(event.altKey ? 'Edit handle' : 'Move point');
       state = core.selectPointRef(state, pointHit.shapeIndex, pointHit.loopIndex, pointHit.pointIndex);
       if (event.altKey) {
+        if (isAnimateMode()) {
+          if (!beginAnimateInteraction('Animate out handle pose')) {
+            return;
+          }
+          dragMode = 'animate-handle';
+          const ref = {
+            shapeIndex: pointHit.shapeIndex,
+            loopIndex: pointHit.loopIndex,
+            pointIndex: pointHit.pointIndex,
+          };
+          animationDrag = {
+            clipId: selectedClipId,
+            ref,
+            handleName: 'outHandle',
+            startCanvasPoint: canvasPoint,
+            baseValue: graphPointValue(ref, selectedClipId, 'point.outHandleDelta', graphKeyOptions().timeMs),
+          };
+          dragPointIndex = pointHit.pointIndex;
+          dragHandleName = 'outHandle';
+          pointerMoved = false;
+          setStatus('Alt-drag to key this out handle.');
+          syncFieldsFromState();
+          draw();
+          return;
+        }
         dragMode = 'alt-out-handle';
         dragPointIndex = pointHit.pointIndex;
         dragHandleName = 'outHandle';
@@ -1603,6 +3535,27 @@
       if (!loop.closed && pointHit.pointIndex === 0 && core.canCloseLoop(loop.points, canvasPoint, hitRadiusCanvas())) {
         dragMode = 'maybe-close';
       } else {
+        if (isAnimateMode()) {
+          if (!beginAnimateInteraction('Animate point pose')) {
+            return;
+          }
+          const refs = core.getSelectedPointRefs(state);
+          const timeOptions = graphKeyOptions();
+          dragMode = 'animate-point-move';
+          animationDrag = {
+            clipId: selectedClipId,
+            refs,
+            baseValues: createPointBaseValues(refs, selectedClipId, 'point.positionDelta', timeOptions.timeMs),
+            totalDx: 0,
+            totalDy: 0,
+          };
+          dragCanvasPoint = canvasPoint;
+          pointerMoved = false;
+          setStatus('Drag to key selected point deltas.');
+          syncFieldsFromState();
+          draw();
+          return;
+        }
         dragMode = 'point';
       }
       dragPointIndex = pointHit.pointIndex;
@@ -1620,11 +3573,18 @@
     }
 
     const loop = core.getSelectedLoop(state);
+    if (isAnimateMode()) {
+      setStatus('Switch to Edit Rest to add new points. Animate mode keys existing loops, points, handles, and style.');
+      cancelHistoryInteraction();
+      return;
+    }
     if (!loop || loop.closed) {
       setStatus('Selected loop is closed. Open it or create another loop.');
       return;
     }
+    beginHistoryInteraction('Add point');
     state = core.addPoint(state, canvasPoint);
+    markHistoryInteractionDirty();
     dragMode = 'new-handle';
     dragPointIndex = state.selectedPointIndex;
     pointerMoved = false;
@@ -1638,7 +3598,7 @@
     const canvasPoint = core.screenToCanvas(state.viewport, nextScreen);
     hoverCanvasPoint = canvasPoint;
     if (!dragMode || !activePointer) {
-      if (activeToolMode === TOOL_MODES.brush) {
+      if (activeToolMode === TOOL_MODES.brush || transformOriginPickActive) {
         requestDraw();
       }
       return;
@@ -1660,12 +3620,40 @@
         }),
       };
       activePointer = nextScreen;
+    } else if (dragMode === 'animate-path-move') {
+      if (dragCanvasPoint) {
+        const delta = {
+          dx: canvasPoint.x - dragCanvasPoint.x,
+          dy: canvasPoint.y - dragCanvasPoint.y,
+        };
+        animationDrag.totalDx += delta.dx;
+        animationDrag.totalDy += delta.dy;
+        keyAnimatedPathMove();
+        dragCanvasPoint = canvasPoint;
+      }
+      activePointer = nextScreen;
+    } else if (dragMode === 'animate-point-move') {
+      if (dragCanvasPoint) {
+        const delta = {
+          dx: canvasPoint.x - dragCanvasPoint.x,
+          dy: canvasPoint.y - dragCanvasPoint.y,
+        };
+        animationDrag.totalDx += delta.dx;
+        animationDrag.totalDy += delta.dy;
+        keyAnimatedPointMove();
+        dragCanvasPoint = canvasPoint;
+      }
+      activePointer = nextScreen;
+    } else if (dragMode === 'animate-handle') {
+      keyAnimatedHandleMove(canvasPoint);
+      activePointer = nextScreen;
     } else if (dragMode === 'path-move') {
       if (dragCanvasPoint) {
         state = core.moveSelectedPaths(state, {
           dx: canvasPoint.x - dragCanvasPoint.x,
           dy: canvasPoint.y - dragCanvasPoint.y,
         });
+        markHistoryInteractionDirty();
         dragCanvasPoint = canvasPoint;
       }
       activePointer = nextScreen;
@@ -1675,6 +3663,7 @@
           dx: canvasPoint.x - dragCanvasPoint.x,
           dy: canvasPoint.y - dragCanvasPoint.y,
         });
+        markHistoryInteractionDirty();
         dragCanvasPoint = canvasPoint;
       }
       activePointer = nextScreen;
@@ -1696,6 +3685,20 @@
           state = result.state;
           addBrushStrokeStats(result.stats);
           pointerMoved = true;
+          markHistoryInteractionDirty();
+        }
+        dragCanvasPoint = canvasPoint;
+      }
+      activePointer = nextScreen;
+    } else if (dragMode === 'animate-brush') {
+      if (dragCanvasPoint) {
+        const delta = {
+          dx: canvasPoint.x - dragCanvasPoint.x,
+          dy: canvasPoint.y - dragCanvasPoint.y,
+        };
+        if (Math.hypot(delta.dx, delta.dy) > 0.001) {
+          keyAnimatedBrushStroke(delta, dragCanvasPoint);
+          pointerMoved = true;
         }
         dragCanvasPoint = canvasPoint;
       }
@@ -1704,16 +3707,21 @@
       if (pointerMoved) {
         dragMode = 'point';
         state = core.movePoint(state, dragPointIndex, canvasPoint);
+        markHistoryInteractionDirty();
       }
     } else if (dragMode === 'point') {
       state = core.movePoint(state, dragPointIndex, canvasPoint);
+      markHistoryInteractionDirty();
     } else if (dragMode === 'handle') {
       state = core.movePointHandle(state, dragPointIndex, dragHandleName, canvasPoint);
+      markHistoryInteractionDirty();
     } else if (dragMode === 'alt-out-handle' && pointerMoved) {
       state = core.createPointOutHandle(state, dragPointIndex, canvasPoint);
+      markHistoryInteractionDirty();
     } else if (dragMode === 'new-handle' && pointerMoved) {
       state = core.movePointHandle(state, dragPointIndex, 'outHandle', canvasPoint);
       dragHandleName = 'outHandle';
+      markHistoryInteractionDirty();
     }
     updateStats();
     requestDraw();
@@ -1723,23 +3731,40 @@
     if (event.pointerId != null) {
       canvas.releasePointerCapture(event.pointerId);
     }
+    const interaction = historyInteraction;
     if (dragMode === 'maybe-close' && !pointerMoved) {
       state = core.closeLoop(state);
+      markHistoryInteractionDirty();
       setStatus('Loop closed.');
     } else if (dragMode === 'path-move' && pointerMoved) {
       setStatus(`Moved ${core.getSelectedPathRefs(state).length} selected paths.`);
     } else if (dragMode === 'point-move' && pointerMoved) {
       setStatus(`Moved ${core.getSelectedPointRefs(state).length} selected points.`);
+    } else if (dragMode === 'animate-path-move' && pointerMoved) {
+      setStatus(`Keyed ${animationDrag?.refs?.length || 0} loop transform target(s).`);
+    } else if (dragMode === 'animate-point-move' && pointerMoved) {
+      setStatus(`Keyed ${animationDrag?.refs?.length || 0} point delta target(s).`);
+    } else if (dragMode === 'animate-handle' && pointerMoved) {
+      setStatus('Keyed handle delta.');
     } else if (dragMode === 'lasso') {
       finishLassoSelection();
     } else if (dragMode === 'brush') {
       setStatus(pointerMoved ? formatBrushStats(brushStrokeStats) : 'Brush stroke canceled.');
+    } else if (dragMode === 'animate-brush') {
+      setStatus(pointerMoved ? `Keyed brush deltas for ${animationBrushDeltas.size} points.` : 'Brush pose canceled.');
+    }
+    if (interaction?.dirty || historyInteraction?.dirty) {
+      commitHistoryInteraction();
+    } else {
+      cancelHistoryInteraction();
     }
     activePointer = null;
     dragMode = null;
     dragCanvasPoint = null;
     dragPointIndex = -1;
     dragHandleName = null;
+    animationDrag = null;
+    animationBrushDeltas = new Map();
     brushStrokeStats = null;
     clearLassoPreview();
     pointerMoved = false;
@@ -1760,12 +3785,132 @@
     requestDraw();
   }
 
+  function handleTimelinePointerDown(event) {
+    if (!getSelectedClip()) {
+      setStatus('Create or select an animation clip first.');
+      return;
+    }
+    const keyframeNode = event.target.closest?.('.timeline-keyframe');
+    if (keyframeNode) {
+      beginHistoryInteraction('Move keyframe');
+      selectedTrackIndex = parseIntegerSafe(keyframeNode.dataset.trackIndex, -1);
+      selectedKeyframeIndex = parseIntegerSafe(keyframeNode.dataset.keyframeIndex, -1);
+      const keyframe = getSelectedKeyframe();
+      if (keyframe) {
+        timelineTimeMs = Number(keyframe.timeMs) || 0;
+      }
+      timelineDragMode = 'keyframe';
+      fields.timelineTrack.setPointerCapture(event.pointerId);
+      syncFieldsFromState();
+      draw();
+      return;
+    }
+    const rowLabelNode = event.target.closest?.('.timeline-row-label');
+    if (rowLabelNode) {
+      selectAnimationTrack(rowLabelNode.dataset.trackIndex);
+      return;
+    }
+    const rowNode = event.target.closest?.('.timeline-row');
+    if (rowNode) {
+      selectedTrackIndex = parseIntegerSafe(rowNode.dataset.trackIndex, selectedTrackIndex);
+      selectedKeyframeIndex = clampUiIndex(selectedKeyframeIndex, getSelectedTimelineRow()?.keyframes?.length || 0);
+    }
+    timelineDragMode = 'scrub';
+    fields.timelineTrack.setPointerCapture(event.pointerId);
+    setTimelineTime(timeFromTimelineClientX(event.clientX), true);
+  }
+
+  function handleTimelinePointerMove(event) {
+    if (!timelineDragMode) {
+      return;
+    }
+    const clip = getSelectedClip();
+    if (!clip) {
+      return;
+    }
+    const nextTime = timeFromTimelineClientX(event.clientX);
+    if (timelineDragMode === 'keyframe') {
+      const row = getSelectedTimelineRow();
+      state = row?.kind === 'graph'
+        ? core.moveGraphOutputKeyframe(state, clip.id, row.outputIndex, selectedKeyframeIndex, nextTime)
+        : core.moveTransformKeyframe(state, clip.id, row?.trackIndex ?? selectedTrackIndex, selectedKeyframeIndex, nextTime);
+      selectedKeyframeIndex = nearestKeyframeIndex(selectedTrackIndex, nextTime);
+      timelineTimeMs = clampTimelineTime(nextTime, clip.durationMs);
+      markHistoryInteractionDirty();
+      syncFieldsFromState();
+      draw();
+      return;
+    }
+    setTimelineTime(nextTime);
+  }
+
+  function handleTimelinePointerUp(event) {
+    if (!timelineDragMode) {
+      return;
+    }
+    if (event.pointerId != null) {
+      fields.timelineTrack.releasePointerCapture(event.pointerId);
+    }
+    const mode = timelineDragMode;
+    timelineDragMode = null;
+    if (mode === 'keyframe' && historyInteraction?.dirty) {
+      commitHistoryInteraction('Move keyframe');
+    } else if (mode === 'keyframe') {
+      cancelHistoryInteraction();
+    }
+    setStatus(mode === 'keyframe' ? `Keyframe moved to ${Math.round(timelineTimeMs)}ms.` : `Timeline ${Math.round(timelineTimeMs)}ms.`);
+  }
+
+  function timeFromTimelineClientX(clientX) {
+    const clip = getSelectedClip();
+    const duration = Math.max(0, Number(clip?.durationMs) || 0);
+    const rect = timelineTimeAreaRect();
+    if (!duration || rect.width <= 0) {
+      return 0;
+    }
+    return snapTimelineTime(clampTimelineTime(((clientX - rect.left) / rect.width) * duration, duration));
+  }
+
+  function timelineTimeAreaRect() {
+    const rect = fields.timelineTrack.getBoundingClientRect();
+    const labelWidth = timelineLabelWidth();
+    return {
+      left: rect.left + labelWidth,
+      right: rect.right,
+      width: Math.max(1, rect.width - labelWidth),
+    };
+  }
+
+  function timelineLabelWidth() {
+    const style = getComputedStyle(fields.timelineTrack);
+    const raw = Number.parseFloat(style.getPropertyValue('--timeline-label-width'));
+    return Number.isFinite(raw) ? raw : 174;
+  }
+
+  function nearestKeyframeIndex(trackIndex, timeMs) {
+    const clip = getSelectedClip();
+    const row = animationTimelineRows(clip)[trackIndex];
+    if (!row?.keyframes?.length) {
+      return -1;
+    }
+    let bestIndex = 0;
+    let bestDistance = Infinity;
+    row.keyframes.forEach((keyframe, index) => {
+      const distance = Math.abs((Number(keyframe.timeMs) || 0) - timeMs);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    });
+    return bestIndex;
+  }
+
   function handlePointerLeave() {
     if (dragMode) {
       return;
     }
     hoverCanvasPoint = null;
-    if (activeToolMode === TOOL_MODES.brush) {
+    if (activeToolMode === TOOL_MODES.brush || transformOriginPickActive) {
       requestDraw();
     }
   }
@@ -1780,7 +3925,9 @@
     imageUrl = URL.createObjectURL(file);
     const nextImage = new Image();
     nextImage.onload = () => {
+      const before = captureEditorSnapshot();
       image = nextImage;
+      rememberSourceImageSession(image, file.name);
       sourceSampleCanvas.width = image.width;
       sourceSampleCanvas.height = image.height;
       sourceSampleCtx.clearRect(0, 0, sourceSampleCanvas.width, sourceSampleCanvas.height);
@@ -1790,6 +3937,7 @@
       fitCanvasToView();
       setStatus(`Loaded ${file.name}.`);
       syncFieldsFromState();
+      commitHistory('Load source image', before);
       draw();
     };
     nextImage.src = imageUrl;
@@ -1803,6 +3951,7 @@
       try {
         state = core.importVectorPack(source);
         image = null;
+        currentImageSessionId = null;
         resetSourceSampleCanvas();
         discardOptimizationPreview();
         fitCanvasToView();
@@ -1816,6 +3965,7 @@
           fields.jsonOutput.value = core.exportVectorPackJson(state);
         }
         setStatus(`Imported ${file.name} (${state.shapes.length} shapes, ${pointCount} points).`);
+        resetHistory();
         draw();
       } catch (error) {
         setStatus(`Import failed: ${error.message}`);
@@ -1825,6 +3975,7 @@
 
   function exportJson() {
     syncStateFromFields();
+    exportAnimationMode = 'compat';
     const output = core.exportVectorPackJson(state);
     fields.jsonOutput.value = output;
     navigator.clipboard?.writeText(output).catch(() => {});
@@ -1832,9 +3983,19 @@
     syncFieldsFromState();
   }
 
+  function exportGraphJson() {
+    syncStateFromFields();
+    exportAnimationMode = 'graph';
+    const output = core.exportVectorPackJson(state, { animationMode: 'graph' });
+    fields.jsonOutput.value = output;
+    navigator.clipboard?.writeText(output).catch(() => {});
+    setStatus('Exported graph JSON. Schema-v2 graph animation is runtime-gated.');
+    syncFieldsFromState();
+  }
+
   async function saveJson() {
     syncStateFromFields();
-    const output = core.exportVectorPackJson(state);
+    const output = core.exportVectorPackJson(state, currentExportOptions());
     fields.jsonOutput.value = output;
     const fileName = suggestedJsonFileName();
     try {
@@ -1871,7 +4032,12 @@
     const sourceName = state.sourceImage
       ? state.sourceImage.replace(/\.[^.]+$/, '')
       : core.getSelectedShape(state)?.id || 'vector_pack';
-    return `${core.normalizeId(sourceName)}.vpack.json`;
+    const suffix = exportAnimationMode === 'graph' ? '.graph.vpack.json' : '.vpack.json';
+    return `${core.normalizeId(sourceName)}${suffix}`;
+  }
+
+  function currentExportOptions() {
+    return exportAnimationMode === 'graph' ? { animationMode: 'graph' } : {};
   }
 
   function downloadJson(output, fileName) {
@@ -1908,26 +4074,66 @@
   }
 
   function setStatus(message) {
-    fields.status.textContent = message;
+    const prefix = isAnimateMode() ? 'Animate' : 'Edit Rest';
+    fields.status.textContent = `${prefix}: ${message}`;
   }
 
   function isTypingTarget(target) {
     return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName);
   }
 
+  function wireFieldHistory(inputs, label) {
+    for (const input of inputs) {
+      input.addEventListener('focus', () => startFieldHistory(label));
+      input.addEventListener('blur', () => flushPendingFieldHistory());
+    }
+  }
+
   function wireEvents() {
+    wireFieldHistory([
+      fields.shapeId,
+      fields.shapeLabel,
+      fields.shapeTags,
+      fields.shapeZ,
+      fields.shapeFill,
+      fields.shapeStroke,
+      fields.shapeStrokeWidth,
+    ], 'Edit shape fields');
+    wireFieldHistory([fields.loopId], 'Edit loop id');
+    wireFieldHistory([fields.animationClipLabel, fields.animationClipDuration], 'Edit animation clip');
+
     window.addEventListener('resize', () => {
       syncInspectorForViewport();
       resizeCanvas();
     });
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
+        if (transformOriginPickActive || transformPreview) {
+          clearTransformPreview(true);
+        }
         closeMenus();
         closeExportDrawer();
         return;
       }
       if (isTypingTarget(event.target)) {
         return;
+      }
+      if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+        const key = event.key.toLowerCase();
+        if (key === 'z') {
+          event.preventDefault();
+          if (event.shiftKey) {
+            redoHistory();
+          } else {
+            undoHistory();
+          }
+          return;
+        }
+        if (key === 'y') {
+          event.preventDefault();
+          redoHistory();
+          return;
+        }
       }
       if (handleArrowNudge(event)) {
         return;
@@ -1956,12 +4162,18 @@
         activateReveal(true);
         setStatus('Reveal active: all paths are pulsing.');
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
-        discardOptimizationPreview();
-        const selectedPointCount = core.getSelectedPointRefs(state).length;
-        state = core.deleteSelectedPoints(state);
-        setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
-        syncFieldsFromState();
-        draw();
+        withHistory('Delete point', () => {
+          if (isAnimateMode()) {
+            setStatus('Switch to Edit Rest to delete points. Animate mode keys existing geometry.');
+            return;
+          }
+          discardOptimizationPreview();
+          const selectedPointCount = core.getSelectedPointRefs(state).length;
+          state = core.deleteSelectedPoints(state);
+          setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
+          syncFieldsFromState();
+          draw();
+        });
       }
     });
     window.addEventListener('keyup', (event) => {
@@ -2035,6 +4247,25 @@
       });
     }
 
+    fields.undoCommand?.addEventListener('click', () => {
+      undoHistory();
+      closeMenus();
+    });
+    fields.redoCommand?.addEventListener('click', () => {
+      redoHistory();
+      closeMenus();
+    });
+    for (const button of fields.historyButtons) {
+      button.addEventListener('click', () => {
+        if (button.dataset.historyCommand === 'undo') {
+          undoHistory();
+        } else {
+          redoHistory();
+        }
+        closeMenus();
+      });
+    }
+
     for (const button of fields.drawerCloseButtons) {
       button.addEventListener('click', () => {
         closeExportDrawer();
@@ -2046,6 +4277,83 @@
         setToolMode(button.dataset.toolMode);
       });
     }
+    fields.editorModeRest?.addEventListener('click', () => setEditorMode('rest'));
+    fields.editorModeAnimate?.addEventListener('click', () => setEditorMode('animate'));
+    fields.animationAutoKey?.addEventListener('change', () => {
+      animationAutoKey = fields.animationAutoKey.checked;
+      setStatus(animationAutoKey ? 'Auto Key on.' : 'Auto Key off. Canvas posing will not write keys.');
+    });
+    fields.animationClipSelect.addEventListener('change', () => {
+      selectAnimationClip(fields.animationClipSelect.value);
+    });
+    fields.timelineClipSelect.addEventListener('change', () => {
+      selectAnimationClip(fields.timelineClipSelect.value);
+    });
+    fields.animationAddClip.addEventListener('click', createAnimationClip);
+    fields.animationDuplicateClip.addEventListener('click', duplicateAnimationClip);
+    fields.animationDeleteClip.addEventListener('click', deleteAnimationClip);
+    fields.animationAddTrack.addEventListener('click', addTrackFromSelection);
+    fields.animationRestSelection?.addEventListener('click', setRestKeyForSelection);
+    fields.animationClipLabel.addEventListener('input', updateSelectedClipFromFields);
+    fields.animationClipDuration.addEventListener('input', updateSelectedClipFromFields);
+    fields.animationClipLoop.addEventListener('change', () => {
+      withHistory('Edit animation clip', updateSelectedClipFromFields);
+    });
+    fields.animationTrackSelect.addEventListener('change', () => {
+      selectAnimationTrack(fields.animationTrackSelect.value);
+    });
+    fields.keyframeUpsert.addEventListener('click', upsertKeyframeFromFields);
+    fields.keyframeDelete.addEventListener('click', deleteSelectedKeyframe);
+    fields.keyframeRest.addEventListener('click', setRestKeyframeAtPlayhead);
+    fields.keyframeCopy.addEventListener('click', copySelectedKeyframeToPlayhead);
+    fields.keyframePrevious.addEventListener('click', copyPreviousKeyframeToPlayhead);
+    fields.posePreview.addEventListener('click', () => buildAnimationPosePreview(true));
+    fields.poseSetKey.addEventListener('click', setKeyFromPose);
+    fields.poseLoadKey.addEventListener('click', loadSelectedKeyIntoPose);
+    fields.poseClear.addEventListener('click', () => clearAnimationPosePreview(true));
+    for (const input of [fields.poseTx, fields.poseTy, fields.poseRotation, fields.poseSx, fields.poseSy]) {
+      input.addEventListener('input', () => {
+        if (animationPosePreview) {
+          buildAnimationPosePreview(false);
+        }
+      });
+    }
+    fields.animationBindingSelect.addEventListener('change', () => {
+      syncBindingFields(currentAnimation());
+    });
+    fields.animationBindClip.addEventListener('click', () => updateSelectedBinding(true));
+    fields.animationUnbindClip.addEventListener('click', () => updateSelectedBinding(false));
+    fields.timelineCollapse.addEventListener('click', () => {
+      timelineCollapsed = !timelineCollapsed;
+      syncTimelineUi();
+      resizeCanvas();
+    });
+    fields.timelinePlay.addEventListener('click', toggleTimelinePlayback);
+    fields.timelineTime.addEventListener('input', () => {
+      setTimelineTime(Number(fields.timelineTime.value) || 0, true);
+    });
+    fields.timelineFps.addEventListener('change', () => {
+      timelineFps = parseIntegerSafe(fields.timelineFps.value, 24);
+      setTimelineTime(timelineTimeMs);
+      setStatus(`Timeline FPS ${timelineFps}.`);
+    });
+    fields.timelineSnap.addEventListener('change', () => {
+      timelineSnap = fields.timelineSnap.checked;
+      setTimelineTime(timelineTimeMs);
+      setStatus(timelineSnap ? 'Timeline snap on.' : 'Timeline snap off.');
+    });
+    fields.timelinePreviewEnabled.addEventListener('change', () => {
+      updateAnimationPreview();
+      draw();
+    });
+    fields.timelineZoom.addEventListener('input', () => {
+      timelineZoom = Number(fields.timelineZoom.value) || 1;
+      syncTimelineUi();
+    });
+    fields.timelineTrack.addEventListener('pointerdown', handleTimelinePointerDown);
+    fields.timelineTrack.addEventListener('pointermove', handleTimelinePointerMove);
+    fields.timelineTrack.addEventListener('pointerup', handleTimelinePointerUp);
+    fields.timelineTrack.addEventListener('pointercancel', handleTimelinePointerUp);
     fields.imageInput.addEventListener('change', () => {
       handleImageLoad(fields.imageInput.files[0]);
     });
@@ -2070,9 +4378,11 @@
       draw();
     });
     fields.loopRole.addEventListener('change', () => {
-      state = core.setSelectedLoopRole(state, fields.loopRole.value);
-      syncFieldsFromState();
-      draw();
+      withHistory('Set loop role', () => {
+        state = core.setSelectedLoopRole(state, fields.loopRole.value);
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.loopId.addEventListener('input', () => {
       state = core.setSelectedLoopId(state, fields.loopId.value);
@@ -2090,37 +4400,47 @@
       beginColorPick('stroke');
     });
     fields.addShape.addEventListener('click', () => {
-      syncStateFromFields();
-      discardOptimizationPreview();
-      state = core.addShape(state);
-      setStatus('Shape added.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Add shape', () => {
+        syncStateFromFields();
+        discardOptimizationPreview();
+        state = core.addShape(state);
+        setStatus('Shape added.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.duplicateShape.addEventListener('click', () => {
-      syncStateFromFields();
-      discardOptimizationPreview();
-      state = core.duplicateSelectedShape(state);
-      setStatus('Shape duplicated.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Duplicate shape', () => {
+        syncStateFromFields();
+        discardOptimizationPreview();
+        state = core.duplicateSelectedShape(state);
+        setStatus('Shape duplicated.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.deleteShape.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.deleteSelectedShape(state);
-      setStatus('Shape deleted.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Delete shape', () => {
+        discardOptimizationPreview();
+        state = core.deleteSelectedShape(state);
+        setStatus('Shape deleted.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.zDown.addEventListener('click', () => {
-      state = core.nudgeSelectedShapeZ(state, -1);
-      syncFieldsFromState();
-      draw();
+      withHistory('Z down', () => {
+        state = core.nudgeSelectedShapeZ(state, -1);
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.zUp.addEventListener('click', () => {
-      state = core.nudgeSelectedShapeZ(state, 1);
-      syncFieldsFromState();
-      draw();
+      withHistory('Z up', () => {
+        state = core.nudgeSelectedShapeZ(state, 1);
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.addTagPreset.addEventListener('click', () => {
       applySelectedTagPreset(false);
@@ -2129,93 +4449,115 @@
       applySelectedTagPreset(true);
     });
     fields.addLoop.addEventListener('click', () => {
-      syncStateFromFields();
-      discardOptimizationPreview();
-      state = core.addLoop(state, fields.loopRole.value);
-      setStatus('Loop added.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Add loop', () => {
+        syncStateFromFields();
+        discardOptimizationPreview();
+        state = core.addLoop(state, fields.loopRole.value);
+        setStatus('Loop added.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.duplicateLoop.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.duplicateSelectedLoop(state);
-      setStatus('Loop duplicated.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Duplicate loop', () => {
+        discardOptimizationPreview();
+        state = core.duplicateSelectedLoop(state);
+        setStatus('Loop duplicated.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.deleteLoop.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.deleteSelectedLoop(state);
-      setStatus('Loop deleted.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Delete loop', () => {
+        discardOptimizationPreview();
+        state = core.deleteSelectedLoop(state);
+        setStatus('Loop deleted.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.loopUp.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.moveSelectedLoop(state, -1);
-      syncFieldsFromState();
-      draw();
+      withHistory('Move loop up', () => {
+        discardOptimizationPreview();
+        state = core.moveSelectedLoop(state, -1);
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.loopDown.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.moveSelectedLoop(state, 1);
-      syncFieldsFromState();
-      draw();
+      withHistory('Move loop down', () => {
+        discardOptimizationPreview();
+        state = core.moveSelectedLoop(state, 1);
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.openLoop.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.openLoop(state);
-      setStatus('Loop opened.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Open loop', () => {
+        discardOptimizationPreview();
+        state = core.openLoop(state);
+        setStatus('Loop opened.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.closeLoop.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.closeLoop(state);
-      setStatus('Loop closed.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Close loop', () => {
+        discardOptimizationPreview();
+        state = core.closeLoop(state);
+        setStatus('Loop closed.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.clearPoints.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.clearPoints(state);
-      setStatus('Cleared points.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Clear points', () => {
+        discardOptimizationPreview();
+        state = core.clearPoints(state);
+        setStatus('Cleared points.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.groupPaths.addEventListener('click', () => {
-      syncStateFromFields();
-      discardOptimizationPreview();
-      const before = core.getSelectedPathRefs(state).length;
-      state = core.groupSelectedPaths(state);
-      const after = core.getSelectedPathRefs(state).length;
-      setStatus(before >= 2 ? `Grouped ${after} paths.` : 'Select at least two paths first.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Group selected paths', () => {
+        syncStateFromFields();
+        discardOptimizationPreview();
+        const before = core.getSelectedPathRefs(state).length;
+        state = core.groupSelectedPaths(state);
+        const after = core.getSelectedPathRefs(state).length;
+        setStatus(before >= 2 ? `Grouped ${after} paths.` : 'Select at least two paths first.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.separatePaths.addEventListener('click', () => {
-      syncStateFromFields();
-      discardOptimizationPreview();
-      const before = core.getSelectedPathRefs(state).length;
-      state = core.separateSelectedPaths(state);
-      const after = core.getSelectedPathRefs(state).length;
-      setStatus(before ? `Separated ${after} paths into standalone shapes.` : 'Select a path first.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Separate paths', () => {
+        syncStateFromFields();
+        discardOptimizationPreview();
+        const before = core.getSelectedPathRefs(state).length;
+        state = core.separateSelectedPaths(state);
+        const after = core.getSelectedPathRefs(state).length;
+        setStatus(before ? `Separated ${after} paths into standalone shapes.` : 'Select a path first.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.mergeIntoActive.addEventListener('click', () => {
-      syncStateFromFields();
-      discardOptimizationPreview();
-      const before = core.getSelectedPathRefs(state).length;
-      const activeShape = core.getSelectedShape(state);
-      state = core.mergeSelectedPathsIntoActiveShape(state);
-      setStatus(
-        before
-          ? `Merged ${before} paths into ${activeShape?.label || activeShape?.id || 'active shape'}.`
-          : 'Select paths to merge first.',
-      );
-      syncFieldsFromState();
-      draw();
+      withHistory('Merge paths into active', () => {
+        syncStateFromFields();
+        discardOptimizationPreview();
+        const before = core.getSelectedPathRefs(state).length;
+        const activeShape = core.getSelectedShape(state);
+        state = core.mergeSelectedPathsIntoActiveShape(state);
+        setStatus(
+          before
+            ? `Merged ${before} paths into ${activeShape?.label || activeShape?.id || 'active shape'}.`
+            : 'Select paths to merge first.',
+        );
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.clearPathSelection.addEventListener('click', () => {
       discardOptimizationPreview();
@@ -2225,20 +4567,41 @@
       draw();
     });
     fields.scaleUniform.addEventListener('change', () => {
-      syncScaleControls();
+      syncTransformControls();
     });
     fields.scaleX.addEventListener('input', () => {
-      syncScaleControls('x');
+      syncTransformControls('x');
     });
     fields.scaleY.addEventListener('input', () => {
-      syncScaleControls('y');
+      syncTransformControls('y');
     });
-    fields.scaleApply.addEventListener('click', () => {
-      applyScaleSelection();
+    fields.transformRotation.addEventListener('input', () => {
+      updateTransformPreviewFromControls();
     });
-    fields.scaleReset.addEventListener('click', () => {
-      resetScaleControls();
-      setStatus('Scale reset to 100%.');
+    fields.transformOriginMode.addEventListener('change', () => {
+      syncTransformControls();
+    });
+    fields.transformOriginX.addEventListener('input', () => {
+      updateTransformPreviewFromControls();
+    });
+    fields.transformOriginY.addEventListener('input', () => {
+      updateTransformPreviewFromControls();
+    });
+    fields.transformPickOrigin.addEventListener('click', () => {
+      beginTransformOriginPick();
+    });
+    fields.transformPreview.addEventListener('click', () => {
+      buildTransformPreview(true);
+    });
+    fields.transformApply.addEventListener('click', () => {
+      applyTransformSelection();
+    });
+    fields.transformCancel.addEventListener('click', () => {
+      clearTransformPreview(true);
+    });
+    fields.transformReset.addEventListener('click', () => {
+      resetTransformControls();
+      setStatus('Transform reset.');
     });
     fields.removeNearDuplicates.addEventListener('click', () => {
       applyLoopCleanup('Remove near-duplicates', core.removeNearDuplicateSelectedLoops);
@@ -2294,26 +4657,40 @@
       });
     }
     fields.deletePoint.addEventListener('click', () => {
-      discardOptimizationPreview();
-      const selectedPointCount = core.getSelectedPointRefs(state).length;
-      state = core.deleteSelectedPoints(state);
-      setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
-      syncFieldsFromState();
-      draw();
+      withHistory('Delete point', () => {
+        if (isAnimateMode()) {
+          setStatus('Switch to Edit Rest to delete points. Animate mode keys existing geometry.');
+          return;
+        }
+        discardOptimizationPreview();
+        const selectedPointCount = core.getSelectedPointRefs(state).length;
+        state = core.deleteSelectedPoints(state);
+        setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.clearHandles.addEventListener('click', () => {
-      discardOptimizationPreview();
-      const selectedPointCount = core.getSelectedPointRefs(state).length;
-      state = core.clearSelectedPointHandles(state);
-      setStatus(
-        selectedPointCount > 1
-          ? `Cleared handles on ${selectedPointCount} selected points.`
-          : 'Cleared selected point handles.',
-      );
-      syncFieldsFromState();
-      draw();
+      withHistory('Clear handles', () => {
+        if (isAnimateMode()) {
+          setStatus('Switch to Edit Rest to clear rest handles, or drag a handle to key a handle delta.');
+          return;
+        }
+        discardOptimizationPreview();
+        const selectedPointCount = core.getSelectedPointRefs(state).length;
+        state = core.clearSelectedPointHandles(state);
+        setStatus(
+          selectedPointCount > 1
+            ? `Cleared handles on ${selectedPointCount} selected points.`
+            : 'Cleared selected point handles.',
+        );
+        syncFieldsFromState();
+        draw();
+      });
     });
     fields.exportJson.addEventListener('click', exportJson);
+    fields.exportGraphJson?.addEventListener('click', exportGraphJson);
+    fields.exportGraphJsonDrawer?.addEventListener('click', exportGraphJson);
     fields.saveJson.addEventListener('click', () => {
       saveJson();
     });
@@ -2327,8 +4704,21 @@
       fields.shapeStrokeWidth,
     ]) {
       input.addEventListener('input', () => {
+        if (isAnimateMode()) {
+          if (input === fields.shapeFill) {
+            withHistory('Key fill color', () => keyShapeStyleFromFields('fill'));
+          } else if (input === fields.shapeStroke) {
+            withHistory('Key stroke color', () => keyShapeStyleFromFields('stroke'));
+          } else if (input === fields.shapeStrokeWidth) {
+            withHistory('Key stroke width', () => keyShapeStyleFromFields('strokeWidth'));
+          } else {
+            setStatus('Switch to Edit Rest to change object metadata.');
+          }
+          return;
+        }
         syncStateFromFields();
         syncShapeList();
+        syncRailSwatches();
         updateStats();
         draw();
       });
@@ -2336,13 +4726,16 @@
   }
 
   populateTagPresetOptions();
+  populateAnimationStaticOptions();
   updateImageOpacityLabel();
   updateOptimizeToleranceLabel();
   updateBrushControlLabels();
-  syncScaleControls();
+  syncTransformControls();
   syncInspectorForViewport();
   syncToolUi();
+  syncEditorModeUi();
   syncFieldsFromState();
+  resetHistory();
   wireEvents();
   resizeCanvas();
   fitCanvasToView();

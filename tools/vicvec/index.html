@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>VicVec Vector Authoring</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./vector_authoring.css?v=animation-foundation-1" />
+    <link rel="stylesheet" href="./vector_authoring.css?v=animation-pose-1" />
   </head>
   <body>
     <svg class="icon-sprite" aria-hidden="true">
@@ -29,6 +29,7 @@
       <symbol id="icon-pipette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m12 9l-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12"/><path d="m18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4l3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414"/></g></symbol>
       <symbol id="icon-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7v14"/></symbol>
       <symbol id="icon-rotate-ccw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></g></symbol>
+      <symbol id="icon-rotate-cw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9a9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></g></symbol>
       <symbol id="icon-save" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></g></symbol>
       <symbol id="icon-scissors" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12L12 12m8-8L8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8L20 20"/></g></symbol>
       <symbol id="icon-sliders-horizontal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5H3m9 14H3M14 3v4m2 10v4m5-9h-9m9 7h-5m5-14h-7m-6 5v4m0-2H3"/></symbol>
@@ -62,6 +63,8 @@
           <div class="app-menu">
             <button class="menu-button" type="button" data-menu-toggle="edit" aria-expanded="false">Edit</button>
             <div class="menu-popover" data-menu-panel="edit">
+              <button id="undo-command" type="button" disabled><svg class="icon"><use href="#icon-rotate-ccw"></use></svg>Undo</button>
+              <button id="redo-command" type="button" disabled>Redo</button>
               <button type="button" data-click-target="delete-point"><svg class="icon"><use href="#icon-trash-2"></use></svg>Delete Point</button>
               <button type="button" data-click-target="clear-handles"><svg class="icon"><use href="#icon-scissors"></use></svg>Clear Handles</button>
               <button type="button" data-click-target="reverse-loop"><svg class="icon"><use href="#icon-rotate-ccw"></use></svg>Reverse Loop</button>
@@ -80,12 +83,46 @@
             <button class="menu-button" type="button" data-menu-toggle="view" aria-expanded="false">View</button>
             <div class="menu-popover" data-menu-panel="view">
               <button type="button" data-inspector-toggle><svg class="icon"><use href="#icon-panel-right-close"></use></svg>Toggle Inspector</button>
+              <button type="button" data-inspector-tab-shortcut="anim"><svg class="icon"><use href="#icon-layers"></use></svg>Animation</button>
               <button type="button" data-inspector-tab-shortcut="pack"><svg class="icon"><use href="#icon-eye"></use></svg>Source And Pack</button>
               <button type="button" data-inspector-tab-shortcut="tools"><svg class="icon"><use href="#icon-sliders-horizontal"></use></svg>Tool Options</button>
             </div>
           </div>
         </nav>
+        <div class="editor-mode-switch" aria-label="Editor work mode">
+          <button id="editor-mode-rest" class="mode-switch-button active" type="button" aria-pressed="true">Edit Rest</button>
+          <button id="editor-mode-animate" class="mode-switch-button" type="button" aria-pressed="false">Animate</button>
+          <label class="auto-key-toggle" title="Animate mode writes sparse keys at the playhead">
+            <input id="animation-auto-key" type="checkbox" checked />
+            <span>Auto Key</span>
+          </label>
+        </div>
         <div class="app-bar-actions">
+          <div class="quick-actions" aria-label="Quick actions">
+            <button class="quick-button" type="button" data-history-command="undo" aria-label="Undo" title="Undo" disabled>
+              <svg class="icon"><use href="#icon-rotate-ccw"></use></svg>
+            </button>
+            <button class="quick-button" type="button" data-history-command="redo" aria-label="Redo" title="Redo" disabled>
+              <svg class="icon"><use href="#icon-rotate-cw"></use></svg>
+            </button>
+            <span class="quick-divider" aria-hidden="true"></span>
+            <button class="quick-button danger" type="button" data-click-target="delete-point" aria-label="Delete point" title="Delete point">
+              <svg class="icon"><use href="#icon-trash-2"></use></svg>
+            </button>
+            <button class="quick-button" type="button" data-click-target="clear-handles" aria-label="Clear handles" title="Clear handles">
+              <svg class="icon"><use href="#icon-scissors"></use></svg>
+            </button>
+            <span class="quick-divider" aria-hidden="true"></span>
+            <button class="quick-button" type="button" data-click-target="group-paths" aria-label="Group selected" title="Group selected">
+              <svg class="icon"><use href="#icon-group"></use></svg>
+            </button>
+            <button class="quick-button" type="button" data-click-target="separate-paths" aria-label="Separate" title="Separate">
+              <svg class="icon"><use href="#icon-split"></use></svg>
+            </button>
+            <button class="quick-button" type="button" data-click-target="merge-into-active" aria-label="Merge into active" title="Merge into active">
+              <svg class="icon"><use href="#icon-combine"></use></svg>
+            </button>
+          </div>
           <button class="compact-command" type="button" data-open-export>
             <svg class="icon"><use href="#icon-download"></use></svg>
             <span>Export v1</span>
@@ -115,11 +152,11 @@
         <div class="rail-divider"></div>
         <button id="pick-fill-color" class="tool-button" type="button" aria-label="Pick fill color" data-tooltip="Pick Fill">
           <svg class="icon"><use href="#icon-pipette"></use></svg>
-          <span class="color-dot fill-dot"></span>
+          <span class="color-swatch fill-dot" aria-hidden="true"></span>
         </button>
         <button id="pick-stroke-color" class="tool-button" type="button" aria-label="Pick stroke color" data-tooltip="Pick Stroke">
           <svg class="icon"><use href="#icon-pipette"></use></svg>
-          <span class="color-dot stroke-dot"></span>
+          <span class="color-swatch stroke-dot" aria-hidden="true"></span>
         </button>
       </aside>
 
@@ -130,7 +167,7 @@
             <span id="mode-hint">Point: click to add/select points. Alt-drag creates an out handle.</span>
           </div>
           <div class="context-actions">
-            <button class="small-command" type="button" data-click-target="clear-path-selection">Clear Selection</button>
+            <button class="small-command" type="button" data-selection-action data-click-target="clear-path-selection">Clear Selection</button>
             <button class="small-command" type="button" data-inspector-tab-shortcut="tools">Tool Options</button>
           </div>
         </div>
@@ -149,11 +186,12 @@
         </div>
 
         <div class="inspector-tabs" role="tablist" aria-label="Inspector sections">
-          <button class="inspector-tab active" type="button" role="tab" aria-selected="true" data-inspector-tab="object">Object</button>
-          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="loop">Loop</button>
-          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="style">Style</button>
-          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="tools">Tools</button>
-          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="pack">Pack</button>
+          <button class="inspector-tab active" type="button" role="tab" aria-selected="true" data-inspector-tab="object" aria-label="Object" title="Object">Obj</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="loop" aria-label="Loop" title="Loop">Loop</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="style" aria-label="Style" title="Style">Style</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="tools" aria-label="Tools" title="Tools">Tools</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="anim" aria-label="Animation" title="Animation">Anim</button>
+          <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="pack" aria-label="Pack" title="Pack">Pack</button>
         </div>
 
         <div class="inspector-body">
@@ -274,8 +312,8 @@
               </div>
             </section>
 
-            <section class="panel-card scale-section">
-              <div class="section-title">Scale Selection</div>
+            <section class="panel-card transform-section">
+              <div class="section-title">Transform Selection</div>
               <label class="inline-toggle">
                 <input id="scale-uniform" type="checkbox" checked />
                 <span>Uniform</span>
@@ -290,10 +328,72 @@
                   <input id="scale-y" type="number" min="1" max="400" step="1" value="100" />
                 </label>
               </div>
-              <div class="split-actions">
-                <button id="scale-apply" type="button">Apply</button>
-                <button id="scale-reset" type="button">Reset</button>
+              <div class="form-grid">
+                <label>
+                  <span>Rotate deg</span>
+                  <input id="transform-rotation" type="number" min="-360" max="360" step="1" value="0" />
+                </label>
+                <label>
+                  <span>Origin</span>
+                  <select id="transform-origin-mode">
+                    <option value="selection">Selection Center</option>
+                    <option value="activeLoop">Active Loop Center</option>
+                    <option value="canvasCenter">Canvas Center</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </label>
               </div>
+              <div class="form-grid transform-origin-fields" id="transform-origin-fields">
+                <label>
+                  <span>Origin X</span>
+                  <input id="transform-origin-x" type="number" step="0.5" value="" />
+                </label>
+                <label>
+                  <span>Origin Y</span>
+                  <input id="transform-origin-y" type="number" step="0.5" value="" />
+                </label>
+              </div>
+              <div class="command-grid">
+                <button id="transform-pick-origin" type="button">Pick Origin</button>
+                <button id="transform-preview" type="button">Preview</button>
+                <button id="transform-apply" type="button">Apply</button>
+                <button id="transform-cancel" type="button">Cancel</button>
+              </div>
+              <button id="transform-reset" class="subtle" type="button">Reset</button>
+              <div id="transform-status" class="transform-status">No preview.</div>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-title">Animation Pose</div>
+              <div class="form-grid">
+                <label>
+                  <span>Pose Tx</span>
+                  <input id="pose-tx" type="number" step="0.5" value="0" />
+                </label>
+                <label>
+                  <span>Pose Ty</span>
+                  <input id="pose-ty" type="number" step="0.5" value="0" />
+                </label>
+                <label>
+                  <span>Pose Rotation</span>
+                  <input id="pose-rotation" type="number" step="1" value="0" />
+                </label>
+                <label>
+                  <span>Pose Sx</span>
+                  <input id="pose-sx" type="number" min="1" step="1" value="100" />
+                </label>
+                <label>
+                  <span>Pose Sy</span>
+                  <input id="pose-sy" type="number" min="1" step="1" value="100" />
+                </label>
+              </div>
+              <div class="command-grid">
+                <button id="pose-preview" type="button">Preview Pose</button>
+                <button id="pose-set-key" type="button">Set Key From Pose</button>
+                <button id="pose-load-key" type="button">Load Key Into Pose</button>
+                <button id="pose-clear" type="button">Clear Pose</button>
+              </div>
+              <div id="pose-status" class="transform-status">No pose preview.</div>
             </section>
 
             <section class="panel-card">
@@ -342,7 +442,7 @@
               <div class="section-title">Falloff Brush</div>
               <label class="slider-control">
                 <span>Radius <output id="brush-radius-value">80px</output></span>
-                <input id="brush-radius" type="range" min="8" max="320" step="1" value="80" />
+                <input id="brush-radius" type="range" min="8" max="2000" step="1" value="80" />
               </label>
               <label class="slider-control">
                 <span>Strength <output id="brush-strength-value">55%</output></span>
@@ -379,6 +479,98 @@
             </section>
           </section>
 
+          <section class="inspector-page" data-inspector-page="anim">
+            <section class="panel-card">
+              <div class="section-title">Clip</div>
+              <label>
+                <span>Clip</span>
+                <select id="animation-clip-select"></select>
+              </label>
+              <div class="command-grid">
+                <button id="animation-add-clip" type="button"><svg class="icon"><use href="#icon-plus"></use></svg>Add</button>
+                <button id="animation-duplicate-clip" type="button"><svg class="icon"><use href="#icon-copy"></use></svg>Duplicate</button>
+                <button id="animation-delete-clip" class="danger subtle" type="button"><svg class="icon"><use href="#icon-trash-2"></use></svg>Delete</button>
+                <button id="animation-add-track" type="button"><svg class="icon"><use href="#icon-layers"></use></svg>Add Track</button>
+                <button id="animation-rest-selection" type="button"><svg class="icon"><use href="#icon-rotate-ccw"></use></svg>Rest Key Selected</button>
+              </div>
+              <div class="form-grid">
+                <label>
+                  <span>Label</span>
+                  <input id="animation-clip-label" value="" />
+                </label>
+                <label>
+                  <span>Duration ms</span>
+                  <input id="animation-clip-duration" type="number" min="1" step="1" value="1000" />
+                </label>
+              </div>
+              <label class="inline-toggle">
+                <input id="animation-clip-loop" type="checkbox" />
+                <span>Loop Playback</span>
+              </label>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-title">Track</div>
+              <label>
+                <span>Track</span>
+                <select id="animation-track-select"></select>
+              </label>
+              <div id="animation-track-target" class="active-target">No track selected.</div>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-title">Keyframe</div>
+              <div class="form-grid">
+                <label>
+                  <span>Tx</span>
+                  <input id="keyframe-tx" type="number" step="0.5" value="0" />
+                </label>
+                <label>
+                  <span>Ty</span>
+                  <input id="keyframe-ty" type="number" step="0.5" value="0" />
+                </label>
+                <label>
+                  <span>Rotate deg</span>
+                  <input id="keyframe-rotation" type="number" step="1" value="0" />
+                </label>
+                <label>
+                  <span>Sx %</span>
+                  <input id="keyframe-sx" type="number" min="1" step="1" value="100" />
+                </label>
+                <label>
+                  <span>Sy %</span>
+                  <input id="keyframe-sy" type="number" min="1" step="1" value="100" />
+                </label>
+                <label>
+                  <span>Ease</span>
+                  <select id="keyframe-ease"></select>
+                </label>
+              </div>
+              <div class="split-actions">
+                <button id="keyframe-upsert" type="button">Set Key</button>
+                <button id="keyframe-delete" class="danger subtle" type="button">Delete Key</button>
+              </div>
+              <div class="command-grid compact-grid">
+                <button id="keyframe-rest" type="button">Rest Key</button>
+                <button id="keyframe-copy" type="button">Copy Key To Playhead</button>
+                <button id="keyframe-previous" type="button">Previous Key To Playhead</button>
+              </div>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-title">Bindings</div>
+              <label>
+                <span>Event</span>
+                <select id="animation-binding-select"></select>
+              </label>
+              <div id="animation-binding-readout" class="active-target">No binding.</div>
+              <div class="split-actions">
+                <button id="animation-bind-clip" type="button">Bind Clip</button>
+                <button id="animation-unbind-clip" type="button">Unbind</button>
+              </div>
+            </section>
+          </section>
+
           <section class="inspector-page" data-inspector-page="pack">
             <div class="panel-card">
               <label class="file-control">
@@ -396,11 +588,59 @@
             </div>
             <div class="panel-card pack-actions">
               <button class="primary" type="button" data-open-export><svg class="icon"><use href="#icon-download"></use></svg>Export JSON</button>
+              <button id="export-graph-json" type="button"><svg class="icon"><use href="#icon-wand-sparkles"></use></svg>Export Graph v2</button>
               <button id="save-json" class="primary" type="button"><svg class="icon"><use href="#icon-save"></use></svg>Save JSON</button>
             </div>
           </section>
         </div>
       </aside>
+
+      <section class="timeline-dock" id="timeline-dock" aria-label="Animation timeline">
+        <div class="timeline-header">
+          <button id="timeline-collapse" class="icon-button" type="button" aria-label="Collapse timeline" title="Collapse timeline">
+            <svg class="icon"><use href="#icon-panel-right-close"></use></svg>
+          </button>
+          <button id="timeline-play" class="compact-command" type="button">Play</button>
+          <label>
+            <span>Clip</span>
+            <select id="timeline-clip-select"></select>
+          </label>
+          <label>
+            <span>Time</span>
+            <input id="timeline-time" type="number" min="0" step="1" value="0" />
+          </label>
+          <span id="timeline-duration-readout" class="timeline-readout">/ 0ms</span>
+          <label>
+            <span>FPS</span>
+            <select id="timeline-fps">
+              <option value="12">12</option>
+              <option value="24" selected>24</option>
+              <option value="30">30</option>
+              <option value="60">60</option>
+            </select>
+          </label>
+          <label class="timeline-preview-toggle">
+            <input id="timeline-snap" type="checkbox" checked />
+            <span>Snap</span>
+          </label>
+          <label class="timeline-preview-toggle">
+            <input id="timeline-preview-enabled" type="checkbox" checked />
+            <span>Preview</span>
+          </label>
+          <label>
+            <span>Zoom</span>
+            <input id="timeline-zoom" type="range" min="1" max="4" step="0.25" value="1" />
+          </label>
+          <output id="timeline-zoom-value">1x</output>
+        </div>
+        <div class="timeline-lane-scroll" id="timeline-lane-scroll">
+          <div class="timeline-track" id="timeline-track">
+            <div class="timeline-ticks" id="timeline-ticks"></div>
+            <div class="timeline-keyframes" id="timeline-keyframes" aria-label="Timeline track rows"></div>
+            <div class="timeline-playhead" id="timeline-playhead"></div>
+          </div>
+        </div>
+      </section>
 
       <footer class="status-bar">
         <div id="status">Ready. Add points with left click.</div>
@@ -420,6 +660,7 @@
         </div>
         <div class="drawer-actions">
           <button id="export-json" class="primary" type="button"><svg class="icon"><use href="#icon-download"></use></svg>Refresh JSON</button>
+          <button id="export-graph-json-drawer" type="button"><svg class="icon"><use href="#icon-wand-sparkles"></use></svg>Refresh Graph v2</button>
           <button type="button" data-click-target="save-json"><svg class="icon"><use href="#icon-save"></use></svg>Save File</button>
         </div>
         <label class="drawer-textarea">
@@ -429,7 +670,8 @@
       </aside>
     </main>
 
-    <script src="./vector_authoring_core.js?v=animation-foundation-1"></script>
-    <script src="./vector_authoring.js?v=animation-foundation-1"></script>
+    <script src="./vector_authoring_core.js?v=animation-pose-1"></script>
+    <script src="./vector_authoring_history.js?v=undo-redo-1"></script>
+    <script src="./vector_authoring.js?v=undo-redo-1"></script>
   </body>
 </html>

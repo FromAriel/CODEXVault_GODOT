@@ -383,6 +383,89 @@ test('box and polygon lasso select points only inside selected paths', () => {
   );
 });
 
+test('path lasso selects filled paths across shapes and can toggle them', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    shapes: [
+      {
+        id: 'shape_a',
+        loops: [
+          {
+            role: 'outer',
+            closed: true,
+            points: [
+              { x: 0, y: 0 },
+              { x: 100, y: 0 },
+              { x: 100, y: 100 },
+              { x: 0, y: 100 },
+            ],
+          },
+          {
+            role: 'detail',
+            closed: true,
+            points: [
+              { x: 200, y: 0 },
+              { x: 240, y: 0 },
+              { x: 240, y: 40 },
+              { x: 200, y: 40 },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'shape_b',
+        loops: [
+          {
+            role: 'outer',
+            closed: true,
+            points: [
+              { x: 110, y: 10 },
+              { x: 160, y: 10 },
+              { x: 160, y: 60 },
+              { x: 110, y: 60 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  state = core.selectPointRef(state, 0, 0, 0);
+  state = core.selectPathsInRect(state, { x1: -10, y1: -10, x2: 170, y2: 70 }, { filledOnly: true });
+  assert.equal(
+    JSON.stringify(core.getSelectedPathRefs(state)),
+    '[{"shapeIndex":0,"loopIndex":0},{"shapeIndex":1,"loopIndex":0}]',
+  );
+  assert.equal(JSON.stringify(core.getSelectedPointRefs(state)), '[]');
+
+  state = core.selectPathsInRect(state, { x1: 20, y1: 20, x2: 30, y2: 30 }, { toggle: true, filledOnly: true });
+  assert.equal(
+    JSON.stringify(core.getSelectedPathRefs(state)),
+    '[{"shapeIndex":1,"loopIndex":0}]',
+  );
+
+  state = core.selectPathsInPolygon(state, [
+    { x: 195, y: -5 },
+    { x: 245, y: -5 },
+    { x: 245, y: 45 },
+    { x: 195, y: 45 },
+  ], { filledOnly: true });
+  assert.equal(JSON.stringify(core.getSelectedPathRefs(state)), '[]');
+
+  state = core.selectPathsInPolygon(state, [
+    { x: 105, y: 5 },
+    { x: 165, y: 5 },
+    { x: 165, y: 65 },
+    { x: 105, y: 65 },
+  ], { filledOnly: true });
+  assert.equal(
+    JSON.stringify(core.getSelectedPathRefs(state)),
+    '[{"shapeIndex":1,"loopIndex":0}]',
+  );
+  assert.equal(JSON.stringify(core.buildVectorPack(state)).includes('selectedPaths'), false);
+});
+
 test('moving selected points preserves relative Bezier handles and export schema', () => {
   let state = core.createInitialState();
   state = core.addPoint(state, { x: 10, y: 20 });
@@ -566,6 +649,148 @@ test('scaleSelection non-uniformly scales selected points before paths', () => {
   assert.equal(JSON.stringify(points[2]), '{"x":100,"y":100}');
   assert.equal(JSON.stringify(core.getSelectedPointRefs(result.state)), '[{"shapeIndex":0,"loopIndex":0,"pointIndex":0},{"shapeIndex":0,"loopIndex":0,"pointIndex":1}]');
   assert.equal(JSON.stringify(core.buildVectorPack(result.state)).includes('selectedPoints'), false);
+});
+
+test('transformSelection rotates selected paths around selection center', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 100, y: 0 });
+  state = core.addPoint(state, { x: 100, y: 100 });
+  state = core.movePointHandle(state, 0, 'outHandle', { x: 50, y: 0 });
+  state = core.selectPath(state, 0, 0);
+
+  const result = core.transformSelection(state, { rotation: Math.PI / 2 });
+  const points = core.buildVectorPack(result.state).shapes[0].loops[0].points;
+
+  assert.equal(result.stats.target, 'paths');
+  assert.equal(result.stats.targetCount, 1);
+  assert.equal(JSON.stringify(result.stats.origin), '{"mode":"selection","x":50,"y":50}');
+  assert.equal(JSON.stringify(points[0]), '{"x":100,"y":0,"out":{"x":0,"y":50}}');
+  assert.equal(JSON.stringify(points[1]), '{"x":100,"y":100}');
+  assert.equal(JSON.stringify(points[2]), '{"x":0,"y":100}');
+});
+
+test('transformSelection rotates selected points before selected paths', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 200, height: 160 },
+    shapes: [
+      {
+        id: 'point_rotate',
+        loops: [
+          {
+            role: 'detail',
+            closed: false,
+            points: [
+              { x: 0, y: 0, out: { x: 20, y: 0 } },
+              { x: 100, y: 0 },
+              { x: 100, y: 100 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.selectPath(state, 0, 0);
+  state = core.clearPointSelection(state);
+  state = core.togglePointSelection(state, 0, 0, 0);
+  state = core.togglePointSelection(state, 0, 0, 1);
+
+  const result = core.transformSelection(state, { rotation: Math.PI });
+  const points = core.buildVectorPack(result.state).shapes[0].loops[0].points;
+
+  assert.equal(result.stats.target, 'points');
+  assert.equal(result.stats.targetCount, 2);
+  assert.equal(JSON.stringify(points[0]), '{"x":100,"y":0,"out":{"x":-20,"y":0}}');
+  assert.equal(JSON.stringify(points[1]), '{"x":0,"y":0}');
+  assert.equal(JSON.stringify(points[2]), '{"x":100,"y":100}');
+});
+
+test('transformSelection applies scale before rotation around a custom origin', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 200, height: 160 },
+    shapes: [
+      {
+        id: 'combo_transform',
+        loops: [
+          {
+            role: 'detail',
+            closed: false,
+            points: [
+              { x: 10, y: 0, out: { x: 5, y: 0 } },
+              { x: 0, y: 5 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.selectPath(state, 0, 0);
+
+  const result = core.transformSelection(state, {
+    scaleX: 2,
+    scaleY: 1,
+    rotation: Math.PI / 2,
+    origin: { mode: 'custom', x: 0, y: 0 },
+  });
+  const points = core.buildVectorPack(result.state).shapes[0].loops[0].points;
+
+  assert.equal(JSON.stringify(result.stats.origin), '{"mode":"custom","x":0,"y":0}');
+  assert.equal(JSON.stringify(points[0]), '{"x":0,"y":20,"out":{"x":0,"y":10}}');
+  assert.equal(JSON.stringify(points[1]), '{"x":-5,"y":0}');
+});
+
+test('previewSelectionTransform does not mutate state and active-loop fallback works', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.clearPathSelection(state);
+  const before = JSON.stringify(core.buildVectorPack(state));
+
+  const preview = core.previewSelectionTransform(state, {
+    scaleX: 2,
+    scaleY: 2,
+    rotation: Math.PI / 2,
+  });
+
+  assert.equal(preview.stats.target, 'paths');
+  assert.equal(preview.stats.targetCount, 1);
+  assert.equal(JSON.stringify(core.buildVectorPack(state)), before);
+  assert.equal(preview.previews[0].loop.points[0].x, 30);
+  assert.equal(preview.previews[0].loop.points[0].y, -10);
+  assert.equal(JSON.stringify(core.buildVectorPack(state)).includes('preview'), false);
+});
+
+test('resolveTransformOrigin supports active loop, canvas center, and custom origins', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 300, height: 200 },
+    shapes: [
+      {
+        id: 'origins',
+        loops: [
+          {
+            role: 'outer',
+            points: [
+              { x: 10, y: 20 },
+              { x: 30, y: 20 },
+              { x: 30, y: 60 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.selectPath(state, 0, 0);
+
+  assert.equal(JSON.stringify(core.resolveTransformOrigin(state, { origin: { mode: 'activeLoop' } })), '{"mode":"activeLoop","x":20,"y":40}');
+  assert.equal(JSON.stringify(core.resolveTransformOrigin(state, { origin: { mode: 'canvasCenter' } })), '{"mode":"canvasCenter","x":150,"y":100}');
+  assert.equal(JSON.stringify(core.resolveTransformOrigin(state, { origin: { mode: 'custom', x: 7.25, y: 8.5 } })), '{"mode":"custom","x":7.25,"y":8.5}');
 });
 
 test('selectedPathBounds includes points and Bezier control handles', () => {
@@ -1284,6 +1509,355 @@ test('animation metadata round trips when clips or bindings are present', () => 
   assert.equal(serialized.includes('scrub'), false);
 });
 
+test('animation clip and binding helpers round trip without editor state', () => {
+  let state = core.createInitialState();
+  state = core.addAnimationClip(state, { id: 'roll', label: 'Roll', durationMs: 900, loop: true });
+  state = core.updateAnimationBinding(state, 'roll', 'roll');
+  state = core.duplicateAnimationClip(state, 'roll');
+  state = core.deleteAnimationClip(state, 'roll_copy');
+
+  const exported = core.buildVectorPack(state);
+  assert.equal(exported.animation.clips.length, 1);
+  assert.equal(exported.animation.clips[0].id, 'roll');
+  assert.equal(exported.animation.bindings.roll, 'roll');
+  assert.equal(JSON.stringify(exported).includes('selectedClip'), false);
+  assert.equal(JSON.stringify(exported).includes('playhead'), false);
+});
+
+test('addTransformTracksFromSelection targets loop ids and active shape fallback', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 200, height: 160 },
+    shapes: [
+      {
+        id: 'cabinet',
+        loops: [
+          {
+            id: 'outline',
+            role: 'outer',
+            points: [
+              { x: 0, y: 0 },
+              { x: 100, y: 0 },
+              { x: 100, y: 100 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.addAnimationClip(state, { id: 'bounce' });
+  state = core.selectPath(state, 0, 0);
+  state = core.addTransformTracksFromSelection(state, 'bounce', { origin: { mode: 'custom', x: 50, y: 50 } });
+
+  let track = core.buildVectorPack(state).animation.clips[0].tracks[0];
+  assert.equal(JSON.stringify(track.target), '{"shapeId":"cabinet","loopId":"outline"}');
+  assert.equal(JSON.stringify(track.origin), '{"mode":"canvas","x":50,"y":50}');
+
+  state = core.clearPathSelection(state);
+  state = core.addTransformTracksFromSelection(state, 'bounce', { origin: { mode: 'canvasCenter' } });
+  track = core.buildVectorPack(state).animation.clips[0].tracks[1];
+  assert.equal(JSON.stringify(track.target), '{"shapeId":"cabinet"}');
+  assert.equal(JSON.stringify(track.origin), '{"mode":"canvas","x":100,"y":80}');
+
+  let emptyState = core.createInitialState();
+  emptyState = core.addAnimationClip(emptyState, { id: 'idle' });
+  emptyState = core.addTransformTracksFromSelection(emptyState, 'idle', { origin: { mode: 'selection' } });
+  track = core.buildVectorPack(emptyState).animation.clips[0].tracks[0];
+  assert.equal(JSON.stringify(track.target), '{"shapeId":"traced_shape","loopId":"outer_1"}');
+  assert.equal(JSON.stringify(track.origin), '{"mode":"canvas","x":768,"y":512}');
+
+  emptyState = core.clearPathSelection(emptyState);
+  emptyState = core.addTransformTracksFromSelection(emptyState, 'idle', { origin: { mode: 'selection' } });
+  track = core.buildVectorPack(emptyState).animation.clips[0].tracks[1];
+  assert.equal(JSON.stringify(track.target), '{"shapeId":"traced_shape"}');
+  assert.equal(JSON.stringify(track.origin), '{"mode":"canvas","x":768,"y":512}');
+});
+
+test('keyframe helpers add, update, move, and delete sorted keyframes', () => {
+  let state = core.createInitialState();
+  state = core.addAnimationClip(state, { id: 'timing', durationMs: 1000 });
+  state = core.addTransformTracksFromSelection(state, 'timing', { origin: { mode: 'canvas', x: 0, y: 0 } });
+  state = core.upsertTransformKeyframe(state, 'timing', 0, { timeMs: 800, value: { tx: 80 } });
+  state = core.upsertTransformKeyframe(state, 'timing', 0, { timeMs: 200, value: { tx: 20 } });
+  state = core.upsertTransformKeyframe(state, 'timing', 0, { timeMs: 200, value: { tx: 25, sx: 1.25 } });
+
+  let keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.equal(JSON.stringify(keyframes.map((keyframe) => keyframe.timeMs)), '[0,200,800]');
+  assert.equal(keyframes[1].value.tx, 25);
+  assert.equal(keyframes[1].value.sx, 1.25);
+
+  state = core.moveTransformKeyframe(state, 'timing', 0, 2, 100);
+  keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.equal(JSON.stringify(keyframes.map((keyframe) => keyframe.timeMs)), '[0,100,200]');
+
+  state = core.deleteTransformKeyframe(state, 'timing', 0, 1);
+  keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.equal(JSON.stringify(keyframes.map((keyframe) => keyframe.timeMs)), '[0,200]');
+});
+
+test('animation frame snap helper supports common FPS and disabled snapping', () => {
+  assert.equal(core.snapAnimationTimeToFrame(170, { fps: 12, durationMs: 1000 }), 166.667);
+  assert.equal(core.snapAnimationTimeToFrame(83, { fps: 24, durationMs: 1000 }), 83.333);
+  assert.equal(core.snapAnimationTimeToFrame(67, { fps: 30, durationMs: 1000 }), 66.667);
+  assert.equal(core.snapAnimationTimeToFrame(25, { fps: 60, durationMs: 1000 }), 33.333);
+  assert.equal(core.snapAnimationTimeToFrame(83.1234, { fps: 24, snap: false, durationMs: 1000 }), 83.123);
+  assert.equal(core.snapAnimationTimeToFrame(1200, { fps: 24, durationMs: 1000 }), 1000);
+});
+
+test('animation capture helpers write rest and copied keys without editor state', () => {
+  let state = core.createInitialState();
+  state = core.addAnimationClip(state, { id: 'capture', durationMs: 1000 });
+  state = core.addTransformTracksFromSelection(state, 'capture', { origin: { mode: 'canvas', x: 0, y: 0 } });
+  state = core.upsertTransformKeyframe(state, 'capture', 0, { timeMs: 300, ease: 'easeOut', value: { tx: 30, ty: 4, rotation: 0.2, sx: 1.2, sy: 0.8 } });
+  state = core.upsertTransformKeyframe(state, 'capture', 0, { timeMs: 700, value: { tx: 70, ty: -2, sx: 0.9, sy: 1.1 } });
+  state = core.setRestTransformKeyframe(state, 'capture', 0, 500);
+
+  let keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.equal(JSON.stringify(keyframes.map((keyframe) => keyframe.timeMs)), '[0,300,500,700]');
+  assert.deepEqual(keyframes[2].value, core.restTransformValue());
+
+  state = core.copyTransformKeyframeToTime(state, 'capture', 0, 1, 600);
+  keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.equal(JSON.stringify(keyframes.map((keyframe) => keyframe.timeMs)), '[0,300,500,600,700]');
+  assert.equal(keyframes[3].value.tx, 30);
+  assert.equal(keyframes[3].ease, 'easeOut');
+
+  state = core.copyPreviousTransformKeyframeToTime(state, 'capture', 0, 800);
+  keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.equal(JSON.stringify(keyframes.map((keyframe) => keyframe.timeMs)), '[0,300,500,600,700,800]');
+  assert.equal(keyframes[5].value.tx, 70);
+
+  const snapped = core.snapAnimationTimeToFrame(87, { fps: 24, durationMs: 1000 });
+  state = core.moveTransformKeyframe(state, 'capture', 0, 5, snapped);
+  keyframes = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes;
+  assert.ok(keyframes.some((keyframe) => keyframe.timeMs === 83.333));
+
+  const serialized = JSON.stringify(core.buildVectorPack({
+    ...state,
+    timelineFps: 24,
+    timelineSnap: true,
+    selectedKeyframeIndex: 2,
+    playheadTimeMs: 500,
+    timelineRows: [],
+  }));
+  assert.equal(serialized.includes('timelineFps'), false);
+  assert.equal(serialized.includes('timelineSnap'), false);
+  assert.equal(serialized.includes('selectedKeyframeIndex'), false);
+  assert.equal(serialized.includes('playheadTimeMs'), false);
+});
+
+test('animated roll sample fixture imports, validates, exports, and re-imports', () => {
+  const sample = JSON.parse(readFileSync(
+    new URL('./samples/animated_roll_clip.vpack.json', import.meta.url),
+    'utf8',
+  ));
+  const state = core.importVectorPack(sample);
+  const validation = core.validateState(state);
+
+  assert.equal(validation.errorCount, 0);
+  assert.equal(state.animation.clips.length, 1);
+  assert.equal(state.animation.clips[0].id, 'roll');
+  assert.equal(state.animation.bindings.roll, 'roll');
+  assert.equal(state.animation.clips[0].tracks[0].target.loopId, 'outer_1');
+  assert.equal(state.animation.clips[0].tracks[0].keyframes.length, 3);
+
+  const exported = core.buildVectorPack(state);
+  const roundTrip = core.importVectorPack(exported);
+  assert.equal(core.validateState(roundTrip).errorCount, 0);
+  assert.equal(core.buildVectorPack(roundTrip).animation.bindings.roll, 'roll');
+});
+
+test('graph pose contract fixture imports, validates, exports explicitly, and re-imports', () => {
+  const sample = JSON.parse(readFileSync(
+    new URL('./samples/graph_pose_contract.vpack.json', import.meta.url),
+    'utf8',
+  ));
+  const state = core.importVectorPack(sample);
+  const validation = core.validateState(state);
+
+  assert.equal(validation.errorCount, 0);
+  assert.equal(state.animation.schemaVersion, 2);
+  assert.equal(state.animation.bindings.roll, 'roll');
+  assert.equal(core.buildVectorPack(state).animation, undefined);
+
+  const graphPack = core.buildVectorPack(state, { animationMode: 'graph' });
+  assert.equal(graphPack.animation.schemaVersion, 2);
+  assert.equal(graphPack.animation.clips[0].graph.outputs.length, 6);
+  assert.equal(graphPack.animation.clips[0].graph.nodes[0].keys[1].value.skewX, 0.12);
+  for (const output of graphPack.animation.clips[0].graph.outputs) {
+    if (output.property.startsWith('shape.') || output.property === 'shape.opacity') {
+      assert.equal(output.blend, 'replace');
+    }
+  }
+
+  const preview = core.evaluateGraphClip(state, 'roll', 300);
+  assert.equal(preview.stats.targetCount, 1);
+  assert.equal(preview.previews[0].style.fill, '#20c7ff');
+  assert.equal(preview.previews[0].style.strokeWidth, 8);
+  assert.equal(preview.previews[0].opacity, 0.7);
+
+  const roundTrip = core.importVectorPack(graphPack);
+  assert.equal(core.validateState(roundTrip).errorCount, 0);
+  assert.equal(core.buildVectorPack(roundTrip, { animationMode: 'graph' }).animation.bindings.roll, 'roll');
+});
+
+test('animation pose preview targets tracks without mutating geometry', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 200, height: 160 },
+    shapes: [
+      {
+        id: 'cabinet',
+        tags: ['cabinet', 'pose-target'],
+        loops: [
+          {
+            id: 'outline',
+            role: 'outer',
+            points: [
+              { x: 0, y: 0, out: { x: 10, y: 0 } },
+              { x: 50, y: 0 },
+              { x: 50, y: 50 },
+            ],
+          },
+          {
+            id: 'detail',
+            role: 'detail',
+            points: [
+              { x: 10, y: 10 },
+              { x: 20, y: 10 },
+              { x: 20, y: 20 },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'other',
+        tags: ['other'],
+        loops: [
+          {
+            id: 'other_loop',
+            role: 'outer',
+            points: [
+              { x: 100, y: 100 },
+              { x: 120, y: 100 },
+              { x: 120, y: 120 },
+            ],
+          },
+        ],
+      },
+    ],
+    animation: {
+      schemaVersion: 1,
+      clips: [
+        {
+          id: 'pose',
+          durationMs: 1000,
+          tracks: [
+            {
+              target: { shapeId: 'cabinet', loopId: 'outline' },
+              property: 'transform',
+              origin: { mode: 'canvas', x: 0, y: 0 },
+              keyframes: [{ timeMs: 0, value: { tx: 0 } }],
+            },
+            {
+              target: { shapeId: 'cabinet' },
+              property: 'transform',
+              origin: { mode: 'canvas', x: 0, y: 0 },
+              keyframes: [{ timeMs: 0, value: { tx: 0 } }],
+            },
+            {
+              target: { tags: ['pose-target'] },
+              property: 'transform',
+              origin: { mode: 'canvas', x: 0, y: 0 },
+              keyframes: [{ timeMs: 0, value: { tx: 0 } }],
+            },
+          ],
+        },
+      ],
+      bindings: {},
+    },
+  });
+  const before = JSON.stringify(core.buildVectorPack(state).shapes);
+
+  const loopPreview = core.previewAnimationTrackPose(state, 'pose', 0, {
+    tx: 10,
+    rotation: Math.PI / 2,
+    sx: 1,
+    sy: 1,
+  });
+  const shapePreview = core.previewAnimationTrackPose(state, 'pose', 1, { tx: 5 });
+  const tagPreview = core.previewAnimationTrackPose(state, 'pose', 2, { ty: 7 });
+
+  assert.equal(loopPreview.stats.targetCount, 1);
+  assert.equal(loopPreview.previews[0].loop.points[0].x, 10);
+  assert.equal(loopPreview.previews[0].loop.points[0].y, 0);
+  assert.equal(JSON.stringify(loopPreview.previews[0].loop.points[0].outHandle), '{"x":0,"y":10}');
+  assert.equal(shapePreview.stats.targetCount, 2);
+  assert.equal(tagPreview.stats.targetCount, 2);
+  assert.equal(JSON.stringify(core.buildVectorPack(state).shapes), before);
+
+  const poseTime = core.snapAnimationTimeToFrame(87, { fps: 24, durationMs: 1000 });
+  state = core.upsertTransformKeyframe(state, 'pose', 0, {
+    timeMs: poseTime,
+    ease: 'easeOut',
+    value: { tx: 12, ty: 3, rotation: Math.PI / 8, sx: 1.15, sy: 0.9 },
+  });
+  const keyframe = core.buildVectorPack(state).animation.clips[0].tracks[0].keyframes[1];
+  assert.equal(keyframe.timeMs, 83.333);
+  assert.equal(keyframe.ease, 'easeOut');
+  assert.equal(keyframe.value.tx, 12);
+  assert.equal(keyframe.value.sx, 1.15);
+
+  const serialized = JSON.stringify(core.buildVectorPack({
+    ...state,
+    animationPosePreview: loopPreview,
+    poseTx: 12,
+    posePreviewState: true,
+  }));
+  assert.equal(serialized.includes('animationPosePreview'), false);
+  assert.equal(serialized.includes('poseTx'), false);
+  assert.equal(serialized.includes('posePreviewState'), false);
+});
+
+test('evaluateTransformClip previews animated transforms without mutating geometry', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 200, height: 160 },
+    shapes: [
+      {
+        id: 'cabinet',
+        loops: [
+          {
+            id: 'outline',
+            role: 'outer',
+            points: [
+              { x: 0, y: 0, out: { x: 10, y: 0 } },
+              { x: 100, y: 0 },
+              { x: 100, y: 100 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.addAnimationClip(state, { id: 'preview', durationMs: 1000, loop: false });
+  state = core.selectPath(state, 0, 0);
+  state = core.addTransformTracksFromSelection(state, 'preview', { origin: { mode: 'custom', x: 0, y: 0 } });
+  state = core.upsertTransformKeyframe(state, 'preview', 0, { timeMs: 1000, value: { tx: 10, rotation: Math.PI / 2, sx: 1, sy: 1 } });
+  const before = JSON.stringify(core.buildVectorPack(state).shapes[0].loops[0].points);
+
+  const preview = core.evaluateTransformClip(state, 'preview', 1000);
+
+  assert.equal(preview.stats.targetCount, 1);
+  assert.equal(preview.previews[0].loop.points[0].x, 10);
+  assert.equal(preview.previews[0].loop.points[0].y, 0);
+  assert.equal(JSON.stringify(preview.previews[0].loop.points[0].outHandle), '{"x":0,"y":10}');
+  assert.equal(JSON.stringify(core.buildVectorPack(state).shapes[0].loops[0].points), before);
+});
+
 test('animation bindings validate against clips while preserving bindings-only exports', () => {
   const bindingsOnly = core.importVectorPack({
     version: 1,
@@ -1439,6 +2013,276 @@ test('malformed imported animation is not exported but remains visible to valida
 
   assert.equal(exported.animation, undefined);
   assert.ok(validation.issues.some((issue) => issue.code === 'animation-malformed'));
+});
+
+test('schema-v2 graph animation is explicit and evaluates sparse point, handle, style, and loop keys', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', core.getSelectedPathRefs(state), {
+    timeMs: 0,
+    value: { tx: 5, ty: 0, rotation: 0, sx: 1, sy: 1 },
+  });
+  state = core.upsertPointDeltaGraphKeys(state, 'pose', [
+    { ref: { shapeIndex: 0, loopIndex: 0, pointIndex: 0 }, value: { x: 10, y: 0 } },
+  ], { timeMs: 0 });
+  state = core.upsertPointHandleDeltaGraphKey(
+    state,
+    'pose',
+    { shapeIndex: 0, loopIndex: 0, pointIndex: 0 },
+    'outHandle',
+    { timeMs: 0, value: { x: 4, y: 2 } },
+  );
+  state = core.upsertShapeStyleGraphKey(state, 'pose', 0, 'fill', '#00ccff', { timeMs: 0 });
+
+  const compatibilityPack = core.buildVectorPack(state);
+  assert.equal(compatibilityPack.animation, undefined);
+
+  const graphPack = core.buildVectorPack(state, { animationMode: 'graph' });
+  assert.equal(graphPack.animation.schemaVersion, 2);
+  assert.equal(graphPack.animation.clips[0].graph.outputs.length, 4);
+  assert.equal(
+    graphPack.animation.clips[0].graph.outputs.find((output) => output.property === 'shape.style.fill').blend,
+    'replace',
+  );
+  assert.equal(typeof graphPack.shapes[0].loops[0].points[0].id, 'string');
+
+  const preview = core.evaluateGraphClip(state, 'pose', 0);
+  assert.equal(preview.previews.length, 1);
+  assert.equal(preview.previews[0].loop.points[0].x, 15);
+  assert.equal(JSON.stringify(preview.previews[0].loop.points[0].outHandle), '{"x":4,"y":2}');
+  assert.equal(preview.previews[0].style.fill, '#00ccff');
+  assert.equal(core.getSelectedLoop(state).points[0].x, 0);
+  assert.equal(core.getSelectedLoop(state).points[0].outHandle, null);
+
+  const roundTrip = core.importVectorPack(graphPack);
+  assert.equal(core.buildVectorPack(roundTrip, { animationMode: 'graph' }).animation.schemaVersion, 2);
+});
+
+test('graph interpolation supports linear, smooth, and hold without mutating rest geometry', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'interp', durationMs: 1000, loop: false });
+  const ref = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+  state = core.upsertPointDeltaGraphKeys(state, 'interp', [
+    { ref, value: { x: 0, y: 0 } },
+  ], { timeMs: 0, interp: 'linear' });
+  state = core.upsertPointDeltaGraphKeys(state, 'interp', [
+    { ref, value: { x: 100, y: 0 } },
+  ], { timeMs: 1000, interp: 'linear' });
+
+  assert.equal(core.evaluateGraphClip(state, 'interp', 250).previews[0].loop.points[0].x, 25);
+
+  state = core.upsertPointDeltaGraphKeys(state, 'interp', [
+    { ref, value: { x: 100, y: 0 } },
+  ], { timeMs: 1000, interp: 'smooth' });
+  assert.equal(core.evaluateGraphClip(state, 'interp', 250).previews[0].loop.points[0].x, 15.625);
+
+  state = core.upsertPointDeltaGraphKeys(state, 'interp', [
+    { ref, value: { x: 100, y: 0 } },
+  ], { timeMs: 1000, interp: 'hold' });
+  assert.equal(core.evaluateGraphClip(state, 'interp', 500).previews[0].loop.points[0].x, 0);
+  assert.equal(core.getSelectedLoop(state).points[0].x, 0);
+});
+
+test('graph loop transforms preserve and evaluate skew on anchors and Bezier handles', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 160, height: 120 },
+    shapes: [
+      {
+        id: 'shape',
+        loops: [
+          {
+            id: 'outer',
+            role: 'outer',
+            closed: true,
+            points: [
+              { x: 0, y: 0, out: { x: 10, y: 0 } },
+              { x: 0, y: 10 },
+              { x: 10, y: 10 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.addAnimationClip(state, { id: 'skew', durationMs: 1000, loop: false });
+  const ref = { shapeIndex: 0, loopIndex: 0 };
+  const origin = { mode: 'canvas', x: 0, y: 0 };
+  state = core.upsertLoopTransformGraphKeys(state, 'skew', [ref], {
+    timeMs: 0,
+    interp: 'linear',
+    value: { tx: 5, ty: 7, rotation: 0, sx: 2, sy: 3, skewX: 0.25, skewY: -0.1 },
+  }, { origin });
+  state = core.upsertLoopTransformGraphKeys(state, 'skew', [ref], {
+    timeMs: 1000,
+    interp: 'linear',
+    value: { tx: 5, ty: 7, rotation: 0, sx: 2, sy: 3, skewX: 0.45, skewY: -0.3 },
+  }, { origin });
+
+  const graphPack = core.buildVectorPack(state, { animationMode: 'graph' });
+  assert.equal(graphPack.animation.clips[0].graph.nodes[0].keys[0].value.skewX, 0.25);
+  assert.equal(graphPack.animation.clips[0].graph.nodes[0].keys[0].value.skewY, -0.1);
+
+  const mid = core.graphValueForTarget(
+    state,
+    'skew',
+    'loop.transform',
+    core.pathRefToAnimationTarget(state, ref),
+    500,
+    { origin },
+  );
+  assert.equal(mid.skewX, 0.35);
+  assert.equal(mid.skewY, -0.2);
+
+  state = core.upsertLoopTransformGraphKeys(state, 'skew', [ref], {
+    timeMs: 1000,
+    interp: 'smooth',
+    value: { tx: 5, ty: 7, rotation: 0, sx: 2, sy: 3, skewX: 0.45, skewY: -0.3 },
+  }, { origin });
+  const smoothQuarter = core.graphValueForTarget(
+    state,
+    'skew',
+    'loop.transform',
+    core.pathRefToAnimationTarget(state, ref),
+    250,
+    { origin },
+  );
+  assert.equal(smoothQuarter.skewX, 0.281);
+  assert.equal(smoothQuarter.skewY, -0.131);
+
+  const preview = core.evaluateGraphClip(state, 'skew', 0).previews[0];
+  assert.ok(Math.abs(preview.loop.points[1].x - (5 + Math.tan(0.25) * 30)) < 0.01);
+  assert.equal(preview.loop.points[1].y, 37);
+  assert.equal(preview.loop.points[0].outHandle.x, 20);
+  assert.ok(Math.abs(preview.loop.points[0].outHandle.y - (Math.tan(-0.1) * 20)) < 0.01);
+  assert.equal(state.shapes[0].loops[0].points[1].x, 0);
+});
+
+test('schema-v2 import repairs targeted point ids and migrates resolvable pointIndex targets', () => {
+  const state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 120, height: 80 },
+    animation: {
+      schemaVersion: 2,
+      clips: [
+        {
+          id: 'pose',
+          durationMs: 400,
+          loop: false,
+          graph: {
+            nodes: [
+              {
+                id: 'point_delta',
+                type: 'keyframes.vec2',
+                keys: [{ timeMs: 0, interp: 'linear', value: { x: 6, y: 0 } }],
+              },
+            ],
+            outputs: [
+              {
+                source: 'point_delta',
+                property: 'point.positionDelta',
+                target: { shapeId: 'shape', loopId: 'outer', pointIndex: 1 },
+              },
+            ],
+          },
+        },
+      ],
+      bindings: { roll: 'pose' },
+    },
+    shapes: [
+      {
+        id: 'shape',
+        loops: [
+          {
+            id: 'outer',
+            role: 'outer',
+            closed: true,
+            points: [
+              { id: 'corner', x: 0, y: 0 },
+              { id: 'corner', x: 20, y: 0 },
+              { x: 20, y: 20 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  const pointIds = state.shapes[0].loops[0].points.map((point) => point.id);
+  assert.deepEqual(pointIds, ['corner', 'corner_2', 'pt_3']);
+  assert.equal(state.animation.clips[0].graph.outputs[0].target.pointId, 'corner_2');
+  assert.equal(state.animation.clips[0].graph.outputs[0].target.pointIndex, undefined);
+  assert.ok(state.animationIssues.some((issue) => issue.code === 'point-id-duplicate-repaired'));
+  assert.equal(core.evaluateGraphClip(state, 'pose', 0).previews[0].loop.points[1].x, 26);
+});
+
+test('same-playhead graph keying accumulates poses without mutating rest geometry', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 }, { outHandle: { x: 4, y: 0 } });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+  const pointRef = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+  const pathRef = { shapeIndex: 0, loopIndex: 0 };
+  const origin = { mode: 'canvas', x: 0, y: 0 };
+
+  state = core.upsertPointDeltaGraphKeys(state, 'pose', [{ ref: pointRef, value: { x: 4, y: 0 } }], { timeMs: 500 });
+  const pointBase = core.graphValueForTarget(
+    state,
+    'pose',
+    'point.positionDelta',
+    core.pointRefToAnimationTarget(state, pointRef),
+    500,
+  );
+  state = core.upsertPointDeltaGraphKeys(state, 'pose', [
+    { ref: pointRef, value: { x: pointBase.x + 3, y: pointBase.y + 2 } },
+  ], { timeMs: 500 });
+
+  state = core.upsertPointHandleDeltaGraphKey(state, 'pose', pointRef, 'outHandle', { timeMs: 500, value: { x: 2, y: 0 } });
+  const handleBase = core.graphValueForTarget(
+    state,
+    'pose',
+    'point.outHandleDelta',
+    core.pointRefToAnimationTarget(state, pointRef),
+    500,
+  );
+  state = core.upsertPointHandleDeltaGraphKey(state, 'pose', pointRef, 'outHandle', {
+    timeMs: 500,
+    value: { x: handleBase.x + 1, y: handleBase.y + 4 },
+  });
+
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [pathRef], { timeMs: 500, value: { tx: 5, ty: 0 } }, { origin });
+  const loopBase = core.graphValueForTarget(
+    state,
+    'pose',
+    'loop.transform',
+    core.pathRefToAnimationTarget(state, pathRef),
+    500,
+    { origin },
+  );
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [pathRef], {
+    timeMs: 500,
+    value: { ...loopBase, tx: loopBase.tx + 2, ty: loopBase.ty - 1 },
+  }, { origin });
+
+  const preview = core.evaluateGraphClip(state, 'pose', 500).previews[0].loop;
+  assert.equal(preview.points[0].x, 14);
+  assert.equal(preview.points[0].y, 1);
+  assert.equal(JSON.stringify(preview.points[0].outHandle), '{"x":7,"y":4}');
+  assert.equal(state.shapes[0].loops[0].points[0].x, 0);
+  assert.equal(JSON.stringify(state.shapes[0].loops[0].points[0].outHandle), '{"x":4,"y":0}');
 });
 
 test('tag presets add semantic tags and optional zone roles', () => {

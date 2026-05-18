@@ -4,6 +4,7 @@
   const VECTOR_PACK_KIND = 'duhrng-vector-pack';
   const VECTOR_PACK_VERSION = 1;
   const ANIMATION_SCHEMA_VERSION = 1;
+  const ANIMATION_GRAPH_SCHEMA_VERSION = 2;
   const DEFAULT_CANVAS = Object.freeze({ width: 1536, height: 1024 });
   const DEFAULT_STYLE = Object.freeze({
     fill: '#7b4a22',
@@ -45,7 +46,34 @@
     maxSegments: 96,
   });
   const TRANSFORM_VALUE_KEYS = Object.freeze(['tx', 'ty', 'rotation', 'sx', 'sy', 'skewX', 'skewY']);
-  const KNOWN_EASES = Object.freeze(['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeOutBack']);
+  const KNOWN_EASES = Object.freeze(['hold', 'linear', 'smooth', 'easeIn', 'easeOut', 'easeInOut', 'easeOutBack']);
+  const GRAPH_NODE_TYPES = Object.freeze([
+    'keyframes.number',
+    'keyframes.vec2',
+    'keyframes.color',
+    'keyframes.transform',
+  ]);
+  const GRAPH_OUTPUT_PROPERTIES = Object.freeze([
+    'loop.transform',
+    'point.positionDelta',
+    'point.inHandleDelta',
+    'point.outHandleDelta',
+    'shape.style.fill',
+    'shape.style.stroke',
+    'shape.style.strokeWidth',
+    'shape.opacity',
+  ]);
+  const GRAPH_INTERPOLATIONS = Object.freeze(['hold', 'linear', 'smooth', 'easeIn', 'easeOut', 'easeInOut']);
+  const ANIMATION_BINDING_PRESETS = Object.freeze([
+    'pullPress',
+    'pullRelease',
+    'roll',
+    'settle',
+    'damage',
+    'payout',
+    'intentPulse',
+    'click',
+  ]);
 
   function createInitialState() {
     return {
@@ -323,6 +351,32 @@
     return applyPointSelection(state, refs, options);
   }
 
+  function selectPathsInRect(state, rect, options = {}) {
+    const bounds = normalizeSelectionRect(rect);
+    if (!bounds) {
+      return applyPathSelection(state, [], options);
+    }
+    const refs = collectLassoPathRefs(state, options).filter(({ loop }) => (
+      loopHitsRect(loop, bounds)
+    )).map((item) => item.ref);
+    return applyPathSelection(state, refs, options);
+  }
+
+  function selectPathsInPolygon(state, polygon, options = {}) {
+    const points = Array.isArray(polygon)
+      ? polygon
+        .map((point) => ({ x: Number(point?.x), y: Number(point?.y) }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+      : [];
+    if (points.length < 3) {
+      return applyPathSelection(state, [], options);
+    }
+    const refs = collectLassoPathRefs(state, options).filter(({ loop }) => (
+      loopHitsPolygon(loop, points)
+    )).map((item) => item.ref);
+    return applyPathSelection(state, refs, options);
+  }
+
   function groupSelectedPaths(state) {
     const selectedPaths = getSelectedPathRefs(state);
     if (selectedPaths.length < 2) {
@@ -428,82 +482,93 @@
   }
 
   function scaleSelection(state, options = {}) {
-    const selectedPoints = getSelectedPointRefs(state);
-    if (selectedPoints.length) {
-      return scaleSelectedPoints(state, options);
-    }
-    return scaleSelectedPaths(state, options);
+    return transformSelection(state, options);
   }
 
   function scaleSelectedPoints(state, options = {}) {
-    const selectedPoints = getSelectedPointRefs(state);
-    if (!selectedPoints.length) {
-      return createScaleResult(state, 'points', 0, 0, options);
-    }
-    const scale = normalizeScaleOptions(options);
-    if (scale.scaleX === 1 && scale.scaleY === 1) {
-      return createScaleResult(state, 'points', selectedPoints.length, selectedPoints.length, scale);
-    }
-    const bounds = pointRefsBounds(state, selectedPoints);
-    if (!bounds) {
-      return createScaleResult(state, 'points', 0, 0, scale);
-    }
-    const origin = normalizeScaleOrigin(scale.origin, bounds);
-    const selectedKeys = new Set(selectedPoints.map(pointKey));
-    const shapes = state.shapes.map((shape, shapeIndex) => createShape({
-      ...cloneShape(shape),
-      loops: shape.loops.map((loop, loopIndex) => cleanLoop({
-        ...loop,
-        points: loop.points.map((point, pointIndex) => (
-          selectedKeys.has(pointKey(createPointRef(shapeIndex, loopIndex, pointIndex)))
-            ? scalePointAround(point, origin, scale.scaleX, scale.scaleY)
-            : clonePoint(point)
-        )),
-      })),
-    }));
-    return createScaleResult(
-      withSelectedPointRefs({ ...state, shapes }, selectedPoints),
-      'points',
-      selectedPoints.length,
-      selectedPoints.length,
-      { ...scale, origin },
-    );
+    return transformSelectedPoints(state, options);
   }
 
   function scaleSelectedPaths(state, options = {}) {
-    const refs = getLoopEditPathRefs(state);
-    if (!refs.length) {
-      return createScaleResult(state, 'paths', 0, 0, options);
+    return transformSelectedPaths(state, options);
+  }
+
+  function transformSelection(state, options = {}) {
+    const selectedPoints = getSelectedPointRefs(state);
+    if (selectedPoints.length) {
+      return transformSelectedPoints(state, options);
     }
-    const scale = normalizeScaleOptions(options);
-    if (scale.scaleX === 1 && scale.scaleY === 1) {
-      return createScaleResult(state, 'paths', refs.length, countPathRefPoints(state, refs), scale);
+    return transformSelectedPaths(state, options);
+  }
+
+  function transformSelectedPoints(state, options = {}) {
+    const target = resolveTransformTarget(state, 'points');
+    return applySelectionTransformToTarget(state, target, options);
+  }
+
+  function transformSelectedPaths(state, options = {}) {
+    const target = resolveTransformTarget(state, 'paths');
+    return applySelectionTransformToTarget(state, target, options);
+  }
+
+  function previewSelectionTransform(state, options = {}) {
+    const target = resolveTransformTarget(state);
+    const transform = normalizeTransformOptions(options);
+    const origin = resolveTransformOrigin(state, target, transform.origin);
+    const stats = createTransformStats(target, transform, origin);
+    if (!target.refs.length || !origin) {
+      return { previews: [], stats };
     }
-    const bounds = pathRefsBounds(state, refs);
-    if (!bounds) {
-      return createScaleResult(state, 'paths', 0, 0, scale);
+    return {
+      previews: buildTransformPreviews(state, target, { ...transform, origin }),
+      stats,
+    };
+  }
+
+  function applySelectionTransformToTarget(state, target, options = {}) {
+    const transform = normalizeTransformOptions(options);
+    const origin = resolveTransformOrigin(state, target, transform.origin);
+    const stats = createTransformStats(target, transform, origin);
+    if (!target.refs.length || !origin) {
+      return { state, stats };
     }
-    const origin = normalizeScaleOrigin(scale.origin, bounds);
-    const selectedKeys = new Set(refs.map(pathKey));
+
+    if (target.type === 'points') {
+      const selectedKeys = new Set(target.refs.map(pointKey));
+      const shapes = state.shapes.map((shape, shapeIndex) => createShape({
+        ...cloneShape(shape),
+        loops: shape.loops.map((loop, loopIndex) => cleanLoop({
+          ...loop,
+          points: loop.points.map((point, pointIndex) => (
+            selectedKeys.has(pointKey(createPointRef(shapeIndex, loopIndex, pointIndex)))
+              ? transformPointAround(point, origin, transform)
+              : clonePoint(point)
+          )),
+        })),
+      }));
+      return {
+        state: withSelectedPointRefs({ ...state, shapes }, target.refs),
+        stats,
+      };
+    }
+
+    const selectedKeys = new Set(target.refs.map(pathKey));
     const shapes = state.shapes.map((shape, shapeIndex) => createShape({
       ...cloneShape(shape),
       loops: shape.loops.map((loop, loopIndex) => (
         selectedKeys.has(pathKey(createPathRef(shapeIndex, loopIndex)))
-          ? scaleLoopAround(loop, origin, scale.scaleX, scale.scaleY)
+          ? transformLoopAround(loop, origin, transform)
           : cloneLoop(loop)
       )),
     }));
-    return createScaleResult(
-      {
+    return {
+      state: {
         ...state,
         shapes,
         selectedPaths: getSelectedPathRefs(state),
       },
-      'paths',
-      refs.length,
-      countPathRefPoints(state, refs),
-      { ...scale, origin },
-    );
+      stats,
+    };
   }
 
   function deleteSelectedPoints(state) {
@@ -684,6 +749,43 @@
       }
       return total + state.shapes[normalized.shapeIndex].loops[normalized.loopIndex].points.length;
     }, 0);
+  }
+
+  function ensurePointIdsForRefs(state, refs = []) {
+    const pointRefs = refs.map((ref) => normalizePointRef(state, ref)).filter(Boolean);
+    if (!pointRefs.length) {
+      return state;
+    }
+    const loopKeys = new Set(pointRefs.map(pathKey));
+    let changed = false;
+    const shapes = state.shapes.map((shape, shapeIndex) => createShape({
+      ...cloneShape(shape),
+      loops: shape.loops.map((loop, loopIndex) => {
+        if (!loopKeys.has(pathKey(createPathRef(shapeIndex, loopIndex)))) {
+          return cloneLoop(loop);
+        }
+        const usedIds = new Set();
+        const points = loop.points.map((point, pointIndex) => {
+          const baseId = normalizeLoopId(point.id) || defaultPointId(pointIndex);
+          const id = uniquePointId(baseId, usedIds);
+          usedIds.add(id);
+          if (point.id === id) {
+            return clonePoint(point);
+          }
+          changed = true;
+          return cleanPoint({ ...point, id });
+        });
+        return cleanLoop({ ...loop, points });
+      }),
+    }));
+    if (!changed) {
+      return state;
+    }
+    return withSelectedPointRefs({
+      ...state,
+      shapes,
+      selectedPaths: getSelectedPathRefs(state),
+    }, pointRefs);
   }
 
   function selectedPathBounds(state) {
@@ -1366,7 +1468,7 @@
     };
   }
 
-  function buildVectorPack(state) {
+  function buildVectorPack(state, options = {}) {
     const pack = {
       version: VECTOR_PACK_VERSION,
       kind: VECTOR_PACK_KIND,
@@ -1377,15 +1479,15 @@
       },
       shapes: state.shapes.map(buildShapeJson),
     };
-    const animation = cleanAnimation(state.animation);
+    const animation = animationForExport(cleanAnimation(state.animation), options);
     if (shouldExportAnimation(animation)) {
       pack.animation = animation;
     }
     return pack;
   }
 
-  function exportVectorPackJson(state) {
-    return `${JSON.stringify(buildVectorPack(state), null, 2)}\n`;
+  function exportVectorPackJson(state, options = {}) {
+    return `${JSON.stringify(buildVectorPack(state, options), null, 2)}\n`;
   }
 
   function importVectorPack(source) {
@@ -1397,21 +1499,146 @@
       throw new Error('Vector pack must contain at least one shape.');
     }
     const animationResult = importAnimation(parsed.animation);
+    const importedShapes = parsed.shapes.map(importShape);
+    const graphPointRepair = repairGraphPointIdentityOnImport(importedShapes, animationResult.animation);
     return {
       canvas: {
         width: Number(parsed.canvas?.width) || DEFAULT_CANVAS.width,
         height: Number(parsed.canvas?.height) || DEFAULT_CANVAS.height,
       },
       sourceImage: parsed.sourceImage || null,
-      animation: animationResult.animation,
-      animationIssues: animationResult.issues,
+      animation: graphPointRepair.animation,
+      animationIssues: animationResult.issues.concat(graphPointRepair.issues),
       viewport: { scale: 1, offsetX: 0, offsetY: 0 },
-      shapes: parsed.shapes.map(importShape),
+      shapes: graphPointRepair.shapes,
       selectedShapeIndex: 0,
       selectedLoopIndex: 0,
       selectedPointIndex: -1,
       selectedPaths: [createPathRef(0, 0)],
       selectedPoints: [],
+    };
+  }
+
+  function repairGraphPointIdentityOnImport(shapes, animation) {
+    if (
+      !animation ||
+      parseInteger(animation.schemaVersion, ANIMATION_SCHEMA_VERSION) !== ANIMATION_GRAPH_SCHEMA_VERSION
+    ) {
+      return { shapes, animation, issues: [] };
+    }
+    const issues = [];
+    const nextShapes = shapes.map(cloneShape);
+    const stateRef = () => ({ shapes: nextShapes });
+    const repairedLoopKeys = new Set();
+    const loopIdsByKey = new Map();
+
+    function repairLoop(shapeIndex, loopIndex) {
+      const key = pathKey(createPathRef(shapeIndex, loopIndex));
+      if (repairedLoopKeys.has(key)) {
+        return loopIdsByKey.get(key) || [];
+      }
+      repairedLoopKeys.add(key);
+      const shape = nextShapes[shapeIndex];
+      const loop = shape?.loops?.[loopIndex];
+      if (!loop) {
+        loopIdsByKey.set(key, []);
+        return [];
+      }
+      const duplicateCounts = pointIdCountMap(loop.points);
+      for (const [pointId, count] of duplicateCounts.entries()) {
+        if (count > 1) {
+          issues.push(createValidationIssue(
+            'point-id-duplicate-repaired',
+            VALIDATION_STATUS.warning,
+            `Imported graph loop "${normalizeLoopId(loop.id) || loopIndex + 1}" had duplicate point id "${pointId}"; duplicates were repaired.`,
+          ));
+        }
+      }
+      const usedIds = new Set();
+      let changed = false;
+      const ids = [];
+      const points = loop.points.map((point, pointIndex) => {
+        const rawId = normalizeLoopId(point.id);
+        const baseId = rawId || defaultPointId(pointIndex);
+        const id = uniquePointId(baseId, usedIds);
+        usedIds.add(id);
+        ids.push(id);
+        if (rawId === id) {
+          return clonePoint(point);
+        }
+        changed = true;
+        return cleanPoint({ ...point, id });
+      });
+      if (changed) {
+        const loops = shape.loops.slice();
+        loops[loopIndex] = cleanLoop({ ...loop, points });
+        nextShapes[shapeIndex] = createShape({ ...shape, loops });
+      }
+      loopIdsByKey.set(key, ids);
+      return ids;
+    }
+
+    let changedAnimation = false;
+    const clips = (animation.clips || []).map((clip, clipIndex) => {
+      if (!clip.graph?.outputs?.length) {
+        return clip;
+      }
+      let outputChanged = false;
+      const outputs = clip.graph.outputs.map((output) => {
+        if (!String(output.property || '').startsWith('point.')) {
+          return output;
+        }
+        const refs = resolveGraphPathRefs(stateRef(), output.target);
+        for (const ref of refs) {
+          repairLoop(ref.shapeIndex, ref.loopIndex);
+        }
+        const target = { ...(output.target || {}) };
+        const pointIndex = Number(target.pointIndex);
+        if (!normalizeLoopId(target.pointId) && Number.isInteger(pointIndex) && pointIndex >= 0 && refs.length) {
+          const idsAtIndex = new Set();
+          for (const ref of refs) {
+            const ids = repairLoop(ref.shapeIndex, ref.loopIndex);
+            if (ids[pointIndex]) {
+              idsAtIndex.add(ids[pointIndex]);
+            }
+          }
+          if (idsAtIndex.size === 1) {
+            target.pointId = Array.from(idsAtIndex)[0];
+            delete target.pointIndex;
+            outputChanged = true;
+            changedAnimation = true;
+            return cleanAnimationGraphOutput({ ...output, target }) || output;
+          }
+          issues.push(createValidationIssue(
+            'point-index-target-not-migrated',
+            VALIDATION_STATUS.warning,
+            'Imported graph pointIndex target spans loops with different point ids and was left as pointIndex.',
+          ));
+        }
+        return output;
+      });
+      if (!outputChanged) {
+        return clip;
+      }
+      return cleanAnimationClip({
+        ...clip,
+        graph: {
+          nodes: clip.graph.nodes,
+          outputs,
+        },
+      }, clipIndex);
+    });
+
+    const repairedAnimation = changedAnimation
+      ? cleanAnimation({
+        ...animation,
+        clips,
+      })
+      : animation;
+    return {
+      shapes: nextShapes,
+      animation: repairedAnimation,
+      issues,
     };
   }
 
@@ -1428,6 +1655,32 @@
 
   function cleanAnimation(animation) {
     return normalizeAnimation(animation).animation;
+  }
+
+  function animationForExport(animation, options = {}) {
+    const cleaned = cleanAnimation(animation);
+    if (!cleaned) {
+      return null;
+    }
+    if (options.animationMode === 'graph' || options.includeGraphAnimation === true) {
+      return cleaned;
+    }
+    if (parseInteger(cleaned.schemaVersion, ANIMATION_SCHEMA_VERSION) !== ANIMATION_GRAPH_SCHEMA_VERSION) {
+      return cleaned;
+    }
+    const clips = (cleaned.clips || [])
+      .map((clip, index) => cleanAnimationClip({
+        ...clip,
+        graph: null,
+        tracks: Array.isArray(clip.tracks) ? clip.tracks : [],
+      }, index))
+      .filter((clip) => (clip.tracks || []).length > 0);
+    const output = {
+      schemaVersion: ANIMATION_SCHEMA_VERSION,
+      clips,
+      bindings: clips.length ? cleanAnimationBindings(cleaned.bindings) : {},
+    };
+    return shouldExportAnimation(output) ? output : null;
   }
 
   function normalizeAnimation(animation) {
@@ -1448,7 +1701,10 @@
       };
     }
 
-    const schemaVersion = parseInteger(animation.schemaVersion, ANIMATION_SCHEMA_VERSION);
+    const requestedSchemaVersion = parseInteger(animation.schemaVersion, ANIMATION_SCHEMA_VERSION);
+    const schemaVersion = requestedSchemaVersion === ANIMATION_GRAPH_SCHEMA_VERSION
+      ? ANIMATION_GRAPH_SCHEMA_VERSION
+      : ANIMATION_SCHEMA_VERSION;
     const clips = [];
     if (animation.clips == null) {
       // Empty is fine; static exports omit the animation object.
@@ -1486,7 +1742,7 @@
 
   function cleanAnimationClip(clip, index) {
     const id = normalizeLoopId(clip.id) || `clip_${index + 1}`;
-    return {
+    const output = {
       id,
       label: String(clip.label || titleFromId(id)),
       durationMs: Math.max(0, Number(clip.durationMs) || 0),
@@ -1495,6 +1751,11 @@
         ? clip.tracks.map(cleanAnimationTrack).filter(Boolean)
         : [],
     };
+    const graph = cleanAnimationGraph(clip.graph);
+    if (graph) {
+      output.graph = graph;
+    }
+    return output;
   }
 
   function cleanAnimationTrack(track) {
@@ -1517,6 +1778,110 @@
     }
     if (isPlainObject(track.params)) {
       output.params = cloneJsonCompatible(track.params);
+    }
+    return output;
+  }
+
+  function cleanAnimationGraph(graph) {
+    if (!isPlainObject(graph)) {
+      return null;
+    }
+    const nodes = Array.isArray(graph.nodes)
+      ? graph.nodes.map(cleanAnimationGraphNode).filter(Boolean)
+      : [];
+    const outputs = Array.isArray(graph.outputs)
+      ? graph.outputs.map(cleanAnimationGraphOutput).filter(Boolean)
+      : [];
+    if (!nodes.length && !outputs.length) {
+      return null;
+    }
+    return { nodes, outputs };
+  }
+
+  function cleanAnimationGraphNode(node) {
+    if (!isPlainObject(node)) {
+      return null;
+    }
+    const id = normalizeLoopId(node.id);
+    if (!id) {
+      return null;
+    }
+    const type = String(node.type || '');
+    const output = {
+      id,
+      type: GRAPH_NODE_TYPES.includes(type) ? type : type || 'keyframes.number',
+      keys: Array.isArray(node.keys)
+        ? node.keys.filter(isPlainObject).map(cleanAnimationGraphKeyframe)
+        : [],
+    };
+    const origin = cleanAnimationOrigin(node.origin);
+    if (origin) {
+      output.origin = origin;
+    }
+    return output;
+  }
+
+  function cleanAnimationGraphKeyframe(keyframe) {
+    const output = {
+      timeMs: Math.max(0, Number(keyframe.timeMs) || 0),
+    };
+    const interp = String(keyframe.interp ?? keyframe.ease ?? 'smooth');
+    if (interp) {
+      output.interp = interp;
+    }
+    if (keyframe.value != null) {
+      output.value = cloneJsonCompatible(keyframe.value);
+    } else {
+      output.value = null;
+    }
+    return output;
+  }
+
+  function cleanAnimationGraphOutput(output) {
+    if (!isPlainObject(output)) {
+      return null;
+    }
+    const source = normalizeLoopId(output.source ?? output.nodeId);
+    if (!source) {
+      return null;
+    }
+    const property = String(output.property || '');
+    const cleaned = {
+      source,
+      target: cleanAnimationGraphTarget(output.target),
+      property: GRAPH_OUTPUT_PROPERTIES.includes(property) ? property : property,
+      blend: graphOutputDefaultBlend(property, output.blend),
+    };
+    const origin = cleanAnimationOrigin(output.origin);
+    if (origin) {
+      cleaned.origin = origin;
+    }
+    if (isPlainObject(output.params)) {
+      cleaned.params = cloneJsonCompatible(output.params);
+    }
+    return cleaned;
+  }
+
+  function graphOutputDefaultBlend(property, requestedBlend) {
+    const normalizedProperty = String(property || '');
+    if (normalizedProperty.startsWith('shape.style.') || normalizedProperty === 'shape.opacity') {
+      return 'replace';
+    }
+    return requestedBlend === 'replace' ? 'replace' : 'add';
+  }
+
+  function cleanAnimationGraphTarget(target) {
+    const output = cleanAnimationTarget(target);
+    if (!isPlainObject(target)) {
+      return output;
+    }
+    const pointId = normalizeLoopId(target.pointId);
+    const pointIndex = Number(target.pointIndex);
+    if (pointId) {
+      output.pointId = pointId;
+    }
+    if (Number.isInteger(pointIndex) && pointIndex >= 0) {
+      output.pointIndex = pointIndex;
     }
     return output;
   }
@@ -1617,6 +1982,716 @@
     const clipText = clipCount === 1 ? '1 clip' : `${clipCount} clips`;
     const bindingText = bindingCount === 1 ? '1 binding' : `${bindingCount} bindings`;
     return `${clipText} | ${bindingText} | schema ${cleaned.schemaVersion}`;
+  }
+
+  function addAnimationClip(state, overrides = {}) {
+    const animation = editableAnimation(state.animation);
+    const id = uniqueAnimationClipId(
+      overrides.id || `clip_${animation.clips.length + 1}`,
+      animation.clips,
+    );
+    const clip = cleanAnimationClip({
+      id,
+      label: overrides.label || titleFromId(id),
+      durationMs: overrides.durationMs ?? 1000,
+      loop: overrides.loop ?? true,
+      tracks: Array.isArray(overrides.tracks) ? overrides.tracks : [],
+    }, animation.clips.length);
+    return withCleanAnimation(state, {
+      ...animation,
+      clips: [...animation.clips, clip],
+    });
+  }
+
+  function updateAnimationClip(state, clipId, updates = {}) {
+    const animation = editableAnimation(state.animation);
+    const normalizedId = normalizeLoopId(clipId);
+    const index = animation.clips.findIndex((clip) => clip.id === normalizedId);
+    if (index < 0) {
+      return state;
+    }
+    const previousClip = animation.clips[index];
+    const requestedId = updates.id != null ? normalizeLoopId(updates.id) : previousClip.id;
+    const siblingClips = animation.clips.filter((_, clipIndex) => clipIndex !== index);
+    const nextId = requestedId === previousClip.id
+      ? previousClip.id
+      : uniqueAnimationClipId(requestedId || previousClip.id, siblingClips);
+    const nextClip = cleanAnimationClip({
+      ...previousClip,
+      ...updates,
+      id: nextId,
+      durationMs: Math.max(1, Number(updates.durationMs ?? previousClip.durationMs) || previousClip.durationMs || 1),
+      loop: updates.loop ?? previousClip.loop,
+      tracks: Array.isArray(updates.tracks) ? updates.tracks : previousClip.tracks,
+    }, index);
+    const clips = animation.clips.slice();
+    clips[index] = nextClip;
+    const bindings = { ...animation.bindings };
+    if (nextId !== previousClip.id) {
+      for (const [bindingName, bindingClipId] of Object.entries(bindings)) {
+        if (bindingClipId === previousClip.id) {
+          bindings[bindingName] = nextId;
+        }
+      }
+    }
+    return withCleanAnimation(state, { ...animation, clips, bindings });
+  }
+
+  function duplicateAnimationClip(state, clipId) {
+    const animation = editableAnimation(state.animation);
+    const source = animation.clips.find((clip) => clip.id === normalizeLoopId(clipId));
+    if (!source) {
+      return state;
+    }
+    const id = uniqueAnimationClipId(`${source.id}_copy`, animation.clips);
+    const clip = cleanAnimationClip({
+      ...cloneJsonCompatible(source),
+      id,
+      label: `${source.label || titleFromId(source.id)} Copy`,
+    }, animation.clips.length);
+    return withCleanAnimation(state, {
+      ...animation,
+      clips: [...animation.clips, clip],
+    });
+  }
+
+  function deleteAnimationClip(state, clipId) {
+    const animation = editableAnimation(state.animation);
+    const normalizedId = normalizeLoopId(clipId);
+    const clips = animation.clips.filter((clip) => clip.id !== normalizedId);
+    const bindings = Object.fromEntries(
+      Object.entries(animation.bindings).filter(([, bindingClipId]) => bindingClipId !== normalizedId),
+    );
+    return withCleanAnimation(state, { ...animation, clips, bindings });
+  }
+
+  function addTransformTracksFromSelection(state, clipId, options = {}) {
+    const animation = editableAnimation(state.animation);
+    const clipIndex = animation.clips.findIndex((clip) => clip.id === normalizeLoopId(clipId));
+    if (clipIndex < 0) {
+      return state;
+    }
+    const origin = animationCanvasOrigin(state, options.origin);
+    const targets = animationTargetsFromSelection(state);
+    if (!targets.length || !origin) {
+      return state;
+    }
+    const clip = animation.clips[clipIndex];
+    const tracks = [
+      ...clip.tracks,
+      ...targets.map((target) => cleanAnimationTrack({
+        target,
+        property: 'transform',
+        blend: 'add',
+        origin,
+        keyframes: [neutralTransformKeyframe(0)],
+      })),
+    ].filter(Boolean);
+    const clips = animation.clips.slice();
+    clips[clipIndex] = cleanAnimationClip({ ...clip, tracks }, clipIndex);
+    return withCleanAnimation(state, { ...animation, clips });
+  }
+
+  function upsertTransformKeyframe(state, clipId, trackIndex, keyframe) {
+    return updateAnimationTrack(state, clipId, trackIndex, (track, clip) => {
+      const timeMs = clampAnimationTime(keyframe.timeMs, clip.durationMs);
+      const nextKeyframe = cleanAnimationKeyframe({
+        ...keyframe,
+        timeMs,
+        value: normalizeTransformKeyframeValue(keyframe.value),
+      });
+      const keyframes = Array.isArray(track.keyframes)
+        ? track.keyframes.map(cleanAnimationKeyframe)
+        : [];
+      const existingIndex = keyframes.findIndex((item) => Number(item.timeMs) === timeMs);
+      if (existingIndex >= 0) {
+        keyframes[existingIndex] = nextKeyframe;
+      } else {
+        keyframes.push(nextKeyframe);
+      }
+      keyframes.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+      return { ...track, keyframes };
+    });
+  }
+
+  function deleteTransformKeyframe(state, clipId, trackIndex, keyframeIndex) {
+    return updateAnimationTrack(state, clipId, trackIndex, (track) => {
+      const keyframes = Array.isArray(track.keyframes)
+        ? track.keyframes.map(cleanAnimationKeyframe)
+        : [];
+      const index = parseInteger(keyframeIndex, -1);
+      if (index < 0 || index >= keyframes.length) {
+        return track;
+      }
+      keyframes.splice(index, 1);
+      return { ...track, keyframes };
+    });
+  }
+
+  function moveTransformKeyframe(state, clipId, trackIndex, keyframeIndex, timeMs) {
+    return updateAnimationTrack(state, clipId, trackIndex, (track, clip) => {
+      const keyframes = Array.isArray(track.keyframes)
+        ? track.keyframes.map(cleanAnimationKeyframe)
+        : [];
+      const index = parseInteger(keyframeIndex, -1);
+      if (index < 0 || index >= keyframes.length) {
+        return track;
+      }
+      keyframes[index] = cleanAnimationKeyframe({
+        ...keyframes[index],
+        timeMs: clampAnimationTime(timeMs, clip.durationMs),
+      });
+      keyframes.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+      return { ...track, keyframes };
+    });
+  }
+
+  function setRestTransformKeyframe(state, clipId, trackIndex, timeMs, options = {}) {
+    return upsertTransformKeyframe(state, clipId, trackIndex, {
+      timeMs,
+      ease: options.ease || 'linear',
+      value: restTransformValue(),
+    });
+  }
+
+  function copyTransformKeyframeToTime(state, clipId, trackIndex, keyframeIndex, timeMs) {
+    return updateAnimationTrack(state, clipId, trackIndex, (track, clip) => {
+      const keyframes = Array.isArray(track.keyframes)
+        ? track.keyframes.map(cleanAnimationKeyframe)
+        : [];
+      const index = parseInteger(keyframeIndex, -1);
+      if (index < 0 || index >= keyframes.length) {
+        return track;
+      }
+      const source = keyframes[index];
+      const nextKeyframe = cleanAnimationKeyframe({
+        ...source,
+        timeMs: clampAnimationTime(timeMs, clip.durationMs),
+        value: normalizeTransformKeyframeValue(source.value),
+      });
+      const existingIndex = keyframes.findIndex((item) => Number(item.timeMs) === Number(nextKeyframe.timeMs));
+      if (existingIndex >= 0) {
+        keyframes[existingIndex] = nextKeyframe;
+      } else {
+        keyframes.push(nextKeyframe);
+      }
+      keyframes.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+      return { ...track, keyframes };
+    });
+  }
+
+  function copyPreviousTransformKeyframeToTime(state, clipId, trackIndex, timeMs) {
+    return updateAnimationTrack(state, clipId, trackIndex, (track, clip) => {
+      const keyframes = Array.isArray(track.keyframes)
+        ? track.keyframes.map(cleanAnimationKeyframe).sort((a, b) => Number(a.timeMs) - Number(b.timeMs))
+        : [];
+      const targetTime = clampAnimationTime(timeMs, clip.durationMs);
+      let source = null;
+      for (const keyframe of keyframes) {
+        if (Number(keyframe.timeMs) < targetTime) {
+          source = keyframe;
+        }
+      }
+      if (!source) {
+        return track;
+      }
+      const nextKeyframe = cleanAnimationKeyframe({
+        ...source,
+        timeMs: targetTime,
+        value: normalizeTransformKeyframeValue(source.value),
+      });
+      const existingIndex = keyframes.findIndex((item) => Number(item.timeMs) === Number(nextKeyframe.timeMs));
+      if (existingIndex >= 0) {
+        keyframes[existingIndex] = nextKeyframe;
+      } else {
+        keyframes.push(nextKeyframe);
+      }
+      keyframes.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+      return { ...track, keyframes };
+    });
+  }
+
+  function updateAnimationBinding(state, bindingName, clipId) {
+    const binding = String(bindingName || '').trim();
+    if (!binding) {
+      return state;
+    }
+    const animation = editableAnimation(state.animation);
+    const bindings = { ...animation.bindings };
+    const normalizedClipId = normalizeLoopId(clipId);
+    if (normalizedClipId) {
+      bindings[binding] = normalizedClipId;
+    } else {
+      delete bindings[binding];
+    }
+    return withCleanAnimation(state, { ...animation, bindings });
+  }
+
+  function upsertLoopTransformGraphKeys(state, clipId, refs = getLoopEditPathRefs(state), keyframe = {}, options = {}) {
+    let nextState = state;
+    const normalizedRefs = refs.map((ref) => normalizePathRef(nextState, ref)).filter(Boolean);
+    if (!normalizedRefs.length) {
+      return nextState;
+    }
+    for (const ref of normalizedRefs) {
+      const origin = options.origin || animationCanvasOrigin(nextState, { mode: 'activeLoop' });
+      nextState = upsertGraphValueKey(nextState, clipId, {
+        property: 'loop.transform',
+        target: pathRefToAnimationTarget(nextState, ref),
+        value: normalizeTransformKeyframeValue(keyframe.value || keyframe),
+        timeMs: keyframe.timeMs ?? options.timeMs ?? 0,
+        interp: keyframe.interp || keyframe.ease || options.interp || 'smooth',
+        origin,
+      });
+    }
+    return nextState;
+  }
+
+  function upsertPointDeltaGraphKeys(state, clipId, items = [], keyOptions = {}) {
+    const refs = items.map((item) => normalizePointRef(state, item.ref || item)).filter(Boolean);
+    let nextState = ensurePointIdsForRefs(state, refs);
+    for (const item of items) {
+      const ref = normalizePointRef(nextState, item.ref || item);
+      if (!ref) {
+        continue;
+      }
+      nextState = upsertGraphValueKey(nextState, clipId, {
+        property: 'point.positionDelta',
+        target: pointRefToAnimationTarget(nextState, ref),
+        value: normalizeVec2Value(item.value || item.delta || item),
+        timeMs: keyOptions.timeMs ?? item.timeMs ?? 0,
+        interp: keyOptions.interp || item.interp || item.ease || 'smooth',
+      });
+    }
+    return nextState;
+  }
+
+  function upsertPointHandleDeltaGraphKey(state, clipId, ref, handleName, keyframe = {}, options = {}) {
+    const normalized = normalizePointRef(state, ref);
+    if (!normalized || !['inHandle', 'outHandle'].includes(handleName)) {
+      return state;
+    }
+    let nextState = ensurePointIdsForRefs(state, [normalized]);
+    const property = handleName === 'inHandle' ? 'point.inHandleDelta' : 'point.outHandleDelta';
+    nextState = upsertGraphValueKey(nextState, clipId, {
+      property,
+      target: pointRefToAnimationTarget(nextState, normalized),
+      value: normalizeVec2Value(keyframe.value || keyframe.delta || keyframe),
+      timeMs: keyframe.timeMs ?? options.timeMs ?? 0,
+      interp: keyframe.interp || keyframe.ease || options.interp || 'smooth',
+    });
+    return nextState;
+  }
+
+  function upsertShapeStyleGraphKey(state, clipId, shapeIndex, property, value, keyOptions = {}) {
+    const shape = state.shapes[shapeIndex];
+    const graphProperty = `shape.style.${property}`;
+    if (!shape || !GRAPH_OUTPUT_PROPERTIES.includes(graphProperty)) {
+      return state;
+    }
+    return upsertGraphValueKey(state, clipId, {
+      property: graphProperty,
+      target: { shapeId: normalizeId(shape.id) },
+      blend: 'replace',
+      value: normalizeGraphValueForProperty(graphProperty, value),
+      timeMs: keyOptions.timeMs ?? 0,
+      interp: keyOptions.interp || 'smooth',
+    });
+  }
+
+  function upsertShapeOpacityGraphKey(state, clipId, shapeIndex, value, keyOptions = {}) {
+    const shape = state.shapes[shapeIndex];
+    if (!shape) {
+      return state;
+    }
+    return upsertGraphValueKey(state, clipId, {
+      property: 'shape.opacity',
+      target: { shapeId: normalizeId(shape.id) },
+      blend: 'replace',
+      value: normalizeGraphValueForProperty('shape.opacity', value),
+      timeMs: keyOptions.timeMs ?? 0,
+      interp: keyOptions.interp || 'smooth',
+    });
+  }
+
+  function upsertGraphOutputKeyframe(state, clipId, outputIndex, keyframe = {}) {
+    return updateGraphOutputNode(state, clipId, outputIndex, (node, output, clip) => {
+      const property = String(output.property || '');
+      const timeMs = clampAnimationTime(keyframe.timeMs, clip.durationMs);
+      const nextKey = cleanAnimationGraphKeyframe({
+        timeMs,
+        interp: keyframe.interp || keyframe.ease || 'smooth',
+        value: normalizeGraphValueForProperty(property, keyframe.value),
+      });
+      return {
+        ...node,
+        keys: upsertSortedGraphKeys(node.keys, nextKey),
+      };
+    });
+  }
+
+  function deleteGraphOutputKeyframe(state, clipId, outputIndex, keyframeIndex) {
+    return updateGraphOutputNode(state, clipId, outputIndex, (node) => {
+      const keys = Array.isArray(node.keys) ? node.keys.map(cleanAnimationGraphKeyframe) : [];
+      const index = parseInteger(keyframeIndex, -1);
+      if (index < 0 || index >= keys.length) {
+        return node;
+      }
+      keys.splice(index, 1);
+      return { ...node, keys };
+    });
+  }
+
+  function moveGraphOutputKeyframe(state, clipId, outputIndex, keyframeIndex, timeMs) {
+    return updateGraphOutputNode(state, clipId, outputIndex, (node, output, clip) => {
+      const keys = Array.isArray(node.keys) ? node.keys.map(cleanAnimationGraphKeyframe) : [];
+      const index = parseInteger(keyframeIndex, -1);
+      if (index < 0 || index >= keys.length) {
+        return node;
+      }
+      keys[index] = cleanAnimationGraphKeyframe({
+        ...keys[index],
+        timeMs: clampAnimationTime(timeMs, clip.durationMs),
+      });
+      keys.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+      return { ...node, keys };
+    });
+  }
+
+  function setRestGraphOutputKeyframe(state, clipId, outputIndex, timeMs, options = {}) {
+    return updateGraphOutputNode(state, clipId, outputIndex, (node, output, clip) => {
+      const nextKey = cleanAnimationGraphKeyframe({
+        timeMs: clampAnimationTime(timeMs, clip.durationMs),
+        interp: options.interp || options.ease || 'smooth',
+        value: restGraphOutputValue(state, output),
+      });
+      return {
+        ...node,
+        keys: upsertSortedGraphKeys(node.keys, nextKey),
+      };
+    });
+  }
+
+  function copyGraphOutputKeyframeToTime(state, clipId, outputIndex, keyframeIndex, timeMs) {
+    return updateGraphOutputNode(state, clipId, outputIndex, (node, output, clip) => {
+      const keys = Array.isArray(node.keys) ? node.keys.map(cleanAnimationGraphKeyframe) : [];
+      const index = parseInteger(keyframeIndex, -1);
+      if (index < 0 || index >= keys.length) {
+        return node;
+      }
+      const nextKey = cleanAnimationGraphKeyframe({
+        ...keys[index],
+        timeMs: clampAnimationTime(timeMs, clip.durationMs),
+      });
+      return {
+        ...node,
+        keys: upsertSortedGraphKeys(keys, nextKey),
+      };
+    });
+  }
+
+  function copyPreviousGraphOutputKeyframeToTime(state, clipId, outputIndex, timeMs) {
+    return updateGraphOutputNode(state, clipId, outputIndex, (node, output, clip) => {
+      const keys = (Array.isArray(node.keys) ? node.keys : [])
+        .map(cleanAnimationGraphKeyframe)
+        .sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+      const targetTime = clampAnimationTime(timeMs, clip.durationMs);
+      let source = null;
+      for (const key of keys) {
+        if (Number(key.timeMs) < targetTime) {
+          source = key;
+        }
+      }
+      if (!source) {
+        return node;
+      }
+      const nextKey = cleanAnimationGraphKeyframe({
+        ...source,
+        timeMs: targetTime,
+      });
+      return {
+        ...node,
+        keys: upsertSortedGraphKeys(keys, nextKey),
+      };
+    });
+  }
+
+  function brushPointDeltas(state, brush = {}) {
+    const options = normalizeBrush(brush);
+    const refs = brushTargetRefs(state, options);
+    const output = [];
+    for (const pathRef of refs) {
+      const ref = normalizePathRef(state, pathRef);
+      if (!ref) {
+        continue;
+      }
+      const loop = state.shapes[ref.shapeIndex].loops[ref.loopIndex];
+      loop.points.forEach((point, pointIndex) => {
+        const distance = Math.hypot(point.x - options.center.x, point.y - options.center.y);
+        const weight = brushFalloffWeight(distance, options.radius, options);
+        if (weight <= 0) {
+          return;
+        }
+        output.push({
+          ref: createPointRef(ref.shapeIndex, ref.loopIndex, pointIndex),
+          value: {
+            x: round(options.dx * options.strength * weight),
+            y: round(options.dy * options.strength * weight),
+          },
+          weight,
+        });
+      });
+    }
+    return output;
+  }
+
+  function evaluateGraphClip(state, clipId, timeMs = 0) {
+    const animation = cleanAnimation(state.animation);
+    const clip = animation?.clips.find((item) => item.id === normalizeLoopId(clipId));
+    if (!clip?.graph) {
+      return { previews: [], stats: { clipId: '', timeMs: 0, nodeCount: 0, outputCount: 0, targetCount: 0 } };
+    }
+    const durationMs = Math.max(1, Number(clip.durationMs) || 1);
+    const clampedTime = clip.loop
+      ? ((Number(timeMs) || 0) % durationMs + durationMs) % durationMs
+      : clampAnimationTime(timeMs, durationMs);
+    const nodeMap = new Map((clip.graph.nodes || []).map((node) => [node.id, node]));
+    const loopPoseMap = new Map();
+    const shapeStyleMap = new Map();
+    const shapeOpacityMap = new Map();
+
+    function ensureLoopPose(ref) {
+      const normalized = normalizePathRef(state, ref);
+      if (!normalized) {
+        return null;
+      }
+      const key = pathKey(normalized);
+      if (loopPoseMap.has(key)) {
+        return loopPoseMap.get(key);
+      }
+      const shape = state.shapes[normalized.shapeIndex];
+      const sourceLoop = shape.loops[normalized.loopIndex];
+      const item = {
+        ref: normalized,
+        originalLoop: cloneLoop(sourceLoop),
+        loop: cloneLoop(sourceLoop),
+        style: { ...shape.style },
+        opacity: 1,
+      };
+      loopPoseMap.set(key, item);
+      return item;
+    }
+
+    for (const output of graphOutputsInEvaluationOrder(clip.graph.outputs || [])) {
+      const node = nodeMap.get(output.source);
+      if (!node) {
+        continue;
+      }
+      const property = String(output.property || '');
+      const value = evaluateGraphNodeValue(node, property, clampedTime);
+      if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
+        const pointRefs = resolveGraphPointRefs(state, output.target);
+        for (const pointRef of pointRefs) {
+          const pose = ensureLoopPose(pointRef);
+          if (!pose) {
+            continue;
+          }
+          const point = pose.loop.points[pointRef.pointIndex];
+          if (!point) {
+            continue;
+          }
+          const delta = normalizeVec2Value(value);
+          if (property === 'point.positionDelta') {
+            pose.loop.points[pointRef.pointIndex] = cleanPoint({
+              ...point,
+              x: point.x + delta.x,
+              y: point.y + delta.y,
+            });
+          } else {
+            const handleName = property === 'point.inHandleDelta' ? 'inHandle' : 'outHandle';
+            const base = point[handleName] || { x: 0, y: 0 };
+            const nextHandle = {
+              x: round(base.x + delta.x),
+              y: round(base.y + delta.y),
+            };
+            pose.loop.points[pointRef.pointIndex] = cleanPoint({
+              ...point,
+              [handleName]: isZeroVec2(nextHandle) ? null : nextHandle,
+            });
+          }
+        }
+      } else if (property === 'loop.transform') {
+        const transformValue = normalizeTransformKeyframeValue(value);
+        const refs = resolveGraphPathRefs(state, output.target);
+        for (const ref of refs) {
+          const pose = ensureLoopPose(ref);
+          if (!pose) {
+            continue;
+          }
+          const origin = output.origin && output.origin.mode === 'canvas'
+            ? { x: Number(output.origin.x), y: Number(output.origin.y) }
+            : originFromBounds(pathRefsBounds({ ...state, shapes: state.shapes.map(cloneShape) }, [ref]), 'selection');
+          if (!origin) {
+            continue;
+          }
+          pose.loop = translateLoop(
+            transformLoopAround(pose.loop, origin, {
+              scaleX: transformValue.sx,
+              scaleY: transformValue.sy,
+              skewX: transformValue.skewX,
+              skewY: transformValue.skewY,
+              rotation: transformValue.rotation,
+            }),
+            transformValue.tx,
+            transformValue.ty,
+          );
+        }
+      } else if (property.startsWith('shape.style.') || property === 'shape.opacity') {
+        const shapeRefs = resolveGraphShapeRefs(state, output.target);
+        for (const shapeIndex of shapeRefs) {
+          const shape = state.shapes[shapeIndex];
+          if (!shape) {
+            continue;
+          }
+          shape.loops.forEach((_, loopIndex) => ensureLoopPose(createPathRef(shapeIndex, loopIndex)));
+          if (property === 'shape.opacity') {
+            shapeOpacityMap.set(shapeIndex, normalizeGraphValueForProperty(property, value));
+            continue;
+          }
+          const style = shapeStyleMap.get(shapeIndex) || { ...shape.style };
+          if (property === 'shape.style.fill') {
+            style.fill = normalizeGraphValueForProperty(property, value);
+          } else if (property === 'shape.style.stroke') {
+            style.stroke = normalizeGraphValueForProperty(property, value);
+          } else if (property === 'shape.style.strokeWidth') {
+            style.strokeWidth = normalizeGraphValueForProperty(property, value);
+          }
+          shapeStyleMap.set(shapeIndex, style);
+        }
+      }
+    }
+
+    const previews = Array.from(loopPoseMap.values()).map((preview) => ({
+      ...preview,
+      style: shapeStyleMap.get(preview.ref.shapeIndex) || preview.style,
+      opacity: shapeOpacityMap.get(preview.ref.shapeIndex) ?? preview.opacity,
+    }));
+    return {
+      previews,
+      stats: {
+        clipId: clip.id,
+        timeMs: clampedTime,
+        nodeCount: clip.graph.nodes.length,
+        outputCount: clip.graph.outputs.length,
+        targetCount: previews.length,
+      },
+    };
+  }
+
+  function evaluateTransformClip(state, clipId, timeMs = 0) {
+    const animation = cleanAnimation(state.animation);
+    const clip = animation?.clips.find((item) => item.id === normalizeLoopId(clipId));
+    if (!clip) {
+      return { previews: [], stats: { clipId: '', timeMs: 0, trackCount: 0, targetCount: 0 } };
+    }
+    const durationMs = Math.max(1, Number(clip.durationMs) || 1);
+    const clampedTime = clip.loop
+      ? ((Number(timeMs) || 0) % durationMs + durationMs) % durationMs
+      : clampAnimationTime(timeMs, durationMs);
+    const loopMap = new Map();
+    for (const track of clip.tracks || []) {
+      if (track.property !== 'transform') {
+        continue;
+      }
+      const refs = resolveAnimationTrackPathRefs(state, track);
+      const value = evaluateTransformKeyframes(track.keyframes, clampedTime);
+      const origin = track.origin && track.origin.mode === 'canvas'
+        ? { x: Number(track.origin.x), y: Number(track.origin.y) }
+        : null;
+      if (!origin) {
+        continue;
+      }
+      for (const ref of refs) {
+        const key = pathKey(ref);
+        const sourceLoop = state.shapes[ref.shapeIndex].loops[ref.loopIndex];
+        const currentLoop = loopMap.get(key)?.loop || cloneLoop(sourceLoop);
+        const transformed = translateLoop(
+          transformLoopAround(currentLoop, origin, {
+            scaleX: value.sx,
+            scaleY: value.sy,
+            skewX: value.skewX,
+            skewY: value.skewY,
+            rotation: value.rotation,
+          }),
+          value.tx,
+          value.ty,
+        );
+        loopMap.set(key, {
+          ref,
+          originalLoop: cloneLoop(sourceLoop),
+          loop: transformed,
+        });
+      }
+    }
+    return {
+      previews: Array.from(loopMap.values()),
+      stats: {
+        clipId: clip.id,
+        timeMs: clampedTime,
+        trackCount: clip.tracks.length,
+        targetCount: loopMap.size,
+      },
+    };
+  }
+
+  function previewAnimationTrackPose(state, clipId, trackIndex, value = {}) {
+    const animation = cleanAnimation(state.animation);
+    const normalizedClipId = normalizeLoopId(clipId);
+    const clip = animation?.clips.find((item) => item.id === normalizedClipId);
+    const index = parseInteger(trackIndex, -1);
+    const track = clip?.tracks?.[index];
+    const stats = {
+      clipId: clip?.id || normalizedClipId || '',
+      trackIndex: index,
+      trackCount: clip?.tracks?.length || 0,
+      targetCount: 0,
+    };
+    if (!clip || !track || track.property !== 'transform') {
+      return { previews: [], stats };
+    }
+    const origin = track.origin && track.origin.mode === 'canvas'
+      ? { x: Number(track.origin.x), y: Number(track.origin.y) }
+      : null;
+    if (!origin || !Number.isFinite(origin.x) || !Number.isFinite(origin.y)) {
+      return { previews: [], stats };
+    }
+    const refs = resolveAnimationTrackPathRefs(state, track);
+    const transformValue = normalizeTransformKeyframeValue(value);
+    const previews = refs.map((ref) => {
+      const sourceLoop = state.shapes[ref.shapeIndex].loops[ref.loopIndex];
+      return {
+        ref,
+        originalLoop: cloneLoop(sourceLoop),
+        loop: translateLoop(
+          transformLoopAround(sourceLoop, origin, {
+            scaleX: transformValue.sx,
+            scaleY: transformValue.sy,
+            skewX: transformValue.skewX,
+            skewY: transformValue.skewY,
+            rotation: transformValue.rotation,
+          }),
+          transformValue.tx,
+          transformValue.ty,
+        ),
+      };
+    });
+    return {
+      previews,
+      stats: {
+        ...stats,
+        targetCount: previews.length,
+      },
+    };
   }
 
   function validateState(state) {
@@ -1745,6 +2820,18 @@
       ));
     }
 
+    const pointIdCounts = pointIdCountMap(points);
+    points.forEach((point, pointIndex) => {
+      const pointId = normalizeLoopId(point?.id);
+      if (pointId && (pointIdCounts.get(pointId) || 0) > 1) {
+        issues.push(createValidationIssue(
+          'point-id-duplicate',
+          VALIDATION_STATUS.warning,
+          `${label} point ${pointIndex + 1} uses duplicate point id "${pointId}".`,
+        ));
+      }
+    });
+
     return {
       status: statusFromIssues(issues),
       issues,
@@ -1776,11 +2863,12 @@
         clipReports,
       };
     }
-    if (parseInteger(animation.schemaVersion, ANIMATION_SCHEMA_VERSION) !== ANIMATION_SCHEMA_VERSION) {
+    const schemaVersion = parseInteger(animation.schemaVersion, ANIMATION_SCHEMA_VERSION);
+    if (![ANIMATION_SCHEMA_VERSION, ANIMATION_GRAPH_SCHEMA_VERSION].includes(schemaVersion)) {
       issues.push(createValidationIssue(
         'animation-schema-version',
         VALIDATION_STATUS.warning,
-        `Animation schemaVersion should be ${ANIMATION_SCHEMA_VERSION}.`,
+        `Animation schemaVersion should be ${ANIMATION_SCHEMA_VERSION} or ${ANIMATION_GRAPH_SCHEMA_VERSION}.`,
       ));
     }
     if (!Array.isArray(animation.clips)) {
@@ -1792,7 +2880,7 @@
     } else {
       const clipIdCounts = animationIdCountMap(animation.clips);
       animation.clips.forEach((clip, clipIndex) => {
-        const clipReport = validateAnimationClip(state, clip, clipIndex, clipIdCounts);
+        const clipReport = validateAnimationClip(state, clip, clipIndex, clipIdCounts, schemaVersion);
         clipReports.push(clipReport);
         issues.push(...clipReport.issues);
       });
@@ -1840,7 +2928,7 @@
     return issues;
   }
 
-  function validateAnimationClip(state, clip, clipIndex, clipIdCounts) {
+  function validateAnimationClip(state, clip, clipIndex, clipIdCounts, schemaVersion = ANIMATION_SCHEMA_VERSION) {
     const issues = [];
     const clipId = normalizeLoopId(clip?.id);
     const label = clipId || `clip ${clipIndex + 1}`;
@@ -1875,10 +2963,156 @@
         issues.push(...validateAnimationTrack(state, track, `${label} track ${trackIndex + 1}`));
       });
     }
+    if (schemaVersion === ANIMATION_GRAPH_SCHEMA_VERSION) {
+      issues.push(...validateAnimationGraph(state, clip?.graph, label));
+    }
     return {
       status: statusFromIssues(issues),
       issues,
     };
+  }
+
+  function validateAnimationGraph(state, graph, label) {
+    const issues = [];
+    if (graph == null) {
+      return issues;
+    }
+    if (!isPlainObject(graph)) {
+      return [
+        createValidationIssue(
+          'animation-graph-malformed',
+          VALIDATION_STATUS.warning,
+          `Animation clip "${label}" graph must be an object.`,
+        ),
+      ];
+    }
+    if (!Array.isArray(graph.nodes)) {
+      issues.push(createValidationIssue(
+        'animation-graph-nodes-malformed',
+        VALIDATION_STATUS.warning,
+        `Animation clip "${label}" graph nodes must be a list.`,
+      ));
+    }
+    if (!Array.isArray(graph.outputs)) {
+      issues.push(createValidationIssue(
+        'animation-graph-outputs-malformed',
+        VALIDATION_STATUS.warning,
+        `Animation clip "${label}" graph outputs must be a list.`,
+      ));
+    }
+    const nodeIdCounts = animationIdCountMap(graph.nodes || []);
+    const nodeIds = new Set();
+    (graph.nodes || []).forEach((node, nodeIndex) => {
+      const nodeLabel = `${label} graph node ${nodeIndex + 1}`;
+      const id = normalizeLoopId(node?.id);
+      if (!id) {
+        issues.push(createValidationIssue(
+          'animation-graph-node-id-missing',
+          VALIDATION_STATUS.warning,
+          `${nodeLabel} is missing an id.`,
+        ));
+      } else {
+        nodeIds.add(id);
+        if ((nodeIdCounts.get(id) || 0) > 1) {
+          issues.push(createValidationIssue(
+            'animation-graph-node-id-duplicate',
+            VALIDATION_STATUS.warning,
+            `${nodeLabel} uses duplicate id "${id}".`,
+          ));
+        }
+      }
+      if (!GRAPH_NODE_TYPES.includes(String(node?.type || ''))) {
+        issues.push(createValidationIssue(
+          'animation-graph-node-type-unknown',
+          VALIDATION_STATUS.warning,
+          `${nodeLabel} uses unknown type "${node?.type || '(missing)'}".`,
+        ));
+      }
+      issues.push(...validateGraphKeyframes(node?.keys, nodeLabel));
+    });
+    (graph.outputs || []).forEach((output, outputIndex) => {
+      const outputLabel = `${label} graph output ${outputIndex + 1}`;
+      const property = String(output?.property || '');
+      const source = normalizeLoopId(output?.source);
+      if (!source || !nodeIds.has(source)) {
+        issues.push(createValidationIssue(
+          'animation-graph-output-source-missing',
+          VALIDATION_STATUS.warning,
+          `${outputLabel} targets missing source node "${source || '(missing)'}".`,
+        ));
+      }
+      if (!GRAPH_OUTPUT_PROPERTIES.includes(property)) {
+        issues.push(createValidationIssue(
+          'animation-graph-output-property-unknown',
+          VALIDATION_STATUS.warning,
+          `${outputLabel} uses unknown property "${property || '(missing)'}".`,
+        ));
+      }
+      if (property.startsWith('point.')) {
+        if (!resolveGraphPointRefs(state, output?.target).length) {
+          issues.push(createValidationIssue(
+            'animation-graph-target-zero-points',
+            VALIDATION_STATUS.warning,
+            `${outputLabel} point target resolves zero points.`,
+          ));
+        }
+      } else if (property.startsWith('shape.')) {
+        if (!resolveGraphShapeRefs(state, output?.target).length) {
+          issues.push(createValidationIssue(
+            'animation-graph-target-zero-shapes',
+            VALIDATION_STATUS.warning,
+            `${outputLabel} shape target resolves zero shapes.`,
+          ));
+        }
+      } else if (!resolveGraphPathRefs(state, output?.target).length) {
+        issues.push(createValidationIssue(
+          'animation-graph-target-zero-loops',
+          VALIDATION_STATUS.warning,
+          `${outputLabel} loop target resolves zero loops.`,
+        ));
+      }
+    });
+    return issues;
+  }
+
+  function validateGraphKeyframes(keys, label) {
+    const issues = [];
+    if (!Array.isArray(keys) || !keys.length) {
+      issues.push(createValidationIssue(
+        'animation-graph-keyframes-malformed',
+        VALIDATION_STATUS.warning,
+        `${label} needs graph keyframes.`,
+      ));
+      return issues;
+    }
+    let previousTime = -Infinity;
+    keys.forEach((keyframe, index) => {
+      const frameLabel = `${label} key ${index + 1}`;
+      const time = Number(keyframe?.timeMs);
+      if (!Number.isFinite(time)) {
+        issues.push(createValidationIssue(
+          'animation-graph-keyframe-time',
+          VALIDATION_STATUS.warning,
+          `${frameLabel} needs numeric timeMs.`,
+        ));
+      } else if (time < previousTime) {
+        issues.push(createValidationIssue(
+          'animation-graph-keyframes-order',
+          VALIDATION_STATUS.warning,
+          `${label} graph keyframes must be ordered by timeMs.`,
+        ));
+      }
+      previousTime = Number.isFinite(time) ? time : previousTime;
+      const interp = String(keyframe?.interp ?? keyframe?.ease ?? 'smooth');
+      if (!GRAPH_INTERPOLATIONS.includes(interp)) {
+        issues.push(createValidationIssue(
+          'animation-graph-interp-unknown',
+          VALIDATION_STATUS.warning,
+          `${frameLabel} uses unknown interpolation "${interp}".`,
+        ));
+      }
+    });
+    return issues;
   }
 
   function validateAnimationTrack(state, track, label) {
@@ -2179,6 +3413,10 @@
     return `${role}_${Math.max(0, parseInteger(loopIndex, 0)) + 1}`;
   }
 
+  function defaultPointId(pointIndex) {
+    return `pt_${Math.max(0, parseInteger(pointIndex, 0)) + 1}`;
+  }
+
   function normalizeShapeLoopIds(loops) {
     const usedIds = new Set();
     return (Array.isArray(loops) ? loops : []).map((loop, index) => {
@@ -2202,10 +3440,33 @@
     return `${normalized}_${suffix}`;
   }
 
+  function uniquePointId(baseId, usedIds) {
+    const normalized = normalizeLoopId(baseId) || 'pt';
+    if (!usedIds.has(normalized)) {
+      return normalized;
+    }
+    let suffix = 2;
+    while (usedIds.has(`${normalized}_${suffix}`)) {
+      suffix += 1;
+    }
+    return `${normalized}_${suffix}`;
+  }
+
   function loopIdCountMap(loops) {
     const counts = new Map();
     for (const loop of Array.isArray(loops) ? loops : []) {
       const id = normalizeLoopId(loop?.id);
+      if (id) {
+        counts.set(id, (counts.get(id) || 0) + 1);
+      }
+    }
+    return counts;
+  }
+
+  function pointIdCountMap(points) {
+    const counts = new Map();
+    for (const point of Array.isArray(points) ? points : []) {
+      const id = normalizeLoopId(point?.id);
       if (id) {
         counts.set(id, (counts.get(id) || 0) + 1);
       }
@@ -2261,12 +3522,17 @@
   }
 
   function cleanPoint(point) {
-    return {
+    const id = normalizeLoopId(point.id);
+    const output = {
       x: round(Number(point.x) || 0),
       y: round(Number(point.y) || 0),
       inHandle: cleanHandle(point.inHandle ?? point.in),
       outHandle: cleanHandle(point.outHandle ?? point.out),
     };
+    if (id) {
+      output.id = id;
+    }
+    return output;
   }
 
   function exportPoint(point) {
@@ -2274,6 +3540,10 @@
       x: round(point.x),
       y: round(point.y),
     };
+    const id = normalizeLoopId(point.id);
+    if (id) {
+      output.id = id;
+    }
     if (point.inHandle) {
       output.in = cleanHandle(point.inHandle);
     }
@@ -2408,26 +3678,70 @@
   }
 
   function scaleLoopAround(loop, origin, scaleX, scaleY) {
+    return transformLoopAround(loop, origin, { scaleX, scaleY, skewX: 0, skewY: 0, rotation: 0 });
+  }
+
+  function transformLoopAround(loop, origin, transform) {
     return cleanLoop({
       ...loop,
-      points: loop.points.map((point) => scalePointAround(point, origin, scaleX, scaleY)),
+      points: loop.points.map((point) => transformPointAround(point, origin, transform)),
     });
   }
 
   function scalePointAround(point, origin, scaleX, scaleY) {
+    return transformPointAround(point, origin, { scaleX, scaleY, skewX: 0, skewY: 0, rotation: 0 });
+  }
+
+  function transformPointAround(point, origin, transform) {
+    const local = transformLinearVector(
+      { x: point.x - origin.x, y: point.y - origin.y },
+      transform,
+    );
     return cleanPoint({
       ...point,
-      x: origin.x + (point.x - origin.x) * scaleX,
-      y: origin.y + (point.y - origin.y) * scaleY,
-      inHandle: scaleHandle(point.inHandle, scaleX, scaleY),
-      outHandle: scaleHandle(point.outHandle, scaleX, scaleY),
+      x: origin.x + local.x,
+      y: origin.y + local.y,
+      inHandle: transformHandle(point.inHandle, transform),
+      outHandle: transformHandle(point.outHandle, transform),
     });
   }
 
   function scaleHandle(handle, scaleX, scaleY) {
+    return transformHandle(handle, { scaleX, scaleY, skewX: 0, skewY: 0, rotation: 0 });
+  }
+
+  function transformHandle(handle, transform) {
     return handle
-      ? cleanHandle({ x: handle.x * scaleX, y: handle.y * scaleY })
+      ? cleanHandle(transformLinearVector(handle, transform))
       : null;
+  }
+
+  function transformLinearVector(vector, transform = {}) {
+    const scaleX = finiteOr(transform.scaleX ?? transform.sx, 1);
+    const scaleY = finiteOr(transform.scaleY ?? transform.sy, 1);
+    const skewX = finiteOr(transform.skewX, 0);
+    const skewY = finiteOr(transform.skewY, 0);
+    const scaled = {
+      x: Number(vector.x) * scaleX,
+      y: Number(vector.y) * scaleY,
+    };
+    const skewed = {
+      x: scaled.x + Math.tan(skewX) * scaled.y,
+      y: Math.tan(skewY) * scaled.x + scaled.y,
+    };
+    return rotateVector(skewed, finiteOr(transform.rotation, 0));
+  }
+
+  function rotateVector(vector, radians) {
+    if (!radians) {
+      return { x: round(vector.x), y: round(vector.y) };
+    }
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    return {
+      x: round(vector.x * cos - vector.y * sin),
+      y: round(vector.x * sin + vector.y * cos),
+    };
   }
 
   function removeNearDuplicateLoop(loop, threshold) {
@@ -3291,6 +4605,155 @@
     return withSelectedPointRefs(state, nextPoints);
   }
 
+  function applyPathSelection(state, refs, options = {}) {
+    const selectedPaths = options.toggle ? getSelectedPathRefs(state) : [];
+    const nextPaths = selectedPaths.slice();
+    const normalizedRefs = uniquePathRefs(state, refs);
+    for (const ref of normalizedRefs) {
+      const existingIndex = nextPaths.findIndex((item) => samePathRef(item, ref));
+      if (options.toggle) {
+        if (existingIndex >= 0) {
+          nextPaths.splice(existingIndex, 1);
+        } else {
+          nextPaths.push(ref);
+        }
+      } else if (existingIndex < 0) {
+        nextPaths.push(ref);
+      }
+    }
+
+    const selectedPathsAfter = uniquePathRefs(state, nextPaths);
+    const activeRef = selectedPathsAfter[selectedPathsAfter.length - 1] || null;
+    return {
+      ...state,
+      selectedShapeIndex: activeRef?.shapeIndex ?? state.selectedShapeIndex,
+      selectedLoopIndex: activeRef?.loopIndex ?? state.selectedLoopIndex,
+      selectedPointIndex: -1,
+      selectedPaths: selectedPathsAfter,
+      selectedPoints: [],
+    };
+  }
+
+  function collectLassoPathRefs(state, options = {}) {
+    const refs = [];
+    state.shapes.forEach((shape, shapeIndex) => {
+      shape.loops.forEach((loop, loopIndex) => {
+        if (options.filledOnly && !isFilledLassoLoop(loop)) {
+          return;
+        }
+        if (!loop.points.length) {
+          return;
+        }
+        refs.push({
+          ref: createPathRef(shapeIndex, loopIndex),
+          loop,
+        });
+      });
+    });
+    return refs;
+  }
+
+  function isFilledLassoLoop(loop) {
+    return loop.closed && loop.role !== 'detail' && loop.points.length >= 3;
+  }
+
+  function normalizeSelectionRect(rect) {
+    const x1 = Number(rect?.x1);
+    const x2 = Number(rect?.x2);
+    const y1 = Number(rect?.y1);
+    const y2 = Number(rect?.y2);
+    if (![x1, x2, y1, y2].every(Number.isFinite)) {
+      return null;
+    }
+    return {
+      minX: Math.min(x1, x2),
+      maxX: Math.max(x1, x2),
+      minY: Math.min(y1, y2),
+      maxY: Math.max(y1, y2),
+    };
+  }
+
+  function loopHitsRect(loop, rect) {
+    const samples = loopSelectionSamples(loop);
+    if (samples.some((point) => pointInRect(point, rect))) {
+      return true;
+    }
+    if (!loop.closed || samples.length < 3) {
+      return false;
+    }
+    if (pointInPolygon(rectCenter(rect), samples)) {
+      return true;
+    }
+    return rectCorners(rect).some((point) => pointInPolygon(point, samples));
+  }
+
+  function loopHitsPolygon(loop, polygon) {
+    const samples = loopSelectionSamples(loop);
+    if (samples.some((point) => pointInPolygon(point, polygon))) {
+      return true;
+    }
+    if (!loop.closed || samples.length < 3) {
+      return false;
+    }
+    if (pointInPolygon(polygonBoundsCenter(polygon), samples)) {
+      return true;
+    }
+    return polygon.some((point) => pointInPolygon(point, samples));
+  }
+
+  function loopSelectionSamples(loop) {
+    const samples = sampleLoopPath(loop, {
+      sampleSpacing: 4,
+      minSampleDistance: 0.01,
+    });
+    return samples.length
+      ? samples
+      : loop.points.map((point) => ({ x: point.x, y: point.y }));
+  }
+
+  function pointInRect(point, rect) {
+    return (
+      point.x >= rect.minX &&
+      point.x <= rect.maxX &&
+      point.y >= rect.minY &&
+      point.y <= rect.maxY
+    );
+  }
+
+  function rectCenter(rect) {
+    return {
+      x: (rect.minX + rect.maxX) / 2,
+      y: (rect.minY + rect.maxY) / 2,
+    };
+  }
+
+  function rectCorners(rect) {
+    return [
+      { x: rect.minX, y: rect.minY },
+      { x: rect.maxX, y: rect.minY },
+      { x: rect.maxX, y: rect.maxY },
+      { x: rect.minX, y: rect.maxY },
+    ];
+  }
+
+  function polygonBoundsCenter(polygon) {
+    const bounds = polygon.reduce((acc, point) => ({
+      minX: Math.min(acc.minX, point.x),
+      maxX: Math.max(acc.maxX, point.x),
+      minY: Math.min(acc.minY, point.y),
+      maxY: Math.max(acc.maxY, point.y),
+    }), {
+      minX: Infinity,
+      maxX: -Infinity,
+      minY: Infinity,
+      maxY: -Infinity,
+    });
+    return {
+      x: (bounds.minX + bounds.maxX) / 2,
+      y: (bounds.minY + bounds.maxY) / 2,
+    };
+  }
+
   function withSelectedPointRefs(state, refs, overrides = {}) {
     const selectedPoints = uniquePointRefs(state, refs);
     const activeRef = selectedPoints[selectedPoints.length - 1] || null;
@@ -3309,6 +4772,17 @@
     for (const ref of Array.isArray(refs) ? refs : []) {
       const normalized = normalizePointRef(state, ref);
       if (normalized && !output.some((item) => samePointRef(item, normalized))) {
+        output.push(normalized);
+      }
+    }
+    return output;
+  }
+
+  function uniquePathRefs(state, refs) {
+    const output = [];
+    for (const ref of Array.isArray(refs) ? refs : []) {
+      const normalized = normalizePathRef(state, ref);
+      if (normalized && !output.some((item) => samePathRef(item, normalized))) {
         output.push(normalized);
       }
     }
@@ -3356,14 +4830,818 @@
     return `${normalized}_${suffix}`;
   }
 
-  function normalizeScaleOptions(options = {}) {
+  function uniqueAnimationClipId(baseId, clips) {
+    const normalized = normalizeLoopId(baseId) || 'clip';
+    const existing = new Set((Array.isArray(clips) ? clips : []).map((clip) => normalizeLoopId(clip?.id)));
+    if (!existing.has(normalized)) {
+      return normalized;
+    }
+    let suffix = 2;
+    while (existing.has(`${normalized}_${suffix}`)) {
+      suffix += 1;
+    }
+    return `${normalized}_${suffix}`;
+  }
+
+  function uniqueGraphNodeId(baseId, nodes) {
+    const normalized = normalizeLoopId(baseId) || 'node';
+    const existing = new Set((Array.isArray(nodes) ? nodes : []).map((node) => normalizeLoopId(node?.id)));
+    if (!existing.has(normalized)) {
+      return normalized;
+    }
+    let suffix = 2;
+    while (existing.has(`${normalized}_${suffix}`)) {
+      suffix += 1;
+    }
+    return `${normalized}_${suffix}`;
+  }
+
+  function nodeTypeForGraphProperty(property) {
+    if (property === 'loop.transform') {
+      return 'keyframes.transform';
+    }
+    if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
+      return 'keyframes.vec2';
+    }
+    if (property === 'shape.style.fill' || property === 'shape.style.stroke') {
+      return 'keyframes.color';
+    }
+    return 'keyframes.number';
+  }
+
+  function graphNodeIdBase(property, target) {
+    const targetId = [
+      target?.shapeId,
+      target?.loopId ?? (target?.loopIndex != null ? `loop_${target.loopIndex}` : ''),
+      target?.pointId ?? (target?.pointIndex != null ? `point_${target.pointIndex}` : ''),
+      Array.isArray(target?.tags) ? target.tags.join('_') : '',
+    ].filter(Boolean).join('_');
+    return `${property.replace(/\./g, '_')}_${targetId || 'target'}`;
+  }
+
+  function graphOutputMatchKey(output) {
+    return stableStringify({
+      property: output?.property || '',
+      target: output?.target || {},
+      origin: output?.origin || null,
+    });
+  }
+
+  function graphOutputsInEvaluationOrder(outputs) {
+    return (Array.isArray(outputs) ? outputs : [])
+      .map((output, index) => ({ output, index, priority: graphOutputPriority(output?.property) }))
+      .sort((a, b) => a.priority - b.priority || a.index - b.index)
+      .map((item) => item.output);
+  }
+
+  function graphOutputPriority(property) {
+    if (String(property || '').startsWith('point.')) {
+      return 0;
+    }
+    if (String(property || '').startsWith('shape.')) {
+      return 1;
+    }
+    if (property === 'loop.transform') {
+      return 2;
+    }
+    return 3;
+  }
+
+  function stableStringify(value) {
+    if (Array.isArray(value)) {
+      return `[${value.map(stableStringify).join(',')}]`;
+    }
+    if (isPlainObject(value)) {
+      return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  function isZeroVec2(value) {
+    return Math.abs(Number(value?.x) || 0) < 0.0001 && Math.abs(Number(value?.y) || 0) < 0.0001;
+  }
+
+  function interpolateColor(fromValue, toValue, t) {
+    const from = parseHexColor(normalizeColor(fromValue, '#ffffff'));
+    const to = parseHexColor(normalizeColor(toValue, '#ffffff'));
+    return rgbToHex({
+      r: Math.round(lerp(from.r, to.r, t)),
+      g: Math.round(lerp(from.g, to.g, t)),
+      b: Math.round(lerp(from.b, to.b, t)),
+    });
+  }
+
+  function parseHexColor(value) {
+    const normalized = String(value || '#ffffff').replace('#', '').slice(0, 6).padEnd(6, 'f');
+    const parsed = Number.parseInt(normalized, 16);
+    return {
+      r: (parsed >> 16) & 255,
+      g: (parsed >> 8) & 255,
+      b: parsed & 255,
+    };
+  }
+
+  function rgbToHex(color) {
+    return `#${hexByte(color.r)}${hexByte(color.g)}${hexByte(color.b)}`;
+  }
+
+  function hexByte(value) {
+    return clamp(Math.round(Number(value) || 0), 0, 255).toString(16).padStart(2, '0');
+  }
+
+  function editableAnimation(animation) {
+    return cleanAnimation(animation) || {
+      schemaVersion: ANIMATION_SCHEMA_VERSION,
+      clips: [],
+      bindings: {},
+    };
+  }
+
+  function editableGraphAnimation(animation) {
+    const cleaned = cleanAnimation(animation) || {
+      schemaVersion: ANIMATION_GRAPH_SCHEMA_VERSION,
+      clips: [],
+      bindings: {},
+    };
+    return {
+      schemaVersion: ANIMATION_GRAPH_SCHEMA_VERSION,
+      clips: (cleaned.clips || []).map((clip, index) => cleanAnimationClip({
+        ...clip,
+        graph: clip.graph || { nodes: [], outputs: [] },
+      }, index)),
+      bindings: cleanAnimationBindings(cleaned.bindings),
+    };
+  }
+
+  function withCleanAnimation(state, animation) {
+    const cleaned = cleanAnimation(animation);
+    return {
+      ...state,
+      animation: shouldExportAnimation(cleaned) ? cleaned : null,
+      animationIssues: [],
+    };
+  }
+
+  function upsertGraphValueKey(state, clipId, descriptor) {
+    const property = String(descriptor.property || '');
+    if (!GRAPH_OUTPUT_PROPERTIES.includes(property)) {
+      return state;
+    }
+    const animation = editableGraphAnimation(state.animation);
+    const ensured = ensureGraphClip(animation, clipId);
+    const clipIndex = ensured.clipIndex;
+    const clip = ensured.clip;
+    const graph = clip.graph || { nodes: [], outputs: [] };
+    const target = cleanAnimationGraphTarget(descriptor.target);
+    const origin = cleanAnimationOrigin(descriptor.origin);
+    const outputMatch = graphOutputMatchKey({ property, target, origin });
+    let outputs = graph.outputs.map(cleanAnimationGraphOutput).filter(Boolean);
+    let nodes = graph.nodes.map(cleanAnimationGraphNode).filter(Boolean);
+    let outputIndex = outputs.findIndex((output) => graphOutputMatchKey(output) === outputMatch);
+    let node = null;
+    if (outputIndex >= 0) {
+      node = nodes.find((item) => item.id === outputs[outputIndex].source) || null;
+    }
+    if (!node) {
+      const nodeId = uniqueGraphNodeId(graphNodeIdBase(property, target), nodes);
+      node = {
+        id: nodeId,
+        type: nodeTypeForGraphProperty(property),
+        keys: [],
+      };
+      nodes = [...nodes, node];
+      const output = cleanAnimationGraphOutput({
+        source: nodeId,
+        target,
+        property,
+        blend: descriptor.blend || graphOutputDefaultBlend(property),
+        origin,
+      });
+      outputs = [...outputs, output];
+      outputIndex = outputs.length - 1;
+    }
+    const timeMs = clampAnimationTime(descriptor.timeMs, clip.durationMs);
+    const nextKey = cleanAnimationGraphKeyframe({
+      timeMs,
+      interp: descriptor.interp || descriptor.ease || 'smooth',
+      value: normalizeGraphValueForProperty(property, descriptor.value),
+    });
+    nodes = nodes.map((item) => (
+      item.id === node.id
+        ? { ...item, type: nodeTypeForGraphProperty(property), keys: upsertSortedGraphKeys(item.keys, nextKey) }
+        : item
+    ));
+    outputs[outputIndex] = cleanAnimationGraphOutput({
+      ...outputs[outputIndex],
+      target,
+      property,
+      origin: origin || outputs[outputIndex].origin,
+    });
+    const clips = animation.clips.slice();
+    clips[clipIndex] = cleanAnimationClip({
+      ...clip,
+      graph: { nodes, outputs },
+    }, clipIndex);
+    return withCleanAnimation(state, { ...animation, clips });
+  }
+
+  function updateGraphOutputNode(state, clipId, outputIndex, updater) {
+    const animation = editableGraphAnimation(state.animation);
+    const normalizedClipId = normalizeLoopId(clipId);
+    const clipIndex = animation.clips.findIndex((clip) => clip.id === normalizedClipId);
+    const clip = animation.clips[clipIndex];
+    const index = parseInteger(outputIndex, -1);
+    const output = clip?.graph?.outputs?.[index];
+    if (!clip || !output) {
+      return state;
+    }
+    const nodes = (clip.graph.nodes || []).map(cleanAnimationGraphNode).filter(Boolean);
+    const nodeIndex = nodes.findIndex((node) => node.id === output.source);
+    if (nodeIndex < 0) {
+      return state;
+    }
+    nodes[nodeIndex] = cleanAnimationGraphNode(updater(nodes[nodeIndex], output, clip)) || nodes[nodeIndex];
+    const clips = animation.clips.slice();
+    clips[clipIndex] = cleanAnimationClip({
+      ...clip,
+      graph: {
+        nodes,
+        outputs: clip.graph.outputs,
+      },
+    }, clipIndex);
+    return withCleanAnimation(state, { ...animation, clips });
+  }
+
+  function ensureGraphClip(animation, clipId) {
+    const normalizedClipId = normalizeLoopId(clipId) || `clip_${animation.clips.length + 1}`;
+    let clipIndex = animation.clips.findIndex((clip) => clip.id === normalizedClipId);
+    const clips = animation.clips.slice();
+    if (clipIndex < 0) {
+      clipIndex = clips.length;
+      clips.push(cleanAnimationClip({
+        id: uniqueAnimationClipId(normalizedClipId, clips),
+        label: titleFromId(normalizedClipId),
+        durationMs: 1000,
+        loop: true,
+        tracks: [],
+        graph: { nodes: [], outputs: [] },
+      }, clipIndex));
+    } else if (!clips[clipIndex].graph) {
+      clips[clipIndex] = cleanAnimationClip({
+        ...clips[clipIndex],
+        graph: { nodes: [], outputs: [] },
+      }, clipIndex);
+    }
+    animation.clips = clips;
+    return { clipIndex, clip: clips[clipIndex] };
+  }
+
+  function upsertSortedGraphKeys(keys, nextKey) {
+    const output = (Array.isArray(keys) ? keys : []).map(cleanAnimationGraphKeyframe);
+    const existingIndex = output.findIndex((item) => Number(item.timeMs) === Number(nextKey.timeMs));
+    if (existingIndex >= 0) {
+      output[existingIndex] = nextKey;
+    } else {
+      output.push(nextKey);
+    }
+    output.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+    return output;
+  }
+
+  function updateAnimationTrack(state, clipId, trackIndex, updater) {
+    const animation = editableAnimation(state.animation);
+    const normalizedClipId = normalizeLoopId(clipId);
+    const clipIndex = animation.clips.findIndex((clip) => clip.id === normalizedClipId);
+    const normalizedTrackIndex = parseInteger(trackIndex, -1);
+    const clip = animation.clips[clipIndex];
+    if (!clip || normalizedTrackIndex < 0 || normalizedTrackIndex >= clip.tracks.length) {
+      return state;
+    }
+    const track = clip.tracks[normalizedTrackIndex];
+    const tracks = clip.tracks.slice();
+    tracks[normalizedTrackIndex] = cleanAnimationTrack(updater(track, clip));
+    const clips = animation.clips.slice();
+    clips[clipIndex] = cleanAnimationClip({ ...clip, tracks }, clipIndex);
+    return withCleanAnimation(state, { ...animation, clips });
+  }
+
+  function animationCanvasOrigin(state, originOptions = {}) {
+    const resolved = resolveTransformOrigin(state, { origin: originOptions }) || {
+      x: (Number(state.canvas?.width) || DEFAULT_CANVAS.width) / 2,
+      y: (Number(state.canvas?.height) || DEFAULT_CANVAS.height) / 2,
+    };
+    return { mode: 'canvas', x: round(resolved.x), y: round(resolved.y) };
+  }
+
+  function animationTargetsFromSelection(state) {
+    const selectedPaths = getSelectedPathRefs(state);
+    if (selectedPaths.length) {
+      return selectedPaths.map((ref) => {
+        return pathRefToAnimationTarget(state, ref);
+      });
+    }
+    const shape = getSelectedShape(state);
+    return shape ? [{ shapeId: normalizeId(shape.id) }] : [];
+  }
+
+  function pathRefToAnimationTarget(state, ref) {
+    const normalized = normalizePathRef(state, ref);
+    const shape = normalized ? state.shapes[normalized.shapeIndex] : null;
+    const loop = normalized ? shape?.loops[normalized.loopIndex] : null;
+    const target = { shapeId: normalizeId(shape?.id) };
+    const loopId = normalizeLoopId(loop?.id);
+    if (loopId) {
+      target.loopId = loopId;
+    } else if (normalized) {
+      target.loopIndex = normalized.loopIndex;
+    }
+    return target;
+  }
+
+  function pointRefToAnimationTarget(state, ref) {
+    const normalized = normalizePointRef(state, ref);
+    const target = pathRefToAnimationTarget(state, normalized);
+    const point = normalized
+      ? state.shapes[normalized.shapeIndex].loops[normalized.loopIndex].points[normalized.pointIndex]
+      : null;
+    const pointId = normalizeLoopId(point?.id);
+    if (pointId) {
+      target.pointId = pointId;
+    } else if (normalized) {
+      target.pointIndex = normalized.pointIndex;
+    }
+    return target;
+  }
+
+  function neutralTransformKeyframe(timeMs) {
+    return {
+      timeMs: Math.max(0, Number(timeMs) || 0),
+      value: restTransformValue(),
+    };
+  }
+
+  function restTransformValue() {
+    return { tx: 0, ty: 0, rotation: 0, sx: 1, sy: 1, skewX: 0, skewY: 0 };
+  }
+
+  function normalizeTransformKeyframeValue(value = {}) {
+    const source = isPlainObject(value) ? value : {};
+    return {
+      tx: finiteOr(source.tx, 0),
+      ty: finiteOr(source.ty, 0),
+      rotation: finiteOr(source.rotation, 0),
+      sx: finiteOr(source.sx, 1),
+      sy: finiteOr(source.sy, 1),
+      skewX: finiteOr(source.skewX, 0),
+      skewY: finiteOr(source.skewY, 0),
+    };
+  }
+
+  function normalizeVec2Value(value = {}) {
+    const source = isPlainObject(value) ? value : {};
+    return {
+      x: round(finiteOr(source.x ?? source.dx, 0)),
+      y: round(finiteOr(source.y ?? source.dy, 0)),
+    };
+  }
+
+  function normalizeGraphValueForProperty(property, value) {
+    if (property === 'loop.transform') {
+      return normalizeTransformKeyframeValue(value);
+    }
+    if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
+      return normalizeVec2Value(value);
+    }
+    if (property === 'shape.style.fill' || property === 'shape.style.stroke') {
+      return normalizeColor(value, '#ffffff').slice(0, 7);
+    }
+    if (property === 'shape.style.strokeWidth') {
+      return Math.max(0, round(Number(value) || 0));
+    }
+    if (property === 'shape.opacity') {
+      const parsed = Number(value);
+      return clamp(Number.isFinite(parsed) ? parsed : 1, 0, 1);
+    }
+    return cloneJsonCompatible(value);
+  }
+
+  function restGraphOutputValue(state, output) {
+    const property = String(output?.property || '');
+    if (property === 'loop.transform') {
+      return restTransformValue();
+    }
+    if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
+      return { x: 0, y: 0 };
+    }
+    const shapeIndex = resolveGraphShapeRefs(state, output.target)[0];
+    const shape = state.shapes[shapeIndex] || getSelectedShape(state);
+    if (property === 'shape.style.fill') {
+      return shape?.style?.fill || DEFAULT_STYLE.fill;
+    }
+    if (property === 'shape.style.stroke') {
+      return shape?.style?.stroke || DEFAULT_STYLE.stroke;
+    }
+    if (property === 'shape.style.strokeWidth') {
+      return shape?.style?.strokeWidth ?? DEFAULT_STYLE.strokeWidth;
+    }
+    if (property === 'shape.opacity') {
+      return 1;
+    }
+    return null;
+  }
+
+  function clampAnimationTime(timeMs, durationMs) {
+    const duration = Math.max(0, Number(durationMs) || 0);
+    const time = Number(timeMs);
+    return round(clamp(Number.isFinite(time) ? time : 0, 0, duration));
+  }
+
+  function snapAnimationTimeToFrame(timeMs, options = {}) {
+    const durationMs = options.durationMs == null ? null : Math.max(0, Number(options.durationMs) || 0);
+    const rawTime = Number(timeMs);
+    const unclampedTime = Number.isFinite(rawTime) ? rawTime : 0;
+    const time = durationMs == null
+      ? Math.max(0, unclampedTime)
+      : clamp(unclampedTime, 0, durationMs);
+    if (options.snap === false) {
+      return round(time);
+    }
+    const fps = Math.max(1, Number(options.fps) || 24);
+    const frameMs = 1000 / fps;
+    const snapped = Math.round(time / frameMs) * frameMs;
+    return round(durationMs == null ? Math.max(0, snapped) : clamp(snapped, 0, durationMs));
+  }
+
+  function resolveAnimationTrackPathRefs(state, track) {
+    const target = track?.target;
+    if (!isPlainObject(target)) {
+      return [];
+    }
+    const refs = [];
+    const tags = Array.isArray(target.tags)
+      ? target.tags.map(normalizeTag).filter(Boolean)
+      : [];
+    if (tags.length) {
+      state.shapes.forEach((shape, shapeIndex) => {
+        const shapeTags = new Set(parseTags(shape.tagsText));
+        if (tags.every((tag) => shapeTags.has(tag))) {
+          shape.loops.forEach((_, loopIndex) => refs.push(createPathRef(shapeIndex, loopIndex)));
+        }
+      });
+    }
+    const shapeId = normalizeId(target.shapeId);
+    const hasShapeId = Boolean(normalizeLoopId(target.shapeId));
+    if (hasShapeId) {
+      const shapeIndex = state.shapes.findIndex((shape) => normalizeId(shape.id) === shapeId);
+      const shape = state.shapes[shapeIndex];
+      if (shape) {
+        const loopId = normalizeLoopId(target.loopId);
+        if (loopId) {
+          const loopIndex = shape.loops.findIndex((loop) => normalizeLoopId(loop.id) === loopId);
+          if (loopIndex >= 0) {
+            refs.push(createPathRef(shapeIndex, loopIndex));
+          }
+        } else if (target.loopIndex != null) {
+          const loopIndex = Number(target.loopIndex);
+          if (Number.isInteger(loopIndex) && loopIndex >= 0 && loopIndex < shape.loops.length) {
+            refs.push(createPathRef(shapeIndex, loopIndex));
+          }
+        } else {
+          shape.loops.forEach((_, loopIndex) => refs.push(createPathRef(shapeIndex, loopIndex)));
+        }
+      }
+    }
+    return uniquePathRefs(state, refs);
+  }
+
+  function resolveGraphPathRefs(state, target) {
+    return resolveAnimationTrackPathRefs(state, { target });
+  }
+
+  function resolveGraphShapeRefs(state, target) {
+    if (!isPlainObject(target)) {
+      return [];
+    }
+    const refs = [];
+    const tags = Array.isArray(target.tags)
+      ? target.tags.map(normalizeTag).filter(Boolean)
+      : [];
+    if (tags.length) {
+      state.shapes.forEach((shape, shapeIndex) => {
+        const shapeTags = new Set(parseTags(shape.tagsText));
+        if (tags.every((tag) => shapeTags.has(tag))) {
+          refs.push(shapeIndex);
+        }
+      });
+    }
+    const shapeId = normalizeId(target.shapeId);
+    if (normalizeLoopId(target.shapeId)) {
+      const shapeIndex = state.shapes.findIndex((shape) => normalizeId(shape.id) === shapeId);
+      if (shapeIndex >= 0) {
+        refs.push(shapeIndex);
+      }
+    }
+    return Array.from(new Set(refs)).filter((index) => index >= 0 && index < state.shapes.length);
+  }
+
+  function resolveGraphPointRefs(state, target) {
+    const pathRefs = resolveGraphPathRefs(state, target);
+    const pointRefs = [];
+    const pointId = normalizeLoopId(target?.pointId);
+    const pointIndex = Number(target?.pointIndex);
+    for (const pathRef of pathRefs) {
+      const loop = state.shapes[pathRef.shapeIndex].loops[pathRef.loopIndex];
+      if (pointId) {
+        const index = loop.points.findIndex((point) => normalizeLoopId(point.id) === pointId);
+        if (index >= 0) {
+          pointRefs.push(createPointRef(pathRef.shapeIndex, pathRef.loopIndex, index));
+        }
+      } else if (Number.isInteger(pointIndex) && pointIndex >= 0 && pointIndex < loop.points.length) {
+        pointRefs.push(createPointRef(pathRef.shapeIndex, pathRef.loopIndex, pointIndex));
+      } else {
+        loop.points.forEach((_, index) => {
+          pointRefs.push(createPointRef(pathRef.shapeIndex, pathRef.loopIndex, index));
+        });
+      }
+    }
+    const output = [];
+    for (const ref of pointRefs) {
+      const normalized = normalizePointRef(state, ref);
+      if (normalized && !output.some((item) => samePointRef(item, normalized))) {
+        output.push(normalized);
+      }
+    }
+    return output;
+  }
+
+  function evaluateTransformKeyframes(keyframes, timeMs) {
+    const sorted = (Array.isArray(keyframes) ? keyframes : [])
+      .map(cleanAnimationKeyframe)
+      .sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+    if (!sorted.length) {
+      return normalizeTransformKeyframeValue();
+    }
+    if (timeMs <= Number(sorted[0].timeMs)) {
+      return normalizeTransformKeyframeValue(sorted[0].value);
+    }
+    const last = sorted[sorted.length - 1];
+    if (timeMs >= Number(last.timeMs)) {
+      return normalizeTransformKeyframeValue(last.value);
+    }
+    for (let index = 1; index < sorted.length; index += 1) {
+      const previous = sorted[index - 1];
+      const next = sorted[index];
+      if (timeMs <= Number(next.timeMs)) {
+        const span = Math.max(1, Number(next.timeMs) - Number(previous.timeMs));
+        const t = easeProgress((timeMs - Number(previous.timeMs)) / span, next.ease);
+        return interpolateTransformValues(previous.value, next.value, t);
+      }
+    }
+    return normalizeTransformKeyframeValue(last.value);
+  }
+
+  function evaluateGraphNodeValue(node, property, timeMs) {
+    const sorted = (Array.isArray(node?.keys) ? node.keys : [])
+      .map(cleanAnimationGraphKeyframe)
+      .sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
+    if (!sorted.length) {
+      return restGraphValueForProperty(property);
+    }
+    if (timeMs <= Number(sorted[0].timeMs)) {
+      return normalizeGraphValueForProperty(property, sorted[0].value);
+    }
+    const last = sorted[sorted.length - 1];
+    if (timeMs >= Number(last.timeMs)) {
+      return normalizeGraphValueForProperty(property, last.value);
+    }
+    for (let index = 1; index < sorted.length; index += 1) {
+      const previous = sorted[index - 1];
+      const next = sorted[index];
+      if (timeMs <= Number(next.timeMs)) {
+        const interp = String(next.interp || 'smooth');
+        if (interp === 'hold') {
+          return normalizeGraphValueForProperty(property, previous.value);
+        }
+        const span = Math.max(1, Number(next.timeMs) - Number(previous.timeMs));
+        const t = easeProgress((timeMs - Number(previous.timeMs)) / span, interp);
+        return interpolateGraphValues(property, previous.value, next.value, t);
+      }
+    }
+    return normalizeGraphValueForProperty(property, last.value);
+  }
+
+  function graphValueForTarget(state, clipId, property, target, timeMs = 0, options = {}) {
+    const animation = cleanAnimation(state.animation);
+    const clip = animation?.clips.find((item) => item.id === normalizeLoopId(clipId));
+    const cleanProperty = String(property || '');
+    const cleanTarget = cleanAnimationGraphTarget(target);
+    const origin = cleanAnimationOrigin(options.origin);
+    if (!clip?.graph || !GRAPH_OUTPUT_PROPERTIES.includes(cleanProperty)) {
+      return restGraphOutputValue(state, { property: cleanProperty, target: cleanTarget });
+    }
+    const durationMs = Math.max(1, Number(clip.durationMs) || 1);
+    const clampedTime = clip.loop
+      ? ((Number(timeMs) || 0) % durationMs + durationMs) % durationMs
+      : clampAnimationTime(timeMs, durationMs);
+    const match = graphOutputMatchKey({ property: cleanProperty, target: cleanTarget, origin });
+    const output = (clip.graph.outputs || []).find((item) => graphOutputMatchKey(item) === match);
+    if (!output) {
+      return restGraphOutputValue(state, { property: cleanProperty, target: cleanTarget });
+    }
+    const node = (clip.graph.nodes || []).find((item) => item.id === output.source);
+    if (!node) {
+      return restGraphOutputValue(state, output);
+    }
+    return evaluateGraphNodeValue(node, cleanProperty, clampedTime);
+  }
+
+  function restGraphValueForProperty(property) {
+    if (property === 'loop.transform') {
+      return restTransformValue();
+    }
+    if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
+      return { x: 0, y: 0 };
+    }
+    if (property === 'shape.style.fill' || property === 'shape.style.stroke') {
+      return '#ffffff';
+    }
+    if (property === 'shape.style.strokeWidth') {
+      return DEFAULT_STYLE.strokeWidth;
+    }
+    if (property === 'shape.opacity') {
+      return 1;
+    }
+    return null;
+  }
+
+  function interpolateGraphValues(property, fromValue, toValue, t) {
+    if (property === 'loop.transform') {
+      return interpolateTransformValues(fromValue, toValue, t);
+    }
+    if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
+      const from = normalizeVec2Value(fromValue);
+      const to = normalizeVec2Value(toValue);
+      return {
+        x: round(lerp(from.x, to.x, t)),
+        y: round(lerp(from.y, to.y, t)),
+      };
+    }
+    if (property === 'shape.style.fill' || property === 'shape.style.stroke') {
+      return interpolateColor(fromValue, toValue, t);
+    }
+    if (property === 'shape.style.strokeWidth' || property === 'shape.opacity') {
+      return round(lerp(Number(fromValue) || 0, Number(toValue) || 0, t));
+    }
+    return t < 1 ? cloneJsonCompatible(fromValue) : cloneJsonCompatible(toValue);
+  }
+
+  function interpolateTransformValues(fromValue, toValue, t) {
+    const from = normalizeTransformKeyframeValue(fromValue);
+    const to = normalizeTransformKeyframeValue(toValue);
+    return {
+      tx: round(lerp(from.tx, to.tx, t)),
+      ty: round(lerp(from.ty, to.ty, t)),
+      rotation: round(lerp(from.rotation, to.rotation, t)),
+      sx: round(lerp(from.sx, to.sx, t)),
+      sy: round(lerp(from.sy, to.sy, t)),
+      skewX: round(lerp(from.skewX, to.skewX, t)),
+      skewY: round(lerp(from.skewY, to.skewY, t)),
+    };
+  }
+
+  function easeProgress(value, ease = 'linear') {
+    const t = clamp(value, 0, 1);
+    if (ease === 'hold') {
+      return 0;
+    }
+    if (ease === 'smooth') {
+      return t * t * (3 - 2 * t);
+    }
+    if (ease === 'easeIn') {
+      return t * t;
+    }
+    if (ease === 'easeOut') {
+      return 1 - (1 - t) * (1 - t);
+    }
+    if (ease === 'easeInOut') {
+      return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
+    }
+    if (ease === 'easeOutBack') {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * ((t - 1) ** 3) + c1 * ((t - 1) ** 2);
+    }
+    return t;
+  }
+
+  function finiteOr(value, fallback) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function resolveTransformTarget(state, forceType = '') {
+    if (forceType === 'points' || (!forceType && getSelectedPointRefs(state).length)) {
+      const refs = getSelectedPointRefs(state);
+      return {
+        type: 'points',
+        refs,
+        bounds: pointRefsBounds(state, refs),
+        pointCount: refs.length,
+      };
+    }
+    const refs = getLoopEditPathRefs(state);
+    return {
+      type: 'paths',
+      refs,
+      bounds: pathRefsBounds(state, refs),
+      pointCount: countPathRefPoints(state, refs),
+    };
+  }
+
+  function resolveTransformOrigin(state, targetOrOptions = {}, maybeOptions = null) {
+    const target = targetOrOptions?.type && Array.isArray(targetOrOptions.refs)
+      ? targetOrOptions
+      : resolveTransformTarget(state);
+    const options = maybeOptions || targetOrOptions || {};
+    const requested = options.origin || options;
+    const rawX = Number(requested?.x);
+    const rawY = Number(requested?.y);
+    const hasPoint = requested?.x !== '' && requested?.x != null &&
+      requested?.y !== '' && requested?.y != null &&
+      Number.isFinite(rawX) && Number.isFinite(rawY);
+    const mode = requested?.mode || (hasPoint ? 'custom' : 'selection');
+    if ((mode === 'custom' || mode === 'canvas') && hasPoint) {
+      return { mode, x: round(rawX), y: round(rawY) };
+    }
+    if (mode === 'activeLoop') {
+      const ref = normalizePathRef(state, createPathRef(state.selectedShapeIndex, state.selectedLoopIndex));
+      const bounds = ref ? pathRefsBounds(state, [ref]) : null;
+      return originFromBounds(bounds, 'activeLoop');
+    }
+    if (mode === 'canvasCenter') {
+      return {
+        mode: 'canvasCenter',
+        x: round((Number(state.canvas?.width) || DEFAULT_CANVAS.width) / 2),
+        y: round((Number(state.canvas?.height) || DEFAULT_CANVAS.height) / 2),
+      };
+    }
+    return originFromBounds(target.bounds, 'selection');
+  }
+
+  function originFromBounds(bounds, mode) {
+    if (!bounds) {
+      return null;
+    }
+    return {
+      mode,
+      x: round((bounds.minX + bounds.maxX) / 2),
+      y: round((bounds.minY + bounds.maxY) / 2),
+    };
+  }
+
+  function buildTransformPreviews(state, target, transform) {
+    if (target.type === 'points') {
+      const selectedKeys = new Set(target.refs.map(pointKey));
+      const pathRefs = uniquePathRefs(state, target.refs.map((ref) => createPathRef(ref.shapeIndex, ref.loopIndex)));
+      return pathRefs.map((ref) => {
+        const sourceLoop = state.shapes[ref.shapeIndex].loops[ref.loopIndex];
+        return {
+          ref,
+          originalLoop: cloneLoop(sourceLoop),
+          loop: cleanLoop({
+            ...sourceLoop,
+            points: sourceLoop.points.map((point, pointIndex) => (
+              selectedKeys.has(pointKey(createPointRef(ref.shapeIndex, ref.loopIndex, pointIndex)))
+                ? transformPointAround(point, transform.origin, transform)
+                : clonePoint(point)
+            )),
+          }),
+        };
+      });
+    }
+    return target.refs.map((ref) => {
+      const sourceLoop = state.shapes[ref.shapeIndex].loops[ref.loopIndex];
+      return {
+        ref,
+        originalLoop: cloneLoop(sourceLoop),
+        loop: transformLoopAround(sourceLoop, transform.origin, transform),
+      };
+    });
+  }
+
+  function normalizeTransformOptions(options = {}) {
     const scaleX = normalizeScaleValue(options.scaleX, 1);
     const scaleY = normalizeScaleValue(options.scaleY ?? options.scaleX, scaleX);
     return {
       scaleX,
       scaleY,
+      rotation: normalizeRotationValue(options.rotation ?? options.angle, 0),
       origin: options.origin,
     };
+  }
+
+  function normalizeScaleOptions(options = {}) {
+    return normalizeTransformOptions(options);
   }
 
   function normalizeScaleValue(value, fallback) {
@@ -3374,30 +5652,23 @@
     return round(clamp(parsed, 0.01, 20));
   }
 
-  function normalizeScaleOrigin(origin, bounds) {
-    const x = Number(origin?.x);
-    const y = Number(origin?.y);
-    if (Number.isFinite(x) && Number.isFinite(y)) {
-      return { x: round(x), y: round(y) };
+  function normalizeRotationValue(value, fallback) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
     }
-    return {
-      x: round((bounds.minX + bounds.maxX) / 2),
-      y: round((bounds.minY + bounds.maxY) / 2),
-    };
+    return parsed;
   }
 
-  function createScaleResult(state, target, targetCount, pointCount, options = {}) {
-    const scale = normalizeScaleOptions(options);
+  function createTransformStats(target, transform, origin) {
     return {
-      state,
-      stats: {
-        target,
-        targetCount,
-        pointCount,
-        scaleX: scale.scaleX,
-        scaleY: scale.scaleY,
-        origin: scale.origin || null,
-      },
+      target: target.type,
+      targetCount: target.refs.length,
+      pointCount: target.pointCount,
+      scaleX: transform.scaleX,
+      scaleY: transform.scaleY,
+      rotation: transform.rotation,
+      origin: origin || null,
     };
   }
 
@@ -3487,11 +5758,17 @@
     VECTOR_PACK_KIND,
     VECTOR_PACK_VERSION,
     ANIMATION_SCHEMA_VERSION,
+    ANIMATION_GRAPH_SCHEMA_VERSION,
     DEFAULT_CANVAS,
     DEFAULT_STYLE,
     LOOP_ROLES,
     TAG_PRESETS,
     VALIDATION_STATUS,
+    KNOWN_EASES,
+    GRAPH_NODE_TYPES,
+    GRAPH_OUTPUT_PROPERTIES,
+    GRAPH_INTERPOLATIONS,
+    ANIMATION_BINDING_PRESETS,
     createInitialState,
     createLoop,
     createShape,
@@ -3509,11 +5786,14 @@
     clearPathSelection,
     getSelectedPathRefs,
     getSelectedPointRefs,
+    ensurePointIdsForRefs,
     selectPointRef,
     togglePointSelection,
     clearPointSelection,
     selectPointsInRect,
     selectPointsInPolygon,
+    selectPathsInRect,
+    selectPathsInPolygon,
     moveSelectedPoints,
     deleteSelectedPoints,
     clearSelectedPointHandles,
@@ -3528,6 +5808,43 @@
     scaleSelection,
     scaleSelectedPoints,
     scaleSelectedPaths,
+    transformSelection,
+    transformSelectedPoints,
+    transformSelectedPaths,
+    previewSelectionTransform,
+    resolveTransformOrigin,
+    addAnimationClip,
+    updateAnimationClip,
+    duplicateAnimationClip,
+    deleteAnimationClip,
+    addTransformTracksFromSelection,
+    upsertTransformKeyframe,
+    deleteTransformKeyframe,
+    moveTransformKeyframe,
+    setRestTransformKeyframe,
+    copyTransformKeyframeToTime,
+    copyPreviousTransformKeyframeToTime,
+    snapAnimationTimeToFrame,
+    restTransformValue,
+    updateAnimationBinding,
+    pathRefToAnimationTarget,
+    pointRefToAnimationTarget,
+    upsertLoopTransformGraphKeys,
+    upsertPointDeltaGraphKeys,
+    upsertPointHandleDeltaGraphKey,
+    upsertShapeStyleGraphKey,
+    upsertShapeOpacityGraphKey,
+    upsertGraphOutputKeyframe,
+    deleteGraphOutputKeyframe,
+    moveGraphOutputKeyframe,
+    setRestGraphOutputKeyframe,
+    copyGraphOutputKeyframeToTime,
+    copyPreviousGraphOutputKeyframeToTime,
+    graphValueForTarget,
+    brushPointDeltas,
+    evaluateTransformClip,
+    evaluateGraphClip,
+    previewAnimationTrackPose,
     separateSelectedPaths,
     mergeSelectedPathsIntoActiveShape,
     removeNearDuplicateSelectedLoops,
