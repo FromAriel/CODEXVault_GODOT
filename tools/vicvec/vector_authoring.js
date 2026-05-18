@@ -839,6 +839,18 @@
     draw();
   }
 
+  function enterAnimateAuthoringMode() {
+    if (isAnimateMode()) {
+      return;
+    }
+    flushPendingFieldHistory();
+    editorMode = 'animate';
+    discardOptimizationPreviewOnly();
+    discardTransformPreview(false);
+    discardAnimationPosePreview(false);
+    syncEditorModeUi();
+  }
+
   function syncEditorModeUi() {
     fields.editorModeRest?.classList.toggle('active', editorMode === 'rest');
     fields.editorModeAnimate?.classList.toggle('active', editorMode === 'animate');
@@ -1296,7 +1308,9 @@
       selectedTrackIndex = -1;
       selectedKeyframeIndex = -1;
       timelineTimeMs = 0;
-      setStatus(`Added animation clip ${selectedClipId}.`);
+      enterAnimateAuthoringMode();
+      updateAnimationPreview();
+      setStatus(`Added animation clip ${selectedClipId}. Animate mode is on.`);
       syncFieldsFromState();
       activateInspectorTab('anim');
       draw();
@@ -1374,39 +1388,38 @@
         setStatus('Create a clip before adding tracks.');
         return;
       }
-      if (isAnimateMode()) {
-        const refs = core.getSelectedPathRefs(state);
-        if (!refs.length) {
-          setStatus('Select one or more loops before adding graph rows.');
-          return;
-        }
-        const beforeCount = animationTimelineRows(getSelectedClip()).length;
-        state = core.upsertLoopTransformGraphKeys(state, clipId, refs, {
+      enterAnimateAuthoringMode();
+      const beforeCount = animationTimelineRows(getSelectedClip()).length;
+      const pointRefs = core.getSelectedPointRefs(state);
+      const pathRefs = core.getSelectedPathRefs(state);
+      if (pointRefs.length) {
+        state = core.upsertPointDeltaGraphKeys(
+          state,
+          clipId,
+          pointRefs.map((ref) => ({ ref, value: { x: 0, y: 0 } })),
+          {
+            timeMs: snapTimelineTime(timelineTimeMs),
+            interp: 'smooth',
+          },
+        );
+      } else if (pathRefs.length) {
+        state = core.upsertLoopTransformGraphKeys(state, clipId, pathRefs, {
           timeMs: snapTimelineTime(timelineTimeMs),
           interp: 'smooth',
           value: core.restTransformValue(),
         }, {
           origin: readTransformOptions().origin,
         });
-        selectedClipId = clipId;
-        selectedTrackIndex = Math.max(0, animationTimelineRows(getSelectedClip()).length - 1);
-        selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
-        const afterCount = animationTimelineRows(getSelectedClip()).length;
-        setStatus(afterCount > beforeCount ? `Added ${afterCount - beforeCount} graph row(s).` : 'Updated graph row rest key.');
-        syncFieldsFromState();
-        activateInspectorTab('anim');
-        draw();
+      } else {
+        setStatus('Select one or more loops or points before adding graph rows.');
         return;
       }
-      const beforeCount = getSelectedClip()?.tracks.length || 0;
-      state = core.addTransformTracksFromSelection(state, clipId, {
-        origin: readTransformOptions().origin,
-      });
       selectedClipId = clipId;
-      const afterCount = getSelectedClip()?.tracks.length || 0;
-      selectedTrackIndex = afterCount > beforeCount ? beforeCount : clampUiIndex(selectedTrackIndex, afterCount);
-      selectedKeyframeIndex = 0;
-      setStatus(afterCount > beforeCount ? `Added ${afterCount - beforeCount} transform track(s).` : 'No selection target for animation track.');
+      selectedTrackIndex = Math.max(0, animationTimelineRows(getSelectedClip()).length - 1);
+      selectedKeyframeIndex = keyframeIndexAtTime(timelineTimeMs);
+      const afterCount = animationTimelineRows(getSelectedClip()).length;
+      updateAnimationPreview();
+      setStatus(afterCount > beforeCount ? `Added ${afterCount - beforeCount} graph row(s). Animate mode is on.` : 'Updated graph row rest key.');
       syncFieldsFromState();
       activateInspectorTab('anim');
       draw();
@@ -1421,6 +1434,7 @@
       return;
     }
     withHistory('Rest key selected', () => {
+      enterAnimateAuthoringMode();
       const clipId = ensureActiveClipForAnimation();
       if (!clipId) {
         setStatus('Create or select a clip before setting rest keys.');
@@ -1493,6 +1507,7 @@
     withHistory('Set keyframe', () => {
       timelineTimeMs = snapTimelineTime(timelineTimeMs);
       if (row.kind === 'graph') {
+        enterAnimateAuthoringMode();
         state = core.upsertGraphOutputKeyframe(state, clip.id, row.outputIndex, {
           timeMs: timelineTimeMs,
           interp: fields.keyframeEase.value,
@@ -1522,6 +1537,7 @@
     withHistory('Set rest keyframe', () => {
       timelineTimeMs = snapTimelineTime(timelineTimeMs);
       if (row.kind === 'graph') {
+        enterAnimateAuthoringMode();
         state = core.setRestGraphOutputKeyframe(state, clip.id, row.outputIndex, timelineTimeMs, {
           interp: fields.keyframeEase.value,
         });

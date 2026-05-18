@@ -2092,6 +2092,85 @@ test('graph interpolation supports linear, smooth, and hold without mutating res
   assert.equal(core.getSelectedLoop(state).points[0].x, 0);
 });
 
+test('looped clips evaluate authored duration keys before wrapping outside the range', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'looped', durationMs: 1000, loop: true });
+  const pointRef = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+  state = core.upsertPointDeltaGraphKeys(state, 'looped', [
+    { ref: pointRef, value: { x: 0, y: 0 } },
+  ], { timeMs: 0, interp: 'linear' });
+  state = core.upsertPointDeltaGraphKeys(state, 'looped', [
+    { ref: pointRef, value: { x: 100, y: 0 } },
+  ], { timeMs: 1000, interp: 'linear' });
+
+  assert.equal(core.evaluateGraphClip(state, 'looped', 1000).previews[0].loop.points[0].x, 100);
+  assert.equal(core.evaluateGraphClip(state, 'looped', 2000).previews[0].loop.points[0].x, 0);
+  assert.equal(
+    core.graphValueForTarget(
+      state,
+      'looped',
+      'point.positionDelta',
+      core.pointRefToAnimationTarget(state, pointRef),
+      1000,
+    ).x,
+    100,
+  );
+
+  const legacy = {
+    ...state,
+    animation: {
+      schemaVersion: 1,
+      clips: [
+        {
+          id: 'legacy_loop',
+          durationMs: 1000,
+          loop: true,
+          tracks: [
+            {
+              target: { shapeId: state.shapes[0].id, loopId: state.shapes[0].loops[0].id },
+              property: 'transform',
+              origin: { mode: 'canvas', x: 0, y: 0 },
+              keyframes: [
+                { timeMs: 0, ease: 'linear', value: { tx: 0 } },
+                { timeMs: 1000, ease: 'linear', value: { tx: 100 } },
+              ],
+            },
+          ],
+        },
+      ],
+      bindings: {},
+    },
+  };
+
+  assert.equal(core.evaluateTransformClip(legacy, 'legacy_loop', 1000).previews[0].loop.points[0].x, 100);
+  assert.equal(core.evaluateTransformClip(legacy, 'legacy_loop', 2000).previews[0].loop.points[0].x, 0);
+});
+
+test('new graph outputs keyed after zero get an implicit rest key', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'auto_rest', durationMs: 1000, loop: true });
+  const pointRef = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+
+  state = core.upsertPointDeltaGraphKeys(state, 'auto_rest', [
+    { ref: pointRef, value: { x: 100, y: 0 } },
+  ], { timeMs: 1000, interp: 'linear' });
+
+  const node = state.animation.clips[0].graph.nodes[0];
+  assert.equal(JSON.stringify(node.keys.map((key) => key.timeMs)), '[0,1000]');
+  assert.equal(node.keys[0].value.x, 0);
+  assert.equal(core.evaluateGraphClip(state, 'auto_rest', 0).previews[0].loop.points[0].x, 0);
+  assert.equal(core.evaluateGraphClip(state, 'auto_rest', 500).previews[0].loop.points[0].x, 50);
+  assert.equal(core.evaluateGraphClip(state, 'auto_rest', 1000).previews[0].loop.points[0].x, 100);
+});
+
 test('graph loop transforms preserve and evaluate skew on anchors and Bezier handles', () => {
   let state = core.importVectorPack({
     version: 1,

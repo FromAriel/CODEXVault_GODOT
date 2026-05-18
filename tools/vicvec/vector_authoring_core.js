@@ -2451,10 +2451,7 @@
     if (!clip?.graph) {
       return { previews: [], stats: { clipId: '', timeMs: 0, nodeCount: 0, outputCount: 0, targetCount: 0 } };
     }
-    const durationMs = Math.max(1, Number(clip.durationMs) || 1);
-    const clampedTime = clip.loop
-      ? ((Number(timeMs) || 0) % durationMs + durationMs) % durationMs
-      : clampAnimationTime(timeMs, durationMs);
+    const clampedTime = clipEvaluationTime(clip, timeMs);
     const nodeMap = new Map((clip.graph.nodes || []).map((node) => [node.id, node]));
     const loopPoseMap = new Map();
     const shapeStyleMap = new Map();
@@ -2488,7 +2485,7 @@
         continue;
       }
       const property = String(output.property || '');
-      const value = evaluateGraphNodeValue(node, property, clampedTime);
+      const value = evaluateGraphNodeValue(node, property, clampedTime, restGraphOutputValue(state, output));
       if (property === 'point.positionDelta' || property === 'point.inHandleDelta' || property === 'point.outHandleDelta') {
         const pointRefs = resolveGraphPointRefs(state, output.target);
         for (const pointRef of pointRefs) {
@@ -2594,10 +2591,7 @@
     if (!clip) {
       return { previews: [], stats: { clipId: '', timeMs: 0, trackCount: 0, targetCount: 0 } };
     }
-    const durationMs = Math.max(1, Number(clip.durationMs) || 1);
-    const clampedTime = clip.loop
-      ? ((Number(timeMs) || 0) % durationMs + durationMs) % durationMs
-      : clampAnimationTime(timeMs, durationMs);
+    const clampedTime = clipEvaluationTime(clip, timeMs);
     const loopMap = new Map();
     for (const track of clip.tracks || []) {
       if (track.property !== 'transform') {
@@ -5026,11 +5020,24 @@
       interp: descriptor.interp || descriptor.ease || 'smooth',
       value: normalizeGraphValueForProperty(property, descriptor.value),
     });
-    nodes = nodes.map((item) => (
-      item.id === node.id
-        ? { ...item, type: nodeTypeForGraphProperty(property), keys: upsertSortedGraphKeys(item.keys, nextKey) }
-        : item
-    ));
+    nodes = nodes.map((item) => {
+      if (item.id !== node.id) {
+        return item;
+      }
+      let keys = Array.isArray(item.keys) ? item.keys : [];
+      if (!keys.length && timeMs > 0) {
+        keys = upsertSortedGraphKeys(keys, cleanAnimationGraphKeyframe({
+          timeMs: 0,
+          interp: descriptor.interp || descriptor.ease || 'smooth',
+          value: restGraphOutputValue(state, { property, target }),
+        }));
+      }
+      return {
+        ...item,
+        type: nodeTypeForGraphProperty(property),
+        keys: upsertSortedGraphKeys(keys, nextKey),
+      };
+    });
     outputs[outputIndex] = cleanAnimationGraphOutput({
       ...outputs[outputIndex],
       target,
@@ -5256,6 +5263,19 @@
     return round(clamp(Number.isFinite(time) ? time : 0, 0, duration));
   }
 
+  function clipEvaluationTime(clip, timeMs) {
+    const duration = Math.max(1, Number(clip?.durationMs) || 1);
+    const parsed = Number(timeMs);
+    const raw = Number.isFinite(parsed) ? parsed : 0;
+    if (!clip?.loop) {
+      return clampAnimationTime(raw, duration);
+    }
+    if (raw >= 0 && raw <= duration) {
+      return round(raw);
+    }
+    return round(((raw % duration) + duration) % duration);
+  }
+
   function snapAnimationTimeToFrame(timeMs, options = {}) {
     const durationMs = options.durationMs == null ? null : Math.max(0, Number(options.durationMs) || 0);
     const rawTime = Number(timeMs);
@@ -5400,14 +5420,17 @@
     return normalizeTransformKeyframeValue(last.value);
   }
 
-  function evaluateGraphNodeValue(node, property, timeMs) {
+  function evaluateGraphNodeValue(node, property, timeMs, restValue = restGraphValueForProperty(property)) {
     const sorted = (Array.isArray(node?.keys) ? node.keys : [])
       .map(cleanAnimationGraphKeyframe)
       .sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
     if (!sorted.length) {
       return restGraphValueForProperty(property);
     }
-    if (timeMs <= Number(sorted[0].timeMs)) {
+    if (timeMs < Number(sorted[0].timeMs)) {
+      return normalizeGraphValueForProperty(property, restValue);
+    }
+    if (timeMs === Number(sorted[0].timeMs)) {
       return normalizeGraphValueForProperty(property, sorted[0].value);
     }
     const last = sorted[sorted.length - 1];
@@ -5439,10 +5462,7 @@
     if (!clip?.graph || !GRAPH_OUTPUT_PROPERTIES.includes(cleanProperty)) {
       return restGraphOutputValue(state, { property: cleanProperty, target: cleanTarget });
     }
-    const durationMs = Math.max(1, Number(clip.durationMs) || 1);
-    const clampedTime = clip.loop
-      ? ((Number(timeMs) || 0) % durationMs + durationMs) % durationMs
-      : clampAnimationTime(timeMs, durationMs);
+    const clampedTime = clipEvaluationTime(clip, timeMs);
     const match = graphOutputMatchKey({ property: cleanProperty, target: cleanTarget, origin });
     const output = (clip.graph.outputs || []).find((item) => graphOutputMatchKey(item) === match);
     if (!output) {
@@ -5452,7 +5472,7 @@
     if (!node) {
       return restGraphOutputValue(state, output);
     }
-    return evaluateGraphNodeValue(node, cleanProperty, clampedTime);
+    return evaluateGraphNodeValue(node, cleanProperty, clampedTime, restGraphOutputValue(state, output));
   }
 
   function restGraphValueForProperty(property) {
