@@ -162,8 +162,11 @@
     historyButtons: Array.from(document.querySelectorAll('[data-history-command]')),
     clickTargetButtons: Array.from(document.querySelectorAll('[data-click-target]')),
     openExportButtons: Array.from(document.querySelectorAll('[data-open-export]')),
+    openManualButtons: Array.from(document.querySelectorAll('[data-open-manual]')),
     drawerCloseButtons: Array.from(document.querySelectorAll('[data-drawer-close]')),
+    manualCloseButtons: Array.from(document.querySelectorAll('[data-manual-close]')),
     exportDrawer: document.getElementById('export-drawer'),
+    manualDrawer: document.getElementById('manual-drawer'),
     drawerBackdrop: document.querySelector('.drawer-backdrop'),
     toolContextPanels: Array.from(document.querySelectorAll('[data-tool-context]')),
     selectionActionButtons: Array.from(document.querySelectorAll('[data-selection-action]')),
@@ -1029,6 +1032,7 @@
   }
 
   function openExportDrawer(refreshOutput = false) {
+    closeManualDrawer();
     if (refreshOutput) {
       exportJson();
     }
@@ -1045,6 +1049,28 @@
     fields.exportDrawer?.setAttribute('aria-hidden', 'true');
     fields.drawerBackdrop?.setAttribute('hidden', '');
     fields.exportDrawer?.setAttribute('hidden', '');
+  }
+
+  function openManualDrawer() {
+    closeExportDrawer();
+    fields.manualDrawer?.removeAttribute('hidden');
+    fields.drawerBackdrop?.removeAttribute('hidden');
+    requestAnimationFrame(() => {
+      fields.manualDrawer?.classList.add('open');
+      fields.manualDrawer?.setAttribute('aria-hidden', 'false');
+    });
+  }
+
+  function closeManualDrawer() {
+    fields.manualDrawer?.classList.remove('open');
+    fields.manualDrawer?.setAttribute('aria-hidden', 'true');
+    fields.drawerBackdrop?.setAttribute('hidden', '');
+    fields.manualDrawer?.setAttribute('hidden', '');
+  }
+
+  function closeAllDrawers() {
+    closeExportDrawer();
+    closeManualDrawer();
   }
 
   function syncActiveTargetReadout() {
@@ -4128,7 +4154,7 @@
           clearTransformPreview(true);
         }
         closeMenus();
-        closeExportDrawer();
+        closeAllDrawers();
         return;
       }
       if (isTypingTarget(event.target)) {
@@ -4263,6 +4289,13 @@
       });
     }
 
+    for (const button of fields.openManualButtons) {
+      button.addEventListener('click', () => {
+        openManualDrawer();
+        closeMenus();
+      });
+    }
+
     fields.undoCommand?.addEventListener('click', () => {
       undoHistory();
       closeMenus();
@@ -4285,6 +4318,12 @@
     for (const button of fields.drawerCloseButtons) {
       button.addEventListener('click', () => {
         closeExportDrawer();
+      });
+    }
+
+    for (const button of fields.manualCloseButtons) {
+      button.addEventListener('click', () => {
+        closeManualDrawer();
       });
     }
 
