@@ -3805,10 +3805,20 @@
       animationDrag.clipId,
       animationDrag.refs.map((ref) => ({
         ref,
-        value: {
-          x: (animationDrag.baseValues?.get(pointRefKey(ref))?.x || 0) + animationDrag.totalDx,
-          y: (animationDrag.baseValues?.get(pointRefKey(ref))?.y || 0) + animationDrag.totalDy,
-        },
+        value: (() => {
+          const base = animationDrag.baseValues?.get(pointRefKey(ref)) || { x: 0, y: 0 };
+          const restDelta = core.graphDisplayDeltaToRestDelta(
+            state,
+            animationDrag.clipId,
+            ref,
+            timeOptions.timeMs,
+            { x: animationDrag.totalDx, y: animationDrag.totalDy },
+          );
+          return {
+            x: (Number(base.x) || 0) + restDelta.x,
+            y: (Number(base.y) || 0) + restDelta.y,
+          };
+        })(),
       })),
       timeOptions,
     );
@@ -3830,6 +3840,13 @@
       x: canvasPoint.x - animationDrag.startCanvasPoint.x,
       y: canvasPoint.y - animationDrag.startCanvasPoint.y,
     };
+    const restDelta = core.graphDisplayDeltaToRestDelta(
+      state,
+      animationDrag.clipId,
+      ref,
+      graphKeyOptions().timeMs,
+      delta,
+    );
     state = core.upsertPointHandleDeltaGraphKey(
       state,
       animationDrag.clipId,
@@ -3838,8 +3855,8 @@
       {
         ...graphKeyOptions(),
         value: {
-          x: (Number(base.x) || 0) + delta.x,
-          y: (Number(base.y) || 0) + delta.y,
+          x: (Number(base.x) || 0) + restDelta.x,
+          y: (Number(base.y) || 0) + restDelta.y,
         },
       },
     );
@@ -3865,9 +3882,16 @@
         ref: item.ref,
         value: graphPointValue(item.ref, animationDrag.clipId, 'point.positionDelta', timeOptions.timeMs),
       };
+      const restIncrement = core.graphDisplayDeltaToRestDelta(
+        state,
+        animationDrag.clipId,
+        item.ref,
+        timeOptions.timeMs,
+        item.value,
+      );
       previous.value = {
-        x: previous.value.x + item.value.x,
-        y: previous.value.y + item.value.y,
+        x: previous.value.x + restIncrement.x,
+        y: previous.value.y + restIncrement.y,
       };
       animationBrushDeltas.set(key, previous);
     }

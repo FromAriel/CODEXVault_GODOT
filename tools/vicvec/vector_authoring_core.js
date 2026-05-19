@@ -3832,19 +3832,41 @@
   }
 
   function transformLinearVector(vector, transform = {}) {
+    const matrix = transformLinearMatrix(transform);
+    return {
+      x: round(Number(vector.x) * matrix.a + Number(vector.y) * matrix.c),
+      y: round(Number(vector.x) * matrix.b + Number(vector.y) * matrix.d),
+    };
+  }
+
+  function transformLinearMatrix(transform = {}) {
     const scaleX = finiteOr(transform.scaleX ?? transform.sx, 1);
     const scaleY = finiteOr(transform.scaleY ?? transform.sy, 1);
-    const skewX = finiteOr(transform.skewX, 0);
-    const skewY = finiteOr(transform.skewY, 0);
-    const scaled = {
-      x: Number(vector.x) * scaleX,
-      y: Number(vector.y) * scaleY,
+    const skewX = Math.tan(finiteOr(transform.skewX, 0));
+    const skewY = Math.tan(finiteOr(transform.skewY, 0));
+    const rotation = finiteOr(transform.rotation, 0);
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
+    return {
+      a: scaleX * (cos - sin * skewY),
+      b: scaleX * (sin + cos * skewY),
+      c: scaleY * (cos * skewX - sin),
+      d: scaleY * (sin * skewX + cos),
     };
-    const skewed = {
-      x: scaled.x + Math.tan(skewX) * scaled.y,
-      y: Math.tan(skewY) * scaled.x + scaled.y,
+  }
+
+  function inverseTransformLinearVector(vector, transform = {}) {
+    const matrix = transformLinearMatrix(transform);
+    const det = matrix.a * matrix.d - matrix.b * matrix.c;
+    if (Math.abs(det) < 1e-9) {
+      return normalizeVec2Value(vector);
+    }
+    const x = Number(vector.x) || 0;
+    const y = Number(vector.y) || 0;
+    return {
+      x: round((matrix.d * x - matrix.c * y) / det),
+      y: round((-matrix.b * x + matrix.a * y) / det),
     };
-    return rotateVector(skewed, finiteOr(transform.rotation, 0));
   }
 
   function rotateVector(vector, radians) {
@@ -5610,6 +5632,40 @@
     return evaluateGraphNodeValue(node, cleanProperty, clampedTime, restGraphOutputValue(state, output));
   }
 
+  function graphDisplayDeltaToRestDelta(state, clipId, ref, timeMs = 0, delta = {}) {
+    const pathRef = normalizePathRef(state, ref);
+    const value = normalizeVec2Value(delta);
+    if (!pathRef) {
+      return value;
+    }
+    const animation = cleanAnimation(state.animation);
+    const clip = animation?.clips.find((item) => item.id === normalizeLoopId(clipId));
+    if (!clip?.graph) {
+      return value;
+    }
+    const clampedTime = clipEvaluationTime(clip, timeMs);
+    const nodeMap = new Map((clip.graph.nodes || []).map((node) => [node.id, node]));
+    const transforms = [];
+    for (const output of graphOutputsInEvaluationOrder(clip.graph.outputs || [])) {
+      if (output?.property !== 'loop.transform') {
+        continue;
+      }
+      if (!resolveGraphPathRefs(state, output.target).some((item) => samePathRef(item, pathRef))) {
+        continue;
+      }
+      const node = nodeMap.get(output.source);
+      if (!node) {
+        continue;
+      }
+      transforms.push(normalizeTransformKeyframeValue(
+        evaluateGraphNodeValue(node, 'loop.transform', clampedTime, restGraphOutputValue(state, output)),
+      ));
+    }
+    return transforms
+      .reverse()
+      .reduce((nextDelta, transform) => inverseTransformLinearVector(nextDelta, transform), value);
+  }
+
   function restGraphValueForProperty(property) {
     if (property === 'loop.transform') {
       return restTransformValue();
@@ -5997,6 +6053,7 @@
     copyGraphOutputKeyframeToTime,
     copyPreviousGraphOutputKeyframeToTime,
     graphValueForTarget,
+    graphDisplayDeltaToRestDelta,
     brushPointDeltas,
     buildDisplayScene,
     evaluateTransformClip,

@@ -2535,6 +2535,48 @@ test('same-playhead graph keying accumulates poses without mutating rest geometr
   assert.equal(JSON.stringify(state.shapes[0].loops[0].points[0].outHandle), '{"x":4,"y":0}');
 });
 
+test('display-space point drags invert current loop transforms for graph deltas', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+  const pathRef = { shapeIndex: 0, loopIndex: 0 };
+  const pointRef = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+  const origin = { mode: 'canvas', x: 10, y: 10 };
+
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [pathRef], {
+    timeMs: 1000,
+    value: { tx: 0, ty: 0, rotation: Math.PI, sx: 1, sy: 1 },
+  }, { origin });
+
+  const rightwardDisplayDrag = core.graphDisplayDeltaToRestDelta(
+    state,
+    'pose',
+    pointRef,
+    1000,
+    { x: 12, y: 0 },
+  );
+  const downwardDisplayDrag = core.graphDisplayDeltaToRestDelta(
+    state,
+    'pose',
+    pointRef,
+    1000,
+    { x: 0, y: 8 },
+  );
+
+  assert.equal(JSON.stringify(rightwardDisplayDrag), '{"x":-12,"y":0}');
+  assert.equal(JSON.stringify(downwardDisplayDrag), '{"x":0,"y":-8}');
+
+  state = core.upsertPointDeltaGraphKeys(state, 'pose', [
+    { ref: pointRef, value: rightwardDisplayDrag },
+  ], { timeMs: 1000 });
+  const posed = core.evaluateGraphClip(state, 'pose', 1000).previews[0].loop.points[0];
+  assert.equal(posed.x, 32);
+  assert.equal(posed.y, 20);
+});
+
 test('loop transform keying migrates originless outputs to canvas origin instead of duplicating', () => {
   let state = core.createInitialState();
   state = core.addPoint(state, { x: 0, y: 0 });
