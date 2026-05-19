@@ -1,0 +1,13 @@
+{
+  "name": "vicvec",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test vector_authoring.test.mjs vector_authoring_history.test.mjs",
+    "test:browser": "playwright test",
+    "check": "node --check vector_authoring.js && node --check vector_authoring_core.js && npm test && npm run test:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

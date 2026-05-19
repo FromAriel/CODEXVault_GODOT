@@ -485,6 +485,584 @@
     return editorMode === 'animate';
   }
 
+  function animateRestOnlyMessage(actionLabel, message = '') {
+    if (message) {
+      return message;
+    }
+    return `Switch to Edit Rest to ${actionLabel}.`;
+  }
+
+  function blockAnimateRestOnlyAction(actionLabel, message = '') {
+    if (!isAnimateMode()) {
+      return false;
+    }
+    cancelHistoryInteraction();
+    setStatus(animateRestOnlyMessage(actionLabel, message));
+    draw();
+    return true;
+  }
+
+  function withRestOnlyHistory(label, message, updater) {
+    if (blockAnimateRestOnlyAction(label.toLowerCase(), message)) {
+      return false;
+    }
+    withHistory(label, updater);
+    return true;
+  }
+
+  const COMMAND_MODES = Object.freeze({
+    both: 'both',
+    restOnly: 'restOnly',
+    animateKeyable: 'animateKeyable',
+    viewOnly: 'viewOnly',
+  });
+
+  const COMMAND_HISTORY = Object.freeze({
+    none: 'none',
+    snapshot: 'snapshot',
+    interaction: 'interaction',
+  });
+
+  function commandRegistry() {
+    return {
+      'shape.fields': {
+        label: 'Edit shape fields',
+        mode: COMMAND_MODES.restOnly,
+        action: 'change object fields',
+        ui: [fields.shapeId, fields.shapeLabel, fields.shapeTags, fields.shapeZ],
+      },
+      'loop.id.input': {
+        label: 'Edit loop id',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.none,
+        action: 'change loop ids',
+        ui: fields.loopId,
+        run() {
+          state = core.setSelectedLoopId(state, fields.loopId.value);
+          syncLoopList();
+          syncActiveTargetReadout();
+          updateStats();
+          draw();
+        },
+      },
+      'loop.role.set': {
+        label: 'Set loop role',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'change loop roles',
+        ui: fields.loopRole,
+        run() {
+          state = core.setSelectedLoopRole(state, fields.loopRole.value);
+        },
+        after: 'syncDraw',
+      },
+      'shape.add': {
+        label: 'Add shape',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'add shapes',
+        ui: fields.addShape,
+        clear: ['optimization'],
+        run() {
+          syncStateFromFields();
+          state = core.addShape(state);
+          setStatus('Shape added.');
+        },
+        after: 'syncDraw',
+      },
+      'shape.duplicate': {
+        label: 'Duplicate shape',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'duplicate shapes',
+        ui: fields.duplicateShape,
+        clear: ['optimization'],
+        run() {
+          syncStateFromFields();
+          state = core.duplicateSelectedShape(state);
+          setStatus('Shape duplicated.');
+        },
+        after: 'syncDraw',
+      },
+      'shape.delete': {
+        label: 'Delete shape',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'delete shapes',
+        ui: fields.deleteShape,
+        clear: ['optimization'],
+        run() {
+          state = core.deleteSelectedShape(state);
+          setStatus('Shape deleted.');
+        },
+        after: 'syncDraw',
+      },
+      'shape.zDown': {
+        label: 'Z down',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'change shape z order',
+        ui: fields.zDown,
+        run() {
+          state = core.nudgeSelectedShapeZ(state, -1);
+        },
+        after: 'syncDraw',
+      },
+      'shape.zUp': {
+        label: 'Z up',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'change shape z order',
+        ui: fields.zUp,
+        run() {
+          state = core.nudgeSelectedShapeZ(state, 1);
+        },
+        after: 'syncDraw',
+      },
+      'tag.add': {
+        label: 'Add tag',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'change tags or loop roles',
+        ui: fields.addTagPreset,
+        run() {
+          applySelectedTagPresetBody(false);
+        },
+      },
+      'tag.addRole': {
+        label: 'Add tag and role',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'change tags or loop roles',
+        ui: fields.applyTagZone,
+        run() {
+          applySelectedTagPresetBody(true);
+        },
+      },
+      'loop.add': {
+        label: 'Add loop',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'add loops',
+        ui: fields.addLoop,
+        clear: ['optimization'],
+        run() {
+          syncStateFromFields();
+          state = core.addLoop(state, fields.loopRole.value);
+          setStatus('Loop added.');
+        },
+        after: 'syncDraw',
+      },
+      'loop.duplicate': {
+        label: 'Duplicate loop',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'duplicate loops',
+        ui: fields.duplicateLoop,
+        clear: ['optimization'],
+        run() {
+          state = core.duplicateSelectedLoop(state);
+          setStatus('Loop duplicated.');
+        },
+        after: 'syncDraw',
+      },
+      'loop.delete': {
+        label: 'Delete loop',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'delete loops',
+        ui: fields.deleteLoop,
+        clear: ['optimization'],
+        run() {
+          state = core.deleteSelectedLoop(state);
+          setStatus('Loop deleted.');
+        },
+        after: 'syncDraw',
+      },
+      'loop.up': {
+        label: 'Move loop up',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'reorder loops',
+        ui: fields.loopUp,
+        clear: ['optimization'],
+        run() {
+          state = core.moveSelectedLoop(state, -1);
+        },
+        after: 'syncDraw',
+      },
+      'loop.down': {
+        label: 'Move loop down',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'reorder loops',
+        ui: fields.loopDown,
+        clear: ['optimization'],
+        run() {
+          state = core.moveSelectedLoop(state, 1);
+        },
+        after: 'syncDraw',
+      },
+      'loop.open': {
+        label: 'Open loop',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'open loops',
+        ui: fields.openLoop,
+        clear: ['optimization'],
+        run() {
+          state = core.openLoop(state);
+          setStatus('Loop opened.');
+        },
+        after: 'syncDraw',
+      },
+      'loop.close': {
+        label: 'Close loop',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'close loops',
+        ui: fields.closeLoop,
+        clear: ['optimization'],
+        run() {
+          state = core.closeLoop(state);
+          setStatus('Loop closed.');
+        },
+        after: 'syncDraw',
+      },
+      'loop.clearPoints': {
+        label: 'Clear points',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'clear rest points',
+        ui: fields.clearPoints,
+        clear: ['optimization'],
+        run() {
+          state = core.clearPoints(state);
+          setStatus('Cleared points.');
+        },
+        after: 'syncDraw',
+      },
+      'paths.group': {
+        label: 'Group selected paths',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'group paths',
+        ui: fields.groupPaths,
+        clear: ['optimization'],
+        run() {
+          syncStateFromFields();
+          const before = core.getSelectedPathRefs(state).length;
+          state = core.groupSelectedPaths(state);
+          const after = core.getSelectedPathRefs(state).length;
+          setStatus(before >= 2 ? `Grouped ${after} paths.` : 'Select at least two paths first.');
+        },
+        after: 'syncDraw',
+      },
+      'paths.separate': {
+        label: 'Separate paths',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'separate paths',
+        ui: fields.separatePaths,
+        clear: ['optimization'],
+        run() {
+          syncStateFromFields();
+          const before = core.getSelectedPathRefs(state).length;
+          state = core.separateSelectedPaths(state);
+          const after = core.getSelectedPathRefs(state).length;
+          setStatus(before ? `Separated ${after} paths into standalone shapes.` : 'Select a path first.');
+        },
+        after: 'syncDraw',
+      },
+      'paths.mergeIntoActive': {
+        label: 'Merge paths into active',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'merge paths',
+        ui: fields.mergeIntoActive,
+        clear: ['optimization'],
+        run() {
+          syncStateFromFields();
+          const before = core.getSelectedPathRefs(state).length;
+          const activeShape = core.getSelectedShape(state);
+          state = core.mergeSelectedPathsIntoActiveShape(state);
+          setStatus(
+            before
+              ? `Merged ${before} paths into ${activeShape?.label || activeShape?.id || 'active shape'}.`
+              : 'Select paths to merge first.',
+          );
+        },
+        after: 'syncDraw',
+      },
+      'selection.clearPaths': {
+        label: 'Clear selection',
+        mode: COMMAND_MODES.viewOnly,
+        history: COMMAND_HISTORY.none,
+        ui: fields.clearPathSelection,
+        run() {
+          discardOptimizationPreview();
+          state = core.clearPathSelection(state);
+          setStatus('Path selection cleared.');
+          syncFieldsFromState();
+          draw();
+        },
+      },
+      'transform.pickOrigin': {
+        label: 'Pick transform origin',
+        mode: COMMAND_MODES.animateKeyable,
+        history: COMMAND_HISTORY.none,
+        ui: fields.transformPickOrigin,
+        run: beginTransformOriginPick,
+      },
+      'transform.preview': {
+        label: 'Preview transform',
+        mode: COMMAND_MODES.animateKeyable,
+        history: COMMAND_HISTORY.none,
+        ui: fields.transformPreview,
+        run() {
+          buildTransformPreview(true);
+        },
+      },
+      'transform.apply': {
+        label: 'Apply transform',
+        mode: COMMAND_MODES.animateKeyable,
+        history: COMMAND_HISTORY.none,
+        ui: fields.transformApply,
+        run: applyTransformSelection,
+      },
+      'transform.cancel': {
+        label: 'Cancel transform',
+        mode: COMMAND_MODES.viewOnly,
+        history: COMMAND_HISTORY.none,
+        ui: fields.transformCancel,
+        run() {
+          clearTransformPreview(true);
+        },
+      },
+      'transform.reset': {
+        label: 'Reset transform controls',
+        mode: COMMAND_MODES.viewOnly,
+        history: COMMAND_HISTORY.none,
+        ui: fields.transformReset,
+        run() {
+          resetTransformControls();
+          setStatus('Transform controls reset.');
+        },
+      },
+      'cleanup.nearDuplicates': {
+        label: 'Remove near-duplicates',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.none,
+        action: 'remove rest near-duplicate points',
+        ui: fields.removeNearDuplicates,
+        run() {
+          applyLoopCleanup('Remove near-duplicates', core.removeNearDuplicateSelectedLoops);
+        },
+      },
+      'cleanup.simplifyStraight': {
+        label: 'Simplify straight',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.none,
+        action: 'simplify rest points',
+        ui: fields.simplifyStraight,
+        run() {
+          applyLoopCleanup('Simplify straight', core.simplifyStraightSelectedLoops);
+        },
+      },
+      'cleanup.closeGap': {
+        label: 'Close gap',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.none,
+        action: 'close rest loop gaps',
+        ui: fields.closeGap,
+        run() {
+          applyLoopCleanup('Close gap', core.closeSelectedLoopGaps);
+        },
+      },
+      'cleanup.reverse': {
+        label: 'Reverse',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.none,
+        action: 'reverse rest loops',
+        ui: fields.reverseLoop,
+        run() {
+          applyLoopCleanup('Reverse', core.reverseSelectedLoops);
+        },
+      },
+      'optimize.apply': {
+        label: 'Optimize path',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.none,
+        action: 'apply rest path optimization',
+        ui: fields.optimizeApply,
+        run: applyOptimizationPreview,
+      },
+      'point.delete': {
+        label: 'Delete point',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'delete rest points',
+        ui: fields.deletePoint,
+        clear: ['optimization'],
+        run() {
+          const selectedPointCount = core.getSelectedPointRefs(state).length;
+          state = core.deleteSelectedPoints(state);
+          setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
+        },
+        after: 'syncDraw',
+      },
+      'point.clearHandles': {
+        label: 'Clear handles',
+        mode: COMMAND_MODES.restOnly,
+        history: COMMAND_HISTORY.snapshot,
+        action: 'clear rest handles',
+        ui: fields.clearHandles,
+        clear: ['optimization'],
+        run() {
+          const selectedPointCount = core.getSelectedPointRefs(state).length;
+          state = core.clearSelectedPointHandles(state);
+          setStatus(
+            selectedPointCount > 1
+              ? `Cleared handles on ${selectedPointCount} selected points.`
+              : 'Cleared selected point handles.',
+          );
+        },
+        after: 'syncDraw',
+      },
+      'animation.clip.add': { label: 'Add animation clip', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationAddClip, run: createAnimationClip },
+      'animation.clip.duplicate': { label: 'Duplicate animation clip', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationDuplicateClip, run: duplicateAnimationClip },
+      'animation.clip.delete': { label: 'Delete animation clip', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationDeleteClip, run: deleteAnimationClip },
+      'animation.track.add': { label: 'Add animation track', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationAddTrack, run: addTrackFromSelection },
+      'animation.restSelection': { label: 'Rest key selected', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationRestSelection, run: setRestKeyForSelection },
+      'animation.clip.edit': { label: 'Edit animation clip', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.snapshot, ui: fields.animationClipLoop, run: updateSelectedClipFromFields },
+      'keyframe.upsert': { label: 'Set keyframe', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.keyframeUpsert, run: upsertKeyframeFromFields },
+      'keyframe.delete': { label: 'Delete keyframe', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.keyframeDelete, run: deleteSelectedKeyframe },
+      'keyframe.rest': { label: 'Set rest keyframe', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.keyframeRest, run: setRestKeyframeAtPlayhead },
+      'keyframe.copy': { label: 'Copy keyframe', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.keyframeCopy, run: copySelectedKeyframeToPlayhead },
+      'keyframe.previous': { label: 'Copy previous keyframe', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.keyframePrevious, run: copyPreviousKeyframeToPlayhead },
+      'pose.preview': { label: 'Preview pose', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.posePreview, run() { buildAnimationPosePreview(true); } },
+      'pose.setKey': { label: 'Set pose key', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.poseSetKey, run: setKeyFromPose },
+      'pose.loadKey': { label: 'Load key into pose', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: fields.poseLoadKey, run: loadSelectedKeyIntoPose },
+      'pose.clear': { label: 'Clear pose preview', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: fields.poseClear, run() { clearAnimationPosePreview(true); } },
+      'binding.bind': { label: 'Bind animation clip', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationBindClip, run() { updateSelectedBinding(true); } },
+      'binding.unbind': { label: 'Unbind animation clip', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: fields.animationUnbindClip, run() { updateSelectedBinding(false); } },
+      'import.sourceImage': { label: 'Load source image', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: fields.imageInput, clear: ['optimization', 'transform', 'pose', 'animation'], run({ file } = {}) { handleImageLoad(file); } },
+      'import.json': { label: 'Import JSON', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: fields.jsonInput, clear: ['optimization', 'transform', 'pose', 'animation'], run({ file } = {}) { handleJsonImport(file); } },
+      'export.v1': { label: 'Export JSON', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: fields.exportJson, run: exportJson },
+      'export.graph': { label: 'Export Graph v2', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: [fields.exportGraphJson, fields.exportGraphJsonDrawer], run: exportGraphJson },
+      'export.save': { label: 'Save JSON', mode: COMMAND_MODES.viewOnly, history: COMMAND_HISTORY.none, ui: fields.saveJson, run: saveJson },
+      'animation.clip.editFields': { label: 'Edit animation clip fields', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.none, ui: [fields.animationClipLabel, fields.animationClipDuration], run: updateSelectedClipFromFields },
+      'style.fill': { label: 'Key fill color', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.none, run() { applyStyleFieldEdit('fill'); } },
+      'style.stroke': { label: 'Key stroke color', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.none, run() { applyStyleFieldEdit('stroke'); } },
+      'style.strokeWidth': { label: 'Key stroke width', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.none, run() { applyStyleFieldEdit('strokeWidth'); } },
+      'interaction.brush': { label: 'Brush stroke', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.interaction, clear: ['optimization'] },
+      'interaction.movePoints': { label: 'Move points', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.interaction, clear: ['optimization'] },
+      'interaction.movePaths': { label: 'Move paths', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.interaction, clear: ['optimization'] },
+      'interaction.moveHandle': { label: 'Move handle', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.interaction, clear: ['optimization'] },
+      'interaction.editHandle': { label: 'Edit handle', mode: COMMAND_MODES.animateKeyable, history: COMMAND_HISTORY.interaction, clear: ['optimization'] },
+      'interaction.addPoint': { label: 'Add point', mode: COMMAND_MODES.restOnly, history: COMMAND_HISTORY.interaction, action: 'add rest points', clear: ['optimization'] },
+      'interaction.moveKeyframe': { label: 'Move keyframe', mode: COMMAND_MODES.both, history: COMMAND_HISTORY.interaction },
+    };
+  }
+
+  function getEditorCommand(commandId) {
+    return commandRegistry()[commandId] || null;
+  }
+
+  function commandUiElements(command) {
+    if (!command?.ui) {
+      return [];
+    }
+    return (Array.isArray(command.ui) ? command.ui : [command.ui]).filter(Boolean);
+  }
+
+  function commandBlockedInCurrentMode(command) {
+    return command?.mode === COMMAND_MODES.restOnly && isAnimateMode();
+  }
+
+  function commandBlockMessage(command) {
+    return animateRestOnlyMessage(command.action || String(command.label || 'use this command').toLowerCase(), command.blockMessage || '');
+  }
+
+  function clearPreviewsForCommand(command) {
+    const clears = new Set(Array.isArray(command.clear) ? command.clear : []);
+    if (clears.has('optimization')) {
+      discardOptimizationPreview();
+    }
+    if (clears.has('optimizationOnly')) {
+      discardOptimizationPreviewOnly();
+    }
+    if (clears.has('transform')) {
+      discardTransformPreview(false);
+    }
+    if (clears.has('pose')) {
+      discardAnimationPosePreview(false);
+    }
+    if (clears.has('animation')) {
+      discardAnimationPreview();
+    }
+  }
+
+  function finishEditorCommand(command, result) {
+    if (result === false) {
+      return;
+    }
+    if (command.after === 'syncDraw') {
+      syncFieldsFromState();
+      draw();
+    } else if (command.after === 'draw') {
+      draw();
+    }
+  }
+
+  function runEditorCommand(commandId, payload = {}) {
+    const command = getEditorCommand(commandId);
+    if (!command) {
+      setStatus(`Unknown command: ${commandId}.`);
+      return false;
+    }
+    if (commandBlockedInCurrentMode(command)) {
+      cancelHistoryInteraction();
+      setStatus(commandBlockMessage(command));
+      syncCommandUiState();
+      draw();
+      return false;
+    }
+    const execute = () => {
+      clearPreviewsForCommand(command);
+      const result = command.run ? command.run(payload) : true;
+      finishEditorCommand(command, result);
+      return result;
+    };
+    if (command.history === COMMAND_HISTORY.snapshot) {
+      return withHistory(command.label, execute);
+    }
+    return execute();
+  }
+
+  function beginEditorCommandInteraction(commandId, fallbackLabel = 'Edit') {
+    const command = getEditorCommand(commandId);
+    if (!command) {
+      beginHistoryInteraction(fallbackLabel);
+      return true;
+    }
+    if (commandBlockedInCurrentMode(command)) {
+      cancelHistoryInteraction();
+      setStatus(commandBlockMessage(command));
+      syncCommandUiState();
+      draw();
+      return false;
+    }
+    clearPreviewsForCommand(command);
+    beginHistoryInteraction(command.label || fallbackLabel);
+    return true;
+  }
+
+  function commitEditorCommandInteraction(commandId, fallbackLabel = '') {
+    const command = getEditorCommand(commandId);
+    return commitHistoryInteraction(fallbackLabel || command?.label || 'Edit');
+  }
+
   function getSelectedClip() {
     return currentAnimation().clips.find((clip) => clip.id === selectedClipId) || null;
   }
@@ -864,22 +1442,89 @@
       fields.animationAutoKey.disabled = !isAnimateMode();
     }
     fields.appShell?.setAttribute('data-editor-mode', editorMode);
+    syncCommandUiState();
+  }
+
+  function commandControlledItems() {
+    return Object.entries(commandRegistry()).flatMap(([commandId, command]) => (
+      commandUiElements(command).map((element) => ({ commandId, command, element }))
+    ));
+  }
+
+  function syncRestOnlyControlState() {
+    syncCommandUiState();
+  }
+
+  function syncCommandUiState() {
+    const blockedTargetIds = new Map();
+    for (const item of commandControlledItems()) {
+      const element = item.element;
+      if (!element) {
+        continue;
+      }
+      const blocked = commandBlockedInCurrentMode(item.command);
+      if (element.id) {
+        blockedTargetIds.set(element.id, blocked ? commandBlockMessage(item.command) : '');
+      }
+      if (element.dataset.restOnlyOriginalTitle == null) {
+        element.dataset.restOnlyOriginalTitle = element.getAttribute('title') || '';
+      }
+      element.disabled = blocked;
+      element.setAttribute('aria-disabled', String(blocked));
+      element.classList?.toggle('is-animate-blocked', blocked);
+      if (blocked) {
+        element.setAttribute('title', commandBlockMessage(item.command));
+      } else {
+        const originalTitle = element.dataset.restOnlyOriginalTitle;
+        if (originalTitle) {
+          element.setAttribute('title', originalTitle);
+        } else {
+          element.removeAttribute('title');
+        }
+      }
+    }
+    for (const button of fields.clickTargetButtons) {
+      const targetMessage = blockedTargetIds.get(button.dataset.clickTarget);
+      if (targetMessage == null) {
+        continue;
+      }
+      if (button.dataset.restOnlyOriginalTitle == null) {
+        button.dataset.restOnlyOriginalTitle = button.getAttribute('title') || '';
+      }
+      const blocked = Boolean(targetMessage);
+      button.disabled = blocked;
+      button.setAttribute('aria-disabled', String(blocked));
+      button.classList.toggle('is-animate-blocked', blocked);
+      if (blocked) {
+        button.setAttribute('title', targetMessage);
+      } else {
+        const originalTitle = button.dataset.restOnlyOriginalTitle;
+        if (originalTitle) {
+          button.setAttribute('title', originalTitle);
+        } else {
+          button.removeAttribute('title');
+        }
+      }
+    }
+    syncTransformControls();
   }
 
   function applySelectedTagPreset(applySemanticRole) {
-    withHistory(applySemanticRole ? 'Add tag and role' : 'Add tag', () => {
-      syncStateFromFields();
-      const tag = fields.tagPreset.value;
-      const role = applySemanticRole ? core.tagPresetLoopRole(tag) : null;
-      state = core.addTagPresetToSelectedShape(state, tag, applySemanticRole);
-      setStatus(
-        role
-          ? `Added ${tag} and set selected loop to ${role}.`
-          : `Added ${tag} to selected shape.`,
-      );
-      syncFieldsFromState();
-      draw();
-    });
+    runEditorCommand(applySemanticRole ? 'tag.addRole' : 'tag.add');
+  }
+
+  function applySelectedTagPresetBody(applySemanticRole) {
+    syncStateFromFields();
+    const tag = fields.tagPreset.value;
+    const role = applySemanticRole ? core.tagPresetLoopRole(tag) : null;
+    state = core.addTagPresetToSelectedShape(state, tag, applySemanticRole);
+    setStatus(
+      role
+        ? `Added ${tag} and set selected loop to ${role}.`
+        : `Added ${tag} to selected shape.`,
+    );
+    syncFieldsFromState();
+    draw();
   }
 
   function setToolMode(mode, announce = true) {
@@ -1224,7 +1869,10 @@
     discardOptimizationPreviewOnly();
     discardAnimationPosePreview(false);
     discardAnimationPreview();
-    transformPreview = core.previewSelectionTransform(state, readTransformOptions());
+    const previewState = isAnimateMode()
+      ? buildEditorDisplayScene().displayState
+      : state;
+    transformPreview = core.previewSelectionTransform(previewState, readTransformOptions());
     updateResolvedCustomOrigin(transformPreview.stats.origin);
     const message = formatTransformStats(transformPreview.stats, 'Preview');
     fields.transformStatus.textContent = transformPreview.stats.targetCount
@@ -1233,7 +1881,7 @@
     if (announce) {
       setStatus(
         transformPreview.stats.targetCount
-          ? `${message}.`
+          ? `${message}. Rest art ${isAnimateMode() ? 'unchanged' : 'not changed until Apply'}.`
           : 'Select points or paths before transforming.',
       );
     }
@@ -1241,6 +1889,10 @@
   }
 
   function applyTransformSelection() {
+    if (isAnimateMode()) {
+      applyAnimatedTransformSelection();
+      return;
+    }
     withHistory('Transform selection', () => {
       syncStateFromFields();
       discardOptimizationPreviewOnly();
@@ -1261,6 +1913,114 @@
       syncFieldsFromState();
       draw();
     });
+  }
+
+  function applyAnimatedTransformSelection() {
+    if (!animationAutoKey) {
+      setStatus('Auto Key is off. Turn it on to write animation transform keys.');
+      return;
+    }
+    withHistory('Animate transform selection', () => {
+      const clipId = ensureActiveClipForAnimation();
+      if (!clipId) {
+        setStatus('Create or select a clip before keying transforms.');
+        return;
+      }
+      syncStateFromFields();
+      discardOptimizationPreviewOnly();
+      discardAnimationPosePreview(false);
+      discardAnimationPreview();
+      const options = readTransformOptions();
+      const displayScene = buildEditorDisplayScene();
+      const displayState = displayScene.displayState || state;
+      const preview = core.previewSelectionTransform(displayState, options);
+      transformPreview = preview;
+      updateResolvedCustomOrigin(preview.stats.origin);
+      const timeOptions = graphKeyOptions();
+      if (!preview.stats.targetCount || !preview.stats.origin) {
+        fields.transformStatus.textContent = 'No transform target.';
+        setStatus('Select points or paths before keying animation transforms.');
+        draw();
+        return;
+      }
+      if (preview.stats.target === 'points') {
+        const result = core.graphPointDeltaItemsFromTransform(state, displayState, options);
+        state = core.upsertPointDeltaGraphKeys(state, clipId, result.pointItems, timeOptions);
+        for (const item of result.handleItems) {
+          state = core.upsertPointHandleDeltaGraphKey(state, clipId, item.ref, item.handleName, {
+            ...timeOptions,
+            value: item.value,
+          });
+        }
+        const message = formatTransformStats(result.stats, 'Keyed');
+        fields.transformStatus.textContent = message;
+        setStatus(`Keyed ${result.pointItems.length} point transform target${result.pointItems.length === 1 ? '' : 's'} at ${Math.round(timeOptions.timeMs)}ms. Rest art unchanged.`);
+      } else {
+        const refs = core.getLoopEditPathRefs(displayState);
+        const animationOrigin = animationCanvasOriginFromResolved(preview.stats.origin);
+        const transformValue = {
+          sx: options.scaleX,
+          sy: options.scaleY,
+          rotation: options.rotation,
+        };
+        for (const ref of refs) {
+          const base = loopTransformBaseValueAtTime(ref, clipId, timeOptions.timeMs, animationOrigin);
+          state = core.upsertLoopTransformGraphKeys(state, clipId, [ref], {
+            ...timeOptions,
+            value: {
+              ...base,
+              ...transformValue,
+            },
+          }, {
+            origin: animationOrigin,
+          });
+        }
+        const message = formatTransformStats(preview.stats, 'Keyed');
+        fields.transformStatus.textContent = message;
+        setStatus(`Keyed ${refs.length} loop transform target${refs.length === 1 ? '' : 's'} at ${Math.round(timeOptions.timeMs)}ms. Rest art unchanged.`);
+      }
+      selectedClipId = clipId;
+      selectLatestAnimationRowAtPlayhead();
+      updateAnimationPreview();
+      syncFieldsFromState();
+      draw();
+    });
+  }
+
+  function animationCanvasOriginFromResolved(origin) {
+    if (!origin || !Number.isFinite(Number(origin.x)) || !Number.isFinite(Number(origin.y))) {
+      return null;
+    }
+    return {
+      mode: 'canvas',
+      x: Math.round(Number(origin.x) * 1000) / 1000,
+      y: Math.round(Number(origin.y) * 1000) / 1000,
+    };
+  }
+
+  function animationCanvasOriginForState(originState = state) {
+    return animationCanvasOriginFromResolved(core.resolveTransformOrigin(originState, readTransformOptions()));
+  }
+
+  function isRestTransformValue(value) {
+    return !value ||
+      Math.abs(Number(value.tx) || 0) < 0.0001 &&
+      Math.abs(Number(value.ty) || 0) < 0.0001 &&
+      Math.abs(Number(value.rotation) || 0) < 0.0001 &&
+      Math.abs((Number(value.sx) || 1) - 1) < 0.0001 &&
+      Math.abs((Number(value.sy) || 1) - 1) < 0.0001 &&
+      Math.abs(Number(value.skewX) || 0) < 0.0001 &&
+      Math.abs(Number(value.skewY) || 0) < 0.0001;
+  }
+
+  function loopTransformBaseValueAtTime(ref, clipId, timeMs, origin) {
+    const target = core.pathRefToAnimationTarget(state, ref);
+    const withOrigin = core.graphValueForTarget(state, clipId, 'loop.transform', target, timeMs, { origin });
+    if (!isRestTransformValue(withOrigin)) {
+      return withOrigin;
+    }
+    const withoutOrigin = core.graphValueForTarget(state, clipId, 'loop.transform', target, timeMs);
+    return isRestTransformValue(withoutOrigin) ? withOrigin : withoutOrigin;
   }
 
   function updateTransformPreviewFromControls() {
@@ -1289,14 +2049,17 @@
 
   function beginTransformOriginPick() {
     syncStateFromFields();
-    const resolved = core.resolveTransformOrigin(state, readTransformOptions());
+    const originState = isAnimateMode()
+      ? buildEditorDisplayScene().displayState
+      : state;
+    const resolved = core.resolveTransformOrigin(originState, readTransformOptions());
     if (resolved) {
       setCustomTransformOrigin(resolved);
     }
     fields.transformOriginMode.value = 'custom';
     syncTransformControls();
     transformOriginPickActive = true;
-    setStatus('Pick transform origin: click the canvas.');
+    setStatus('Pick transform origin on the canvas.');
     draw();
   }
 
@@ -1429,12 +2192,13 @@
           },
         );
       } else if (pathRefs.length) {
+        const origin = animationCanvasOriginForState(buildEditorDisplayScene().displayState || state);
         state = core.upsertLoopTransformGraphKeys(state, clipId, pathRefs, {
           timeMs: snapTimelineTime(timelineTimeMs),
           interp: 'smooth',
           value: core.restTransformValue(),
         }, {
-          origin: readTransformOptions().origin,
+          origin,
         });
       } else {
         setStatus('Select one or more loops or points before adding graph rows.');
@@ -1476,11 +2240,12 @@
         );
         setStatus(`Rest-keyed ${pointRefs.length} point delta target(s) at ${Math.round(timeOptions.timeMs)}ms.`);
       } else {
+        const origin = animationCanvasOriginForState(buildEditorDisplayScene().displayState || state);
         state = core.upsertLoopTransformGraphKeys(state, clipId, pathRefs, {
           ...timeOptions,
           value: core.restTransformValue(),
         }, {
-          origin: readTransformOptions().origin,
+          origin,
         });
         setStatus(`Rest-keyed ${pathRefs.length} loop transform target(s) at ${Math.round(timeOptions.timeMs)}ms.`);
       }
@@ -1760,6 +2525,23 @@
     return true;
   }
 
+  function applyStyleFieldEdit(property) {
+    if (isAnimateMode()) {
+      const label = property === 'strokeWidth'
+        ? 'Key stroke width'
+        : property === 'stroke'
+          ? 'Key stroke color'
+          : 'Key fill color';
+      withHistory(label, () => keyShapeStyleFromFields(property));
+      return;
+    }
+    syncStateFromFields();
+    syncShapeList();
+    updateStats();
+    syncRailSwatches();
+    draw();
+  }
+
   function selectLatestAnimationRowAtPlayhead() {
     const rows = animationTimelineRows(getSelectedClip());
     if (!rows.length) {
@@ -1929,6 +2711,26 @@
       : core.evaluateTransformClip(state, selectedClipId, timelineTimeMs);
   }
 
+  function buildEditorDisplayScene() {
+    return core.buildDisplayScene(state, {
+      editorMode,
+      clipId: selectedClipId,
+      timeMs: timelineTimeMs,
+      previewEnabled: Boolean(fields.timelinePreviewEnabled?.checked) && !animationPosePreview,
+    });
+  }
+
+  function applySelectionFromDisplayState(displayState) {
+    state = {
+      ...state,
+      selectedShapeIndex: displayState.selectedShapeIndex,
+      selectedLoopIndex: displayState.selectedLoopIndex,
+      selectedPointIndex: displayState.selectedPointIndex,
+      selectedPaths: core.getSelectedPathRefs(displayState),
+      selectedPoints: core.getSelectedPointRefs(displayState),
+    };
+  }
+
   function discardAnimationPreview() {
     animationPreview = null;
   }
@@ -2049,6 +2851,9 @@
   }
 
   function applyOptimizationPreview() {
+    if (blockAnimateRestOnlyAction('apply rest path optimization', 'Switch to Edit Rest to optimize rest paths.')) {
+      return;
+    }
     withHistory('Optimize path', () => {
       syncStateFromFields();
       discardTransformPreview(false);
@@ -2259,14 +3064,15 @@
       ctx.restore();
     }
     drawCanvasBounds();
-    drawShapes();
-    drawSelectedBounds();
-    drawAnimationPreview();
+    const displayScene = buildEditorDisplayScene();
+    drawShapes(displayScene);
+    drawSelectedBounds(displayScene);
+    drawAnimationPreview(displayScene);
     drawAnimationPosePreview();
     drawTransformPreview();
     drawOptimizationPreview();
     drawTransformOriginMarker();
-    drawSelectedHandles();
+    drawSelectedHandles(displayScene);
     drawLassoPreview();
     drawBrushCursor();
 
@@ -2279,20 +3085,21 @@
     ctx.strokeRect(0, 0, state.canvas.width, state.canvas.height);
   }
 
-  function drawShapes() {
+  function drawShapes(displayScene = buildEditorDisplayScene()) {
+    const displayState = displayScene.displayState || state;
     const drawAllPointMarkers = countPackPoints() <= FULL_POINT_MARKER_LIMIT;
-    const sorted = state.shapes
+    const sorted = displayState.shapes
       .map((shape, index) => ({ shape, index }))
       .sort((a, b) => {
         const zSort = Number(a.shape.z) - Number(b.shape.z);
         return zSort === 0 ? a.index - b.index : zSort;
       });
     for (const item of sorted) {
-      drawShape(item.shape, item.index, drawAllPointMarkers);
+      drawShape(item.shape, item.index, drawAllPointMarkers, displayScene);
     }
   }
 
-  function drawShape(shape, shapeIndex, drawAllPointMarkers) {
+  function drawShape(shape, shapeIndex, drawAllPointMarkers, displayScene = null) {
     const fillPath = new Path2D();
     const strokeLoops = [];
     const fillLoops = [];
@@ -2310,6 +3117,8 @@
       }
     }
 
+    ctx.save();
+    ctx.globalAlpha *= Math.max(0, Math.min(1, Number(displayScene?.shapeOpacity?.[shapeIndex] ?? 1)));
     if (hasFill) {
       ctx.fillStyle = previewFillForShape(shape, shapeIndex);
       ctx.fill(fillPath, hasCutout ? 'evenodd' : 'nonzero');
@@ -2328,6 +3137,7 @@
       ctx.stroke(item.path);
     }
     ctx.setLineDash([]);
+    ctx.restore();
 
     shape.loops.forEach((loop, loopIndex) => {
       if (selectFillDown && isFillSelectTarget(loop)) {
@@ -2555,11 +3365,11 @@
     });
   }
 
-  function drawSelectedBounds() {
+  function drawSelectedBounds(displayScene = buildEditorDisplayScene()) {
     if (!(activeToolMode === TOOL_MODES.path || activeToolMode === TOOL_MODES.move || selectFillDown)) {
       return;
     }
-    const bounds = core.selectedPathBounds(state);
+    const bounds = core.selectedPathBounds(displayScene.displayState || state);
     if (!bounds) {
       return;
     }
@@ -2628,37 +3438,19 @@
     ctx.restore();
   }
 
-  function drawAnimationPreview() {
-    const previews = animationPreview?.previews || [];
+  function drawAnimationPreview(displayScene = buildEditorDisplayScene()) {
+    const previews = displayScene?.source?.mode === 'rest' ? [] : displayScene.previews || [];
     if (!previews.length) {
       return;
     }
     ctx.save();
     for (const preview of previews) {
-      if (!preview?.loop) {
-        continue;
-      }
       if (preview.originalLoop) {
         ctx.setLineDash([3 / state.viewport.scale, 5 / state.viewport.scale]);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
         ctx.lineWidth = 1 / state.viewport.scale;
         ctx.stroke(buildLoopPath(preview.originalLoop));
       }
-      ctx.setLineDash([]);
-      const path = buildLoopPath(preview.loop);
-      const style = preview.style || state.shapes[preview.ref?.shapeIndex]?.style || core.DEFAULT_STYLE;
-      if (preview.loop.closed && preview.loop.role !== 'detail') {
-        ctx.globalAlpha = Math.max(0, Math.min(1, Number(preview.opacity ?? 1))) * 0.52;
-        ctx.fillStyle = style.fill || 'rgba(84, 216, 255, 0.3)';
-        ctx.fill(path, fillRuleForLoop(preview.loop));
-        ctx.globalAlpha = 1;
-      }
-      ctx.strokeStyle = style.stroke || 'rgba(84, 216, 255, 0.74)';
-      ctx.lineWidth = Math.max(1.4, Number(style.strokeWidth) || 1.4) / state.viewport.scale;
-      ctx.stroke(path);
-      ctx.strokeStyle = 'rgba(84, 216, 255, 0.74)';
-      ctx.lineWidth = 1 / state.viewport.scale;
-      ctx.stroke(path);
     }
     ctx.restore();
   }
@@ -2717,8 +3509,8 @@
     return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
   }
 
-  function drawSelectedHandles() {
-    const loop = core.getSelectedLoop(state);
+  function drawSelectedHandles(displayScene = buildEditorDisplayScene()) {
+    const loop = core.getSelectedLoop(displayScene.displayState || state);
     if (!loop) {
       return;
     }
@@ -2840,15 +3632,22 @@
     }
   }
 
-  function findFilledPathHit(canvasPoint) {
+  function findFilledPathHit(canvasPoint, displayScene = buildEditorDisplayScene()) {
     syncHitCanvasSize();
     const candidates = [];
-    state.shapes.forEach((shape, shapeIndex) => {
+    const displayState = displayScene.displayState || state;
+    displayState.shapes.forEach((shape, shapeIndex) => {
       shape.loops.forEach((loop, loopIndex) => {
         if (!isFillSelectTarget(loop)) {
           return;
         }
-        candidates.push({ shape, shapeIndex, loop, loopIndex });
+        candidates.push({
+          shape: state.shapes[shapeIndex] || shape,
+          displayShape: shape,
+          shapeIndex,
+          loop,
+          loopIndex,
+        });
       });
     });
     candidates.sort((a, b) => {
@@ -2983,7 +3782,7 @@
           ty: (Number(base.ty) || 0) + animationDrag.totalDy,
         },
       }, {
-        origin: animationDrag.origin || readTransformOptions().origin,
+        origin: animationDrag.origin || animationCanvasOriginForState(),
       });
     }
     markHistoryInteractionDirty();
@@ -3046,7 +3845,8 @@
 
   function keyAnimatedBrushStroke(delta, center) {
     const timeOptions = graphKeyOptions();
-    const increments = core.brushPointDeltas(state, {
+    const displayScene = buildEditorDisplayScene();
+    const increments = core.brushPointDeltas(displayScene.displayState || state, {
       center,
       delta,
       ...readBrushOptions(),
@@ -3130,7 +3930,7 @@
           state = core.upsertLoopTransformGraphKeys(state, clipId, core.getSelectedPathRefs(state), {
             ...graphKeyOptions(),
             value: { tx: moveDelta.dx, ty: moveDelta.dy, rotation: 0, sx: 1, sy: 1 },
-          }, { origin: readTransformOptions().origin });
+          }, { origin: animationCanvasOriginForState(buildEditorDisplayScene().displayState || state) });
           setStatus(`Keyed ${selectedCount} loop nudge(s) by ${step}px.`);
         }
         selectLatestAnimationRowAtPlayhead();
@@ -3149,6 +3949,9 @@
   }
 
   function applyLoopCleanup(label, updater) {
+    if (blockAnimateRestOnlyAction(label.toLowerCase(), `Switch to Edit Rest to ${label.toLowerCase()} on rest loops.`)) {
+      return;
+    }
     withHistory(label, () => {
       syncStateFromFields();
       discardOptimizationPreview();
@@ -3215,19 +4018,22 @@
       setStatus('Lasso canceled.');
       return;
     }
+    const displayScene = buildEditorDisplayScene();
+    const selectionState = displayScene.displayState || state;
     const pathLasso = lassoSelectPaths;
     const before = pathLasso
       ? core.getSelectedPathRefs(state).length
       : core.getSelectedPointRefs(state).length;
+    let nextDisplayState;
     if (readLassoMode() === 'freehand') {
       const polygon = lassoPoints.length >= 3 ? lassoPoints : [
         lassoStartCanvasPoint,
         lassoCurrentCanvasPoint,
         lassoStartCanvasPoint,
       ];
-      state = pathLasso
-        ? core.selectPathsInPolygon(state, polygon, { toggle: lassoToggleSelection, filledOnly: true })
-        : core.selectPointsInPolygon(state, polygon, { toggle: lassoToggleSelection });
+      nextDisplayState = pathLasso
+        ? core.selectPathsInPolygon(selectionState, polygon, { toggle: lassoToggleSelection, filledOnly: true })
+        : core.selectPointsInPolygon(selectionState, polygon, { toggle: lassoToggleSelection });
     } else {
       const rect = {
         x1: lassoStartCanvasPoint.x,
@@ -3235,10 +4041,11 @@
         x2: lassoCurrentCanvasPoint.x,
         y2: lassoCurrentCanvasPoint.y,
       };
-      state = pathLasso
-        ? core.selectPathsInRect(state, rect, { toggle: lassoToggleSelection, filledOnly: true })
-        : core.selectPointsInRect(state, rect, { toggle: lassoToggleSelection });
+      nextDisplayState = pathLasso
+        ? core.selectPathsInRect(selectionState, rect, { toggle: lassoToggleSelection, filledOnly: true })
+        : core.selectPointsInRect(selectionState, rect, { toggle: lassoToggleSelection });
     }
+    applySelectionFromDisplayState(nextDisplayState);
     const after = pathLasso
       ? core.getSelectedPathRefs(state).length
       : core.getSelectedPointRefs(state).length;
@@ -3340,6 +4147,9 @@
       return;
     }
 
+    const displayScene = buildEditorDisplayScene();
+    const hitState = displayScene.displayState || state;
+
     if (activeToolMode === TOOL_MODES.brush) {
       const brushOptions = readBrushOptions();
       const refs = brushOptions.selectedOnly
@@ -3361,7 +4171,9 @@
         draw();
         return;
       }
-      beginHistoryInteraction('Brush stroke');
+      if (!beginEditorCommandInteraction('interaction.brush', 'Brush stroke')) {
+        return;
+      }
       dragMode = 'brush';
       dragCanvasPoint = canvasPoint;
       hoverCanvasPoint = canvasPoint;
@@ -3385,7 +4197,7 @@
     }
 
     if (activeToolMode === TOOL_MODES.move) {
-      const pointHit = core.nearestPointHit(state, canvasPoint, hitRadiusCanvas());
+      const pointHit = core.nearestPointHit(hitState, canvasPoint, hitRadiusCanvas());
       if (pointHit) {
         if (event.shiftKey) {
           state = core.togglePointSelection(
@@ -3399,7 +4211,9 @@
           draw();
           return;
         }
-        beginHistoryInteraction('Move points');
+        if (!beginEditorCommandInteraction('interaction.movePoints', 'Move points')) {
+          return;
+        }
         if (!core.isPointSelected(state, pointHit.shapeIndex, pointHit.loopIndex, pointHit.pointIndex)) {
           state = core.selectPointRef(state, pointHit.shapeIndex, pointHit.loopIndex, pointHit.pointIndex);
         }
@@ -3432,7 +4246,7 @@
         draw();
         return;
       }
-      const pathHit = findFilledPathHit(canvasPoint);
+      const pathHit = findFilledPathHit(canvasPoint, displayScene);
       if (!pathHit) {
         setStatus('Move mode: click a filled path or loop point first.');
         syncFieldsFromState();
@@ -3446,7 +4260,9 @@
         draw();
         return;
       }
-      beginHistoryInteraction('Move paths');
+      if (!beginEditorCommandInteraction('interaction.movePaths', 'Move paths')) {
+        return;
+      }
       if (!core.isPathSelected(state, pathHit.shapeIndex, pathHit.loopIndex)) {
         state = core.selectPath(state, pathHit.shapeIndex, pathHit.loopIndex);
       }
@@ -3456,7 +4272,7 @@
         }
         const refs = core.getSelectedPathRefs(state);
         const timeOptions = graphKeyOptions();
-        const origin = readTransformOptions().origin;
+        const origin = animationCanvasOriginForState(displayScene.displayState || state);
         dragMode = 'animate-path-move';
         animationDrag = {
           clipId: selectedClipId,
@@ -3482,7 +4298,7 @@
       return;
     }
 
-    const pointHitForToggle = core.nearestPointHit(state, canvasPoint, hitRadiusCanvas());
+    const pointHitForToggle = core.nearestPointHit(hitState, canvasPoint, hitRadiusCanvas());
     if (pointHitForToggle && event.shiftKey) {
       state = core.togglePointSelection(
         state,
@@ -3496,9 +4312,11 @@
       return;
     }
 
-    const handleHit = core.nearestHandleHit(state, canvasPoint, hitRadiusCanvas());
+    const handleHit = core.nearestHandleHit(hitState, canvasPoint, hitRadiusCanvas());
     if (handleHit) {
-      beginHistoryInteraction('Move handle');
+      if (!beginEditorCommandInteraction('interaction.moveHandle', 'Move handle')) {
+        return;
+      }
       state = core.selectPoint(state, handleHit.pointIndex);
       if (isAnimateMode()) {
         if (!beginAnimateInteraction('Animate handle pose')) {
@@ -3534,9 +4352,11 @@
       return;
     }
 
-    const pointHit = core.nearestPointHit(state, canvasPoint, hitRadiusCanvas());
+    const pointHit = core.nearestPointHit(hitState, canvasPoint, hitRadiusCanvas());
     if (pointHit) {
-      beginHistoryInteraction(event.altKey ? 'Edit handle' : 'Move point');
+      if (!beginEditorCommandInteraction(event.altKey ? 'interaction.editHandle' : 'interaction.movePoints', event.altKey ? 'Edit handle' : 'Move point')) {
+        return;
+      }
       state = core.selectPointRef(state, pointHit.shapeIndex, pointHit.loopIndex, pointHit.pointIndex);
       if (event.altKey) {
         if (isAnimateMode()) {
@@ -3574,30 +4394,30 @@
         return;
       }
       const loop = core.getSelectedLoop(state);
+      if (isAnimateMode()) {
+        if (!beginAnimateInteraction('Animate point pose')) {
+          return;
+        }
+        const refs = core.getSelectedPointRefs(state);
+        const timeOptions = graphKeyOptions();
+        dragMode = 'animate-point-move';
+        animationDrag = {
+          clipId: selectedClipId,
+          refs,
+          baseValues: createPointBaseValues(refs, selectedClipId, 'point.positionDelta', timeOptions.timeMs),
+          totalDx: 0,
+          totalDy: 0,
+        };
+        dragCanvasPoint = canvasPoint;
+        pointerMoved = false;
+        setStatus('Drag to key selected point deltas.');
+        syncFieldsFromState();
+        draw();
+        return;
+      }
       if (!loop.closed && pointHit.pointIndex === 0 && core.canCloseLoop(loop.points, canvasPoint, hitRadiusCanvas())) {
         dragMode = 'maybe-close';
       } else {
-        if (isAnimateMode()) {
-          if (!beginAnimateInteraction('Animate point pose')) {
-            return;
-          }
-          const refs = core.getSelectedPointRefs(state);
-          const timeOptions = graphKeyOptions();
-          dragMode = 'animate-point-move';
-          animationDrag = {
-            clipId: selectedClipId,
-            refs,
-            baseValues: createPointBaseValues(refs, selectedClipId, 'point.positionDelta', timeOptions.timeMs),
-            totalDx: 0,
-            totalDy: 0,
-          };
-          dragCanvasPoint = canvasPoint;
-          pointerMoved = false;
-          setStatus('Drag to key selected point deltas.');
-          syncFieldsFromState();
-          draw();
-          return;
-        }
         dragMode = 'point';
       }
       dragPointIndex = pointHit.pointIndex;
@@ -3624,7 +4444,9 @@
       setStatus('Selected loop is closed. Open it or create another loop.');
       return;
     }
-    beginHistoryInteraction('Add point');
+    if (!beginEditorCommandInteraction('interaction.addPoint', 'Add point')) {
+      return;
+    }
     state = core.addPoint(state, canvasPoint);
     markHistoryInteractionDirty();
     dragMode = 'new-handle';
@@ -3834,7 +4656,9 @@
     }
     const keyframeNode = event.target.closest?.('.timeline-keyframe');
     if (keyframeNode) {
-      beginHistoryInteraction('Move keyframe');
+      if (!beginEditorCommandInteraction('interaction.moveKeyframe', 'Move keyframe')) {
+        return;
+      }
       selectedTrackIndex = parseIntegerSafe(keyframeNode.dataset.trackIndex, -1);
       selectedKeyframeIndex = parseIntegerSafe(keyframeNode.dataset.keyframeIndex, -1);
       const keyframe = getSelectedKeyframe();
@@ -3896,7 +4720,7 @@
     const mode = timelineDragMode;
     timelineDragMode = null;
     if (mode === 'keyframe' && historyInteraction?.dirty) {
-      commitHistoryInteraction('Move keyframe');
+      commitEditorCommandInteraction('interaction.moveKeyframe', 'Move keyframe');
     } else if (mode === 'keyframe') {
       cancelHistoryInteraction();
     }
@@ -4204,18 +5028,7 @@
         activateReveal(true);
         setStatus('Reveal active: all paths are pulsing.');
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
-        withHistory('Delete point', () => {
-          if (isAnimateMode()) {
-            setStatus('Switch to Edit Rest to delete points. Animate mode keys existing geometry.');
-            return;
-          }
-          discardOptimizationPreview();
-          const selectedPointCount = core.getSelectedPointRefs(state).length;
-          state = core.deleteSelectedPoints(state);
-          setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
-          syncFieldsFromState();
-          draw();
-        });
+        runEditorCommand('point.delete');
       }
     });
     window.addEventListener('keyup', (event) => {
@@ -4344,28 +5157,26 @@
     fields.timelineClipSelect.addEventListener('change', () => {
       selectAnimationClip(fields.timelineClipSelect.value);
     });
-    fields.animationAddClip.addEventListener('click', createAnimationClip);
-    fields.animationDuplicateClip.addEventListener('click', duplicateAnimationClip);
-    fields.animationDeleteClip.addEventListener('click', deleteAnimationClip);
-    fields.animationAddTrack.addEventListener('click', addTrackFromSelection);
-    fields.animationRestSelection?.addEventListener('click', setRestKeyForSelection);
-    fields.animationClipLabel.addEventListener('input', updateSelectedClipFromFields);
-    fields.animationClipDuration.addEventListener('input', updateSelectedClipFromFields);
-    fields.animationClipLoop.addEventListener('change', () => {
-      withHistory('Edit animation clip', updateSelectedClipFromFields);
-    });
+    fields.animationAddClip.addEventListener('click', () => runEditorCommand('animation.clip.add'));
+    fields.animationDuplicateClip.addEventListener('click', () => runEditorCommand('animation.clip.duplicate'));
+    fields.animationDeleteClip.addEventListener('click', () => runEditorCommand('animation.clip.delete'));
+    fields.animationAddTrack.addEventListener('click', () => runEditorCommand('animation.track.add'));
+    fields.animationRestSelection?.addEventListener('click', () => runEditorCommand('animation.restSelection'));
+    fields.animationClipLabel.addEventListener('input', () => runEditorCommand('animation.clip.editFields'));
+    fields.animationClipDuration.addEventListener('input', () => runEditorCommand('animation.clip.editFields'));
+    fields.animationClipLoop.addEventListener('change', () => runEditorCommand('animation.clip.edit'));
     fields.animationTrackSelect.addEventListener('change', () => {
       selectAnimationTrack(fields.animationTrackSelect.value);
     });
-    fields.keyframeUpsert.addEventListener('click', upsertKeyframeFromFields);
-    fields.keyframeDelete.addEventListener('click', deleteSelectedKeyframe);
-    fields.keyframeRest.addEventListener('click', setRestKeyframeAtPlayhead);
-    fields.keyframeCopy.addEventListener('click', copySelectedKeyframeToPlayhead);
-    fields.keyframePrevious.addEventListener('click', copyPreviousKeyframeToPlayhead);
-    fields.posePreview.addEventListener('click', () => buildAnimationPosePreview(true));
-    fields.poseSetKey.addEventListener('click', setKeyFromPose);
-    fields.poseLoadKey.addEventListener('click', loadSelectedKeyIntoPose);
-    fields.poseClear.addEventListener('click', () => clearAnimationPosePreview(true));
+    fields.keyframeUpsert.addEventListener('click', () => runEditorCommand('keyframe.upsert'));
+    fields.keyframeDelete.addEventListener('click', () => runEditorCommand('keyframe.delete'));
+    fields.keyframeRest.addEventListener('click', () => runEditorCommand('keyframe.rest'));
+    fields.keyframeCopy.addEventListener('click', () => runEditorCommand('keyframe.copy'));
+    fields.keyframePrevious.addEventListener('click', () => runEditorCommand('keyframe.previous'));
+    fields.posePreview.addEventListener('click', () => runEditorCommand('pose.preview'));
+    fields.poseSetKey.addEventListener('click', () => runEditorCommand('pose.setKey'));
+    fields.poseLoadKey.addEventListener('click', () => runEditorCommand('pose.loadKey'));
+    fields.poseClear.addEventListener('click', () => runEditorCommand('pose.clear'));
     for (const input of [fields.poseTx, fields.poseTy, fields.poseRotation, fields.poseSx, fields.poseSy]) {
       input.addEventListener('input', () => {
         if (animationPosePreview) {
@@ -4376,8 +5187,8 @@
     fields.animationBindingSelect.addEventListener('change', () => {
       syncBindingFields(currentAnimation());
     });
-    fields.animationBindClip.addEventListener('click', () => updateSelectedBinding(true));
-    fields.animationUnbindClip.addEventListener('click', () => updateSelectedBinding(false));
+    fields.animationBindClip.addEventListener('click', () => runEditorCommand('binding.bind'));
+    fields.animationUnbindClip.addEventListener('click', () => runEditorCommand('binding.unbind'));
     fields.timelineCollapse.addEventListener('click', () => {
       timelineCollapsed = !timelineCollapsed;
       syncTimelineUi();
@@ -4409,17 +5220,17 @@
     fields.timelineTrack.addEventListener('pointermove', handleTimelinePointerMove);
     fields.timelineTrack.addEventListener('pointerup', handleTimelinePointerUp);
     fields.timelineTrack.addEventListener('pointercancel', handleTimelinePointerUp);
-    fields.imageInput.addEventListener('change', () => {
-      handleImageLoad(fields.imageInput.files[0]);
-    });
+    fields.imageInput.addEventListener('change', () => runEditorCommand('import.sourceImage', {
+      file: fields.imageInput.files[0],
+    }));
     fields.imageOpacity.addEventListener('input', () => {
       sourceImageOpacity = Math.max(0, Math.min(1, Number(fields.imageOpacity.value) / 100));
       updateImageOpacityLabel();
       draw();
     });
-    fields.jsonInput.addEventListener('change', () => {
-      handleJsonImport(fields.jsonInput.files[0]);
-    });
+    fields.jsonInput.addEventListener('change', () => runEditorCommand('import.json', {
+      file: fields.jsonInput.files[0],
+    }));
     fields.shapeSelect.addEventListener('change', () => {
       discardOptimizationPreview();
       state = core.selectShape(state, Number(fields.shapeSelect.value));
@@ -4432,20 +5243,8 @@
       syncFieldsFromState();
       draw();
     });
-    fields.loopRole.addEventListener('change', () => {
-      withHistory('Set loop role', () => {
-        state = core.setSelectedLoopRole(state, fields.loopRole.value);
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.loopId.addEventListener('input', () => {
-      state = core.setSelectedLoopId(state, fields.loopId.value);
-      syncLoopList();
-      syncActiveTargetReadout();
-      updateStats();
-      draw();
-    });
+    fields.loopRole.addEventListener('change', () => runEditorCommand('loop.role.set'));
+    fields.loopId.addEventListener('input', () => runEditorCommand('loop.id.input'));
     fields.pickFillColor.addEventListener('click', () => {
       syncStateFromFields();
       beginColorPick('fill');
@@ -4454,173 +5253,25 @@
       syncStateFromFields();
       beginColorPick('stroke');
     });
-    fields.addShape.addEventListener('click', () => {
-      withHistory('Add shape', () => {
-        syncStateFromFields();
-        discardOptimizationPreview();
-        state = core.addShape(state);
-        setStatus('Shape added.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.duplicateShape.addEventListener('click', () => {
-      withHistory('Duplicate shape', () => {
-        syncStateFromFields();
-        discardOptimizationPreview();
-        state = core.duplicateSelectedShape(state);
-        setStatus('Shape duplicated.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.deleteShape.addEventListener('click', () => {
-      withHistory('Delete shape', () => {
-        discardOptimizationPreview();
-        state = core.deleteSelectedShape(state);
-        setStatus('Shape deleted.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.zDown.addEventListener('click', () => {
-      withHistory('Z down', () => {
-        state = core.nudgeSelectedShapeZ(state, -1);
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.zUp.addEventListener('click', () => {
-      withHistory('Z up', () => {
-        state = core.nudgeSelectedShapeZ(state, 1);
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.addTagPreset.addEventListener('click', () => {
-      applySelectedTagPreset(false);
-    });
-    fields.applyTagZone.addEventListener('click', () => {
-      applySelectedTagPreset(true);
-    });
-    fields.addLoop.addEventListener('click', () => {
-      withHistory('Add loop', () => {
-        syncStateFromFields();
-        discardOptimizationPreview();
-        state = core.addLoop(state, fields.loopRole.value);
-        setStatus('Loop added.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.duplicateLoop.addEventListener('click', () => {
-      withHistory('Duplicate loop', () => {
-        discardOptimizationPreview();
-        state = core.duplicateSelectedLoop(state);
-        setStatus('Loop duplicated.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.deleteLoop.addEventListener('click', () => {
-      withHistory('Delete loop', () => {
-        discardOptimizationPreview();
-        state = core.deleteSelectedLoop(state);
-        setStatus('Loop deleted.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.loopUp.addEventListener('click', () => {
-      withHistory('Move loop up', () => {
-        discardOptimizationPreview();
-        state = core.moveSelectedLoop(state, -1);
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.loopDown.addEventListener('click', () => {
-      withHistory('Move loop down', () => {
-        discardOptimizationPreview();
-        state = core.moveSelectedLoop(state, 1);
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.openLoop.addEventListener('click', () => {
-      withHistory('Open loop', () => {
-        discardOptimizationPreview();
-        state = core.openLoop(state);
-        setStatus('Loop opened.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.closeLoop.addEventListener('click', () => {
-      withHistory('Close loop', () => {
-        discardOptimizationPreview();
-        state = core.closeLoop(state);
-        setStatus('Loop closed.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.clearPoints.addEventListener('click', () => {
-      withHistory('Clear points', () => {
-        discardOptimizationPreview();
-        state = core.clearPoints(state);
-        setStatus('Cleared points.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.groupPaths.addEventListener('click', () => {
-      withHistory('Group selected paths', () => {
-        syncStateFromFields();
-        discardOptimizationPreview();
-        const before = core.getSelectedPathRefs(state).length;
-        state = core.groupSelectedPaths(state);
-        const after = core.getSelectedPathRefs(state).length;
-        setStatus(before >= 2 ? `Grouped ${after} paths.` : 'Select at least two paths first.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.separatePaths.addEventListener('click', () => {
-      withHistory('Separate paths', () => {
-        syncStateFromFields();
-        discardOptimizationPreview();
-        const before = core.getSelectedPathRefs(state).length;
-        state = core.separateSelectedPaths(state);
-        const after = core.getSelectedPathRefs(state).length;
-        setStatus(before ? `Separated ${after} paths into standalone shapes.` : 'Select a path first.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.mergeIntoActive.addEventListener('click', () => {
-      withHistory('Merge paths into active', () => {
-        syncStateFromFields();
-        discardOptimizationPreview();
-        const before = core.getSelectedPathRefs(state).length;
-        const activeShape = core.getSelectedShape(state);
-        state = core.mergeSelectedPathsIntoActiveShape(state);
-        setStatus(
-          before
-            ? `Merged ${before} paths into ${activeShape?.label || activeShape?.id || 'active shape'}.`
-            : 'Select paths to merge first.',
-        );
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.clearPathSelection.addEventListener('click', () => {
-      discardOptimizationPreview();
-      state = core.clearPathSelection(state);
-      setStatus('Path selection cleared.');
-      syncFieldsFromState();
-      draw();
-    });
+    fields.addShape.addEventListener('click', () => runEditorCommand('shape.add'));
+    fields.duplicateShape.addEventListener('click', () => runEditorCommand('shape.duplicate'));
+    fields.deleteShape.addEventListener('click', () => runEditorCommand('shape.delete'));
+    fields.zDown.addEventListener('click', () => runEditorCommand('shape.zDown'));
+    fields.zUp.addEventListener('click', () => runEditorCommand('shape.zUp'));
+    fields.addTagPreset.addEventListener('click', () => runEditorCommand('tag.add'));
+    fields.applyTagZone.addEventListener('click', () => runEditorCommand('tag.addRole'));
+    fields.addLoop.addEventListener('click', () => runEditorCommand('loop.add'));
+    fields.duplicateLoop.addEventListener('click', () => runEditorCommand('loop.duplicate'));
+    fields.deleteLoop.addEventListener('click', () => runEditorCommand('loop.delete'));
+    fields.loopUp.addEventListener('click', () => runEditorCommand('loop.up'));
+    fields.loopDown.addEventListener('click', () => runEditorCommand('loop.down'));
+    fields.openLoop.addEventListener('click', () => runEditorCommand('loop.open'));
+    fields.closeLoop.addEventListener('click', () => runEditorCommand('loop.close'));
+    fields.clearPoints.addEventListener('click', () => runEditorCommand('loop.clearPoints'));
+    fields.groupPaths.addEventListener('click', () => runEditorCommand('paths.group'));
+    fields.separatePaths.addEventListener('click', () => runEditorCommand('paths.separate'));
+    fields.mergeIntoActive.addEventListener('click', () => runEditorCommand('paths.mergeIntoActive'));
+    fields.clearPathSelection.addEventListener('click', () => runEditorCommand('selection.clearPaths'));
     fields.scaleUniform.addEventListener('change', () => {
       syncTransformControls();
     });
@@ -4642,42 +5293,21 @@
     fields.transformOriginY.addEventListener('input', () => {
       updateTransformPreviewFromControls();
     });
-    fields.transformPickOrigin.addEventListener('click', () => {
-      beginTransformOriginPick();
-    });
-    fields.transformPreview.addEventListener('click', () => {
-      buildTransformPreview(true);
-    });
-    fields.transformApply.addEventListener('click', () => {
-      applyTransformSelection();
-    });
-    fields.transformCancel.addEventListener('click', () => {
-      clearTransformPreview(true);
-    });
-    fields.transformReset.addEventListener('click', () => {
-      resetTransformControls();
-      setStatus('Transform reset.');
-    });
-    fields.removeNearDuplicates.addEventListener('click', () => {
-      applyLoopCleanup('Remove near-duplicates', core.removeNearDuplicateSelectedLoops);
-    });
-    fields.simplifyStraight.addEventListener('click', () => {
-      applyLoopCleanup('Simplify straight', core.simplifyStraightSelectedLoops);
-    });
-    fields.closeGap.addEventListener('click', () => {
-      applyLoopCleanup('Close gap', core.closeSelectedLoopGaps);
-    });
-    fields.reverseLoop.addEventListener('click', () => {
-      applyLoopCleanup('Reverse', core.reverseSelectedLoops);
-    });
+    fields.transformPickOrigin.addEventListener('click', () => runEditorCommand('transform.pickOrigin'));
+    fields.transformPreview.addEventListener('click', () => runEditorCommand('transform.preview'));
+    fields.transformApply.addEventListener('click', () => runEditorCommand('transform.apply'));
+    fields.transformCancel.addEventListener('click', () => runEditorCommand('transform.cancel'));
+    fields.transformReset.addEventListener('click', () => runEditorCommand('transform.reset'));
+    fields.removeNearDuplicates.addEventListener('click', () => runEditorCommand('cleanup.nearDuplicates'));
+    fields.simplifyStraight.addEventListener('click', () => runEditorCommand('cleanup.simplifyStraight'));
+    fields.closeGap.addEventListener('click', () => runEditorCommand('cleanup.closeGap'));
+    fields.reverseLoop.addEventListener('click', () => runEditorCommand('cleanup.reverse'));
     fields.optimizeTolerance.addEventListener('input', scheduleOptimizationPreview);
     fields.optimizeKeepCorners.addEventListener('change', scheduleOptimizationPreview);
     fields.optimizePreview.addEventListener('click', () => {
       buildOptimizationPreview(true);
     });
-    fields.optimizeApply.addEventListener('click', () => {
-      applyOptimizationPreview();
-    });
+    fields.optimizeApply.addEventListener('click', () => runEditorCommand('optimize.apply'));
     fields.optimizeCancel.addEventListener('click', () => {
       clearOptimizationPreview(true);
     });
@@ -4711,44 +5341,12 @@
         }
       });
     }
-    fields.deletePoint.addEventListener('click', () => {
-      withHistory('Delete point', () => {
-        if (isAnimateMode()) {
-          setStatus('Switch to Edit Rest to delete points. Animate mode keys existing geometry.');
-          return;
-        }
-        discardOptimizationPreview();
-        const selectedPointCount = core.getSelectedPointRefs(state).length;
-        state = core.deleteSelectedPoints(state);
-        setStatus(selectedPointCount > 1 ? `Deleted ${selectedPointCount} selected points.` : 'Deleted selected point.');
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.clearHandles.addEventListener('click', () => {
-      withHistory('Clear handles', () => {
-        if (isAnimateMode()) {
-          setStatus('Switch to Edit Rest to clear rest handles, or drag a handle to key a handle delta.');
-          return;
-        }
-        discardOptimizationPreview();
-        const selectedPointCount = core.getSelectedPointRefs(state).length;
-        state = core.clearSelectedPointHandles(state);
-        setStatus(
-          selectedPointCount > 1
-            ? `Cleared handles on ${selectedPointCount} selected points.`
-            : 'Cleared selected point handles.',
-        );
-        syncFieldsFromState();
-        draw();
-      });
-    });
-    fields.exportJson.addEventListener('click', exportJson);
-    fields.exportGraphJson?.addEventListener('click', exportGraphJson);
-    fields.exportGraphJsonDrawer?.addEventListener('click', exportGraphJson);
-    fields.saveJson.addEventListener('click', () => {
-      saveJson();
-    });
+    fields.deletePoint.addEventListener('click', () => runEditorCommand('point.delete'));
+    fields.clearHandles.addEventListener('click', () => runEditorCommand('point.clearHandles'));
+    fields.exportJson.addEventListener('click', () => runEditorCommand('export.v1'));
+    fields.exportGraphJson?.addEventListener('click', () => runEditorCommand('export.graph'));
+    fields.exportGraphJsonDrawer?.addEventListener('click', () => runEditorCommand('export.graph'));
+    fields.saveJson.addEventListener('click', () => runEditorCommand('export.save'));
     for (const input of [
       fields.shapeId,
       fields.shapeLabel,
@@ -4761,21 +5359,29 @@
       input.addEventListener('input', () => {
         if (isAnimateMode()) {
           if (input === fields.shapeFill) {
-            withHistory('Key fill color', () => keyShapeStyleFromFields('fill'));
+            runEditorCommand('style.fill');
           } else if (input === fields.shapeStroke) {
-            withHistory('Key stroke color', () => keyShapeStyleFromFields('stroke'));
+            runEditorCommand('style.stroke');
           } else if (input === fields.shapeStrokeWidth) {
-            withHistory('Key stroke width', () => keyShapeStyleFromFields('strokeWidth'));
+            runEditorCommand('style.strokeWidth');
           } else {
             setStatus('Switch to Edit Rest to change object metadata.');
+            syncFieldsFromState();
           }
           return;
         }
-        syncStateFromFields();
-        syncShapeList();
-        syncRailSwatches();
-        updateStats();
-        draw();
+        if (input === fields.shapeFill) {
+          runEditorCommand('style.fill');
+        } else if (input === fields.shapeStroke) {
+          runEditorCommand('style.stroke');
+        } else if (input === fields.shapeStrokeWidth) {
+          runEditorCommand('style.strokeWidth');
+        } else {
+          syncStateFromFields();
+          syncShapeList();
+          updateStats();
+          draw();
+        }
       });
     }
   }

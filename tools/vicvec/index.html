@@ -703,13 +703,15 @@
 
           <nav class="manual-toc" aria-label="Manual sections">
             <a href="#manual-mental-model">Mental model</a>
+            <a href="#manual-policy">Tool policy</a>
             <a href="#manual-interface">Interface</a>
             <a href="#manual-static">Static pack</a>
             <a href="#manual-selection">Selection</a>
-            <a href="#manual-cleanup">Cleanup</a>
+            <a href="#manual-cleanup">Tools</a>
             <a href="#manual-animation">Animation</a>
             <a href="#manual-export">Export</a>
             <a href="#manual-trouble">Troubleshooting</a>
+            <a href="#manual-verify">Checks</a>
           </nav>
 
           <section id="manual-mental-model" class="manual-section">
@@ -723,9 +725,21 @@
             </p>
             <ul>
               <li><strong>Edit Rest</strong>: draw, clean, optimize, transform, style, tag, and organize the base art.</li>
-              <li><strong>Animate</strong>: move loops, move points, edit handles, brush points, or change styles as keyed poses.</li>
-              <li><strong>Auto Key</strong>: when on, canvas edits in Animate mode write sparse graph keys at the playhead.</li>
+              <li><strong>Animate</strong>: move loops, move points, edit handles, brush points, transform selections, or change styles as keyed poses.</li>
+              <li><strong>Auto Key</strong>: when on, canvas edits in Animate mode write sparse graph keys at the playhead. When off, posing is blocked instead of changing rest art.</li>
             </ul>
+          </section>
+
+          <section id="manual-policy" class="manual-section">
+            <h3>Tool Policy</h3>
+            <dl class="manual-grid-list">
+              <div><dt>Rest-only</dt><dd>Shape and loop structure, metadata, roles, tags, grouping, separation, cleanup, optimization, point deletion, and clearing rest handles.</dd></div>
+              <div><dt>Animate-keyable</dt><dd>Move loops, move points, handles, Brush, Transform Selection Apply, fill, stroke, and stroke width.</dd></div>
+              <div><dt>View/session-only</dt><dd>Selection, lasso selection, scrub/play, FPS, snap, source opacity, previews, export drawer, and active tool mode.</dd></div>
+            </dl>
+            <p>
+              In Animate mode, rest-only controls are disabled or blocked with a message. Keyable actions write graph keys.
+            </p>
           </section>
 
           <section id="manual-interface" class="manual-section">
@@ -761,19 +775,24 @@
               <li><strong>Move</strong>: selected points move first. If no points are selected, selected paths move.</li>
               <li><strong>Brush</strong>: default affects all points under the brush across shapes. Enable Selected Only to limit it.</li>
             </ul>
+            <p>
+              In Animate mode, visible posed points and handles are the editable reality. Hit testing, lasso, handles,
+              and Brush target the displayed pose and write keys back to stable rest ids.
+            </p>
           </section>
 
           <section id="manual-cleanup" class="manual-section">
             <h3>Cleanup, Optimize, And Transform</h3>
             <p>
-              Use cleanup for small repairs and Optimize Path for aggressive point reduction. Optimize always previews first.
+              Use cleanup for small rest-art repairs and Optimize Path for aggressive point reduction. Optimize always previews first.
             </p>
             <ul>
               <li><strong>Remove Near-Duplicates</strong>: removes consecutive points that are almost on top of each other.</li>
               <li><strong>Simplify Straight</strong>: removes middle points that barely change a straight segment.</li>
               <li><strong>Close Gap</strong>: snaps a tiny open gap and closes the loop.</li>
               <li><strong>Reverse</strong>: reverses point order while preserving curve continuity.</li>
-              <li><strong>Transform Selection</strong>: preview scale, rotation, and origin choices before applying to rest geometry.</li>
+              <li><strong>Transform Selection</strong>: in Edit Rest it rewrites geometry; in Animate it writes transform or point-delta keys at the playhead.</li>
+              <li><strong>Brush</strong>: in Edit Rest it rewrites geometry; in Animate it writes sparse point-delta keys.</li>
             </ul>
           </section>
 
@@ -788,9 +807,9 @@
               <li>Click <strong>Add Track</strong>. This enters Animate mode and creates graph rows for the current target.</li>
               <li>At <strong>0ms</strong>, click <strong>Set Key</strong> or <strong>Rest Key Selected</strong>.</li>
               <li>Move the playhead to a later time.</li>
-              <li>Pose directly on the canvas with Move, Brush, point handles, or style controls.</li>
-              <li>Click <strong>Set Key</strong> if the pose was edited through numeric fields, or to confirm the selected row.</li>
+              <li>Pose directly on the canvas with Move, Brush, Transform Selection, point handles, or style controls.</li>
               <li>Scrub or press Play to preview the pose over the unchanged rest art.</li>
+              <li>Use <strong>Export Graph v2</strong> when you want the sparse animation contract.</li>
             </ol>
             <p>
               Graph animation stores only changed outputs, such as loop transforms, point deltas, handle deltas,
@@ -802,20 +821,34 @@
             <h3>Export Modes</h3>
             <dl class="manual-grid-list">
               <div><dt>Export v1</dt><dd>Compatibility-safe static Duhrng pack. This omits schema-v2 graph animation.</dd></div>
-              <div><dt>Save JSON</dt><dd>Saves the current compatibility-safe JSON unless the export drawer is in graph mode.</dd></div>
+              <div><dt>Save JSON</dt><dd>Saves the current export mode from the export drawer.</dd></div>
               <div><dt>Export Graph v2</dt><dd>Explicit animation export for the sparse graph contract. Use this for runtime handoff.</dd></div>
             </dl>
-            <p>Editor-only state such as selection, tool mode, previews, brush settings, playhead, FPS, and open drawers is not exported.</p>
+            <p>
+              Stable loop and point ids may remain in exports so animation targets resolve reliably. Editor-only state such
+              as selection, tool mode, previews, brush settings, playhead, FPS, snap, and open drawers is not exported.
+            </p>
           </section>
 
           <section id="manual-trouble" class="manual-section">
             <h3>Troubleshooting</h3>
             <dl class="manual-trouble-list">
-              <div><dt>Animation changed my real points.</dt><dd>Switch to Animate before posing. Add Clip and Add Track now do this automatically.</dd></div>
+              <div><dt>Animation changed my real points.</dt><dd>Undo, switch to Animate, and pose again. Add Clip and Add Track enter Animate mode automatically.</dd></div>
               <div><dt>Nothing plays.</dt><dd>Check that the timeline has graph rows, Preview is on, Auto Key is on, and keys exist at different times.</dd></div>
               <div><dt>The start pose does not come back.</dt><dd>Add a rest key at 0ms or use Rest Key Selected before posing later frames.</dd></div>
+              <div><dt>The points are not where I expect.</dt><dd>In Animate mode, points and handles appear at the evaluated pose for the current playhead time. Scrub to 0ms to see rest pose.</dd></div>
               <div><dt>Brush moved too much.</dt><dd>Lower Strength or Radius, or enable Selected Only before brushing.</dd></div>
+              <div><dt>Export does not include animation.</dt><dd>Use Export Graph v2. Export v1 intentionally omits schema-v2 graph animation.</dd></div>
               <div><dt>Duhrng ignores graph animation.</dt><dd>Use Export v1 for static compatibility until the runtime graph evaluator is active.</dd></div>
+            </dl>
+          </section>
+
+          <section id="manual-verify" class="manual-section">
+            <h3>Verification / Developer Checks</h3>
+            <dl class="manual-grid-list">
+              <div><dt>npm test</dt><dd>Runs the core and history tests.</dd></div>
+              <div><dt>npm run test:browser</dt><dd>Runs browser smoke tests for scrub, pose, hit-test, transform, and export workflows.</dd></div>
+              <div><dt>npm run check</dt><dd>Runs syntax checks, core tests, and browser smoke tests.</dd></div>
             </dl>
           </section>
         </article>

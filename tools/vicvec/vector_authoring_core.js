@@ -525,6 +525,47 @@
     };
   }
 
+  function graphPointDeltaItemsFromTransform(restState, displayState, options = {}) {
+    const preview = previewSelectionTransform(displayState, options);
+    const selectedPoints = getSelectedPointRefs(displayState);
+    const pointItems = [];
+    const handleItems = [];
+    if (preview.stats.target !== 'points' || !selectedPoints.length) {
+      return { preview, pointItems, handleItems, stats: preview.stats };
+    }
+    const previewLoops = new Map((preview.previews || []).map((item) => [
+      pathKey(item.ref),
+      item.loop,
+    ]));
+    for (const ref of selectedPoints) {
+      const restPoint = restState.shapes?.[ref.shapeIndex]?.loops?.[ref.loopIndex]?.points?.[ref.pointIndex];
+      const transformedLoop = previewLoops.get(pathKey(createPathRef(ref.shapeIndex, ref.loopIndex)));
+      const transformedPoint = transformedLoop?.points?.[ref.pointIndex];
+      if (!restPoint || !transformedPoint) {
+        continue;
+      }
+      pointItems.push({
+        ref,
+        value: {
+          x: round(Number(transformedPoint.x) - Number(restPoint.x)),
+          y: round(Number(transformedPoint.y) - Number(restPoint.y)),
+        },
+      });
+      for (const handleName of ['inHandle', 'outHandle']) {
+        const restHandle = restPoint[handleName] || { x: 0, y: 0 };
+        const transformedHandle = transformedPoint[handleName] || { x: 0, y: 0 };
+        const value = {
+          x: round(Number(transformedHandle.x) - Number(restHandle.x)),
+          y: round(Number(transformedHandle.y) - Number(restHandle.y)),
+        };
+        if (!isZeroVec2(value) || restPoint[handleName] || transformedPoint[handleName]) {
+          handleItems.push({ ref, handleName, value });
+        }
+      }
+    }
+    return { preview, pointItems, handleItems, stats: preview.stats };
+  }
+
   function applySelectionTransformToTarget(state, target, options = {}) {
     const transform = normalizeTransformOptions(options);
     const origin = resolveTransformOrigin(state, target, transform.origin);
@@ -2636,6 +2677,86 @@
         targetCount: loopMap.size,
       },
     };
+  }
+
+  function buildDisplayScene(state, options = {}) {
+    const displayShapes = state.shapes.map(cloneShape);
+    const shapeOpacity = displayShapes.map(() => 1);
+    const previewEnabled = options.previewEnabled !== false;
+    const editorMode = String(options.editorMode || 'rest');
+    const clipId = normalizeLoopId(options.clipId);
+    const timeMs = Number(options.timeMs) || 0;
+    let source = { mode: 'rest', clipId: '', timeMs: 0 };
+    let preview = { previews: [], stats: { targetCount: 0 } };
+
+    if (editorMode === 'animate' && previewEnabled && clipId) {
+      const animation = cleanAnimation(state.animation);
+      const clip = animation?.clips.find((item) => item.id === clipId);
+      if (clip?.graph?.outputs?.length) {
+        preview = evaluateGraphClip(state, clipId, timeMs);
+        source = { mode: 'graph', clipId, timeMs: preview.stats?.timeMs ?? timeMs };
+      } else if (clip) {
+        preview = evaluateTransformClip(state, clipId, timeMs);
+        source = { mode: 'transform', clipId, timeMs: preview.stats?.timeMs ?? timeMs };
+      }
+      for (const item of preview.previews || []) {
+        const ref = normalizePathRef(state, item.ref);
+        if (!ref || !displayShapes[ref.shapeIndex]?.loops?.[ref.loopIndex] || !item.loop) {
+          continue;
+        }
+        displayShapes[ref.shapeIndex].loops[ref.loopIndex] = cloneLoop(item.loop);
+        if (item.style) {
+          displayShapes[ref.shapeIndex] = createShape({
+            ...displayShapes[ref.shapeIndex],
+            style: cleanStyle(item.style),
+          });
+        }
+        if (item.opacity != null) {
+          shapeOpacity[ref.shapeIndex] = clamp(Number(item.opacity), 0, 1);
+        }
+      }
+    }
+
+    const displayState = {
+      ...state,
+      shapes: displayShapes,
+    };
+    return {
+      displayState,
+      shapes: displayShapes,
+      shapeOpacity,
+      loopRefs: collectDisplayLoopRefs(displayState),
+      pointRefs: collectDisplayPointRefs(displayState),
+      source,
+      previews: preview.previews || [],
+      stats: {
+        ...(preview.stats || {}),
+        sourceMode: source.mode,
+        targetCount: preview.stats?.targetCount || 0,
+      },
+    };
+  }
+
+  function collectDisplayLoopRefs(state) {
+    const refs = [];
+    state.shapes.forEach((shape, shapeIndex) => {
+      shape.loops.forEach((_, loopIndex) => {
+        refs.push(createPathRef(shapeIndex, loopIndex));
+      });
+    });
+    return refs;
+  }
+
+  function collectDisplayPointRefs(state) {
+    const refs = [];
+    state.shapes.forEach((shape, shapeIndex) => {
+      shape.loops.forEach((loop, loopIndex) => {
+        loop.points.forEach((_, pointIndex) => {
+          refs.push(createPointRef(shapeIndex, loopIndex, pointIndex));
+        });
+      });
+    });
+    return refs;
   }
 
   function previewAnimationTrackPose(state, clipId, trackIndex, value = {}) {
@@ -4881,6 +5002,13 @@
     });
   }
 
+  function graphOutputPropertyTargetKey(output) {
+    return stableStringify({
+      property: output?.property || '',
+      target: output?.target || {},
+    });
+  }
+
   function graphOutputsInEvaluationOrder(outputs) {
     return (Array.isArray(outputs) ? outputs : [])
       .map((output, index) => ({ output, index, priority: graphOutputPriority(output?.property) }))
@@ -4992,6 +5120,13 @@
     let outputs = graph.outputs.map(cleanAnimationGraphOutput).filter(Boolean);
     let nodes = graph.nodes.map(cleanAnimationGraphNode).filter(Boolean);
     let outputIndex = outputs.findIndex((output) => graphOutputMatchKey(output) === outputMatch);
+    if (outputIndex < 0 && property === 'loop.transform' && origin) {
+      const targetMatch = graphOutputPropertyTargetKey({ property, target });
+      outputIndex = outputs.findIndex((output) => (
+        graphOutputPropertyTargetKey(output) === targetMatch &&
+        !cleanAnimationOrigin(output.origin)
+      ));
+    }
     let node = null;
     if (outputIndex >= 0) {
       node = nodes.find((item) => item.id === outputs[outputIndex].source) || null;
@@ -5832,6 +5967,7 @@
     transformSelectedPoints,
     transformSelectedPaths,
     previewSelectionTransform,
+    graphPointDeltaItemsFromTransform,
     resolveTransformOrigin,
     addAnimationClip,
     updateAnimationClip,
@@ -5862,6 +5998,7 @@
     copyPreviousGraphOutputKeyframeToTime,
     graphValueForTarget,
     brushPointDeltas,
+    buildDisplayScene,
     evaluateTransformClip,
     evaluateGraphClip,
     previewAnimationTrackPose,

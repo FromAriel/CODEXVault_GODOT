@@ -1,10 +1,10 @@
 # VicVec User Guide
 
-VicVec is a canvas-first game vector scene and animation author. It is meant to help game developers make usable vector packs quickly without becoming a full Illustrator or Inkscape replacement.
+VicVec is a canvas-first game vector scene and animation author. It is built for making Duhrng-ready vector packs quickly, not for becoming a full Illustrator or Inkscape replacement.
 
 The most important rule:
 
-**Edit Rest changes the real vector art. Animate writes sparse keyed poses over that art.**
+**Edit Rest changes the real source art. Animate writes sparse posed keys over that art.**
 
 ## What VicVec Edits
 
@@ -15,13 +15,13 @@ A VicVec pack is built from:
 - **Points**: anchors inside loops. Points may have relative `in` and `out` Bezier handles.
 - **Animation clips**: sparse graph keys that pose loops, points, handles, and style over time.
 
-Static exports remain Duhrng v1-compatible by default. Graph animation export is explicit.
+Static exports remain Duhrng v1-compatible by default. Graph animation export is explicit and runtime-gated until Duhrng evaluates schema-v2 graph animation.
 
 ## Interface Map
 
 - **Top bar**: File actions, Undo/Redo, Edit Rest / Animate, Auto Key, Manual, and Export.
 - **Left rail**: Point, Path Select, Move, Brush, Lasso, Pick Fill, and Pick Stroke.
-- **Canvas**: the primary surface for drawing and posing.
+- **Canvas**: the primary surface for drawing rest art and posing animation.
 - **Right inspector**: Object, Loop, Style, Tools, Anim, and Pack panels.
 - **Bottom timeline**: clip selection, playback, scrub time, FPS snap, preview, rows, and keys.
 
@@ -31,24 +31,48 @@ Use **Edit Rest** when you want to change the source art:
 
 - draw or delete points
 - move points or whole loops as permanent geometry
-- clean, optimize, scale, or rotate geometry
-- change shape metadata, roles, tags, fill, stroke, and z order
+- clean, optimize, group, separate, or merge loops
+- change shape ids, labels, tags, loop ids, roles, and z order
+- apply rest transforms when you want the base art itself to change
 
 Use **Animate** when you want motion or keyed style changes:
 
 - move whole loops as `loop.transform`
 - move points as `point.positionDelta`
 - move handles as `point.inHandleDelta` or `point.outHandleDelta`
-- brush points as sparse point deltas
+- brush points as sparse point-delta keys
+- scale or rotate selected loops/points with Transform Selection
 - key fill, stroke, stroke width, or opacity
 
-When **Auto Key** is on, canvas edits in Animate mode write keys at the playhead. Rest geometry should remain unchanged while you scrub or play.
+When **Auto Key** is on, canvas edits in Animate mode write keys at the playhead. Rest geometry stays unchanged while you scrub or play. When Auto Key is off, canvas posing is blocked instead of silently changing rest art.
+
+## Tool Policy
+
+**Rest-only tools and actions** work in Edit Rest and are blocked or disabled in Animate:
+
+- shape and loop structure: add, duplicate, delete, reorder, open, close, clear
+- metadata: shape id, label, tags, z, loop id, loop role, tag presets
+- organization: group, separate, merge into active
+- cleanup and optimization: remove near-duplicates, simplify straight, close gap, reverse, optimize path
+- destructive point actions: delete points and clear rest handles
+
+**Animate-keyable tools and fields** write graph keys in Animate:
+
+- Move selected loops or points
+- Brush affected points
+- Drag point handles or Alt-drag out handles
+- Transform Selection preview/apply for selected loops or points
+- Style fields for fill, stroke, and stroke width
+
+**View-only or session-only controls** do not export editor state:
+
+- selection, lasso selection, scrub/play, timeline zoom, FPS, snap, source image opacity, export drawer, source preview, previews, and active tool mode
 
 ## Quick Start: Static Vector Pack
 
 1. Stay in **Edit Rest**.
 2. Optional: open a source image from the Pack panel.
-3. Use **Point** to place anchors. Click the first point again to close a loop.
+3. Use **Point** to place anchors. Click the first point again or use **Close** to close a loop.
 4. Use the **Loop** panel to set role and loop id.
 5. Use the **Object** panel to set shape id, label, tags, and z order.
 6. Use the **Style** panel to set fill, stroke, and stroke width.
@@ -56,39 +80,35 @@ When **Auto Key** is on, canvas edits in Animate mode write keys at the playhead
 
 ## Selecting And Editing
 
-- **Point**: click a point to select it. Shift-click toggles point selection. Clicking empty canvas adds a point.
+- **Point**: click a point to select it. Shift-click toggles point selection. Clicking empty canvas adds a point in Edit Rest.
 - **Path Select**: click a filled loop to select it. Shift-click toggles loops.
-- **Lasso**: selects multiple points inside selected paths.
-- **S + Lasso**: selects all filled paths under the lasso.
+- **Lasso**: selects multiple points inside selected paths. Hold **S** while using Lasso to select all filled paths under the lasso.
 - **Move**: selected points move first. If no points are selected, selected paths move.
 - **Brush**: affects all points under the cursor by default, even across shapes. Enable **Selected Only** to scope the brush.
 
-## Cleanup And Optimization
+In Animate mode, visible posed points and handles are the editable reality. If a loop is animated away from its rest position, hit testing, lasso, handles, and brush target the displayed posed geometry and write graph keys back to the correct rest ids.
 
-Use the small cleanup tools for conservative repair:
+## Cleanup, Optimization, Transform, And Brush
+
+Use cleanup for conservative rest-art repair:
 
 - **Remove Near-Duplicates** removes consecutive points that are almost on top of each other.
 - **Simplify Straight** removes middle points that barely change a straight segment.
 - **Close Gap** snaps a tiny open gap and closes the loop.
 - **Reverse** reverses point order while preserving curve continuity.
 
-Use **Optimize Path** when you want aggressive point reduction. It samples the current path, fits fewer Bezier anchors, previews the candidate, and only changes geometry when you click Apply.
+Use **Optimize Path** when you want aggressive point reduction. It samples the current path, fits fewer Bezier anchors, previews the candidate, and only changes rest geometry when you click Apply in Edit Rest.
 
-## Transform And Brush
+**Transform Selection** previews scale, rotation, and origin choices before Apply:
 
-**Transform Selection** previews scale and rotation before applying to rest geometry. Choose an origin from Selection Center, Active Loop Center, Canvas Center, or Custom. Pick Origin lets you set the custom point from the canvas.
+- In **Edit Rest**, Apply rewrites base geometry.
+- In **Animate**, Apply writes graph keys at the playhead and leaves rest geometry alone.
 
 **Falloff Brush** moves points under the cursor by drag delta:
 
-- Radius controls the area of influence.
-- Strength controls total movement.
-- Falloff controls soft edge behavior.
-- Pinch concentrates movement toward the center.
-- Bubble lifts the middle band of the falloff curve.
-- Affect Handles also sculpts handle vectors.
-- Selected Only limits the brush to selected paths or the active loop.
-
-In Edit Rest, Brush rewrites geometry. In Animate, Brush writes point-delta keys.
+- In **Edit Rest**, Brush rewrites geometry.
+- In **Animate**, Brush writes sparse point-delta keys.
+- Radius controls area, Strength controls movement, Falloff controls softness, Pinch concentrates toward center, Bubble lifts the middle band, and Affect Handles also sculpts handle vectors.
 
 ## Animation Workflow
 
@@ -100,10 +120,9 @@ This is the safe hand-authored flow:
 4. Click **Add Track**. This enters Animate mode and creates graph rows for the selection.
 5. At `0ms`, click **Set Key** or **Rest Key Selected**.
 6. Move the playhead to a later time.
-7. Pose directly on the canvas with Move, Brush, handles, or style fields.
-8. Click **Set Key** when you use numeric fields, or when you want to confirm the selected row.
-9. Scrub or press Play to preview.
-10. Use **Export Graph v2** when you want the sparse animation contract.
+7. Pose directly on the canvas with Move, Brush, Transform Selection, handles, or style fields.
+8. Scrub or press Play to preview.
+9. Use **Export Graph v2** when you want the sparse animation contract.
 
 Graph animation stores only changed outputs. It does not export every frame.
 
@@ -113,13 +132,13 @@ Graph animation stores only changed outputs. It does not export every frame.
 - **Save JSON**: saves the current export mode from the export drawer.
 - **Export Graph v2**: explicit sparse animation export for runtime handoff.
 
-Editor-only state is never exported: selections, tool mode, source opacity, brush settings, optimization preview, transform preview, pose preview, playhead time, FPS, snap, open drawers, and UI layout.
+Stable loop and point ids may remain in exports so animation targets can resolve reliably. Editor-only state is never exported: selections, tool mode, source opacity, brush settings, optimization preview, transform preview, pose preview, playhead time, FPS, snap, open drawers, and UI layout.
 
 ## Troubleshooting
 
 ### Animation changed my real points
 
-You were probably editing in Edit Rest. Use Animate mode for motion. Add Clip and Add Track now enter Animate mode automatically.
+Undo, switch to Animate, and pose again. Add Clip and Add Track enter Animate mode automatically. Rest-only controls are disabled or blocked in Animate so they cannot silently rewrite source art.
 
 ### Nothing plays
 
@@ -135,6 +154,10 @@ Check that:
 
 Set a rest key at `0ms`, or use **Rest Key Selected** before posing later frames.
 
+### The points are not where I expect
+
+In Animate mode, points and handles appear at the evaluated pose for the current playhead time. Scrub to `0ms` to see the rest pose, or switch to Edit Rest to edit base art.
+
 ### Brush moved too much
 
 Lower Radius or Strength. Enable Selected Only if you only want selected paths or the active loop to move.
@@ -146,6 +169,12 @@ Use **Export Graph v2**. The default v1 export intentionally stays compatibility
 ### Duhrng ignores graph animation
 
 Use the v1 export for static runtime compatibility until Duhrng's schema-v2 graph evaluator is active.
+
+## Verification / Developer Checks
+
+- `npm test`: runs the core and history tests.
+- `npm run test:browser`: runs browser smoke tests for the previously broken scrub, pose, hit-test, transform, and export workflows.
+- `npm run check`: runs syntax checks, core tests, and browser smoke tests.
 
 ## Shortcuts
 
@@ -162,4 +191,3 @@ Use the v1 export for static runtime compatibility until Duhrng's schema-v2 grap
 | Larger nudge | Shift + Arrow |
 | Undo | Ctrl/Cmd + Z |
 | Redo | Ctrl + Y or Ctrl/Cmd + Shift + Z |
-

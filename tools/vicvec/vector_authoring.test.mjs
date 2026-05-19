@@ -765,6 +765,44 @@ test('previewSelectionTransform does not mutate state and active-loop fallback w
   assert.equal(JSON.stringify(core.buildVectorPack(state)).includes('preview'), false);
 });
 
+test('graphPointDeltaItemsFromTransform converts posed selected points back to rest deltas', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 }, { outHandle: { x: 4, y: 0 } });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+  state = core.selectPointRef(state, 0, 0, 0);
+  const pointRef = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+  state = core.upsertPointDeltaGraphKeys(state, 'pose', [
+    { ref: pointRef, value: { x: 4, y: 0 } },
+  ], { timeMs: 500 });
+  state = core.upsertPointHandleDeltaGraphKey(state, 'pose', pointRef, 'outHandle', {
+    timeMs: 500,
+    value: { x: 2, y: 0 },
+  });
+
+  const display = core.buildDisplayScene(state, {
+    editorMode: 'animate',
+    clipId: 'pose',
+    timeMs: 500,
+    previewEnabled: true,
+  });
+  const result = core.graphPointDeltaItemsFromTransform(state, display.displayState, {
+    scaleX: 2,
+    scaleY: 2,
+    origin: { mode: 'custom', x: 0, y: 0 },
+  });
+
+  assert.equal(result.stats.target, 'points');
+  assert.equal(JSON.stringify(result.pointItems[0].value), '{"x":8,"y":0}');
+  assert.equal(result.handleItems.length, 1);
+  assert.equal(result.handleItems[0].handleName, 'outHandle');
+  assert.equal(JSON.stringify(result.handleItems[0].value), '{"x":8,"y":0}');
+  assert.equal(state.shapes[0].loops[0].points[0].x, 0);
+  assert.equal(JSON.stringify(state.shapes[0].loops[0].points[0].outHandle), '{"x":4,"y":0}');
+});
+
 test('resolveTransformOrigin supports active loop, canvas center, and custom origins', () => {
   let state = core.importVectorPack({
     version: 1,
@@ -2063,6 +2101,139 @@ test('schema-v2 graph animation is explicit and evaluates sparse point, handle, 
   assert.equal(core.buildVectorPack(roundTrip, { animationMode: 'graph' }).animation.schemaVersion, 2);
 });
 
+test('display scene clones rest geometry and preserves rest refs', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+
+  const display = core.buildDisplayScene(state, { editorMode: 'rest' });
+
+  assert.equal(display.source.mode, 'rest');
+  assert.equal(JSON.stringify(display.loopRefs), '[{"shapeIndex":0,"loopIndex":0}]');
+  assert.equal(JSON.stringify(display.pointRefs), JSON.stringify([
+    { shapeIndex: 0, loopIndex: 0, pointIndex: 0 },
+    { shapeIndex: 0, loopIndex: 0, pointIndex: 1 },
+    { shapeIndex: 0, loopIndex: 0, pointIndex: 2 },
+  ]));
+  assert.equal(
+    JSON.stringify(display.displayState.shapes),
+    JSON.stringify(state.shapes),
+  );
+
+  display.displayState.shapes[0].loops[0].points[0].x = 99;
+  assert.equal(state.shapes[0].loops[0].points[0].x, 0);
+});
+
+test('display scene applies graph pose without mutating rest or default export', () => {
+  let state = core.importVectorPack({
+    version: 1,
+    kind: 'duhrng-vector-pack',
+    canvas: { width: 100, height: 100 },
+    shapes: [
+      {
+        id: 'shape',
+        style: { fill: '#111111', stroke: '#eeeeee', strokeWidth: 2 },
+        loops: [
+          {
+            id: 'outer',
+            role: 'outer',
+            closed: true,
+            points: [
+              { id: 'pt_1', x: 0, y: 0 },
+              { id: 'pt_2', x: 20, y: 0 },
+              { id: 'pt_3', x: 20, y: 20 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+  const pathRef = { shapeIndex: 0, loopIndex: 0 };
+  const pointRef = { shapeIndex: 0, loopIndex: 0, pointIndex: 0 };
+  state = core.upsertPointDeltaGraphKeys(state, 'pose', [
+    { ref: pointRef, value: { x: 5, y: 0 } },
+  ], { timeMs: 500 });
+  state = core.upsertPointHandleDeltaGraphKey(state, 'pose', pointRef, 'outHandle', {
+    timeMs: 500,
+    value: { x: 3, y: 4 },
+  });
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [pathRef], {
+    timeMs: 500,
+    value: { tx: 10, ty: 0, rotation: 0, sx: 1, sy: 1 },
+  }, { origin: { mode: 'canvas', x: 0, y: 0 } });
+  state = core.upsertShapeStyleGraphKey(state, 'pose', 0, 'fill', '#00ccff', { timeMs: 500 });
+  state = core.upsertShapeStyleGraphKey(state, 'pose', 0, 'strokeWidth', 9, { timeMs: 500 });
+  state = core.upsertShapeOpacityGraphKey(state, 'pose', 0, 0.35, { timeMs: 500 });
+
+  const display = core.buildDisplayScene(state, {
+    editorMode: 'animate',
+    clipId: 'pose',
+    timeMs: 500,
+  });
+  const point = display.displayState.shapes[0].loops[0].points[0];
+
+  assert.equal(display.source.mode, 'graph');
+  assert.equal(point.x, 15);
+  assert.equal(JSON.stringify(point.outHandle), '{"x":3,"y":4}');
+  assert.equal(display.displayState.shapes[0].style.fill, '#00ccff');
+  assert.equal(display.displayState.shapes[0].style.strokeWidth, 9);
+  assert.equal(display.shapeOpacity[0], 0.35);
+  assert.equal(state.shapes[0].loops[0].points[0].x, 0);
+  assert.equal(state.shapes[0].loops[0].points[0].outHandle, null);
+
+  const exported = core.buildVectorPack(state);
+  assert.equal(exported.animation, undefined);
+  assert.equal(exported.shapes[0].style.fill, '#111111');
+  assert.equal(exported.shapes[0].style.strokeWidth, 2);
+});
+
+test('display scene supports legacy transform clips', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = {
+    ...state,
+    animation: {
+      schemaVersion: 1,
+      clips: [
+        {
+          id: 'legacy',
+          durationMs: 1000,
+          loop: false,
+          tracks: [
+            {
+              target: { shapeId: state.shapes[0].id, loopId: state.shapes[0].loops[0].id },
+              property: 'transform',
+              origin: { mode: 'canvas', x: 0, y: 0 },
+              keyframes: [
+                { timeMs: 0, ease: 'linear', value: { tx: 0 } },
+                { timeMs: 1000, ease: 'linear', value: { tx: 100 } },
+              ],
+            },
+          ],
+          graph: { nodes: [], outputs: [] },
+        },
+      ],
+      bindings: {},
+    },
+  };
+
+  const display = core.buildDisplayScene(state, {
+    editorMode: 'animate',
+    clipId: 'legacy',
+    timeMs: 1000,
+  });
+
+  assert.equal(display.source.mode, 'transform');
+  assert.equal(display.displayState.shapes[0].loops[0].points[0].x, 100);
+  assert.equal(state.shapes[0].loops[0].points[0].x, 0);
+});
+
 test('graph interpolation supports linear, smooth, and hold without mutating rest geometry', () => {
   let state = core.createInitialState();
   state = core.addPoint(state, { x: 0, y: 0 });
@@ -2362,6 +2533,32 @@ test('same-playhead graph keying accumulates poses without mutating rest geometr
   assert.equal(JSON.stringify(preview.points[0].outHandle), '{"x":7,"y":4}');
   assert.equal(state.shapes[0].loops[0].points[0].x, 0);
   assert.equal(JSON.stringify(state.shapes[0].loops[0].points[0].outHandle), '{"x":4,"y":0}');
+});
+
+test('loop transform keying migrates originless outputs to canvas origin instead of duplicating', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+  const ref = { shapeIndex: 0, loopIndex: 0 };
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [ref], {
+    timeMs: 0,
+    value: { tx: 5, ty: 7, rotation: 0, sx: 1, sy: 1 },
+  }, { origin: { mode: 'selection' } });
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [ref], {
+    timeMs: 0,
+    value: { tx: 5, ty: 7, rotation: Math.PI / 4, sx: 1.25, sy: 1.25 },
+  }, { origin: { mode: 'canvas', x: 10, y: 10 } });
+
+  const outputs = state.animation.clips[0].graph.outputs;
+  assert.equal(outputs.length, 1);
+  assert.equal(outputs[0].property, 'loop.transform');
+  assert.equal(JSON.stringify(outputs[0].origin), '{"mode":"canvas","x":10,"y":10}');
+  assert.equal(state.animation.clips[0].graph.nodes[0].keys.length, 1);
+  assert.equal(state.animation.clips[0].graph.nodes[0].keys[0].value.tx, 5);
+  assert.equal(state.animation.clips[0].graph.nodes[0].keys[0].value.sx, 1.25);
 });
 
 test('tag presets add semantic tags and optional zone roles', () => {
