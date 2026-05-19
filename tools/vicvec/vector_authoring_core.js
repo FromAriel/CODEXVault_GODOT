@@ -1851,9 +1851,7 @@
     const output = {
       id,
       type: GRAPH_NODE_TYPES.includes(type) ? type : type || 'keyframes.number',
-      keys: Array.isArray(node.keys)
-        ? node.keys.filter(isPlainObject).map(cleanAnimationGraphKeyframe)
-        : [],
+      keys: cleanSortedGraphKeys(node.keys),
     };
     const origin = cleanAnimationOrigin(node.origin);
     if (origin) {
@@ -1876,6 +1874,19 @@
       output.value = null;
     }
     return output;
+  }
+
+  function cleanSortedGraphKeys(keys) {
+    const byTime = new Map();
+    (Array.isArray(keys) ? keys : []).forEach((keyframe) => {
+      if (!isPlainObject(keyframe)) {
+        return;
+      }
+      const cleaned = cleanAnimationGraphKeyframe(keyframe);
+      byTime.set(String(Number(cleaned.timeMs)), cleaned);
+    });
+    return Array.from(byTime.values())
+      .sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
   }
 
   function cleanAnimationGraphOutput(output) {
@@ -3145,6 +3156,7 @@
       }
       issues.push(...validateGraphKeyframes(node?.keys, nodeLabel));
     });
+    const loopTransformTargets = new Map();
     (graph.outputs || []).forEach((output, outputIndex) => {
       const outputLabel = `${label} graph output ${outputIndex + 1}`;
       const property = String(output?.property || '');
@@ -3162,6 +3174,25 @@
           VALIDATION_STATUS.warning,
           `${outputLabel} uses unknown property "${property || '(missing)'}".`,
         ));
+      }
+      if (property === 'loop.transform') {
+        const targetKey = graphOutputPropertyTargetKey({
+          property,
+          target: cleanAnimationGraphTarget(output?.target),
+        });
+        const seen = loopTransformTargets.get(targetKey) || {
+          count: 0,
+          firstIndex: outputIndex + 1,
+        };
+        seen.count += 1;
+        loopTransformTargets.set(targetKey, seen);
+        if (seen.count === 2) {
+          issues.push(createValidationIssue(
+            'animation-graph-loop-transform-duplicate-target',
+            VALIDATION_STATUS.warning,
+            `${outputLabel} duplicates a loop.transform target first used by graph output ${seen.firstIndex}; delete or rebuild duplicate transform rows before keying that loop again.`,
+          ));
+        }
       }
       if (property.startsWith('point.')) {
         if (!resolveGraphPointRefs(state, output?.target).length) {
@@ -3201,6 +3232,7 @@
       return issues;
     }
     let previousTime = -Infinity;
+    const seenTimes = new Set();
     keys.forEach((keyframe, index) => {
       const frameLabel = `${label} key ${index + 1}`;
       const time = Number(keyframe?.timeMs);
@@ -3216,6 +3248,17 @@
           VALIDATION_STATUS.warning,
           `${label} graph keyframes must be ordered by timeMs.`,
         ));
+      }
+      if (Number.isFinite(time)) {
+        const timeKey = String(time);
+        if (seenTimes.has(timeKey)) {
+          issues.push(createValidationIssue(
+            'animation-graph-keyframe-time-duplicate',
+            VALIDATION_STATUS.warning,
+            `${frameLabel} duplicates timeMs ${time}; import/export cleanup keeps the last key at that time.`,
+          ));
+        }
+        seenTimes.add(timeKey);
       }
       previousTime = Number.isFinite(time) ? time : previousTime;
       const interp = String(keyframe?.interp ?? keyframe?.ease ?? 'smooth');
@@ -5017,6 +5060,9 @@
   }
 
   function graphOutputMatchKey(output) {
+    if (String(output?.property || '') === 'loop.transform') {
+      return graphOutputPropertyTargetKey(output);
+    }
     return stableStringify({
       property: output?.property || '',
       target: output?.target || {},
@@ -5142,13 +5188,6 @@
     let outputs = graph.outputs.map(cleanAnimationGraphOutput).filter(Boolean);
     let nodes = graph.nodes.map(cleanAnimationGraphNode).filter(Boolean);
     let outputIndex = outputs.findIndex((output) => graphOutputMatchKey(output) === outputMatch);
-    if (outputIndex < 0 && property === 'loop.transform' && origin) {
-      const targetMatch = graphOutputPropertyTargetKey({ property, target });
-      outputIndex = outputs.findIndex((output) => (
-        graphOutputPropertyTargetKey(output) === targetMatch &&
-        !cleanAnimationOrigin(output.origin)
-      ));
-    }
     let node = null;
     if (outputIndex >= 0) {
       node = nodes.find((item) => item.id === outputs[outputIndex].source) || null;
@@ -5199,7 +5238,7 @@
       ...outputs[outputIndex],
       target,
       property,
-      origin: origin || outputs[outputIndex].origin,
+      origin: outputs[outputIndex].origin || origin,
     });
     const clips = animation.clips.slice();
     clips[clipIndex] = cleanAnimationClip({
@@ -5261,15 +5300,7 @@
   }
 
   function upsertSortedGraphKeys(keys, nextKey) {
-    const output = (Array.isArray(keys) ? keys : []).map(cleanAnimationGraphKeyframe);
-    const existingIndex = output.findIndex((item) => Number(item.timeMs) === Number(nextKey.timeMs));
-    if (existingIndex >= 0) {
-      output[existingIndex] = nextKey;
-    } else {
-      output.push(nextKey);
-    }
-    output.sort((a, b) => Number(a.timeMs) - Number(b.timeMs));
-    return output;
+    return cleanSortedGraphKeys([...(Array.isArray(keys) ? keys : []), nextKey]);
   }
 
   function updateAnimationTrack(state, clipId, trackIndex, updater) {
@@ -5630,6 +5661,34 @@
       return restGraphOutputValue(state, output);
     }
     return evaluateGraphNodeValue(node, cleanProperty, clampedTime, restGraphOutputValue(state, output));
+  }
+
+  function graphLoopTransformOutputsForTarget(state, clipId, target) {
+    const animation = cleanAnimation(state.animation);
+    const clip = animation?.clips.find((item) => item.id === normalizeLoopId(clipId));
+    if (!clip?.graph) {
+      return [];
+    }
+    const match = graphOutputPropertyTargetKey({
+      property: 'loop.transform',
+      target: cleanAnimationGraphTarget(target),
+    });
+    return (clip.graph.outputs || []).filter((output) => (
+      output?.property === 'loop.transform' &&
+      graphOutputPropertyTargetKey({
+        property: 'loop.transform',
+        target: cleanAnimationGraphTarget(output.target),
+      }) === match
+    ));
+  }
+
+  function graphLoopTransformOriginForTarget(state, clipId, target) {
+    const output = graphLoopTransformOutputsForTarget(state, clipId, target)[0];
+    return cleanAnimationOrigin(output?.origin);
+  }
+
+  function hasDuplicateLoopTransformOutputForTarget(state, clipId, target) {
+    return graphLoopTransformOutputsForTarget(state, clipId, target).length > 1;
   }
 
   function graphDisplayDeltaToRestDelta(state, clipId, ref, timeMs = 0, delta = {}) {
@@ -6053,6 +6112,8 @@
     copyGraphOutputKeyframeToTime,
     copyPreviousGraphOutputKeyframeToTime,
     graphValueForTarget,
+    graphLoopTransformOriginForTarget,
+    hasDuplicateLoopTransformOutputForTarget,
     graphDisplayDeltaToRestDelta,
     brushPointDeltas,
     buildDisplayScene,

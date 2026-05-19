@@ -2603,6 +2603,143 @@ test('loop transform keying migrates originless outputs to canvas origin instead
   assert.equal(state.animation.clips[0].graph.nodes[0].keys[0].value.sx, 1.25);
 });
 
+test('loop transform graph outputs are canonical per target and preserve first origin', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  state = core.addAnimationClip(state, { id: 'pose', durationMs: 1000, loop: false });
+  const ref = { shapeIndex: 0, loopIndex: 0 };
+  const target = core.pathRefToAnimationTarget(state, ref);
+  const firstOrigin = { mode: 'canvas', x: 10, y: 10 };
+  const laterOrigin = { mode: 'canvas', x: 200, y: 200 };
+
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [ref], {
+    timeMs: 0,
+    value: { tx: 3, ty: 4, rotation: 0, sx: 1, sy: 1 },
+  }, { origin: firstOrigin });
+  state = core.upsertLoopTransformGraphKeys(state, 'pose', [ref], {
+    timeMs: 500,
+    value: { tx: 12, ty: -2, rotation: Math.PI / 6, sx: 1.1, sy: 0.9 },
+  }, { origin: laterOrigin });
+
+  const outputs = state.animation.clips[0].graph.outputs.filter((output) => output.property === 'loop.transform');
+  assert.equal(outputs.length, 1);
+  assert.equal(JSON.stringify(outputs[0].origin), JSON.stringify(firstOrigin));
+  assert.equal(core.hasDuplicateLoopTransformOutputForTarget(state, 'pose', target), false);
+  assert.equal(
+    JSON.stringify(core.graphLoopTransformOriginForTarget(state, 'pose', target)),
+    JSON.stringify(firstOrigin),
+  );
+  const valueWithLaterOrigin = core.graphValueForTarget(
+    state,
+    'pose',
+    'loop.transform',
+    target,
+    500,
+    { origin: laterOrigin },
+  );
+  assert.equal(valueWithLaterOrigin.tx, 12);
+  assert.ok(Math.abs(valueWithLaterOrigin.rotation - Math.PI / 6) < 0.001);
+});
+
+test('graph validation warns on duplicate loop transform outputs and duplicate key times', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  const target = core.pathRefToAnimationTarget(state, { shapeIndex: 0, loopIndex: 0 });
+  state = {
+    ...state,
+    animation: {
+      schemaVersion: 2,
+      clips: [
+        {
+          id: 'pose',
+          label: 'Pose',
+          durationMs: 1000,
+          loop: false,
+          graph: {
+            nodes: [
+              {
+                id: 'a',
+                type: 'keyframes.transform',
+                keys: [
+                  { timeMs: 0, interp: 'smooth', value: { tx: 0, ty: 0 } },
+                  { timeMs: 0, interp: 'smooth', value: { tx: 8, ty: 0 } },
+                ],
+              },
+              {
+                id: 'b',
+                type: 'keyframes.transform',
+                keys: [{ timeMs: 0, interp: 'smooth', value: { tx: 0, ty: 0 } }],
+              },
+            ],
+            outputs: [
+              { source: 'a', property: 'loop.transform', target, origin: { mode: 'canvas', x: 10, y: 10 } },
+              { source: 'b', property: 'loop.transform', target, origin: { mode: 'canvas', x: 20, y: 20 } },
+            ],
+          },
+        },
+      ],
+      bindings: {},
+    },
+  };
+
+  const issues = core.validateAnimation(state).issues.map((issue) => issue.code);
+  assert.ok(issues.includes('animation-graph-loop-transform-duplicate-target'));
+  assert.ok(issues.includes('animation-graph-keyframe-time-duplicate'));
+  assert.equal(core.hasDuplicateLoopTransformOutputForTarget(state, 'pose', target), true);
+});
+
+test('graph import dedupes same-time keys with last key winning', () => {
+  let state = core.createInitialState();
+  state = core.addPoint(state, { x: 0, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 0 });
+  state = core.addPoint(state, { x: 20, y: 20 });
+  state = core.closeLoop(state);
+  const target = core.pathRefToAnimationTarget(state, { shapeIndex: 0, loopIndex: 0 });
+  const pack = core.buildVectorPack({
+    ...state,
+    animation: {
+      schemaVersion: 2,
+      clips: [
+        {
+          id: 'pose',
+          label: 'Pose',
+          durationMs: 1000,
+          loop: false,
+          graph: {
+            nodes: [
+              {
+                id: 'a',
+                type: 'keyframes.transform',
+                keys: [
+                  { timeMs: 0, interp: 'smooth', value: { tx: 1, ty: 0 } },
+                  { timeMs: 0, interp: 'smooth', value: { tx: 9, ty: 0 } },
+                  { timeMs: 500, interp: 'smooth', value: { tx: 12, ty: 0 } },
+                ],
+              },
+            ],
+            outputs: [
+              { source: 'a', property: 'loop.transform', target, origin: { mode: 'canvas', x: 10, y: 10 } },
+            ],
+          },
+        },
+      ],
+      bindings: {},
+    },
+  }, { animationMode: 'graph' });
+
+  const imported = core.importVectorPack(pack);
+  const keys = imported.animation.clips[0].graph.nodes[0].keys;
+  assert.equal(keys.length, 2);
+  assert.equal(keys[0].timeMs, 0);
+  assert.equal(keys[0].value.tx, 9);
+});
+
 test('tag presets add semantic tags and optional zone roles', () => {
   let state = core.createInitialState();
 

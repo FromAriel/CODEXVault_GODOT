@@ -1930,6 +1930,8 @@
       discardOptimizationPreviewOnly();
       discardAnimationPosePreview(false);
       discardAnimationPreview();
+      stopTimelinePlayback();
+      syncTimelineUi();
       const options = readTransformOptions();
       const displayScene = buildEditorDisplayScene();
       const displayState = displayScene.displayState || state;
@@ -1957,13 +1959,20 @@
         setStatus(`Keyed ${result.pointItems.length} point transform target${result.pointItems.length === 1 ? '' : 's'} at ${Math.round(timeOptions.timeMs)}ms. Rest art unchanged.`);
       } else {
         const refs = core.getLoopEditPathRefs(displayState);
-        const animationOrigin = animationCanvasOriginFromResolved(preview.stats.origin);
+        if (blockDuplicateLoopTransformKeying(clipId, refs)) {
+          discardTransformPreview(false);
+          syncFieldsFromState();
+          draw();
+          return;
+        }
+        const origins = loopTransformOriginsForRefs(clipId, refs, animationCanvasOriginForState(state));
         const transformValue = {
           sx: options.scaleX,
           sy: options.scaleY,
           rotation: options.rotation,
         };
         for (const ref of refs) {
+          const animationOrigin = originForLoopRef(origins, ref);
           const base = loopTransformBaseValueAtTime(ref, clipId, timeOptions.timeMs, animationOrigin);
           state = core.upsertLoopTransformGraphKeys(state, clipId, [ref], {
             ...timeOptions,
@@ -2002,25 +2011,48 @@
     return animationCanvasOriginFromResolved(core.resolveTransformOrigin(originState, readTransformOptions()));
   }
 
-  function isRestTransformValue(value) {
-    return !value ||
-      Math.abs(Number(value.tx) || 0) < 0.0001 &&
-      Math.abs(Number(value.ty) || 0) < 0.0001 &&
-      Math.abs(Number(value.rotation) || 0) < 0.0001 &&
-      Math.abs((Number(value.sx) || 1) - 1) < 0.0001 &&
-      Math.abs((Number(value.sy) || 1) - 1) < 0.0001 &&
-      Math.abs(Number(value.skewX) || 0) < 0.0001 &&
-      Math.abs(Number(value.skewY) || 0) < 0.0001;
+  function loopTransformOriginForRef(clipId, ref, fallbackOrigin = null) {
+    const target = core.pathRefToAnimationTarget(state, ref);
+    return core.graphLoopTransformOriginForTarget(state, clipId, target) || fallbackOrigin || null;
+  }
+
+  function loopTransformOriginsForRefs(clipId, refs, fallbackOrigin = animationCanvasOriginForState(state)) {
+    const output = new Map();
+    for (const ref of refs) {
+      output.set(pointRefKey(ref), loopTransformOriginForRef(clipId, ref, fallbackOrigin));
+    }
+    return output;
+  }
+
+  function originForLoopRef(originOrMap, ref) {
+    if (originOrMap instanceof Map) {
+      return originOrMap.get(pointRefKey(ref)) || null;
+    }
+    return originOrMap || null;
+  }
+
+  function duplicateLoopTransformRefs(clipId, refs) {
+    return refs.filter((ref) => core.hasDuplicateLoopTransformOutputForTarget(
+      state,
+      clipId,
+      core.pathRefToAnimationTarget(state, ref),
+    ));
+  }
+
+  function blockDuplicateLoopTransformKeying(clipId, refs) {
+    const duplicates = duplicateLoopTransformRefs(clipId, refs);
+    if (!duplicates.length) {
+      return false;
+    }
+    setStatus(
+      `This clip has duplicate loop transform rows for ${duplicates.length} selected target${duplicates.length === 1 ? '' : 's'}. Delete or rebuild those rows before keying loop transforms.`,
+    );
+    return true;
   }
 
   function loopTransformBaseValueAtTime(ref, clipId, timeMs, origin) {
     const target = core.pathRefToAnimationTarget(state, ref);
-    const withOrigin = core.graphValueForTarget(state, clipId, 'loop.transform', target, timeMs, { origin });
-    if (!isRestTransformValue(withOrigin)) {
-      return withOrigin;
-    }
-    const withoutOrigin = core.graphValueForTarget(state, clipId, 'loop.transform', target, timeMs);
-    return isRestTransformValue(withoutOrigin) ? withOrigin : withoutOrigin;
+    return core.graphValueForTarget(state, clipId, 'loop.transform', target, timeMs, { origin });
   }
 
   function updateTransformPreviewFromControls() {
@@ -2192,14 +2224,19 @@
           },
         );
       } else if (pathRefs.length) {
-        const origin = animationCanvasOriginForState(buildEditorDisplayScene().displayState || state);
-        state = core.upsertLoopTransformGraphKeys(state, clipId, pathRefs, {
-          timeMs: snapTimelineTime(timelineTimeMs),
-          interp: 'smooth',
-          value: core.restTransformValue(),
-        }, {
-          origin,
-        });
+        if (blockDuplicateLoopTransformKeying(clipId, pathRefs)) {
+          return;
+        }
+        const origins = loopTransformOriginsForRefs(clipId, pathRefs, animationCanvasOriginForState(state));
+        for (const ref of pathRefs) {
+          state = core.upsertLoopTransformGraphKeys(state, clipId, [ref], {
+            timeMs: snapTimelineTime(timelineTimeMs),
+            interp: 'smooth',
+            value: core.restTransformValue(),
+          }, {
+            origin: originForLoopRef(origins, ref),
+          });
+        }
       } else {
         setStatus('Select one or more loops or points before adding graph rows.');
         return;
@@ -2240,13 +2277,18 @@
         );
         setStatus(`Rest-keyed ${pointRefs.length} point delta target(s) at ${Math.round(timeOptions.timeMs)}ms.`);
       } else {
-        const origin = animationCanvasOriginForState(buildEditorDisplayScene().displayState || state);
-        state = core.upsertLoopTransformGraphKeys(state, clipId, pathRefs, {
-          ...timeOptions,
-          value: core.restTransformValue(),
-        }, {
-          origin,
-        });
+        if (blockDuplicateLoopTransformKeying(clipId, pathRefs)) {
+          return;
+        }
+        const origins = loopTransformOriginsForRefs(clipId, pathRefs, animationCanvasOriginForState(state));
+        for (const ref of pathRefs) {
+          state = core.upsertLoopTransformGraphKeys(state, clipId, [ref], {
+            ...timeOptions,
+            value: core.restTransformValue(),
+          }, {
+            origin: originForLoopRef(origins, ref),
+          });
+        }
         setStatus(`Rest-keyed ${pathRefs.length} loop transform target(s) at ${Math.round(timeOptions.timeMs)}ms.`);
       }
       selectedClipId = clipId;
@@ -2490,7 +2532,7 @@
   function createLoopTransformBaseValues(refs, clipId, timeMs, origin) {
     return new Map(refs.map((ref) => [
       pointRefKey(ref),
-      graphLoopTransformValue(ref, clipId, timeMs, origin),
+      graphLoopTransformValue(ref, clipId, timeMs, originForLoopRef(origin, ref)),
     ]));
   }
 
@@ -2507,6 +2549,8 @@
     }
     const shapeIndex = state.selectedShapeIndex;
     const clipId = ensureActiveClipForAnimation();
+    stopTimelinePlayback();
+    syncTimelineUi();
     const timeOptions = graphKeyOptions();
     if (property === 'fill') {
       state = core.upsertShapeStyleGraphKey(state, clipId, shapeIndex, 'fill', fields.shapeFill.value, timeOptions);
@@ -3767,6 +3811,8 @@
       setStatus('Create or select a clip before animating.');
       return false;
     }
+    stopTimelinePlayback();
+    syncTimelineUi();
     beginHistoryInteraction(label);
     return true;
   }
@@ -3775,9 +3821,10 @@
     if (!animationDrag?.refs?.length) {
       return;
     }
-    const timeOptions = graphKeyOptions();
+    const timeOptions = animationDrag.timeOptions || graphKeyOptions();
     for (const ref of animationDrag.refs) {
       const base = animationDrag.baseValues?.get(pointRefKey(ref)) || core.restTransformValue();
+      const origin = originForLoopRef(animationDrag.origins || animationDrag.origin, ref);
       state = core.upsertLoopTransformGraphKeys(state, animationDrag.clipId, [ref], {
         timeMs: timeOptions.timeMs,
         interp: timeOptions.interp,
@@ -3787,7 +3834,7 @@
           ty: (Number(base.ty) || 0) + animationDrag.totalDy,
         },
       }, {
-        origin: animationDrag.origin || animationCanvasOriginForState(),
+        origin,
       });
     }
     markHistoryInteractionDirty();
@@ -3799,7 +3846,7 @@
     if (!animationDrag?.refs?.length) {
       return;
     }
-    const timeOptions = graphKeyOptions();
+    const timeOptions = animationDrag.timeOptions || graphKeyOptions();
     state = core.upsertPointDeltaGraphKeys(
       state,
       animationDrag.clipId,
@@ -3840,11 +3887,12 @@
       x: canvasPoint.x - animationDrag.startCanvasPoint.x,
       y: canvasPoint.y - animationDrag.startCanvasPoint.y,
     };
+    const timeOptions = animationDrag.timeOptions || graphKeyOptions();
     const restDelta = core.graphDisplayDeltaToRestDelta(
       state,
       animationDrag.clipId,
       ref,
-      graphKeyOptions().timeMs,
+      timeOptions.timeMs,
       delta,
     );
     state = core.upsertPointHandleDeltaGraphKey(
@@ -3853,7 +3901,7 @@
       ref,
       animationDrag.handleName,
       {
-        ...graphKeyOptions(),
+        ...timeOptions,
         value: {
           x: (Number(base.x) || 0) + restDelta.x,
           y: (Number(base.y) || 0) + restDelta.y,
@@ -3866,7 +3914,7 @@
   }
 
   function keyAnimatedBrushStroke(delta, center) {
-    const timeOptions = graphKeyOptions();
+    const timeOptions = animationDrag?.timeOptions || graphKeyOptions();
     const displayScene = buildEditorDisplayScene();
     const increments = core.brushPointDeltas(displayScene.displayState || state, {
       center,
@@ -3947,19 +3995,52 @@
           return;
         }
         const clipId = ensureActiveClipForAnimation();
+        stopTimelinePlayback();
+        syncTimelineUi();
+        const timeOptions = graphKeyOptions();
         if (selectedPointCount) {
+          const refs = core.getSelectedPointRefs(state);
           state = core.upsertPointDeltaGraphKeys(
             state,
             clipId,
-            core.getSelectedPointRefs(state).map((ref) => ({ ref, value: { x: moveDelta.dx, y: moveDelta.dy } })),
-            graphKeyOptions(),
+            refs.map((ref) => {
+              const base = graphPointValue(ref, clipId, 'point.positionDelta', timeOptions.timeMs);
+              const restDelta = core.graphDisplayDeltaToRestDelta(
+                state,
+                clipId,
+                ref,
+                timeOptions.timeMs,
+                { x: moveDelta.dx, y: moveDelta.dy },
+              );
+              return {
+                ref,
+                value: {
+                  x: (Number(base.x) || 0) + restDelta.x,
+                  y: (Number(base.y) || 0) + restDelta.y,
+                },
+              };
+            }),
+            timeOptions,
           );
           setStatus(`Keyed ${selectedPointCount} point nudge(s) by ${step}px.`);
         } else {
-          state = core.upsertLoopTransformGraphKeys(state, clipId, core.getSelectedPathRefs(state), {
-            ...graphKeyOptions(),
-            value: { tx: moveDelta.dx, ty: moveDelta.dy, rotation: 0, sx: 1, sy: 1 },
-          }, { origin: animationCanvasOriginForState(buildEditorDisplayScene().displayState || state) });
+          const refs = core.getSelectedPathRefs(state);
+          if (blockDuplicateLoopTransformKeying(clipId, refs)) {
+            return;
+          }
+          const origins = loopTransformOriginsForRefs(clipId, refs, animationCanvasOriginForState(state));
+          for (const ref of refs) {
+            const origin = originForLoopRef(origins, ref);
+            const base = loopTransformBaseValueAtTime(ref, clipId, timeOptions.timeMs, origin);
+            state = core.upsertLoopTransformGraphKeys(state, clipId, [ref], {
+              ...timeOptions,
+              value: {
+                ...base,
+                tx: (Number(base.tx) || 0) + moveDelta.dx,
+                ty: (Number(base.ty) || 0) + moveDelta.dy,
+              },
+            }, { origin });
+          }
           setStatus(`Keyed ${selectedCount} loop nudge(s) by ${step}px.`);
         }
         selectLatestAnimationRowAtPlayhead();
@@ -4191,7 +4272,7 @@
         dragMode = 'animate-brush';
         dragCanvasPoint = canvasPoint;
         hoverCanvasPoint = canvasPoint;
-        animationDrag = { clipId: selectedClipId };
+        animationDrag = { clipId: selectedClipId, timeOptions: graphKeyOptions() };
         animationBrushDeltas = new Map();
         brushStrokeStats = createBrushStrokeStats(refs.length);
         pointerMoved = false;
@@ -4256,6 +4337,7 @@
           animationDrag = {
             clipId: selectedClipId,
             refs,
+            timeOptions,
             baseValues: createPointBaseValues(refs, selectedClipId, 'point.positionDelta', timeOptions.timeMs),
             totalDx: 0,
             totalDy: 0,
@@ -4300,14 +4382,21 @@
           return;
         }
         const refs = core.getSelectedPathRefs(state);
+        if (blockDuplicateLoopTransformKeying(selectedClipId, refs)) {
+          cancelHistoryInteraction();
+          syncFieldsFromState();
+          draw();
+          return;
+        }
         const timeOptions = graphKeyOptions();
-        const origin = animationCanvasOriginForState(displayScene.displayState || state);
+        const origins = loopTransformOriginsForRefs(selectedClipId, refs, animationCanvasOriginForState(state));
         dragMode = 'animate-path-move';
         animationDrag = {
           clipId: selectedClipId,
           refs,
-          origin,
-          baseValues: createLoopTransformBaseValues(refs, selectedClipId, timeOptions.timeMs, origin),
+          origins,
+          timeOptions,
+          baseValues: createLoopTransformBaseValues(refs, selectedClipId, timeOptions.timeMs, origins),
           totalDx: 0,
           totalDy: 0,
         };
@@ -4358,12 +4447,14 @@
           pointIndex: handleHit.pointIndex,
         };
         const property = handleHit.handleName === 'inHandle' ? 'point.inHandleDelta' : 'point.outHandleDelta';
+        const timeOptions = graphKeyOptions();
         animationDrag = {
           clipId: selectedClipId,
           ref,
           handleName: handleHit.handleName,
+          timeOptions,
           startCanvasPoint: canvasPoint,
-          baseValue: graphPointValue(ref, selectedClipId, property, graphKeyOptions().timeMs),
+          baseValue: graphPointValue(ref, selectedClipId, property, timeOptions.timeMs),
         };
         dragPointIndex = handleHit.pointIndex;
         dragHandleName = handleHit.handleName;
@@ -4398,12 +4489,14 @@
             loopIndex: pointHit.loopIndex,
             pointIndex: pointHit.pointIndex,
           };
+          const timeOptions = graphKeyOptions();
           animationDrag = {
             clipId: selectedClipId,
             ref,
             handleName: 'outHandle',
+            timeOptions,
             startCanvasPoint: canvasPoint,
-            baseValue: graphPointValue(ref, selectedClipId, 'point.outHandleDelta', graphKeyOptions().timeMs),
+            baseValue: graphPointValue(ref, selectedClipId, 'point.outHandleDelta', timeOptions.timeMs),
           };
           dragPointIndex = pointHit.pointIndex;
           dragHandleName = 'outHandle';
@@ -4433,6 +4526,7 @@
         animationDrag = {
           clipId: selectedClipId,
           refs,
+          timeOptions,
           baseValues: createPointBaseValues(refs, selectedClipId, 'point.positionDelta', timeOptions.timeMs),
           totalDx: 0,
           totalDy: 0,
