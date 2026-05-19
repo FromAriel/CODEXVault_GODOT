@@ -3632,10 +3632,11 @@
     }
   }
 
-  function findFilledPathHit(canvasPoint, displayScene = buildEditorDisplayScene()) {
+  function findFilledPathHit(canvasPoint, displayScene = buildEditorDisplayScene(), options = {}) {
     syncHitCanvasSize();
     const candidates = [];
     const displayState = displayScene.displayState || state;
+    const preferSelected = Boolean(options.preferSelected);
     displayState.shapes.forEach((shape, shapeIndex) => {
       shape.loops.forEach((loop, loopIndex) => {
         if (!isFillSelectTarget(loop)) {
@@ -3647,10 +3648,14 @@
           shapeIndex,
           loop,
           loopIndex,
+          selected: core.isPathSelected(state, shapeIndex, loopIndex),
         });
       });
     });
     candidates.sort((a, b) => {
+      if (preferSelected && a.selected !== b.selected) {
+        return a.selected ? -1 : 1;
+      }
       const zSort = Number(b.shape.z) - Number(a.shape.z);
       if (zSort !== 0) {
         return zSort;
@@ -4246,7 +4251,7 @@
         draw();
         return;
       }
-      const pathHit = findFilledPathHit(canvasPoint, displayScene);
+      const pathHit = findFilledPathHit(canvasPoint, displayScene, { preferSelected: true });
       if (!pathHit) {
         setStatus('Move mode: click a filled path or loop point first.');
         syncFieldsFromState();
