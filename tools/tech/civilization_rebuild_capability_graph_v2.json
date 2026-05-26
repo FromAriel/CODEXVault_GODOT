@@ -1,0 +1,5914 @@
+{
+  "schema_version": "2.0",
+  "graph_name": "civilization_reconstruction_capability_dag",
+  "description": "Capability-level dependency graph for designing a post-disaster civilization reconstruction handbook. Nodes are repeatable capabilities, not school subjects or isolated inventions.",
+  "design_rule": "Theory appears at the first capability that needs it. Nodes are sorted by practical prerequisites, quality gates, and scale requirements.",
+  "edge_types": [
+    {
+      "id": "hard_prerequisite",
+      "meaning": "Cannot credibly perform the target capability without this prior capability."
+    },
+    {
+      "id": "quality_prerequisite",
+      "meaning": "Crude version may exist, but reliable/repeatable operation requires this dependency."
+    },
+    {
+      "id": "scale_prerequisite",
+      "meaning": "Small-scale proof works before this, but settlement/industrial scale requires it."
+    },
+    {
+      "id": "safety_prerequisite",
+      "meaning": "Capability is dangerous or self-defeating unless this safety/health/control node exists."
+    },
+    {
+      "id": "institutional_prerequisite",
+      "meaning": "Requires records, training, standards, law, inspection, or role separation."
+    },
+    {
+      "id": "shortcut_salvage",
+      "meaning": "Can be initially acquired by salvage, but must later be repairable and reproducible."
+    }
+  ],
+  "bands": [
+    {
+      "id": "B0_triage_archive",
+      "name": "Triage, archive, and salvage",
+      "goal": "Keep people alive, keep knowledge alive, and preserve reusable artifacts."
+    },
+    {
+      "id": "B1_clean_survival",
+      "name": "Clean survival",
+      "goal": "Water, sanitation, calories, shelter, hygiene, and disease suppression."
+    },
+    {
+      "id": "B2_settlement_basics",
+      "name": "Stable settlement",
+      "goal": "Food systems, storage, construction, local transport, and craft specialization."
+    },
+    {
+      "id": "B3_heat_materials",
+      "name": "Controlled heat and primary materials",
+      "goal": "Fuel concentration, kilns, ceramics, lime, refractories, glass, and primary metals."
+    },
+    {
+      "id": "B4_repeatability",
+      "name": "Measurement and repeatability",
+      "goal": "Units, gauges, balances, records, calibration, inspection, and replaceable parts."
+    },
+    {
+      "id": "B5_mechanical_power",
+      "name": "Mechanical power and pressure",
+      "goal": "Mills, pumps, shafts, gears, bearings, machine tools, boilers, and engines."
+    },
+    {
+      "id": "B6_industrial_chemistry_health",
+      "name": "Industrial chemistry and health systems",
+      "goal": "Laboratories, separations, reagents, public health, sterile work, fertilizers, and medicines."
+    },
+    {
+      "id": "B7_electrification",
+      "name": "Electrification",
+      "goal": "Conductors, magnets, generation, motors, distribution, batteries, and electrical measurement."
+    },
+    {
+      "id": "B8_communications_control_computing",
+      "name": "Communications, control, and computing",
+      "goal": "Telegraph, relay logic, radio, vacuum electronics, automation, and early computation."
+    },
+    {
+      "id": "B9_advanced_clean_regimes",
+      "name": "Advanced clean and nuclear regimes",
+      "goal": "Semiconductor fabrication, high-reliability infrastructure, nuclear governance, fuel cycle, and reactor power."
+    }
+  ],
+  "spines": [
+    {
+      "id": "knowledge_spine",
+      "name": "Knowledge preservation, teaching, and document control"
+    },
+    {
+      "id": "metrology_spine",
+      "name": "Measurement, calibration, standards, and uncertainty"
+    },
+    {
+      "id": "hygiene_spine",
+      "name": "Hygiene, contamination control, waste, and sterility"
+    },
+    {
+      "id": "maintenance_spine",
+      "name": "Maintenance, repair, inspection, and failure analysis"
+    },
+    {
+      "id": "governance_spine",
+      "name": "Governance, licensing, role separation, and training"
+    },
+    {
+      "id": "salvage_spine",
+      "name": "Salvage, repair, copy, and replacement ladder"
+    }
+  ],
+  "node_fields": [
+    "id",
+    "name",
+    "band",
+    "mission",
+    "minimum_viable_output",
+    "depends_on",
+    "outputs",
+    "unlocks",
+    "embedded_theory",
+    "quality_gates",
+    "failure_modes",
+    "keywords"
+  ],
+  "nodes": [
+    {
+      "id": "knowledge_archive",
+      "name": "Durable knowledge archive and copying loop",
+      "band": "B0_triage_archive",
+      "mission": "Preserve the map of civilization and create a routine for copying, teaching, and correcting it.",
+      "minimum_viable_output": "Protected archive; master index; copy protocol; apprenticeship list.",
+      "depends_on": [],
+      "outputs": [
+        "archives",
+        "indexes",
+        "teaching loops",
+        "copy standards"
+      ],
+      "unlocks": [
+        "records_ledgers",
+        "training_apprenticeship",
+        "maps_time_navigation"
+      ],
+      "embedded_theory": [
+        "information durability",
+        "redundancy",
+        "error correction",
+        "taxonomy"
+      ],
+      "quality_gates": [
+        "multiple copies",
+        "legible units",
+        "revision history",
+        "custodian roles"
+      ],
+      "failure_modes": [
+        "fire/flood loss",
+        "copying errors",
+        "knowledge hoarding",
+        "language drift"
+      ],
+      "keywords": [
+        "archive",
+        "manuals",
+        "curriculum",
+        "copying",
+        "index"
+      ]
+    },
+    {
+      "id": "training_apprenticeship",
+      "name": "Training, apprenticeship, and skill certification",
+      "band": "B0_triage_archive",
+      "mission": "Prevent skill extinction by pairing written knowledge with repeated practice and role handoff.",
+      "minimum_viable_output": "Named instructors, learners, skill checklists, and practical demonstrations.",
+      "depends_on": [
+        {
+          "id": "knowledge_archive",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "apprenticeship system",
+        "skill records",
+        "qualification tests"
+      ],
+      "unlocks": [
+        "governance_quality",
+        "public_health_surveillance",
+        "nuclear_infrastructure"
+      ],
+      "embedded_theory": [
+        "tacit knowledge",
+        "deliberate practice",
+        "competence testing"
+      ],
+      "quality_gates": [
+        "can demonstrate capability",
+        "can teach next cohort",
+        "records failures"
+      ],
+      "failure_modes": [
+        "rote copying without skill",
+        "unqualified operators",
+        "loss of specialists"
+      ],
+      "keywords": [
+        "training",
+        "apprentice",
+        "qualification",
+        "skills"
+      ]
+    },
+    {
+      "id": "records_ledgers",
+      "name": "Counting, writing, ledgers, and controlled records",
+      "band": "B0_triage_archive",
+      "mission": "Make inventories, recipes, maintenance, epidemiology, calibration, and governance possible.",
+      "minimum_viable_output": "Ledger system, inventory marks, dates, quantities, and controlled procedure sheets.",
+      "depends_on": [
+        {
+          "id": "knowledge_archive",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "ledgers",
+        "recipes",
+        "inventories",
+        "maintenance logs",
+        "procedure control"
+      ],
+      "unlocks": [
+        "measurement_units",
+        "sanitation_waste",
+        "seed_systems",
+        "governance_quality"
+      ],
+      "embedded_theory": [
+        "arithmetic",
+        "notation",
+        "audit trails",
+        "document control"
+      ],
+      "quality_gates": [
+        "dated entries",
+        "responsible person",
+        "versioned procedures",
+        "recoverable archives"
+      ],
+      "failure_modes": [
+        "lost inventory",
+        "untraceable failures",
+        "duplicate inconsistent recipes"
+      ],
+      "keywords": [
+        "writing",
+        "counting",
+        "ledger",
+        "inventory",
+        "records"
+      ]
+    },
+    {
+      "id": "salvage_triage",
+      "name": "Salvage survey, preservation, repair, and reverse engineering",
+      "band": "B0_triage_archive",
+      "mission": "Exploit surviving artifacts without confusing salvage with long-term manufacturing capability.",
+      "minimum_viable_output": "Inventory of reusable tools, parts, machines, books, seeds, medicines, wire, optics, engines, and instruments.",
+      "depends_on": [
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "salvage catalog",
+        "repair priorities",
+        "spare-parts bank"
+      ],
+      "unlocks": [
+        "tools_edges",
+        "measurement_units",
+        "electric_generation",
+        "electronics_relay"
+      ],
+      "embedded_theory": [
+        "triage",
+        "failure analysis",
+        "classification",
+        "repair before replacement"
+      ],
+      "quality_gates": [
+        "condition grading",
+        "location tags",
+        "safe storage",
+        "repair notes"
+      ],
+      "failure_modes": [
+        "using irreplaceable tools as consumables",
+        "unsafe medicines",
+        "mismatched parts"
+      ],
+      "keywords": [
+        "salvage",
+        "repair",
+        "spares",
+        "reverse engineering"
+      ]
+    },
+    {
+      "id": "tools_edges",
+      "name": "Cutting edges and hand tool basics",
+      "band": "B1_clean_survival",
+      "mission": "Shape wood, fiber, hide, food, earth, and later metal with controlled cutting.",
+      "minimum_viable_output": "Knives, scrapers, axes, wedges, awls, drills, and sharpening routine.",
+      "depends_on": [],
+      "outputs": [
+        "cutting tools",
+        "boring tools",
+        "sharpening"
+      ],
+      "unlocks": [
+        "cordage_textiles",
+        "basic_containers",
+        "woodworking_joinery",
+        "simple_machines"
+      ],
+      "embedded_theory": [
+        "fracture",
+        "abrasion",
+        "wedge mechanics",
+        "edge geometry"
+      ],
+      "quality_gates": [
+        "holds edge",
+        "repairable handle",
+        "repeatable sharpening"
+      ],
+      "failure_modes": [
+        "dull tools",
+        "injury",
+        "weak handles",
+        "wasted raw material"
+      ],
+      "keywords": [
+        "knife",
+        "axe",
+        "drill",
+        "wedge",
+        "edge"
+      ]
+    },
+    {
+      "id": "cordage_textiles",
+      "name": "Cordage, knots, nets, weaving, and textiles",
+      "band": "B1_clean_survival",
+      "mission": "Bind structures, catch food, carry loads, make clothing, transmit force, and build early machines.",
+      "minimum_viable_output": "Rope, twine, knots, nets, woven cloth or mats.",
+      "depends_on": [
+        {
+          "id": "tools_edges",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "rope",
+        "nets",
+        "cloth",
+        "slings",
+        "seals"
+      ],
+      "unlocks": [
+        "basic_containers",
+        "shelter_clothing",
+        "simple_machines",
+        "water_wind_mills"
+      ],
+      "embedded_theory": [
+        "tension",
+        "twist",
+        "fiber strength",
+        "wear"
+      ],
+      "quality_gates": [
+        "known breaking strength",
+        "dry storage",
+        "repair method"
+      ],
+      "failure_modes": [
+        "rot",
+        "weak knots",
+        "abrasion failure",
+        "pest damage"
+      ],
+      "keywords": [
+        "rope",
+        "fiber",
+        "textile",
+        "knots",
+        "weaving"
+      ]
+    },
+    {
+      "id": "basic_containers",
+      "name": "Basic containers, closures, and storage discipline",
+      "band": "B1_clean_survival",
+      "mission": "Store water, food, seed, fuel, medicines, and later reagents without loss or contamination.",
+      "minimum_viable_output": "Baskets, bags, skins, wooden boxes, simple lids, labels, and clean storage areas.",
+      "depends_on": [
+        {
+          "id": "tools_edges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "cordage_textiles",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "containers",
+        "closures",
+        "labels",
+        "dry stores"
+      ],
+      "unlocks": [
+        "potable_water",
+        "calories_preservation",
+        "ceramics_refractories",
+        "analytical_chemistry"
+      ],
+      "embedded_theory": [
+        "volume",
+        "contamination",
+        "spoilage",
+        "seal integrity"
+      ],
+      "quality_gates": [
+        "labeled contents",
+        "dry/clean separation",
+        "pest control"
+      ],
+      "failure_modes": [
+        "mislabeled materials",
+        "spoilage",
+        "cross-contamination",
+        "leaks"
+      ],
+      "keywords": [
+        "container",
+        "bag",
+        "basket",
+        "seal",
+        "storage"
+      ]
+    },
+    {
+      "id": "fire_control",
+      "name": "Controlled fire, cooking, boiling, and heat discipline",
+      "band": "B1_clean_survival",
+      "mission": "Control heat for warmth, food safety, water treatment, drying, and the first material transformations.",
+      "minimum_viable_output": "Safe hearths, fuel drying, boiling practice, cooking, drying, ash management.",
+      "depends_on": [
+        {
+          "id": "basic_containers",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "cooked food",
+        "boiled water",
+        "char",
+        "ash",
+        "drying"
+      ],
+      "unlocks": [
+        "charcoal_fuel",
+        "potable_water",
+        "calories_preservation",
+        "kilns_furnaces"
+      ],
+      "embedded_theory": [
+        "combustion",
+        "heat transfer",
+        "drying",
+        "phase change"
+      ],
+      "quality_gates": [
+        "reliable ignition",
+        "smoke control",
+        "safe fuel storage"
+      ],
+      "failure_modes": [
+        "burns",
+        "wildfire",
+        "smoke poisoning",
+        "undercooked food"
+      ],
+      "keywords": [
+        "fire",
+        "boil",
+        "heat",
+        "cooking",
+        "drying"
+      ]
+    },
+    {
+      "id": "potable_water",
+      "name": "Protected water sourcing and potable treatment",
+      "band": "B1_clean_survival",
+      "mission": "Make drinking water reliably safe and prevent recontamination.",
+      "minimum_viable_output": "Protected source, boiling or disinfection routine, settling/filtration, covered storage.",
+      "depends_on": [
+        {
+          "id": "basic_containers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "fire_control",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "safe water",
+        "water storage",
+        "source protection"
+      ],
+      "unlocks": [
+        "sanitation_waste",
+        "soap_cleaning",
+        "agriculture_field_systems",
+        "public_health_surveillance",
+        "steam_pressure"
+      ],
+      "embedded_theory": [
+        "microbial contamination",
+        "settling",
+        "filtration",
+        "boiling/disinfection",
+        "source protection"
+      ],
+      "quality_gates": [
+        "clear process",
+        "separate dirty/clean vessels",
+        "routine inspection"
+      ],
+      "failure_modes": [
+        "fecal contamination",
+        "dirty storage",
+        "chemical contaminants",
+        "vector breeding"
+      ],
+      "keywords": [
+        "water",
+        "filtration",
+        "boiling",
+        "disinfection",
+        "storage"
+      ]
+    },
+    {
+      "id": "sanitation_waste",
+      "name": "Sanitation, excreta isolation, drainage, and waste streams",
+      "band": "B1_clean_survival",
+      "mission": "Stop settlements from poisoning themselves through waste, flies, runoff, and contaminated hands.",
+      "minimum_viable_output": "Latrines, handwashing points, drainage, waste separation, burial/burning/composting rules.",
+      "depends_on": [
+        {
+          "id": "potable_water",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "latrines",
+        "drainage",
+        "waste segregation",
+        "handwashing"
+      ],
+      "unlocks": [
+        "public_health_surveillance",
+        "soap_cleaning",
+        "settlement_planning",
+        "sterilization_asepsis"
+      ],
+      "embedded_theory": [
+        "fecal-oral transmission",
+        "vectors",
+        "groundwater flow",
+        "risk zoning"
+      ],
+      "quality_gates": [
+        "safe distance from water",
+        "handwashing works",
+        "maintenance schedule"
+      ],
+      "failure_modes": [
+        "open defecation",
+        "well contamination",
+        "wastewater pooling",
+        "epidemics"
+      ],
+      "keywords": [
+        "latrine",
+        "sewer",
+        "waste",
+        "drainage",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "soap_cleaning",
+      "name": "Soap, cleaning agents, and routine hygiene",
+      "band": "B1_clean_survival",
+      "mission": "Reduce pathogen transfer and prepare the contamination-control mindset needed by medicine and laboratories.",
+      "minimum_viable_output": "Soap or alkaline cleaner, handwashing routine, cleaned tools, laundry practice.",
+      "depends_on": [
+        {
+          "id": "fire_control",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "basic_containers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "potable_water",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "soap",
+        "cleaning routines",
+        "laundry",
+        "surface cleaning"
+      ],
+      "unlocks": [
+        "public_health_surveillance",
+        "sterilization_asepsis",
+        "pharmaceutical_manufacturing"
+      ],
+      "embedded_theory": [
+        "fats/oils",
+        "alkali",
+        "surfactants",
+        "contamination routes"
+      ],
+      "quality_gates": [
+        "safe alkali handling",
+        "repeatable recipe",
+        "separate clean/dirty zones"
+      ],
+      "failure_modes": [
+        "skin injury",
+        "false sense of sterility",
+        "cross-contamination"
+      ],
+      "keywords": [
+        "soap",
+        "cleaning",
+        "handwashing",
+        "alkali",
+        "laundry"
+      ]
+    },
+    {
+      "id": "calories_preservation",
+      "name": "Food calories, preservation, and spoilage control",
+      "band": "B1_clean_survival",
+      "mission": "Create predictable calories beyond immediate foraging or harvest.",
+      "minimum_viable_output": "Drying, salting/brining where available, smoking, fermentation, granary or root cellar.",
+      "depends_on": [
+        {
+          "id": "basic_containers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "fire_control",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "potable_water",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "stored calories",
+        "preserved food",
+        "spoilage signs"
+      ],
+      "unlocks": [
+        "seed_systems",
+        "settlement_planning",
+        "salt_brine"
+      ],
+      "embedded_theory": [
+        "water activity",
+        "fermentation",
+        "mold",
+        "temperature",
+        "pests"
+      ],
+      "quality_gates": [
+        "labeled dates",
+        "pest exclusion",
+        "spoilage rejection criteria"
+      ],
+      "failure_modes": [
+        "botulism-like hazards",
+        "mold toxins",
+        "rodents",
+        "starvation cycles"
+      ],
+      "keywords": [
+        "food",
+        "preservation",
+        "drying",
+        "fermentation",
+        "storage"
+      ]
+    },
+    {
+      "id": "seed_systems",
+      "name": "Seed systems, crop calendars, and genetic preservation",
+      "band": "B2_settlement_basics",
+      "mission": "Maintain viable seed stock and crop diversity across bad seasons.",
+      "minimum_viable_output": "Dry labeled seed stores, germination tests, crop calendar, seed exchange rules.",
+      "depends_on": [
+        {
+          "id": "calories_preservation",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "basic_containers",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "seed stock",
+        "germination records",
+        "crop calendars"
+      ],
+      "unlocks": [
+        "agriculture_field_systems",
+        "industrial_fertilizer"
+      ],
+      "embedded_theory": [
+        "viability",
+        "selection",
+        "local adaptation",
+        "storage humidity"
+      ],
+      "quality_gates": [
+        "germination tested",
+        "varieties labeled",
+        "reserve stock untouched"
+      ],
+      "failure_modes": [
+        "eating seed stock",
+        "genetic bottleneck",
+        "mold",
+        "wrong planting dates"
+      ],
+      "keywords": [
+        "seed",
+        "germination",
+        "crop calendar",
+        "genetic diversity"
+      ]
+    },
+    {
+      "id": "agriculture_field_systems",
+      "name": "Field agriculture, soil-water management, and crop rotation",
+      "band": "B2_settlement_basics",
+      "mission": "Turn seed stock, land, water, labor, and records into reliable harvests.",
+      "minimum_viable_output": "Fields, irrigation/drainage basics, soil amendments, crop rotation, harvest calendar.",
+      "depends_on": [
+        {
+          "id": "seed_systems",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "potable_water",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "tools_edges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "harvests",
+        "irrigation routines",
+        "soil management"
+      ],
+      "unlocks": [
+        "animal_power",
+        "industrial_fertilizer",
+        "settlement_planning"
+      ],
+      "embedded_theory": [
+        "soil fertility",
+        "evaporation",
+        "erosion",
+        "plant life cycles",
+        "selection"
+      ],
+      "quality_gates": [
+        "yield records",
+        "seed reserve",
+        "soil erosion controlled",
+        "water scheduled"
+      ],
+      "failure_modes": [
+        "salinization",
+        "erosion",
+        "crop failure",
+        "nutrient depletion"
+      ],
+      "keywords": [
+        "agriculture",
+        "irrigation",
+        "soil",
+        "rotation",
+        "harvest"
+      ]
+    },
+    {
+      "id": "shelter_clothing",
+      "name": "Shelter, clothing, thermal protection, and weatherproofing",
+      "band": "B2_settlement_basics",
+      "mission": "Reduce exposure, preserve labor health, and protect stores and workshops.",
+      "minimum_viable_output": "Weatherproof shelters, bedding, clothing, insulation, ventilation.",
+      "depends_on": [
+        {
+          "id": "tools_edges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "cordage_textiles",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "shelter",
+        "clothing",
+        "weather protection"
+      ],
+      "unlocks": [
+        "settlement_planning",
+        "woodworking_joinery"
+      ],
+      "embedded_theory": [
+        "heat loss",
+        "ventilation",
+        "moisture",
+        "load paths"
+      ],
+      "quality_gates": [
+        "dry interior",
+        "smoke vented",
+        "sleeping warmth",
+        "repairable walls/roof"
+      ],
+      "failure_modes": [
+        "mold",
+        "hypothermia",
+        "fire traps",
+        "carbon monoxide"
+      ],
+      "keywords": [
+        "shelter",
+        "clothing",
+        "insulation",
+        "ventilation"
+      ]
+    },
+    {
+      "id": "simple_machines",
+      "name": "Simple machines and hand-force amplification",
+      "band": "B2_settlement_basics",
+      "mission": "Multiply human force for digging, lifting, splitting, hauling, pressing, and construction.",
+      "minimum_viable_output": "Lever, wedge, wheel-and-axle, pulley, inclined plane, screw, press.",
+      "depends_on": [
+        {
+          "id": "tools_edges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "cordage_textiles",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "levers",
+        "pulleys",
+        "carts",
+        "presses"
+      ],
+      "unlocks": [
+        "mining_quarrying",
+        "woodworking_joinery",
+        "pumps_hydraulics",
+        "machine_tools"
+      ],
+      "embedded_theory": [
+        "force",
+        "torque",
+        "friction",
+        "mechanical advantage",
+        "work"
+      ],
+      "quality_gates": [
+        "load ratings",
+        "safe rigging",
+        "repeatable geometry"
+      ],
+      "failure_modes": [
+        "crush injuries",
+        "broken ropes",
+        "unstable lifting",
+        "overstress"
+      ],
+      "keywords": [
+        "lever",
+        "pulley",
+        "wheel",
+        "screw",
+        "mechanics"
+      ]
+    },
+    {
+      "id": "woodworking_joinery",
+      "name": "Woodworking, joinery, frames, and local transport",
+      "band": "B2_settlement_basics",
+      "mission": "Build durable structures, carts, frames, benches, waterwheels, and machine supports.",
+      "minimum_viable_output": "Sawn/shaped timber, joints, frames, carts, handles, benches.",
+      "depends_on": [
+        {
+          "id": "tools_edges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "simple_machines",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "shelter_clothing",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "frames",
+        "carts",
+        "benches",
+        "handles",
+        "scaffolds"
+      ],
+      "unlocks": [
+        "masonry_earthworks",
+        "charcoal_fuel",
+        "water_wind_mills"
+      ],
+      "embedded_theory": [
+        "grain direction",
+        "load paths",
+        "joinery",
+        "friction",
+        "seasoning"
+      ],
+      "quality_gates": [
+        "seasoned wood",
+        "square/reference surfaces",
+        "joint tests"
+      ],
+      "failure_modes": [
+        "warping",
+        "rot",
+        "weak joints",
+        "fire risk"
+      ],
+      "keywords": [
+        "wood",
+        "joinery",
+        "cart",
+        "frame",
+        "bench"
+      ]
+    },
+    {
+      "id": "masonry_earthworks",
+      "name": "Masonry, earthworks, roads, drainage, and settlement layout",
+      "band": "B2_settlement_basics",
+      "mission": "Stabilize settlement space: roads, drains, foundations, walls, workshops, storage, and hazard zoning.",
+      "minimum_viable_output": "Drainage plan, raised roads, foundations, walls, protected workshops.",
+      "depends_on": [
+        {
+          "id": "simple_machines",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "sanitation_waste",
+          "type": "safety_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "woodworking_joinery",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "roads",
+        "drains",
+        "foundations",
+        "walls",
+        "workshop zones"
+      ],
+      "unlocks": [
+        "settlement_planning",
+        "kilns_furnaces",
+        "lime_cement"
+      ],
+      "embedded_theory": [
+        "load bearing",
+        "slope",
+        "water flow",
+        "site planning",
+        "separation of hazards"
+      ],
+      "quality_gates": [
+        "water drains away",
+        "waste separated",
+        "firebreaks",
+        "access routes"
+      ],
+      "failure_modes": [
+        "flooding",
+        "collapsed walls",
+        "waste-water mixing",
+        "fire spread"
+      ],
+      "keywords": [
+        "masonry",
+        "road",
+        "drainage",
+        "foundation",
+        "earthworks"
+      ]
+    },
+    {
+      "id": "settlement_planning",
+      "name": "Settlement planning, roles, stores, and local logistics",
+      "band": "B2_settlement_basics",
+      "mission": "Coordinate people, work, food, waste, workshops, safety zones, and transport.",
+      "minimum_viable_output": "Settlement map, roles, stores ledger, shift routines, hazard zoning.",
+      "depends_on": [
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "sanitation_waste",
+          "type": "safety_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "masonry_earthworks",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "agriculture_field_systems",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "settlement map",
+        "stores control",
+        "labor roles",
+        "hazard zones"
+      ],
+      "unlocks": [
+        "governance_quality",
+        "public_health_surveillance",
+        "transport_navigation"
+      ],
+      "embedded_theory": [
+        "logistics",
+        "resource accounting",
+        "risk zoning",
+        "coordination"
+      ],
+      "quality_gates": [
+        "stores audited",
+        "roles clear",
+        "zones enforced",
+        "conflicts recorded"
+      ],
+      "failure_modes": [
+        "famine despite food",
+        "disease clustering",
+        "work bottlenecks",
+        "social breakdown"
+      ],
+      "keywords": [
+        "settlement",
+        "logistics",
+        "roles",
+        "stores",
+        "planning"
+      ]
+    },
+    {
+      "id": "animal_power",
+      "name": "Animal traction, manure management, and husbandry",
+      "band": "B2_settlement_basics",
+      "mission": "Multiply agricultural and transport labor while managing feed, disease, and manure.",
+      "minimum_viable_output": "Draft animals, harnesses, manure collection, breeding and feeding records.",
+      "depends_on": [
+        {
+          "id": "agriculture_field_systems",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "cordage_textiles",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "sanitation_waste",
+          "type": "safety_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "traction",
+        "manure",
+        "transport animals"
+      ],
+      "unlocks": [
+        "water_wind_mills",
+        "transport_navigation",
+        "industrial_fertilizer"
+      ],
+      "embedded_theory": [
+        "domestication",
+        "feed conversion",
+        "disease control",
+        "breeding"
+      ],
+      "quality_gates": [
+        "animal health records",
+        "manure kept from drinking water",
+        "working harness"
+      ],
+      "failure_modes": [
+        "zoonotic disease",
+        "overgrazing",
+        "injury",
+        "feed competition"
+      ],
+      "keywords": [
+        "animal",
+        "traction",
+        "harness",
+        "manure",
+        "husbandry"
+      ]
+    },
+    {
+      "id": "charcoal_fuel",
+      "name": "Fuel concentration, charcoal, coke pathway, and draft control",
+      "band": "B3_heat_materials",
+      "mission": "Turn diffuse biomass or fossil fuel into high-temperature process fuel.",
+      "minimum_viable_output": "Charcoal kiln or pit, fuel grading, draft control, ash/char handling.",
+      "depends_on": [
+        {
+          "id": "fire_control",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "woodworking_joinery",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "charcoal",
+        "fuel grades",
+        "draft routines"
+      ],
+      "unlocks": [
+        "kilns_furnaces",
+        "ore_prep",
+        "iron_bloomery"
+      ],
+      "embedded_theory": [
+        "combustion",
+        "pyrolysis",
+        "airflow",
+        "heat concentration"
+      ],
+      "quality_gates": [
+        "consistent fuel",
+        "low moisture",
+        "draft controllable"
+      ],
+      "failure_modes": [
+        "carbon monoxide",
+        "forest depletion",
+        "incomplete char",
+        "uncontrolled fires"
+      ],
+      "keywords": [
+        "charcoal",
+        "fuel",
+        "draft",
+        "coke",
+        "combustion"
+      ]
+    },
+    {
+      "id": "kilns_furnaces",
+      "name": "Kilns, furnaces, bellows, and high-temperature work",
+      "band": "B3_heat_materials",
+      "mission": "Make heat intense, directional, repeatable, and enclosed.",
+      "minimum_viable_output": "Kiln/furnace body, bellows or draft, firing schedule, heat zones.",
+      "depends_on": [
+        {
+          "id": "charcoal_fuel",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "masonry_earthworks",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "simple_machines",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "kilns",
+        "furnaces",
+        "bellows",
+        "firing schedules"
+      ],
+      "unlocks": [
+        "ceramics_refractories",
+        "lime_cement",
+        "glass_labware",
+        "nonferrous_metals",
+        "iron_bloomery"
+      ],
+      "embedded_theory": [
+        "draft",
+        "temperature gradients",
+        "thermal shock",
+        "oxidizing/reducing atmospheres"
+      ],
+      "quality_gates": [
+        "survives firing",
+        "controllable draft",
+        "repeatable charge size"
+      ],
+      "failure_modes": [
+        "explosion/steam spall",
+        "furnace collapse",
+        "bad atmosphere",
+        "burns"
+      ],
+      "keywords": [
+        "kiln",
+        "furnace",
+        "bellows",
+        "heat",
+        "draft"
+      ]
+    },
+    {
+      "id": "ceramics_refractories",
+      "name": "Ceramics, pottery, brick, molds, and refractories",
+      "band": "B3_heat_materials",
+      "mission": "Create durable heat-resistant containers, bricks, pipes, molds, and furnace linings.",
+      "minimum_viable_output": "Fired pots, bricks, tiles, pipes, crucibles, molds, refractory lining.",
+      "depends_on": [
+        {
+          "id": "kilns_furnaces",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "basic_containers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": "Repeatable firing and recipes require units."
+        }
+      ],
+      "outputs": [
+        "ceramic vessels",
+        "bricks",
+        "refractories",
+        "molds",
+        "pipes"
+      ],
+      "unlocks": [
+        "glass_labware",
+        "nonferrous_metals",
+        "iron_bloomery",
+        "steam_pressure"
+      ],
+      "embedded_theory": [
+        "clay bodies",
+        "shrinkage",
+        "sintering",
+        "thermal shock"
+      ],
+      "quality_gates": [
+        "low cracking",
+        "known clay recipe",
+        "firing record",
+        "fits intended heat"
+      ],
+      "failure_modes": [
+        "porosity",
+        "cracking",
+        "contamination",
+        "failed furnace lining"
+      ],
+      "keywords": [
+        "ceramic",
+        "brick",
+        "pottery",
+        "refractory",
+        "mold"
+      ]
+    },
+    {
+      "id": "lime_cement",
+      "name": "Lime, mortar, plaster, clinker, and cement ladder",
+      "band": "B3_heat_materials",
+      "mission": "Make mineral binders for durable buildings, sanitation works, furnaces, roads, and later containment.",
+      "minimum_viable_output": "Burned lime, slaked lime, mortar, plaster, improved cement where possible.",
+      "depends_on": [
+        {
+          "id": "kilns_furnaces",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "masonry_earthworks",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "lime",
+        "mortar",
+        "plaster",
+        "cementitious binder"
+      ],
+      "unlocks": [
+        "glass_labware",
+        "settlement_planning",
+        "nuclear_power"
+      ],
+      "embedded_theory": [
+        "calcination",
+        "hydration",
+        "setting",
+        "aggregate grading"
+      ],
+      "quality_gates": [
+        "safe slaking",
+        "consistent mix",
+        "compression tests"
+      ],
+      "failure_modes": [
+        "chemical burns",
+        "weak mortar",
+        "bad aggregates",
+        "moisture failure"
+      ],
+      "keywords": [
+        "lime",
+        "cement",
+        "mortar",
+        "plaster",
+        "clinker"
+      ]
+    },
+    {
+      "id": "salt_brine",
+      "name": "Salt, brine, preservation, electrolyte, and chlor-alkali precursor",
+      "band": "B3_heat_materials",
+      "mission": "Use salt as a preservation tool, process ingredient, and later chemical feedstock.",
+      "minimum_viable_output": "Salt collection/refining, brine strength checks, dry storage, preserved foods.",
+      "depends_on": [
+        {
+          "id": "basic_containers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "calories_preservation",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "salt",
+        "brine",
+        "preserved food",
+        "electrolyte feedstock"
+      ],
+      "unlocks": [
+        "analytical_chemistry",
+        "industrial_chemicals",
+        "soap_cleaning"
+      ],
+      "embedded_theory": [
+        "solubility",
+        "crystallization",
+        "water activity",
+        "electrolytes"
+      ],
+      "quality_gates": [
+        "dry salt storage",
+        "known brine strength",
+        "contamination controlled"
+      ],
+      "failure_modes": [
+        "toxic impurities",
+        "over/under-salting",
+        "corrosion",
+        "misidentification"
+      ],
+      "keywords": [
+        "salt",
+        "brine",
+        "preservation",
+        "electrolyte"
+      ]
+    },
+    {
+      "id": "mining_quarrying",
+      "name": "Mining, quarrying, pits, ventilation, and mineral access",
+      "band": "B3_heat_materials",
+      "mission": "Extract ore, flux, stone, clay, coal, salt, and aggregates at useful scale.",
+      "minimum_viable_output": "Safe pits/quarries, hauling, sorting areas, ventilation or open-cut rules.",
+      "depends_on": [
+        {
+          "id": "simple_machines",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "masonry_earthworks",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "ore",
+        "stone",
+        "flux",
+        "coal",
+        "clay",
+        "salt"
+      ],
+      "unlocks": [
+        "ore_prep",
+        "glass_labware",
+        "lime_cement",
+        "nonferrous_metals",
+        "iron_bloomery"
+      ],
+      "embedded_theory": [
+        "rock mechanics",
+        "haulage",
+        "ventilation",
+        "ore recognition"
+      ],
+      "quality_gates": [
+        "collapse control",
+        "recorded deposits",
+        "sorted stockpiles",
+        "safe haul routes"
+      ],
+      "failure_modes": [
+        "collapse",
+        "bad air",
+        "flooding",
+        "wrong mineral"
+      ],
+      "keywords": [
+        "mining",
+        "quarry",
+        "ore",
+        "coal",
+        "flux"
+      ]
+    },
+    {
+      "id": "ore_prep",
+      "name": "Ore preparation, crushing, sorting, washing, fluxing, and assay basics",
+      "band": "B3_heat_materials",
+      "mission": "Transform mined material into predictable furnace charges.",
+      "minimum_viable_output": "Crushed/sorted ore, flux recipe, charcoal/ore ratio, simple assay notes.",
+      "depends_on": [
+        {
+          "id": "mining_quarrying",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "charcoal_fuel",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "prepared ore",
+        "flux mixes",
+        "assay notes"
+      ],
+      "unlocks": [
+        "nonferrous_metals",
+        "iron_bloomery",
+        "analytical_chemistry"
+      ],
+      "embedded_theory": [
+        "density",
+        "gangue",
+        "reduction",
+        "flux",
+        "mass balance"
+      ],
+      "quality_gates": [
+        "charge proportions recorded",
+        "slag behavior observed",
+        "ore lots separated"
+      ],
+      "failure_modes": [
+        "bad slag",
+        "poisoned metal",
+        "low yield",
+        "furnace clogging"
+      ],
+      "keywords": [
+        "ore preparation",
+        "flux",
+        "assay",
+        "crushing",
+        "sorting"
+      ]
+    },
+    {
+      "id": "nonferrous_metals",
+      "name": "Copper, bronze, lead, tin, zinc, and nonferrous metalworking",
+      "band": "B3_heat_materials",
+      "mission": "Obtain workable metals for castings, alloys, solder, pipes, bearings, and electrical conductors.",
+      "minimum_viable_output": "Smelted/cast copper or bronze; simple refining; drawn or hammered stock.",
+      "depends_on": [
+        {
+          "id": "ore_prep",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "ceramics_refractories",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "kilns_furnaces",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "copper/bronze stock",
+        "castings",
+        "wire-capable metal",
+        "solder metals"
+      ],
+      "unlocks": [
+        "electrical_materials",
+        "electric_generation",
+        "machine_tools",
+        "electronics_relay"
+      ],
+      "embedded_theory": [
+        "reduction",
+        "alloying",
+        "casting shrinkage",
+        "conductivity"
+      ],
+      "quality_gates": [
+        "known alloy recipes",
+        "sound castings",
+        "safe fumes control"
+      ],
+      "failure_modes": [
+        "toxic fumes",
+        "brittle alloys",
+        "contaminated metal",
+        "bad molds"
+      ],
+      "keywords": [
+        "copper",
+        "bronze",
+        "lead",
+        "tin",
+        "casting",
+        "wire"
+      ]
+    },
+    {
+      "id": "iron_bloomery",
+      "name": "Bloomery iron and forge welding",
+      "band": "B3_heat_materials",
+      "mission": "Make workable iron before full industrial steel control.",
+      "minimum_viable_output": "Iron bloom, forge, hammering, slag removal, wrought iron tools.",
+      "depends_on": [
+        {
+          "id": "ore_prep",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "charcoal_fuel",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "ceramics_refractories",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "wrought iron",
+        "forge tools",
+        "iron fasteners"
+      ],
+      "unlocks": [
+        "steel_heat_treatment",
+        "pumps_hydraulics",
+        "gears_bearings"
+      ],
+      "embedded_theory": [
+        "solid-state reduction",
+        "slag",
+        "carbon uptake",
+        "forging"
+      ],
+      "quality_gates": [
+        "workable bloom",
+        "low slag inclusions",
+        "forge temperature control"
+      ],
+      "failure_modes": [
+        "brittle iron",
+        "poor welds",
+        "slag cracks",
+        "fuel shortage"
+      ],
+      "keywords": [
+        "iron",
+        "bloomery",
+        "forge",
+        "wrought iron"
+      ]
+    },
+    {
+      "id": "glass_labware",
+      "name": "Glass, lenses, sealed vessels, and basic labware",
+      "band": "B3_heat_materials",
+      "mission": "Create transparent, chemically useful, sealable vessels and optical blanks.",
+      "minimum_viable_output": "Glass vessels, windows, simple lenses, retorts, tubing, sealed containers.",
+      "depends_on": [
+        {
+          "id": "ceramics_refractories",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "kilns_furnaces",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "mining_quarrying",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "glassware",
+        "windows",
+        "lenses",
+        "retorts",
+        "tubing"
+      ],
+      "unlocks": [
+        "optics_microscopy",
+        "analytical_chemistry",
+        "sterilization_asepsis",
+        "electronics_relay"
+      ],
+      "embedded_theory": [
+        "silica fluxing",
+        "viscosity",
+        "annealing",
+        "thermal expansion",
+        "optics"
+      ],
+      "quality_gates": [
+        "annealed glass",
+        "vessel survives heating",
+        "clear enough for optics"
+      ],
+      "failure_modes": [
+        "thermal shock",
+        "bad annealing",
+        "chemical leaching",
+        "breakage"
+      ],
+      "keywords": [
+        "glass",
+        "labware",
+        "lens",
+        "retort",
+        "window"
+      ]
+    },
+    {
+      "id": "measurement_units",
+      "name": "Reference units, dimensions, mass, volume, and time",
+      "band": "B4_repeatability",
+      "mission": "Create shared quantities so recipes, tools, maps, structures, and experiments can be repeated.",
+      "minimum_viable_output": "Length, mass, volume, temperature proxies, timekeeping, reference artifacts.",
+      "depends_on": [
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "units",
+        "reference artifacts",
+        "tables"
+      ],
+      "unlocks": [
+        "balances_gauges",
+        "ceramics_refractories",
+        "ore_prep",
+        "machine_tools"
+      ],
+      "embedded_theory": [
+        "ratio",
+        "standardization",
+        "uncertainty",
+        "reference artifacts"
+      ],
+      "quality_gates": [
+        "protected reference standards",
+        "copy chain",
+        "unit definitions recorded"
+      ],
+      "failure_modes": [
+        "unit drift",
+        "regional mismatch",
+        "unmeasured recipes",
+        "part incompatibility"
+      ],
+      "keywords": [
+        "units",
+        "standard",
+        "measure",
+        "reference",
+        "time"
+      ]
+    },
+    {
+      "id": "balances_gauges",
+      "name": "Balances, gauges, calibration chains, and inspection",
+      "band": "B4_repeatability",
+      "mission": "Turn measurement into traceable, comparable, quality-controlled practice.",
+      "minimum_viable_output": "Balances, calipers/gauges, pressure/temperature indicators where available, calibration logs.",
+      "depends_on": [
+        {
+          "id": "measurement_units",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "woodworking_joinery",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "balances",
+        "gauges",
+        "calibration logs",
+        "inspection routines"
+      ],
+      "unlocks": [
+        "machine_tools",
+        "analytical_chemistry",
+        "steam_pressure",
+        "electric_generation",
+        "public_health_surveillance"
+      ],
+      "embedded_theory": [
+        "calibration",
+        "tolerance",
+        "uncertainty",
+        "statistical sampling"
+      ],
+      "quality_gates": [
+        "unbroken calibration chain",
+        "known uncertainty",
+        "inspection criteria"
+      ],
+      "failure_modes": [
+        "false precision",
+        "uncalibrated tools",
+        "bad batches",
+        "unsafe pressure systems"
+      ],
+      "keywords": [
+        "calibration",
+        "gauge",
+        "balance",
+        "tolerance",
+        "inspection"
+      ]
+    },
+    {
+      "id": "paper_printing",
+      "name": "Paper, ink, copying, printing, and diagram reproduction",
+      "band": "B4_repeatability",
+      "mission": "Mass-produce knowledge, labels, records, maps, technical drawings, and instructions.",
+      "minimum_viable_output": "Paper or equivalent, ink, reproducible diagrams, printing or duplicating process.",
+      "depends_on": [
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "cordage_textiles",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "tools_edges",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "paper",
+        "ink",
+        "manual copies",
+        "labels",
+        "drawings"
+      ],
+      "unlocks": [
+        "governance_quality",
+        "maps_time_navigation",
+        "public_health_surveillance"
+      ],
+      "embedded_theory": [
+        "fibers",
+        "adhesion",
+        "layout",
+        "diagram conventions"
+      ],
+      "quality_gates": [
+        "legible copies",
+        "stable storage",
+        "standard symbols"
+      ],
+      "failure_modes": [
+        "lost diagrams",
+        "misread instructions",
+        "record decay"
+      ],
+      "keywords": [
+        "paper",
+        "printing",
+        "ink",
+        "drawing",
+        "manual"
+      ]
+    },
+    {
+      "id": "governance_quality",
+      "name": "Governance, standards, quality systems, and role separation",
+      "band": "B4_repeatability",
+      "mission": "Create institutions that keep high-risk systems from depending on memory, charisma, or one expert.",
+      "minimum_viable_output": "Standards board, inspection roles, procedure control, incident reporting, dispute process.",
+      "depends_on": [
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "training_apprenticeship",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "settlement_planning",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "standards",
+        "inspections",
+        "quality systems",
+        "incident reports"
+      ],
+      "unlocks": [
+        "public_health_surveillance",
+        "pharmaceutical_manufacturing",
+        "nuclear_infrastructure"
+      ],
+      "embedded_theory": [
+        "audit",
+        "process control",
+        "division of responsibility",
+        "risk governance"
+      ],
+      "quality_gates": [
+        "inspectors independent enough",
+        "nonpunitive incident logs",
+        "procedures versioned"
+      ],
+      "failure_modes": [
+        "paper bureaucracy without enforcement",
+        "corruption",
+        "unreported failures",
+        "operator drift"
+      ],
+      "keywords": [
+        "governance",
+        "quality",
+        "standards",
+        "inspection",
+        "law"
+      ]
+    },
+    {
+      "id": "water_wind_mills",
+      "name": "Waterwheels, windmills, mills, and site-bound rotary power",
+      "band": "B5_mechanical_power",
+      "mission": "Convert natural flows into grinding, pumping, sawing, hammering, and workshop power.",
+      "minimum_viable_output": "Waterwheel or windmill; grain mill; shafted workshop power.",
+      "depends_on": [
+        {
+          "id": "woodworking_joinery",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "simple_machines",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "animal_power",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "rotary power",
+        "mills",
+        "saws",
+        "hammers"
+      ],
+      "unlocks": [
+        "gears_bearings",
+        "pumps_hydraulics",
+        "machine_tools"
+      ],
+      "embedded_theory": [
+        "rotation",
+        "torque",
+        "flow",
+        "power transmission"
+      ],
+      "quality_gates": [
+        "safe shafts",
+        "load matched to source",
+        "repairable blades/gears"
+      ],
+      "failure_modes": [
+        "overspeed",
+        "shaft failure",
+        "flood/storm damage",
+        "grain dust fires"
+      ],
+      "keywords": [
+        "mill",
+        "waterwheel",
+        "windmill",
+        "rotary power"
+      ]
+    },
+    {
+      "id": "gears_bearings",
+      "name": "Shafts, gears, bearings, cams, cranks, and transmissions",
+      "band": "B5_mechanical_power",
+      "mission": "Transmit and transform rotary motion into controlled work.",
+      "minimum_viable_output": "Shafts, simple gears, bushings/bearings, cranks, cams, couplings.",
+      "depends_on": [
+        {
+          "id": "iron_bloomery",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "water_wind_mills",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "power trains",
+        "gears",
+        "bearings",
+        "cranks"
+      ],
+      "unlocks": [
+        "pumps_hydraulics",
+        "machine_tools",
+        "electric_generation"
+      ],
+      "embedded_theory": [
+        "torque",
+        "friction",
+        "gear ratios",
+        "lubrication",
+        "wear"
+      ],
+      "quality_gates": [
+        "aligned shafts",
+        "lubricated bearings",
+        "guarded moving parts"
+      ],
+      "failure_modes": [
+        "seizure",
+        "tooth breakage",
+        "misalignment",
+        "operator entanglement"
+      ],
+      "keywords": [
+        "gear",
+        "bearing",
+        "shaft",
+        "crank",
+        "transmission"
+      ]
+    },
+    {
+      "id": "pumps_hydraulics",
+      "name": "Pumps, hydraulics, pipe systems, and fluid handling",
+      "band": "B5_mechanical_power",
+      "mission": "Move water, brine, fuel, air, sewage, and process fluids under control.",
+      "minimum_viable_output": "Hand/animal/water-powered pumps, valves, pipes, cisterns, drainage lifts.",
+      "depends_on": [
+        {
+          "id": "simple_machines",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "gears_bearings",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "ceramics_refractories",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "iron_bloomery",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "pumps",
+        "pipes",
+        "valves",
+        "cisterns"
+      ],
+      "unlocks": [
+        "steam_pressure",
+        "industrial_chemicals",
+        "electric_distribution",
+        "public_health_surveillance"
+      ],
+      "embedded_theory": [
+        "pressure",
+        "head",
+        "siphons",
+        "valves",
+        "flow loss"
+      ],
+      "quality_gates": [
+        "leak tests",
+        "clean/dirty pipe separation",
+        "valve maintenance"
+      ],
+      "failure_modes": [
+        "cross-connection contamination",
+        "pipe burst",
+        "stagnant water",
+        "pump failure"
+      ],
+      "keywords": [
+        "pump",
+        "hydraulic",
+        "pipe",
+        "valve",
+        "flow"
+      ]
+    },
+    {
+      "id": "steel_heat_treatment",
+      "name": "Steelmaking, carbon control, heat treatment, and alloy ladder",
+      "band": "B5_mechanical_power",
+      "mission": "Produce strong, predictable ferrous materials for tools, machines, pressure systems, and structures.",
+      "minimum_viable_output": "Controlled steel stock, hardened/tempered tools, known heat-treatment recipes.",
+      "depends_on": [
+        {
+          "id": "iron_bloomery",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "charcoal_fuel",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "ceramics_refractories",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "steel",
+        "hardened tools",
+        "springs",
+        "shafts",
+        "pressure parts"
+      ],
+      "unlocks": [
+        "machine_tools",
+        "steam_pressure",
+        "electric_generation",
+        "nuclear_fuel_cycle"
+      ],
+      "embedded_theory": [
+        "carbon content",
+        "phase change",
+        "quenching",
+        "tempering",
+        "alloying"
+      ],
+      "quality_gates": [
+        "test coupons",
+        "hardness/use tests",
+        "heat records",
+        "known alloy sources"
+      ],
+      "failure_modes": [
+        "brittleness",
+        "warping",
+        "cracks",
+        "unknown alloy behavior"
+      ],
+      "keywords": [
+        "steel",
+        "heat treatment",
+        "quench",
+        "temper",
+        "alloy"
+      ]
+    },
+    {
+      "id": "machine_tools",
+      "name": "Machine tools, fixtures, jigs, surface plates, and precision reproduction",
+      "band": "B5_mechanical_power",
+      "mission": "Make accurate parts that can reproduce better tools and machines.",
+      "minimum_viable_output": "Lathe, drill press, planer/mill equivalent, fixtures, surface/reference practices.",
+      "depends_on": [
+        {
+          "id": "steel_heat_treatment",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "gears_bearings",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "water_wind_mills",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "lathes",
+        "drill presses",
+        "fixtures",
+        "reference surfaces"
+      ],
+      "unlocks": [
+        "interchangeable_parts",
+        "steam_pressure",
+        "electric_generation",
+        "electronics_relay",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "geometry",
+        "runout",
+        "flatness",
+        "tolerances",
+        "feedback between tool and part"
+      ],
+      "quality_gates": [
+        "measured runout",
+        "repeatable fixtures",
+        "tool sharpening",
+        "scrap criteria"
+      ],
+      "failure_modes": [
+        "tool chatter",
+        "stacked tolerances",
+        "hidden cracks",
+        "bad reference surfaces"
+      ],
+      "keywords": [
+        "lathe",
+        "machine tool",
+        "fixture",
+        "precision",
+        "surface plate"
+      ]
+    },
+    {
+      "id": "interchangeable_parts",
+      "name": "Interchangeable parts, fasteners, fits, and maintenance economy",
+      "band": "B5_mechanical_power",
+      "mission": "Shift from one-off craft to replaceable assemblies and scalable repair.",
+      "minimum_viable_output": "Standard fasteners, fits/classes, part drawings, spares bins, acceptance gauges.",
+      "depends_on": [
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "paper_printing",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "standard parts",
+        "fasteners",
+        "spares",
+        "drawings"
+      ],
+      "unlocks": [
+        "steam_pressure",
+        "electric_distribution",
+        "transport_navigation",
+        "pharmaceutical_manufacturing"
+      ],
+      "embedded_theory": [
+        "tolerance stack-up",
+        "standardization",
+        "sampling inspection"
+      ],
+      "quality_gates": [
+        "parts fit across workshops",
+        "drawings match gauges",
+        "spares tracked"
+      ],
+      "failure_modes": [
+        "almost-fitting parts",
+        "thread mismatch",
+        "untraceable substitutions"
+      ],
+      "keywords": [
+        "interchangeability",
+        "fastener",
+        "spares",
+        "drawing",
+        "fit"
+      ]
+    },
+    {
+      "id": "steam_pressure",
+      "name": "Boilers, pressure vessels, condensers, and steam systems",
+      "band": "B5_mechanical_power",
+      "mission": "Use contained pressure and phase change to move heat and power at high density.",
+      "minimum_viable_output": "Boiler with pressure gauge/relief, condenser where applicable, valves, operating rules.",
+      "depends_on": [
+        {
+          "id": "steel_heat_treatment",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "pumps_hydraulics",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "safety_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "potable_water",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "boilers",
+        "pressure vessels",
+        "steam lines",
+        "heat exchangers"
+      ],
+      "unlocks": [
+        "steam_engines",
+        "industrial_chemicals",
+        "electric_generation",
+        "nuclear_power"
+      ],
+      "embedded_theory": [
+        "pressure",
+        "latent heat",
+        "thermal expansion",
+        "stress",
+        "relief valves"
+      ],
+      "quality_gates": [
+        "pressure tested",
+        "relief valve works",
+        "water quality controlled",
+        "operator trained"
+      ],
+      "failure_modes": [
+        "boiler explosion",
+        "scaling",
+        "corrosion",
+        "dry firing"
+      ],
+      "keywords": [
+        "boiler",
+        "steam",
+        "pressure vessel",
+        "condenser",
+        "valve"
+      ]
+    },
+    {
+      "id": "steam_engines",
+      "name": "Steam engines, turbines, and non-site-bound mechanical power",
+      "band": "B5_mechanical_power",
+      "mission": "Convert heat into continuous rotary or reciprocating power independent of rivers or wind.",
+      "minimum_viable_output": "Steam engine or turbine, governor/control, drivetrain, maintenance schedule.",
+      "depends_on": [
+        {
+          "id": "steam_pressure",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "gears_bearings",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "safety_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "prime movers",
+        "industrial shafts",
+        "locomotion power"
+      ],
+      "unlocks": [
+        "electric_generation",
+        "transport_navigation",
+        "industrial_chemicals"
+      ],
+      "embedded_theory": [
+        "thermodynamics at use-level",
+        "feedback governors",
+        "lubrication",
+        "efficiency"
+      ],
+      "quality_gates": [
+        "governor/control works",
+        "boiler certified",
+        "trained operator"
+      ],
+      "failure_modes": [
+        "overspeed",
+        "explosion",
+        "lubrication failure",
+        "fuel starvation"
+      ],
+      "keywords": [
+        "steam engine",
+        "turbine",
+        "governor",
+        "prime mover"
+      ]
+    },
+    {
+      "id": "transport_navigation",
+      "name": "Roads, canals, ships, navigation, and freight logistics",
+      "band": "B5_mechanical_power",
+      "mission": "Move food, ore, people, tools, and information between specialized settlements.",
+      "minimum_viable_output": "Road/canal/boat network, maps, schedules, load standards, repair depots.",
+      "depends_on": [
+        {
+          "id": "masonry_earthworks",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "woodworking_joinery",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "maps_time_navigation",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "interchangeable_parts",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "freight routes",
+        "boats",
+        "maps",
+        "repair depots"
+      ],
+      "unlocks": [
+        "electric_distribution",
+        "nuclear_infrastructure",
+        "industrial_chemicals"
+      ],
+      "embedded_theory": [
+        "navigation",
+        "load limits",
+        "route optimization",
+        "supply chains"
+      ],
+      "quality_gates": [
+        "bridges/roads inspected",
+        "maps updated",
+        "cargo records"
+      ],
+      "failure_modes": [
+        "supply bottlenecks",
+        "bridge failure",
+        "lost cargo",
+        "disease spread"
+      ],
+      "keywords": [
+        "transport",
+        "road",
+        "canal",
+        "ship",
+        "logistics"
+      ]
+    },
+    {
+      "id": "maps_time_navigation",
+      "name": "Maps, calendars, surveying, and practical navigation",
+      "band": "B4_repeatability",
+      "mission": "Know where things are, when to plant, how to travel, and how to coordinate work.",
+      "minimum_viable_output": "Local maps, seasonal calendar, survey marks, route notes, basic navigation.",
+      "depends_on": [
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "measurement_units",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "maps",
+        "calendars",
+        "survey marks",
+        "route plans"
+      ],
+      "unlocks": [
+        "transport_navigation",
+        "agriculture_field_systems",
+        "electric_distribution"
+      ],
+      "embedded_theory": [
+        "geometry",
+        "astronomy at use-level",
+        "seasonality",
+        "surveying"
+      ],
+      "quality_gates": [
+        "maps corrected",
+        "dates consistent",
+        "survey marks protected"
+      ],
+      "failure_modes": [
+        "lost routes",
+        "wrong planting windows",
+        "boundary disputes",
+        "bad site selection"
+      ],
+      "keywords": [
+        "map",
+        "calendar",
+        "survey",
+        "navigation",
+        "time"
+      ]
+    },
+    {
+      "id": "optics_microscopy",
+      "name": "Optics, lens grinding, microscopy, and optical inspection",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "See small structures, inspect materials, and diagnose biological contamination.",
+      "minimum_viable_output": "Magnifiers, compound microscope, illumination, slide/stain workflow.",
+      "depends_on": [
+        {
+          "id": "glass_labware",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "microscopes",
+        "inspection optics",
+        "slides"
+      ],
+      "unlocks": [
+        "public_health_surveillance",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "refraction",
+        "magnification",
+        "resolution",
+        "illumination"
+      ],
+      "quality_gates": [
+        "usable focus",
+        "known magnification",
+        "clean slides",
+        "trained observers"
+      ],
+      "failure_modes": [
+        "false diagnosis",
+        "bad lenses",
+        "dirty slides",
+        "misread artifacts"
+      ],
+      "keywords": [
+        "optics",
+        "microscope",
+        "lens",
+        "inspection",
+        "slides"
+      ]
+    },
+    {
+      "id": "analytical_chemistry",
+      "name": "Analytical chemistry, separations, assays, and reagent control",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Measure substances well enough to control water, metals, medicine, fertilizer, and industry.",
+      "minimum_viable_output": "Distillation, filtration, titration, pH/acid-base work, gravimetry, assay records.",
+      "depends_on": [
+        {
+          "id": "glass_labware",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "salt_brine",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "ore_prep",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "purified reagents",
+        "assays",
+        "separations",
+        "chemical records"
+      ],
+      "unlocks": [
+        "industrial_chemicals",
+        "public_health_surveillance",
+        "batteries_electrochemistry",
+        "nuclear_fuel_cycle"
+      ],
+      "embedded_theory": [
+        "stoichiometry",
+        "solubility",
+        "acid/base",
+        "redox",
+        "separation"
+      ],
+      "quality_gates": [
+        "blank/control samples",
+        "labeled reagents",
+        "known concentrations",
+        "waste separation"
+      ],
+      "failure_modes": [
+        "poisoning",
+        "wrong concentration",
+        "contaminated glassware",
+        "uncontrolled waste"
+      ],
+      "keywords": [
+        "chemistry",
+        "distillation",
+        "titration",
+        "pH",
+        "assay"
+      ]
+    },
+    {
+      "id": "industrial_chemicals",
+      "name": "Industrial chemicals, acids, alkalis, solvents, water treatment chemicals",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Make chemicals as infrastructure: cleaning, water treatment, metallurgy, fertilizer, textiles, medicine.",
+      "minimum_viable_output": "Controlled acid/alkali production, disinfectants/coagulants, gas handling, waste controls.",
+      "depends_on": [
+        {
+          "id": "analytical_chemistry",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steam_pressure",
+          "type": "scale_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "pumps_hydraulics",
+          "type": "scale_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "safety_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "acids",
+        "alkalis",
+        "disinfectants",
+        "coagulants",
+        "solvents"
+      ],
+      "unlocks": [
+        "industrial_fertilizer",
+        "pharmaceutical_manufacturing",
+        "refrigeration_cold_chain",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "reaction control",
+        "gas absorption",
+        "heat removal",
+        "corrosion",
+        "chemical hazards"
+      ],
+      "quality_gates": [
+        "labeled storage",
+        "ventilation",
+        "waste handling",
+        "batch records"
+      ],
+      "failure_modes": [
+        "toxic gas",
+        "runaway reactions",
+        "corrosion failure",
+        "environmental poisoning"
+      ],
+      "keywords": [
+        "acid",
+        "alkali",
+        "chlorine",
+        "coagulant",
+        "solvent"
+      ]
+    },
+    {
+      "id": "industrial_fertilizer",
+      "name": "Fertilizers, nutrient accounting, and industrial agriculture inputs",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Stabilize high-yield agriculture by replacing depleted nutrients and tracking soil needs.",
+      "minimum_viable_output": "Compost/manure protocols, lime use, mineral amendments, then nitrogen/phosphate/potash production routes.",
+      "depends_on": [
+        {
+          "id": "agriculture_field_systems",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "industrial_chemicals",
+          "type": "scale_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steam_pressure",
+          "type": "scale_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "fertilizers",
+        "soil tests",
+        "nutrient plans"
+      ],
+      "unlocks": [
+        "population_growth",
+        "pharmaceutical_manufacturing"
+      ],
+      "embedded_theory": [
+        "nitrogen cycle",
+        "nutrients",
+        "pH",
+        "pressure chemistry at industrial end"
+      ],
+      "quality_gates": [
+        "soil tests",
+        "dosage records",
+        "runoff controlled"
+      ],
+      "failure_modes": [
+        "soil salinity",
+        "eutrophication",
+        "crop burn",
+        "dependency on scarce inputs"
+      ],
+      "keywords": [
+        "fertilizer",
+        "nitrogen",
+        "soil test",
+        "nutrient",
+        "ammonia"
+      ]
+    },
+    {
+      "id": "public_health_surveillance",
+      "name": "Public health, diagnosis, surveillance, and outbreak control",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Turn sanitation, records, microscopy, and statistics into population-scale disease control.",
+      "minimum_viable_output": "Case logs, diagnostic routines, outbreak maps, quarantine/isolation rules, lab quality checks.",
+      "depends_on": [
+        {
+          "id": "sanitation_waste",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "soap_cleaning",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "optics_microscopy",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "institutional_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "diagnosis",
+        "surveillance reports",
+        "infection control",
+        "health protocols"
+      ],
+      "unlocks": [
+        "sterilization_asepsis",
+        "pharmaceutical_manufacturing",
+        "nuclear_infrastructure"
+      ],
+      "embedded_theory": [
+        "germ theory at use-level",
+        "epidemiology",
+        "statistics",
+        "diagnostic uncertainty"
+      ],
+      "quality_gates": [
+        "case definitions",
+        "timely reporting",
+        "lab controls",
+        "intervention feedback"
+      ],
+      "failure_modes": [
+        "hidden outbreaks",
+        "bad data",
+        "stigma suppressing reports",
+        "false positives/negatives"
+      ],
+      "keywords": [
+        "public health",
+        "epidemiology",
+        "diagnosis",
+        "surveillance",
+        "outbreak"
+      ]
+    },
+    {
+      "id": "sterilization_asepsis",
+      "name": "Sterilization, asepsis, clean rooms/zones, and contamination control",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Make surgery, injectable medicine, lab work, and later clean manufacturing possible.",
+      "minimum_viable_output": "Boiling/steam/dry heat sterilization, sterile handling zones, filters where available, environmental monitoring.",
+      "depends_on": [
+        {
+          "id": "public_health_surveillance",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steam_pressure",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "soap_cleaning",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "glass_labware",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "institutional_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "sterile instruments",
+        "aseptic zones",
+        "contamination logs"
+      ],
+      "unlocks": [
+        "pharmaceutical_manufacturing",
+        "semiconductor_fabrication",
+        "nuclear_fuel_cycle"
+      ],
+      "embedded_theory": [
+        "microbiology",
+        "sterility assurance",
+        "filtration",
+        "environmental monitoring"
+      ],
+      "quality_gates": [
+        "validated process",
+        "clean/dirty flow",
+        "operators trained",
+        "positive contamination response"
+      ],
+      "failure_modes": [
+        "sterile-looking contamination",
+        "dirty airflow",
+        "reuse without sterilization",
+        "biofilm"
+      ],
+      "keywords": [
+        "sterile",
+        "aseptic",
+        "cleanroom",
+        "contamination",
+        "filter"
+      ]
+    },
+    {
+      "id": "pharmaceutical_manufacturing",
+      "name": "Medicines, sterile products, batch records, and clinical reliability",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Produce and evaluate reliable medicines instead of relying on anecdote or contaminated batches.",
+      "minimum_viable_output": "Controlled formulations, batch records, sterility checks where needed, clinical comparison records.",
+      "depends_on": [
+        {
+          "id": "analytical_chemistry",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "public_health_surveillance",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "sterilization_asepsis",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "industrial_chemicals",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "institutional_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "quality-controlled medicines",
+        "sterile supplies",
+        "batch release rules"
+      ],
+      "unlocks": [
+        "population_growth",
+        "nuclear_infrastructure"
+      ],
+      "embedded_theory": [
+        "dose",
+        "toxicity",
+        "randomization at use-level",
+        "quality control",
+        "sterility"
+      ],
+      "quality_gates": [
+        "identity/strength/purity checked",
+        "batch traceability",
+        "adverse events logged"
+      ],
+      "failure_modes": [
+        "contaminated medicine",
+        "wrong dose",
+        "folk efficacy",
+        "unreported harms"
+      ],
+      "keywords": [
+        "pharma",
+        "medicine",
+        "sterile",
+        "batch",
+        "clinical"
+      ]
+    },
+    {
+      "id": "refrigeration_cold_chain",
+      "name": "Refrigeration, cold chain, and controlled atmospheres",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Preserve food, vaccines/medicines, biological samples, and industrial processes.",
+      "minimum_viable_output": "Ice/cold storage first, then mechanical refrigeration, temperature logs, cold transport.",
+      "depends_on": [
+        {
+          "id": "steam_pressure",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "industrial_chemicals",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "electric_generation",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "cold storage",
+        "cold chain",
+        "temperature logs"
+      ],
+      "unlocks": [
+        "pharmaceutical_manufacturing",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "heat pumps",
+        "phase change",
+        "insulation",
+        "temperature measurement"
+      ],
+      "quality_gates": [
+        "temperature logged",
+        "insulation works",
+        "backup plan"
+      ],
+      "failure_modes": [
+        "spoilage",
+        "toxic refrigerants",
+        "pressure leaks",
+        "broken chain"
+      ],
+      "keywords": [
+        "refrigeration",
+        "cold chain",
+        "ice",
+        "temperature",
+        "storage"
+      ]
+    },
+    {
+      "id": "population_growth",
+      "name": "Population support, maternal care, nutrition, and demographic resilience",
+      "band": "B6_industrial_chemistry_health",
+      "mission": "Keep enough healthy people alive to maintain specialization and multi-generation progress.",
+      "minimum_viable_output": "Maternal/infant care routines, nutrition plans, vaccination where possible, workforce health records.",
+      "depends_on": [
+        {
+          "id": "public_health_surveillance",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "industrial_fertilizer",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "pharmaceutical_manufacturing",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "workforce stability",
+        "reduced preventable mortality",
+        "health planning"
+      ],
+      "unlocks": [
+        "nuclear_infrastructure",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "nutrition",
+        "demography",
+        "maternal health",
+        "risk prioritization"
+      ],
+      "quality_gates": [
+        "mortality tracked",
+        "nutrition monitored",
+        "skilled attendants trained"
+      ],
+      "failure_modes": [
+        "brain drain by mortality",
+        "malnutrition",
+        "birth complications",
+        "workforce collapse"
+      ],
+      "keywords": [
+        "population",
+        "nutrition",
+        "maternal care",
+        "workforce",
+        "demography"
+      ]
+    },
+    {
+      "id": "electrical_materials",
+      "name": "Conductive metals, insulation, magnets, and electrical safety materials",
+      "band": "B7_electrification",
+      "mission": "Prepare materials needed for reliable circuits, coils, motors, generators, and grids.",
+      "minimum_viable_output": "Copper or suitable conductors, insulation, magnetic iron/steel, switches, fuses.",
+      "depends_on": [
+        {
+          "id": "nonferrous_metals",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steel_heat_treatment",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "conductors",
+        "insulation",
+        "magnets",
+        "switches",
+        "fuses"
+      ],
+      "unlocks": [
+        "electric_generation",
+        "batteries_electrochemistry",
+        "electronics_relay"
+      ],
+      "embedded_theory": [
+        "conductivity",
+        "resistance",
+        "magnetism",
+        "dielectric breakdown"
+      ],
+      "quality_gates": [
+        "insulation tested",
+        "conductors labeled",
+        "safe disconnects"
+      ],
+      "failure_modes": [
+        "fire",
+        "shock",
+        "short circuits",
+        "corrosion"
+      ],
+      "keywords": [
+        "copper",
+        "wire",
+        "insulation",
+        "magnet",
+        "fuse"
+      ]
+    },
+    {
+      "id": "batteries_electrochemistry",
+      "name": "Batteries, electrochemistry, plating, and portable electrical sources",
+      "band": "B7_electrification",
+      "mission": "Store and use electrical energy for communication, instruments, lighting, and electrochemical processing.",
+      "minimum_viable_output": "Primary cells, rechargeable cells where possible, plating baths, safe electrolyte handling.",
+      "depends_on": [
+        {
+          "id": "electrical_materials",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "glass_labware",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "batteries",
+        "electroplating",
+        "electrolysis cells"
+      ],
+      "unlocks": [
+        "electric_generation",
+        "electronics_relay",
+        "industrial_chemicals"
+      ],
+      "embedded_theory": [
+        "redox",
+        "ions",
+        "electrode potential",
+        "corrosion"
+      ],
+      "quality_gates": [
+        "labeled electrolytes",
+        "ventilation",
+        "charge/discharge records"
+      ],
+      "failure_modes": [
+        "acid burns",
+        "hydrogen explosion",
+        "toxic metals",
+        "shorts"
+      ],
+      "keywords": [
+        "battery",
+        "electrochemistry",
+        "plating",
+        "electrolysis"
+      ]
+    },
+    {
+      "id": "electric_generation",
+      "name": "Electrical generation, motors, dynamos, and electrical measurement",
+      "band": "B7_electrification",
+      "mission": "Convert mechanical power into electricity and electricity back into useful motion.",
+      "minimum_viable_output": "Generator/dynamo, motor, switchgear, basic voltage/current measurement, grounding routine.",
+      "depends_on": [
+        {
+          "id": "electrical_materials",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "gears_bearings",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steam_engines",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "generators",
+        "motors",
+        "electrical meters",
+        "lighting"
+      ],
+      "unlocks": [
+        "electric_distribution",
+        "electronics_relay",
+        "refrigeration_cold_chain"
+      ],
+      "embedded_theory": [
+        "electromagnetism at use-level",
+        "induction",
+        "power",
+        "load matching",
+        "grounding"
+      ],
+      "quality_gates": [
+        "meters calibrated",
+        "insulation tested",
+        "operator lockout"
+      ],
+      "failure_modes": [
+        "electrocution",
+        "fire",
+        "overload",
+        "bad frequency/voltage"
+      ],
+      "keywords": [
+        "generator",
+        "motor",
+        "dynamo",
+        "electricity",
+        "meter"
+      ]
+    },
+    {
+      "id": "electric_distribution",
+      "name": "Local grids, transformers, protection, and electrical service discipline",
+      "band": "B7_electrification",
+      "mission": "Make electricity into civil infrastructure instead of isolated machines.",
+      "minimum_viable_output": "Local grid, transformers if available, substations/switchyards, breakers/fuses, service maps.",
+      "depends_on": [
+        {
+          "id": "electric_generation",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "interchangeable_parts",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "transport_navigation",
+          "type": "scale_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "institutional_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "local grid",
+        "protection devices",
+        "service maps",
+        "maintenance crews"
+      ],
+      "unlocks": [
+        "electronics_relay",
+        "semiconductor_fabrication",
+        "nuclear_infrastructure"
+      ],
+      "embedded_theory": [
+        "AC/DC distribution",
+        "transformers",
+        "fault current",
+        "load balancing"
+      ],
+      "quality_gates": [
+        "protective devices work",
+        "clear maps",
+        "maintenance logs",
+        "load limits"
+      ],
+      "failure_modes": [
+        "grid fires",
+        "backfeed deaths",
+        "unbalanced loads",
+        "unmaintained lines"
+      ],
+      "keywords": [
+        "grid",
+        "transmission",
+        "distribution",
+        "transformer",
+        "breaker"
+      ]
+    },
+    {
+      "id": "electronics_relay",
+      "name": "Telegraph, relays, electromechanical control, and early communication",
+      "band": "B8_communications_control_computing",
+      "mission": "Transmit information faster than transport and automate switching/control with repairable parts.",
+      "minimum_viable_output": "Telegraph/telephone line, relays, switches, signal codes, control cabinets.",
+      "depends_on": [
+        {
+          "id": "electric_distribution",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "batteries_electrochemistry",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "interchangeable_parts",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "telegraph",
+        "relays",
+        "control circuits",
+        "signal codes"
+      ],
+      "unlocks": [
+        "radio_vacuum",
+        "computing_control",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "circuits",
+        "signals",
+        "logic at relay level",
+        "noise"
+      ],
+      "quality_gates": [
+        "codes standardized",
+        "contacts maintained",
+        "line maps"
+      ],
+      "failure_modes": [
+        "contact corrosion",
+        "false signals",
+        "line breaks",
+        "operator errors"
+      ],
+      "keywords": [
+        "relay",
+        "telegraph",
+        "telephone",
+        "signal",
+        "control"
+      ]
+    },
+    {
+      "id": "radio_vacuum",
+      "name": "Radio, vacuum tubes, amplification, and analog electronics",
+      "band": "B8_communications_control_computing",
+      "mission": "Use electromagnetic waves and electronic amplification before semiconductor fabrication exists.",
+      "minimum_viable_output": "Vacuum tubes, radio transmitter/receiver, amplifiers, oscillators, test benches.",
+      "depends_on": [
+        {
+          "id": "electronics_relay",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "glass_labware",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "electric_generation",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "radio",
+        "amplifiers",
+        "oscillators",
+        "vacuum electronics"
+      ],
+      "unlocks": [
+        "computing_control",
+        "semiconductor_fabrication"
+      ],
+      "embedded_theory": [
+        "electrons in vacuum",
+        "resonance",
+        "frequency",
+        "modulation",
+        "amplification"
+      ],
+      "quality_gates": [
+        "stable power",
+        "safe high voltage",
+        "tested tubes",
+        "frequency discipline"
+      ],
+      "failure_modes": [
+        "shock",
+        "unstable oscillators",
+        "poor vacuum",
+        "signal interference"
+      ],
+      "keywords": [
+        "radio",
+        "vacuum tube",
+        "amplifier",
+        "frequency",
+        "analog"
+      ]
+    },
+    {
+      "id": "computing_control",
+      "name": "Control systems, mechanical/relay computing, feedback, and automation",
+      "band": "B8_communications_control_computing",
+      "mission": "Make systems self-regulating and make calculation/control repeatable.",
+      "minimum_viable_output": "Governors, thermostats, relay logic, tabulators, analog calculators, control diagrams.",
+      "depends_on": [
+        {
+          "id": "electronics_relay",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "records_ledgers",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "balances_gauges",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "control systems",
+        "relay logic",
+        "calculators",
+        "automation"
+      ],
+      "unlocks": [
+        "semiconductor_fabrication",
+        "nuclear_power"
+      ],
+      "embedded_theory": [
+        "feedback",
+        "logic",
+        "algorithms",
+        "stability",
+        "instrumentation"
+      ],
+      "quality_gates": [
+        "failsafe states",
+        "documented logic",
+        "calibrated sensors"
+      ],
+      "failure_modes": [
+        "runaway control",
+        "hidden logic errors",
+        "sensor drift",
+        "single-point failure"
+      ],
+      "keywords": [
+        "control",
+        "computing",
+        "relay logic",
+        "automation",
+        "feedback"
+      ]
+    },
+    {
+      "id": "semiconductor_fabrication",
+      "name": "Semiconductor materials, clean fabrication, lithography, and microelectronics",
+      "band": "B9_advanced_clean_regimes",
+      "mission": "Build high-density electronics only after purity, metrology, clean environments, and power are mature.",
+      "minimum_viable_output": "Pure semiconductor material, clean processing area, patterning/etch/doping route, device inspection.",
+      "depends_on": [
+        {
+          "id": "radio_vacuum",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "sterilization_asepsis",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "optics_microscopy",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "electric_distribution",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "refrigeration_cold_chain",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "microelectronic devices",
+        "integrated circuits where feasible",
+        "high-density controls"
+      ],
+      "unlocks": [
+        "advanced_computing",
+        "nuclear_power"
+      ],
+      "embedded_theory": [
+        "solid-state physics just-in-time",
+        "photolithography",
+        "purity",
+        "surface chemistry",
+        "statistical process control"
+      ],
+      "quality_gates": [
+        "particle/chemical contamination controlled",
+        "metrology works",
+        "yield tracked",
+        "operators trained"
+      ],
+      "failure_modes": [
+        "low yield",
+        "invisible contamination",
+        "mask defects",
+        "supply-chain cliff"
+      ],
+      "keywords": [
+        "semiconductor",
+        "cleanroom",
+        "silicon",
+        "lithography",
+        "microelectronics"
+      ]
+    },
+    {
+      "id": "advanced_computing",
+      "name": "Digital computing, networks, databases, and software preservation",
+      "band": "B9_advanced_clean_regimes",
+      "mission": "Use computation to preserve knowledge, optimize logistics, model systems, and control complex infrastructure.",
+      "minimum_viable_output": "Computers, networks, databases, reproducible software, backups, cybersecurity/basic access rules.",
+      "depends_on": [
+        {
+          "id": "semiconductor_fabrication",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "computing_control",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "knowledge_archive",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "electric_distribution",
+          "type": "hard_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "digital computers",
+        "databases",
+        "networks",
+        "control software"
+      ],
+      "unlocks": [
+        "nuclear_power",
+        "global_science_loop"
+      ],
+      "embedded_theory": [
+        "algorithms",
+        "data structures",
+        "networking",
+        "software reliability"
+      ],
+      "quality_gates": [
+        "backups",
+        "source preservation",
+        "access control",
+        "tested restores"
+      ],
+      "failure_modes": [
+        "data loss",
+        "software rot",
+        "cyber/sabotage risk",
+        "unmaintainable black boxes"
+      ],
+      "keywords": [
+        "computer",
+        "network",
+        "database",
+        "software",
+        "backup"
+      ]
+    },
+    {
+      "id": "nuclear_infrastructure",
+      "name": "Nuclear governance, safeguards, workforce, grid readiness, and site program",
+      "band": "B9_advanced_clean_regimes",
+      "mission": "Create the institutional and infrastructure base for any civilian nuclear program.",
+      "minimum_viable_output": "Independent regulator, operator organization, trained workforce, safety culture, site/grid studies.",
+      "depends_on": [
+        {
+          "id": "governance_quality",
+          "type": "institutional_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "public_health_surveillance",
+          "type": "safety_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "electric_distribution",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "transport_navigation",
+          "type": "scale_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "population_growth",
+          "type": "scale_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "computing_control",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "regulator",
+        "operator",
+        "safety program",
+        "site studies",
+        "training pipeline"
+      ],
+      "unlocks": [
+        "nuclear_fuel_cycle",
+        "nuclear_power"
+      ],
+      "embedded_theory": [
+        "radiation protection",
+        "systems safety",
+        "licensing",
+        "probabilistic risk at policy level"
+      ],
+      "quality_gates": [
+        "role separation",
+        "emergency plan",
+        "records/audits",
+        "qualified staff"
+      ],
+      "failure_modes": [
+        "regulatory capture",
+        "operator error",
+        "unplanned waste",
+        "public distrust"
+      ],
+      "keywords": [
+        "nuclear",
+        "regulation",
+        "workforce",
+        "safeguards",
+        "site"
+      ]
+    },
+    {
+      "id": "nuclear_fuel_cycle",
+      "name": "Nuclear fuel-cycle chemistry, ceramics, cladding, and qualification",
+      "band": "B9_advanced_clean_regimes",
+      "mission": "Provide qualified reactor fuel and materials under strict accounting and safety controls.",
+      "minimum_viable_output": "Fuel-cycle plan, qualified fuel form, cladding/materials program, accounting and waste controls.",
+      "depends_on": [
+        {
+          "id": "nuclear_infrastructure",
+          "type": "institutional_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "analytical_chemistry",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "ceramics_refractories",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steel_heat_treatment",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "nonferrous_metals",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "machine_tools",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "sterilization_asepsis",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "qualified fuel",
+        "materials records",
+        "waste controls"
+      ],
+      "unlocks": [
+        "nuclear_power"
+      ],
+      "embedded_theory": [
+        "radiochemistry at governance level",
+        "ceramic processing",
+        "materials qualification",
+        "criticality safety principles"
+      ],
+      "quality_gates": [
+        "material accountability",
+        "qualified labs",
+        "waste isolation",
+        "independent inspection"
+      ],
+      "failure_modes": [
+        "contamination spread",
+        "unqualified fuel",
+        "material diversion",
+        "waste mismanagement"
+      ],
+      "keywords": [
+        "fuel cycle",
+        "uranium",
+        "ceramic fuel",
+        "cladding",
+        "waste"
+      ]
+    },
+    {
+      "id": "nuclear_power",
+      "name": "Civil nuclear heat-to-power system",
+      "band": "B9_advanced_clean_regimes",
+      "mission": "Use controlled fission heat to make steam, drive turbines, and export electricity through a regulated grid.",
+      "minimum_viable_output": "Licensed reactor plant, cooling system, containment/civil works, trained operation, grid export.",
+      "depends_on": [
+        {
+          "id": "nuclear_infrastructure",
+          "type": "institutional_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "nuclear_fuel_cycle",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "steam_pressure",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "electric_distribution",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "computing_control",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "lime_cement",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "reactor heat",
+        "steam turbine power",
+        "grid electricity",
+        "isotope/heat knowledge"
+      ],
+      "unlocks": [
+        "global_science_loop"
+      ],
+      "embedded_theory": [
+        "neutron economy at use-level",
+        "decay heat",
+        "thermal hydraulics",
+        "defense in depth",
+        "emergency planning"
+      ],
+      "quality_gates": [
+        "licensed operation",
+        "cooling assured",
+        "containment maintained",
+        "emergency drills",
+        "waste plan"
+      ],
+      "failure_modes": [
+        "loss of cooling",
+        "operator error",
+        "waste failure",
+        "institutional decay"
+      ],
+      "keywords": [
+        "nuclear power",
+        "reactor",
+        "fission",
+        "cooling",
+        "containment"
+      ]
+    },
+    {
+      "id": "global_science_loop",
+      "name": "Research universities, standards institutes, and continuous improvement loop",
+      "band": "B9_advanced_clean_regimes",
+      "mission": "Move beyond reconstruction into self-correcting scientific and industrial progress.",
+      "minimum_viable_output": "Research institutions, standards labs, journals/peer review, funding/training loops, open technical archives.",
+      "depends_on": [
+        {
+          "id": "advanced_computing",
+          "type": "quality_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "governance_quality",
+          "type": "institutional_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "knowledge_archive",
+          "type": "hard_prerequisite",
+          "note": ""
+        },
+        {
+          "id": "nuclear_power",
+          "type": "quality_prerequisite",
+          "note": ""
+        }
+      ],
+      "outputs": [
+        "research programs",
+        "standards institutes",
+        "peer review",
+        "technology roadmaps"
+      ],
+      "unlocks": [],
+      "embedded_theory": [
+        "scientific method",
+        "peer correction",
+        "metrology frontier",
+        "innovation systems"
+      ],
+      "quality_gates": [
+        "replication",
+        "open records",
+        "trained researchers",
+        "instrument maintenance"
+      ],
+      "failure_modes": [
+        "cargo-cult science",
+        "unreplicated claims",
+        "elite capture",
+        "instrument decay"
+      ],
+      "keywords": [
+        "science",
+        "university",
+        "standards",
+        "research",
+        "peer review"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "knowledge_archive",
+      "to": "training_apprenticeship",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "knowledge_archive",
+      "to": "records_ledgers",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "salvage_triage",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "cordage_textiles",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "basic_containers",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "cordage_textiles",
+      "to": "basic_containers",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "fire_control",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "potable_water",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "fire_control",
+      "to": "potable_water",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "potable_water",
+      "to": "sanitation_waste",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "sanitation_waste",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "fire_control",
+      "to": "soap_cleaning",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "soap_cleaning",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "potable_water",
+      "to": "soap_cleaning",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "calories_preservation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "fire_control",
+      "to": "calories_preservation",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "potable_water",
+      "to": "calories_preservation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "calories_preservation",
+      "to": "seed_systems",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "seed_systems",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "seed_systems",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "seed_systems",
+      "to": "agriculture_field_systems",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "potable_water",
+      "to": "agriculture_field_systems",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "agriculture_field_systems",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "agriculture_field_systems",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "shelter_clothing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "cordage_textiles",
+      "to": "shelter_clothing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "simple_machines",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "cordage_textiles",
+      "to": "simple_machines",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "woodworking_joinery",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "simple_machines",
+      "to": "woodworking_joinery",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "shelter_clothing",
+      "to": "woodworking_joinery",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "simple_machines",
+      "to": "masonry_earthworks",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sanitation_waste",
+      "to": "masonry_earthworks",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "woodworking_joinery",
+      "to": "masonry_earthworks",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "settlement_planning",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sanitation_waste",
+      "to": "settlement_planning",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "masonry_earthworks",
+      "to": "settlement_planning",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "agriculture_field_systems",
+      "to": "settlement_planning",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "agriculture_field_systems",
+      "to": "animal_power",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "cordage_textiles",
+      "to": "animal_power",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sanitation_waste",
+      "to": "animal_power",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "fire_control",
+      "to": "charcoal_fuel",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "woodworking_joinery",
+      "to": "charcoal_fuel",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "charcoal_fuel",
+      "to": "kilns_furnaces",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "masonry_earthworks",
+      "to": "kilns_furnaces",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "simple_machines",
+      "to": "kilns_furnaces",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "kilns_furnaces",
+      "to": "ceramics_refractories",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "ceramics_refractories",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "ceramics_refractories",
+      "type": "quality_prerequisite",
+      "note": "Repeatable firing and recipes require units."
+    },
+    {
+      "from": "kilns_furnaces",
+      "to": "lime_cement",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "masonry_earthworks",
+      "to": "lime_cement",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "lime_cement",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "basic_containers",
+      "to": "salt_brine",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "calories_preservation",
+      "to": "salt_brine",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "salt_brine",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "simple_machines",
+      "to": "mining_quarrying",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "masonry_earthworks",
+      "to": "mining_quarrying",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "mining_quarrying",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "mining_quarrying",
+      "to": "ore_prep",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "charcoal_fuel",
+      "to": "ore_prep",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "ore_prep",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ore_prep",
+      "to": "nonferrous_metals",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ceramics_refractories",
+      "to": "nonferrous_metals",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "kilns_furnaces",
+      "to": "nonferrous_metals",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ore_prep",
+      "to": "iron_bloomery",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "charcoal_fuel",
+      "to": "iron_bloomery",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ceramics_refractories",
+      "to": "iron_bloomery",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ceramics_refractories",
+      "to": "glass_labware",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "kilns_furnaces",
+      "to": "glass_labware",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "mining_quarrying",
+      "to": "glass_labware",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "glass_labware",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "measurement_units",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "balances_gauges",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "balances_gauges",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "woodworking_joinery",
+      "to": "balances_gauges",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "paper_printing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "cordage_textiles",
+      "to": "paper_printing",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "tools_edges",
+      "to": "paper_printing",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "governance_quality",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "training_apprenticeship",
+      "to": "governance_quality",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "settlement_planning",
+      "to": "governance_quality",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "governance_quality",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "woodworking_joinery",
+      "to": "water_wind_mills",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "simple_machines",
+      "to": "water_wind_mills",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "animal_power",
+      "to": "water_wind_mills",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "iron_bloomery",
+      "to": "gears_bearings",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "water_wind_mills",
+      "to": "gears_bearings",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "gears_bearings",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "simple_machines",
+      "to": "pumps_hydraulics",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "gears_bearings",
+      "to": "pumps_hydraulics",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ceramics_refractories",
+      "to": "pumps_hydraulics",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "iron_bloomery",
+      "to": "pumps_hydraulics",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "iron_bloomery",
+      "to": "steel_heat_treatment",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "charcoal_fuel",
+      "to": "steel_heat_treatment",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "steel_heat_treatment",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ceramics_refractories",
+      "to": "steel_heat_treatment",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steel_heat_treatment",
+      "to": "machine_tools",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "gears_bearings",
+      "to": "machine_tools",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "machine_tools",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "water_wind_mills",
+      "to": "machine_tools",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "interchangeable_parts",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "interchangeable_parts",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "paper_printing",
+      "to": "interchangeable_parts",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steel_heat_treatment",
+      "to": "steam_pressure",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "steam_pressure",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "pumps_hydraulics",
+      "to": "steam_pressure",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "steam_pressure",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "potable_water",
+      "to": "steam_pressure",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_pressure",
+      "to": "steam_engines",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "steam_engines",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "gears_bearings",
+      "to": "steam_engines",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "steam_engines",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "masonry_earthworks",
+      "to": "transport_navigation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "woodworking_joinery",
+      "to": "transport_navigation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "maps_time_navigation",
+      "to": "transport_navigation",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "interchangeable_parts",
+      "to": "transport_navigation",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "maps_time_navigation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "measurement_units",
+      "to": "maps_time_navigation",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "glass_labware",
+      "to": "optics_microscopy",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "optics_microscopy",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "optics_microscopy",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "glass_labware",
+      "to": "analytical_chemistry",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "analytical_chemistry",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "salt_brine",
+      "to": "analytical_chemistry",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ore_prep",
+      "to": "analytical_chemistry",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "industrial_chemicals",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_pressure",
+      "to": "industrial_chemicals",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "pumps_hydraulics",
+      "to": "industrial_chemicals",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "industrial_chemicals",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "agriculture_field_systems",
+      "to": "industrial_fertilizer",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "industrial_fertilizer",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "industrial_chemicals",
+      "to": "industrial_fertilizer",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_pressure",
+      "to": "industrial_fertilizer",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sanitation_waste",
+      "to": "public_health_surveillance",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "soap_cleaning",
+      "to": "public_health_surveillance",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "public_health_surveillance",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "optics_microscopy",
+      "to": "public_health_surveillance",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "public_health_surveillance",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "public_health_surveillance",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "public_health_surveillance",
+      "to": "sterilization_asepsis",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_pressure",
+      "to": "sterilization_asepsis",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "soap_cleaning",
+      "to": "sterilization_asepsis",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "glass_labware",
+      "to": "sterilization_asepsis",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "sterilization_asepsis",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "pharmaceutical_manufacturing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "public_health_surveillance",
+      "to": "pharmaceutical_manufacturing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sterilization_asepsis",
+      "to": "pharmaceutical_manufacturing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "industrial_chemicals",
+      "to": "pharmaceutical_manufacturing",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "pharmaceutical_manufacturing",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_pressure",
+      "to": "refrigeration_cold_chain",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "industrial_chemicals",
+      "to": "refrigeration_cold_chain",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "refrigeration_cold_chain",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_generation",
+      "to": "refrigeration_cold_chain",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "public_health_surveillance",
+      "to": "population_growth",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "industrial_fertilizer",
+      "to": "population_growth",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "pharmaceutical_manufacturing",
+      "to": "population_growth",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "nonferrous_metals",
+      "to": "electrical_materials",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steel_heat_treatment",
+      "to": "electrical_materials",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "electrical_materials",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "electrical_materials",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electrical_materials",
+      "to": "batteries_electrochemistry",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "batteries_electrochemistry",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "glass_labware",
+      "to": "batteries_electrochemistry",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electrical_materials",
+      "to": "electric_generation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "electric_generation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "gears_bearings",
+      "to": "electric_generation",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "electric_generation",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_engines",
+      "to": "electric_generation",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_generation",
+      "to": "electric_distribution",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "interchangeable_parts",
+      "to": "electric_distribution",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "transport_navigation",
+      "to": "electric_distribution",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "electric_distribution",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_distribution",
+      "to": "electronics_relay",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "batteries_electrochemistry",
+      "to": "electronics_relay",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "interchangeable_parts",
+      "to": "electronics_relay",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "electronics_relay",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electronics_relay",
+      "to": "radio_vacuum",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "glass_labware",
+      "to": "radio_vacuum",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "radio_vacuum",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_generation",
+      "to": "radio_vacuum",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "radio_vacuum",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electronics_relay",
+      "to": "computing_control",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "computing_control",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "records_ledgers",
+      "to": "computing_control",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "balances_gauges",
+      "to": "computing_control",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "radio_vacuum",
+      "to": "semiconductor_fabrication",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sterilization_asepsis",
+      "to": "semiconductor_fabrication",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "semiconductor_fabrication",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "optics_microscopy",
+      "to": "semiconductor_fabrication",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_distribution",
+      "to": "semiconductor_fabrication",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "semiconductor_fabrication",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "refrigeration_cold_chain",
+      "to": "semiconductor_fabrication",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "semiconductor_fabrication",
+      "to": "advanced_computing",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "computing_control",
+      "to": "advanced_computing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "knowledge_archive",
+      "to": "advanced_computing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_distribution",
+      "to": "advanced_computing",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "nuclear_infrastructure",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "public_health_surveillance",
+      "to": "nuclear_infrastructure",
+      "type": "safety_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_distribution",
+      "to": "nuclear_infrastructure",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "transport_navigation",
+      "to": "nuclear_infrastructure",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "population_growth",
+      "to": "nuclear_infrastructure",
+      "type": "scale_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "computing_control",
+      "to": "nuclear_infrastructure",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "nuclear_infrastructure",
+      "to": "nuclear_fuel_cycle",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "analytical_chemistry",
+      "to": "nuclear_fuel_cycle",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "ceramics_refractories",
+      "to": "nuclear_fuel_cycle",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steel_heat_treatment",
+      "to": "nuclear_fuel_cycle",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "nonferrous_metals",
+      "to": "nuclear_fuel_cycle",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "machine_tools",
+      "to": "nuclear_fuel_cycle",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "sterilization_asepsis",
+      "to": "nuclear_fuel_cycle",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "nuclear_infrastructure",
+      "to": "nuclear_power",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "nuclear_fuel_cycle",
+      "to": "nuclear_power",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "steam_pressure",
+      "to": "nuclear_power",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "electric_distribution",
+      "to": "nuclear_power",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "computing_control",
+      "to": "nuclear_power",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "lime_cement",
+      "to": "nuclear_power",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "advanced_computing",
+      "to": "global_science_loop",
+      "type": "quality_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "governance_quality",
+      "to": "global_science_loop",
+      "type": "institutional_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "knowledge_archive",
+      "to": "global_science_loop",
+      "type": "hard_prerequisite",
+      "note": ""
+    },
+    {
+      "from": "nuclear_power",
+      "to": "global_science_loop",
+      "type": "quality_prerequisite",
+      "note": ""
+    }
+  ],
+  "priority_model": {
+    "purpose": "Help editors decide what to include first and how much detail each capability deserves.",
+    "scores_0_to_5": [
+      "survival_impact",
+      "dependency_leverage",
+      "knowledge_fragility",
+      "resource_accessibility",
+      "time_to_minimum_viable_output",
+      "hazard_if_done_wrong",
+      "difficulty_to_rederive"
+    ],
+    "suggested_formula": "priority = 2*survival_impact + 2*dependency_leverage + knowledge_fragility + difficulty_to_rederive + hazard_if_done_wrong - resource_accessibility_penalty - long_time_penalty",
+    "rule": "High hazard nodes need strong safety and institutional modules before recipes; high leverage nodes need diagrams, tests, and common failure modes."
+  },
+  "module_template": {
+    "module_id": "stable unique id",
+    "capability_name": "verb phrase: what society can reliably do",
+    "mission": "why this capability matters",
+    "minimum_viable_output": "first crude but useful version",
+    "maturity_ladder": [
+      "salvage_and_repair",
+      "artisanal_rebuild",
+      "standardized_workshop",
+      "industrial_scale"
+    ],
+    "dependencies": {
+      "hard": [],
+      "quality": [],
+      "scale": [],
+      "safety": [],
+      "institutional": [],
+      "salvage_shortcuts": []
+    },
+    "inputs": {
+      "materials": [],
+      "tools": [],
+      "skills": [],
+      "energy": [],
+      "measurements": [],
+      "records": []
+    },
+    "process_family": "what class of process this belongs to",
+    "embedded_theory": "only theory needed at point of use",
+    "critical_measurements": [],
+    "acceptance_tests": [],
+    "common_failure_modes": [],
+    "hazards_and_controls": [],
+    "maintenance": [],
+    "records_to_keep": [],
+    "unlocks": [],
+    "do_not_attempt_until": []
+  },
+  "resource_ladders": [
+    {
+      "id": "water_ladder",
+      "resource": "water",
+      "progression": [
+        "source protection",
+        "settling/filtration",
+        "boiling/disinfection",
+        "sanitation separation",
+        "pumps/pipes",
+        "water treatment chemistry",
+        "steam systems",
+        "ultrapure/process water"
+      ],
+      "graph_nodes": [
+        "potable_water",
+        "sanitation_waste",
+        "pumps_hydraulics",
+        "industrial_chemicals",
+        "steam_pressure",
+        "semiconductor_fabrication"
+      ]
+    },
+    {
+      "id": "wood_to_power_ladder",
+      "resource": "wood/biomass",
+      "progression": [
+        "shelter/tools",
+        "fuel",
+        "charcoal",
+        "high-temperature reducing fuel",
+        "water/windmill frames",
+        "paper/fiber",
+        "chemical feedstocks where feasible"
+      ],
+      "graph_nodes": [
+        "woodworking_joinery",
+        "fire_control",
+        "charcoal_fuel",
+        "kilns_furnaces",
+        "paper_printing"
+      ]
+    },
+    {
+      "id": "clay_ladder",
+      "resource": "clay",
+      "progression": [
+        "containers",
+        "bricks/tiles",
+        "pipes",
+        "kiln furniture",
+        "crucibles/molds",
+        "refractories",
+        "ceramic fuel/materials at advanced stage"
+      ],
+      "graph_nodes": [
+        "basic_containers",
+        "ceramics_refractories",
+        "kilns_furnaces",
+        "nuclear_fuel_cycle"
+      ]
+    },
+    {
+      "id": "lime_ladder",
+      "resource": "limestone/lime",
+      "progression": [
+        "mortar/plaster",
+        "sanitation works",
+        "glass ingredient/flux",
+        "soil pH correction",
+        "cement/concrete",
+        "large civil works/containment"
+      ],
+      "graph_nodes": [
+        "lime_cement",
+        "glass_labware",
+        "industrial_fertilizer",
+        "nuclear_power"
+      ]
+    },
+    {
+      "id": "salt_ladder",
+      "resource": "salt/brine",
+      "progression": [
+        "food preservation",
+        "brine strength and storage",
+        "electrolyte",
+        "chlor-alkali precursor after electricity",
+        "disinfectants/industrial chemicals"
+      ],
+      "graph_nodes": [
+        "salt_brine",
+        "calories_preservation",
+        "batteries_electrochemistry",
+        "industrial_chemicals"
+      ]
+    },
+    {
+      "id": "copper_ladder",
+      "resource": "copper/nonferrous metals",
+      "progression": [
+        "tools/ornaments",
+        "bronze/castings",
+        "pipes/solder/bearings",
+        "wire/conductors",
+        "coils/generators",
+        "telecom/electronics"
+      ],
+      "graph_nodes": [
+        "nonferrous_metals",
+        "electrical_materials",
+        "electric_generation",
+        "electronics_relay"
+      ]
+    },
+    {
+      "id": "iron_steel_ladder",
+      "resource": "iron/steel",
+      "progression": [
+        "bloom iron",
+        "forged tools",
+        "controlled steel",
+        "shafts/gears/bearings",
+        "machine tools",
+        "pressure vessels",
+        "engines",
+        "electric machinery",
+        "nuclear-grade materials"
+      ],
+      "graph_nodes": [
+        "iron_bloomery",
+        "steel_heat_treatment",
+        "gears_bearings",
+        "machine_tools",
+        "steam_pressure",
+        "electric_generation",
+        "nuclear_fuel_cycle"
+      ]
+    },
+    {
+      "id": "glass_ladder",
+      "resource": "silica/glass",
+      "progression": [
+        "vessels/windows",
+        "sealed labware",
+        "lenses",
+        "microscopes",
+        "vacuum tubes",
+        "optical inspection",
+        "lithography support"
+      ],
+      "graph_nodes": [
+        "glass_labware",
+        "optics_microscopy",
+        "radio_vacuum",
+        "semiconductor_fabrication"
+      ]
+    },
+    {
+      "id": "nitrogen_ladder",
+      "resource": "nitrogen/nutrients",
+      "progression": [
+        "manure/compost",
+        "crop rotation",
+        "soil testing",
+        "mineral amendments",
+        "industrial fertilizer",
+        "population support"
+      ],
+      "graph_nodes": [
+        "animal_power",
+        "agriculture_field_systems",
+        "analytical_chemistry",
+        "industrial_fertilizer",
+        "population_growth"
+      ]
+    },
+    {
+      "id": "information_ladder",
+      "resource": "information",
+      "progression": [
+        "oral memory",
+        "archives",
+        "records",
+        "maps/calendars",
+        "printing",
+        "standards",
+        "telegraph/radio",
+        "computing/databases",
+        "research institutions"
+      ],
+      "graph_nodes": [
+        "knowledge_archive",
+        "records_ledgers",
+        "maps_time_navigation",
+        "paper_printing",
+        "governance_quality",
+        "electronics_relay",
+        "radio_vacuum",
+        "advanced_computing",
+        "global_science_loop"
+      ]
+    }
+  ],
+  "critical_paths": [
+    {
+      "id": "lever_to_nuclear_power",
+      "goal": "nuclear_power",
+      "sequence": [
+        "tools_edges",
+        "simple_machines",
+        "mining_quarrying",
+        "charcoal_fuel",
+        "kilns_furnaces",
+        "ceramics_refractories",
+        "ore_prep",
+        "iron_bloomery",
+        "measurement_units",
+        "balances_gauges",
+        "steel_heat_treatment",
+        "gears_bearings",
+        "machine_tools",
+        "pumps_hydraulics",
+        "steam_pressure",
+        "steam_engines",
+        "electrical_materials",
+        "electric_generation",
+        "electric_distribution",
+        "analytical_chemistry",
+        "public_health_surveillance",
+        "governance_quality",
+        "computing_control",
+        "nuclear_infrastructure",
+        "nuclear_fuel_cycle",
+        "nuclear_power"
+      ],
+      "interpretation": "A reactor is not reached by physics alone. It is reached through extraction, heat, refractories, metals, measurement, machine tools, pressure systems, electricity, chemistry, health physics, governance, fuel qualification, and grid operation."
+    },
+    {
+      "id": "pottery_to_analytical_chemistry",
+      "goal": "analytical_chemistry",
+      "sequence": [
+        "basic_containers",
+        "fire_control",
+        "charcoal_fuel",
+        "kilns_furnaces",
+        "ceramics_refractories",
+        "measurement_units",
+        "balances_gauges",
+        "mining_quarrying",
+        "glass_labware",
+        "analytical_chemistry"
+      ],
+      "interpretation": "Serious chemistry starts when vessels, heat, glass, and measurement converge."
+    },
+    {
+      "id": "seed_to_industrial_agriculture",
+      "goal": "industrial_fertilizer",
+      "sequence": [
+        "calories_preservation",
+        "seed_systems",
+        "agriculture_field_systems",
+        "animal_power",
+        "records_ledgers",
+        "measurement_units",
+        "analytical_chemistry",
+        "industrial_chemicals",
+        "steam_pressure",
+        "industrial_fertilizer"
+      ],
+      "interpretation": "Industrial agriculture is basic farming plus seed quality, nutrient accounting, water control, chemistry, and pressure/gas handling."
+    },
+    {
+      "id": "wash_to_modern_medicine",
+      "goal": "pharmaceutical_manufacturing",
+      "sequence": [
+        "potable_water",
+        "sanitation_waste",
+        "soap_cleaning",
+        "records_ledgers",
+        "glass_labware",
+        "optics_microscopy",
+        "analytical_chemistry",
+        "public_health_surveillance",
+        "sterilization_asepsis",
+        "pharmaceutical_manufacturing"
+      ],
+      "interpretation": "Modern medicine is not just drugs. It begins with WASH, records, diagnosis, surveillance, contamination control, and batch quality."
+    },
+    {
+      "id": "ore_to_grid",
+      "goal": "electric_distribution",
+      "sequence": [
+        "mining_quarrying",
+        "ore_prep",
+        "nonferrous_metals",
+        "iron_bloomery",
+        "steel_heat_treatment",
+        "gears_bearings",
+        "machine_tools",
+        "electrical_materials",
+        "electric_generation",
+        "electric_distribution"
+      ],
+      "interpretation": "Electricity is downstream of conductors, magnetic materials, rotary machinery, insulation, meters, and protection."
+    },
+    {
+      "id": "wire_to_microelectronics",
+      "goal": "semiconductor_fabrication",
+      "sequence": [
+        "electrical_materials",
+        "electric_generation",
+        "electric_distribution",
+        "electronics_relay",
+        "radio_vacuum",
+        "glass_labware",
+        "optics_microscopy",
+        "analytical_chemistry",
+        "sterilization_asepsis",
+        "machine_tools",
+        "semiconductor_fabrication"
+      ],
+      "interpretation": "Useful electronics comes long before chip fabs; semiconductor work is a clean, high-purity, metrology-heavy summit."
+    }
+  ],
+  "topological_order": [
+    "knowledge_archive",
+    "tools_edges",
+    "training_apprenticeship",
+    "records_ledgers",
+    "cordage_textiles",
+    "salvage_triage",
+    "measurement_units",
+    "basic_containers",
+    "shelter_clothing",
+    "simple_machines",
+    "paper_printing",
+    "maps_time_navigation",
+    "fire_control",
+    "woodworking_joinery",
+    "potable_water",
+    "charcoal_fuel",
+    "balances_gauges",
+    "sanitation_waste",
+    "soap_cleaning",
+    "calories_preservation",
+    "masonry_earthworks",
+    "seed_systems",
+    "salt_brine",
+    "kilns_furnaces",
+    "mining_quarrying",
+    "agriculture_field_systems",
+    "ceramics_refractories",
+    "lime_cement",
+    "ore_prep",
+    "settlement_planning",
+    "animal_power",
+    "glass_labware",
+    "nonferrous_metals",
+    "iron_bloomery",
+    "governance_quality",
+    "water_wind_mills",
+    "analytical_chemistry",
+    "steel_heat_treatment",
+    "gears_bearings",
+    "electrical_materials",
+    "pumps_hydraulics",
+    "machine_tools",
+    "batteries_electrochemistry",
+    "interchangeable_parts",
+    "steam_pressure",
+    "optics_microscopy",
+    "transport_navigation",
+    "steam_engines",
+    "industrial_chemicals",
+    "public_health_surveillance",
+    "electric_generation",
+    "industrial_fertilizer",
+    "sterilization_asepsis",
+    "refrigeration_cold_chain",
+    "electric_distribution",
+    "pharmaceutical_manufacturing",
+    "electronics_relay",
+    "population_growth",
+    "radio_vacuum",
+    "computing_control",
+    "semiconductor_fabrication",
+    "nuclear_infrastructure",
+    "advanced_computing",
+    "nuclear_fuel_cycle",
+    "nuclear_power",
+    "global_science_loop"
+  ]
+}
