@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Curve-to-Events Compiler — Beatty / Cumulative Target Demo</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#05070d;
+      --panel:#0b1020cc;
+      --panel2:#10172a;
+      --panel3:#151e35;
+      --line:#273453;
+      --text:#f5f7ff;
+      --muted:#9da8c4;
+      --purple:#bb5cff;
+      --cyan:#19d9ff;
+      --blue:#2c9bff;
+      --orange:#ff9d16;
+      --green:#63ff6f;
+      --red:#ff5468;
+      --gold:#ffd34e;
+      --shadow:0 20px 80px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{
+      background:
+        radial-gradient(circle at 8% 0%,rgba(187,92,255,.26),transparent 34rem),
+        radial-gradient(circle at 92% 12%,rgba(25,217,255,.18),transparent 34rem),
+        radial-gradient(circle at 50% 100%,rgba(99,255,111,.10),transparent 38rem),
+        linear-gradient(180deg,#05070d,#070b14 55%,#05070d);
+      overflow-x:hidden;
+    }
+    body:before{
+      content:"";
+      position:fixed;inset:0;pointer-events:none;opacity:.18;z-index:-1;
+      background-image:
+        linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size:44px 44px;
+      mask-image:linear-gradient(180deg,#000,transparent 85%);
+    }
+    header{
+      padding:24px clamp(16px,3vw,38px) 14px;
+      display:grid;grid-template-columns:1.2fr 1fr;gap:20px;align-items:end;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      backdrop-filter:blur(12px);
+      position:sticky;top:0;z-index:10;
+      background:linear-gradient(180deg,rgba(5,7,13,.92),rgba(5,7,13,.76));
+    }
+    @media(max-width:1050px){header{grid-template-columns:1fr;position:static}}
+    h1{
+      margin:0;font-size:clamp(28px,4.9vw,68px);line-height:.92;letter-spacing:-.06em;font-weight:950;
+      text-transform:uppercase;
+    }
+    .grad{
+      background:linear-gradient(90deg,var(--purple),var(--cyan) 46%,#fff 72%,var(--green));
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      filter:drop-shadow(0 0 18px rgba(187,92,255,.25));
+    }
+    .tagline{margin:10px 0 0;color:#dce4ff;font-size:clamp(14px,1.35vw,18px);max-width:900px;line-height:1.42}
+    .tagline b{color:var(--green);font-weight:800}
+    .topMetrics{display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:10px}
+    @media(max-width:680px){.topMetrics{grid-template-columns:repeat(2,1fr)}}
+    .metric{
+      border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:linear-gradient(180deg,rgba(16,23,42,.82),rgba(8,12,22,.86));
+      box-shadow:inset 0 0 22px rgba(255,255,255,.025);
+      min-height:72px;
+    }
+    .metric .k{font-size:11px;color:#c1cae5;text-transform:uppercase;letter-spacing:.07em}
+    .metric .v{font-size:26px;font-weight:950;margin-top:4px;font-variant-numeric:tabular-nums}
+    .v.cyan{color:var(--cyan)} .v.green{color:var(--green)} .v.orange{color:var(--orange)} .v.purple{color:var(--purple)} .v.red{color:var(--red)}
+    main{
+      display:grid;grid-template-columns:310px minmax(0,1fr);gap:16px;
+      max-width:1900px;margin:0 auto;padding:16px;
+    }
+    @media(max-width:1050px){main{grid-template-columns:1fr}}
+    aside,.card{
+      border:1px solid rgba(110,139,198,.34);
+      background:linear-gradient(180deg,rgba(11,16,32,.88),rgba(8,12,22,.92));
+      border-radius:18px;box-shadow:var(--shadow);
+    }
+    aside{padding:14px;height:fit-content;position:sticky;top:124px}
+    @media(max-width:1050px){aside{position:static}}
+    .sectionTitle{
+      font-size:12px;color:#d7ddf2;letter-spacing:.08em;text-transform:uppercase;font-weight:900;margin:0 0 10px;
+      display:flex;justify-content:space-between;gap:8px;
+    }
+    .controlBlock{
+      border-radius:14px;padding:12px;background:rgba(15,22,39,.70);border:1px solid rgba(255,255,255,.07);margin-bottom:10px;
+    }
+    label{font-size:13px;color:#f3f6ff;font-weight:750;display:flex;justify-content:space-between;gap:12px;margin:12px 0 7px}
+    label:first-child{margin-top:0}
+    label span{color:var(--cyan);font-variant-numeric:tabular-nums}
+    select,input[type=range],button{width:100%}
+    select,button,input[type=number]{
+      color:var(--text);background:#0a1020;border:1px solid #2a3a5d;border-radius:11px;padding:10px 10px;font:inherit;outline:none;
+    }
+    select:focus,input:focus,button:focus{box-shadow:0 0 0 3px rgba(25,217,255,.15)}
+    input[type=range]{accent-color:var(--purple)}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    button{
+      cursor:pointer;font-weight:900;letter-spacing:.02em;text-transform:uppercase;
+      background:linear-gradient(180deg,#7338ff,#4820b9);border-color:#8b6cff;
+      box-shadow:0 0 18px rgba(115,56,255,.24);
+    }
+    button.secondary{background:linear-gradient(180deg,#14223e,#0c1428);border-color:#344971;box-shadow:none}
+    button.danger{background:linear-gradient(180deg,#3d1523,#24101a);border-color:#68364a;color:#ffdbe2;box-shadow:none}
+    .hint{font-size:12px;color:var(--muted);line-height:1.35;margin-top:7px}
+    .toggles{display:grid;gap:8px}
+    .toggle{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:8px 9px;border-radius:11px;border:1px solid rgba(255,255,255,.07);background:#081020;
+      color:#dfe6ff;font-size:13px;
+    }
+    .toggle input{accent-color:var(--green)}
+    #drawPad{
+      width:100%;height:94px;border-radius:12px;border:1px solid #314166;background:#060913;display:block;touch-action:none;cursor:crosshair;
+    }
+    .content{display:grid;gap:16px;min-width:0}
+    .heroGrid{display:grid;grid-template-columns:1fr 380px;gap:16px}
+    @media(max-width:1280px){.heroGrid{grid-template-columns:1fr}}
+    .card{padding:14px;overflow:hidden}
+    .card h2{font-size:16px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px}
+    .card p{margin:0 0 12px;color:var(--muted);line-height:1.35;font-size:13px}
+    canvas{
+      width:100%;display:block;background:
+      radial-gradient(circle at 20% 0%,rgba(187,92,255,.10),transparent 30%),
+      linear-gradient(180deg,#07101d,#05070d);
+      border:1px solid rgba(124,155,212,.25);
+      border-radius:14px;
+    }
+    #worldCanvas{height:520px}
+    #densityCanvas{height:250px}
+    #eventsCanvas{height:260px}
+    #errorCanvas{height:300px}
+    #gapCanvas{height:300px}
+    .proofGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:1280px){.proofGrid{grid-template-columns:1fr}}
+    .methods{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;
+    }
+    @media(max-width:780px){.methods{grid-template-columns:1fr}}
+    .methodCard{
+      padding:12px;border-radius:15px;background:rgba(8,12,22,.72);border:1px solid rgba(255,255,255,.08);
+      position:relative;overflow:hidden;min-height:118px;
+    }
+    .methodCard:before{content:"";position:absolute;inset:0;opacity:.13;background:radial-gradient(circle at 20% 0%,currentColor,transparent 60%);pointer-events:none}
+    .methodCard .name{font-weight:950;text-transform:uppercase;letter-spacing:.045em;font-size:13px;display:flex;justify-content:space-between}
+    .methodCard .desc{font-size:12px;color:#b7c0dc;margin:6px 0 10px;line-height:1.34}
+    .methodStats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .miniStat{border-top:1px solid rgba(255,255,255,.08);padding-top:7px}
+    .miniStat .mk{font-size:10px;color:#aab4ce;text-transform:uppercase}
+    .miniStat .mv{font-size:18px;font-weight:950;font-variant-numeric:tabular-nums}
+    .randomC{color:var(--blue)} .intervalC{color:var(--orange)} .cumC{color:var(--green)}
+    .callout{
+      display:grid;grid-template-columns:repeat(5,1fr);gap:10px;
+      padding:12px;border-radius:18px;border:1px solid rgba(255,211,78,.28);
+      background:linear-gradient(90deg,rgba(255,157,22,.10),rgba(99,255,111,.07),rgba(25,217,255,.06));
+    }
+    @media(max-width:1000px){.callout{grid-template-columns:1fr 1fr}}
+    .call{
+      display:flex;gap:10px;align-items:center;padding:8px;border-right:1px solid rgba(255,255,255,.06)
+    }
+    .call:last-child{border-right:0}
+    .icon{font-size:28px;filter:drop-shadow(0 0 14px currentColor)}
+    .call b{display:block;font-size:13px}
+    .call small{display:block;color:#b9c3df;line-height:1.25}
+    .inspector{
+      display:grid;grid-template-columns:1.1fr .9fr;gap:16px;
+    }
+    @media(max-width:1280px){.inspector{grid-template-columns:1fr}}
+    .tableWrap{max-height:340px;overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#050913}
+    table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+    th,td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.06);text-align:right;white-space:nowrap}
+    th:first-child,td:first-child{text-align:left}
+    th{position:sticky;top:0;background:#10172a;color:#ced6ed;z-index:1}
+    tr:hover td{background:rgba(25,217,255,.06)}
+    code{background:#111a30;color:#dfe7ff;border:1px solid #273657;border-radius:6px;padding:2px 5px}
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid rgba(255,255,255,.12);
+      padding:5px 9px;background:rgba(255,255,255,.04);font-size:12px;color:#dfe7ff;
+    }
+    .liveStats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .liveStats .metric{min-height:58px;padding:9px 10px;border-radius:12px}
+    .liveStats .metric .v{font-size:20px}
+    footer{color:#8f9bb8;text-align:center;padding:20px;font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1><span class="grad">Curve-to-Events</span><br/>Compiler</h1>
+      <div class="tagline">
+        Draw or choose a density curve. This turns it into exact discrete events using
+        <b>u[t] = floor(C[t+1]) - floor(C[t])</b>. Random drifts. Fixed intervals miss the shape.
+        The cumulative method hugs the target.
+      </div>
+    </div>
+    <div class="topMetrics" id="topMetrics"></div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="controlBlock">
+        <div class="sectionTitle">1. Visual Scene <span class="pill">live</span></div>
+        <select id="scene">
+          <option value="rain">Neon Rainfall</option>
+          <option value="fireflies">Firefly Swarm</option>
+          <option value="forest">10k Trees / Placement</option>
+          <option value="pixel">Pixel Movement Race</option>
+          <option value="rhythm">Rhythm Pulse Grid</option>
+        </select>
+      </div>
+
+      <div class="controlBlock">
+        <div class="sectionTitle">2. Density Shape</div>
+        <select id="shape">
+          <option value="sine">Sine Wave Density</option>
+          <option value="ease">Cumulative Easing Bell</option>
+          <option value="rise">Exponential Rise</option>
+          <option value="fall">Exponential Fall</option>
+          <option value="pulse">Gaussian Pulse Train</option>
+          <option value="saw">Sawtooth Ramp</option>
+          <option value="pink">Pink-ish Noise Density</option>
+          <option value="brown">Brown Drift Density</option>
+          <option value="custom">Custom Drawn Curve</option>
+          <option value="flat">Flat Constant Rate</option>
+        </select>
+        <div class="hint">The green method compiles this shape into integer events with bounded cumulative error.</div>
+      </div>
+
+      <div class="controlBlock">
+        <div class="sectionTitle">3. Parameters</div>
+
+        <label>Ticks <span id="ticksOut"></span></label>
+        <input id="ticks" type="range" min="120" max="3000" step="10" value="1200">
+
+        <label>Target Events <span id="eventsOut"></span></label>
+        <input id="events" type="range" min="10" max="1200" step="1" value="444">
+
+        <label>Shape Strength <span id="ampOut"></span></label>
+        <input id="amp" type="range" min="0" max="1" step="0.01" value="0.62">
+
+        <label>Frequency <span id="freqOut"></span></label>
+        <input id="freq" type="range" min="0.25" max="8" step="0.05" value="2.7">
+
+        <label>Phase <span id="phaseOut"></span></label>
+        <input id="phase" type="range" min="0" max="1" step="0.001" value="0.07">
+
+        <label>Speed <span id="speedOut"></span></label>
+        <input id="speed" type="range" min="5" max="240" step="1" value="72">
+
+        <div class="row2">
+          <div>
+            <label>Seed <span id="seedOut"></span></label>
+            <input id="seed" type="number" value="42" min="1" max="999999">
+          </div>
+          <div>
+            <label>Window <span id="windowOut"></span></label>
+            <input id="window" type="number" value="260" min="60" max="800">
+          </div>
+        </div>
+      </div>
+
+      <div class="controlBlock" id="drawBlock">
+        <div class="sectionTitle">4. Draw Density</div>
+        <canvas id="drawPad" width="260" height="94"></canvas>
+        <div class="hint">Select “Custom Drawn Curve,” then drag here. Higher = more events.</div>
+      </div>
+
+      <div class="controlBlock">
+        <div class="sectionTitle">5. Compare</div>
+        <div class="toggles">
+          <label class="toggle"><span class="randomC">Random Bernoulli</span><input id="showRandom" type="checkbox" checked></label>
+          <label class="toggle"><span class="intervalC">Fixed Interval Avg</span><input id="showInterval" type="checkbox" checked></label>
+          <label class="toggle"><span class="cumC">Cumulative Target</span><input id="showCumulative" type="checkbox" checked></label>
+        </div>
+        <div class="btnrow">
+          <button id="playPause">Pause</button>
+          <button class="secondary" id="reset">Reset</button>
+        </div>
+        <div class="btnrow">
+          <button class="secondary" id="reroll">Reroll</button>
+          <button class="secondary" id="exportCsv">CSV</button>
+        </div>
+      </div>
+
+      <div class="hint">
+        Best dramatic test: choose <b>Cumulative Easing Bell</b> or <b>Gaussian Pulse Train</b>.
+        Random looks organic but drifts. Fixed interval hits the count but ignores the curve. Green follows the curve.
+      </div>
+    </aside>
+
+    <div class="content">
+      <div class="heroGrid">
+        <section class="card">
+          <h2>Live Visual Scene</h2>
+          <p>Three methods receive the same desired density curve. Watch the scene and the count/error stats update per tick.</p>
+          <canvas id="worldCanvas" width="1200" height="620"></canvas>
+        </section>
+
+        <section class="card">
+          <h2>Current Tick Inspector</h2>
+          <p>The exact event outcome at the current tick.</p>
+          <div class="liveStats" id="liveStats"></div>
+          <div class="methods" id="methodCards" style="grid-template-columns:1fr;margin-top:10px"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Density Function → Cumulative Target → Events</h2>
+        <p>The purple curve is desired rate per tick. The cyan curve is accumulated target C(t). Green ticks are generated by the floor-difference scheduler.</p>
+        <canvas id="densityCanvas" width="1500" height="320"></canvas>
+      </section>
+
+      <section class="card">
+        <h2>Recent Per-Tick Outcomes</h2>
+        <p>Each vertical mark is an emitted event. Gold means 2+ events in one tick. The white cursor is the current tick.</p>
+        <canvas id="eventsCanvas" width="1500" height="330"></canvas>
+      </section>
+
+      <div class="proofGrid">
+        <section class="card">
+          <h2>Proof Graph: Actual − Target</h2>
+          <p>The cumulative target method stays trapped in a narrow band. Random error wanders. Fixed interval fails when the target shape changes over time.</p>
+          <canvas id="errorCanvas" width="900" height="360"></canvas>
+        </section>
+        <section class="card">
+          <h2>Gap Distribution</h2>
+          <p>Shows spacing between emitted events. Tight gaps = even pacing; long tails = clumping or droughts.</p>
+          <canvas id="gapCanvas" width="900" height="360"></canvas>
+        </section>
+      </div>
+
+      <section class="callout">
+        <div class="call"><div class="icon" style="color:var(--gold)">★</div><div><b>Curve to events</b><small>Any density shape becomes ticks.</small></div></div>
+        <div class="call"><div class="icon" style="color:var(--green)">✓</div><div><b>Bounded error</b><small>Never drifts far from target.</small></div></div>
+        <div class="call"><div class="icon" style="color:var(--cyan)">⚡</div><div><b>O(1) per tick</b><small>Just floors and subtraction.</small></div></div>
+        <div class="call"><div class="icon" style="color:var(--purple)">◇</div><div><b>Deterministic</b><small>Great for replay and lockstep.</small></div></div>
+        <div class="call"><div class="icon" style="color:var(--orange)">☔</div><div><b>Visual proof</b><small>Rain, trees, particles, motion.</small></div></div>
+      </section>
+
+      <section class="inspector">
+        <div class="card">
+          <h2>Per-Tick Data</h2>
+          <p>First visible rows around the current tick. Cumulative method uses <code>floor(C1) - floor(C0)</code>.</p>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>tick</th><th>rate</th><th>C0</th><th>C1</th><th>random</th><th>interval</th><th>cumulative</th><th>cum err</th>
+                </tr>
+              </thead>
+              <tbody id="tickTable"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h2>What This Demonstrates</h2>
+          <p>
+            This is not a lerp replacement. Lerp moves continuous values.
+            This realizes <b>countable things</b>: drops, spawns, pixels, frames, jobs, particles, tiles, resource transfers.
+          </p>
+          <p>
+            The impressive part is that the green method follows a changing shape while keeping cumulative error under one event.
+            It is basically a tiny deterministic compiler from “desired probability/density” into “actual discrete outcomes.”
+          </p>
+          <p>
+            Try high target events with <b>Pulse Train</b>, then switch to <b>Pixel Movement Race</b>.
+            The random runner wanders. The fixed runner is smooth but wrong for shaped targets. The cumulative runner follows the target and lands exactly.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    Built as a single-file demo. No libraries. No network. Core: <code>u[t] = floor(C[t+1]) - floor(C[t])</code>.
+  </footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  const controls = {
+    scene: $("scene"),
+    shape: $("shape"),
+    ticks: $("ticks"),
+    events: $("events"),
+    amp: $("amp"),
+    freq: $("freq"),
+    phase: $("phase"),
+    speed: $("speed"),
+    seed: $("seed"),
+    window: $("window"),
+    showRandom: $("showRandom"),
+    showInterval: $("showInterval"),
+    showCumulative: $("showCumulative"),
+  };
+
+  const canvases = {
+    world: $("worldCanvas"),
+    density: $("densityCanvas"),
+    events: $("eventsCanvas"),
+    error: $("errorCanvas"),
+    gap: $("gapCanvas"),
+    draw: $("drawPad"),
+  };
+
+  const ctx = {};
+  for (const [k, c] of Object.entries(canvases)) ctx[k] = c.getContext("2d");
+
+  const COLORS = {
+    random: "#2c9bff",
+    interval: "#ff9d16",
+    cumulative: "#63ff6f",
+    purple: "#bb5cff",
+    cyan: "#19d9ff",
+    gold: "#ffd34e",
+    red: "#ff5468",
+    text: "#f5f7ff",
+    muted: "#9da8c4",
+    grid: "rgba(180,205,255,.09)",
+  };
+
+  let playing = true;
+  let currentTick = 0;
+  let lastFrameTime = performance.now();
+  let tickCarry = 0;
+  let data = null;
+  let customCurve = Array.from({length:64}, (_,i) => 0.35 + 0.35 * Math.sin(i / 63 * Math.PI));
+  let drawing = false;
+
+  function mulberry32(seed) {
+    return function() {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function hash01(a, b=0, c=0) {
+    let x = Math.imul((a + 0x9e3779b9) | 0, 0x85ebca6b) ^ Math.imul((b + 0xc2b2ae35) | 0, 0x27d4eb2d) ^ c;
+    x ^= x >>> 15;
+    x = Math.imul(x, 0x2c1b3c6d);
+    x ^= x >>> 12;
+    x = Math.imul(x, 0x297a2d39);
+    x ^= x >>> 15;
+    return (x >>> 0) / 4294967296;
+  }
+
+  const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+  const lerp = (a,b,t) => a + (b-a)*t;
+  const smoothstep = x => x*x*(3-2*x);
+  const smootherstep = x => x*x*x*(x*(x*6-15)+10);
+
+  function cfg() {
+    return {
+      scene: controls.scene.value,
+      shape: controls.shape.value,
+      n: Number(controls.ticks.value),
+      targetEvents: Number(controls.events.value),
+      amp: Number(controls.amp.value),
+      freq: Number(controls.freq.value),
+      phase: Number(controls.phase.value),
+      speed: Number(controls.speed.value),
+      seed: Number(controls.seed.value) || 1,
+      window: clamp(Number(controls.window.value) || 260, 60, 900),
+      showRandom: controls.showRandom.checked,
+      showInterval: controls.showInterval.checked,
+      showCumulative: controls.showCumulative.checked,
+    };
+  }
+
+  function normalizeWeights(weights, total) {
+    let sum = weights.reduce((a,b)=>a+Math.max(0,b),0);
+    if (sum <= 1e-9) sum = 1;
+    const C = [0];
+    let acc = 0;
+    for (let w of weights) {
+      acc += total * Math.max(0, w) / sum;
+      C.push(acc);
+    }
+    C[C.length - 1] = total;
+    return C;
+  }
+
+  function pinkNoise(n, seed) {
+    const rng = mulberry32(seed);
+    const coeffs = [0.12,0.38,0.62,0.82,0.94,0.985];
+    const states = coeffs.map(()=>0);
+    const out = [];
+    for (let t=0;t<n;t++) {
+      let s = 0;
+      for (let i=0;i<coeffs.length;i++) {
+        const white = rng()*2-1;
+        states[i] = coeffs[i]*states[i] + Math.sqrt(1-coeffs[i]*coeffs[i])*white;
+        s += states[i];
+      }
+      out.push(s / coeffs.length);
+    }
+    return out;
+  }
+
+  function brownNoise(n, seed) {
+    const rng = mulberry32(seed);
+    const out = [];
+    let x = 0;
+    for (let t=0;t<n;t++) {
+      x = clamp(x + (rng()*2-1)*0.14, -1, 1);
+      out.push(x);
+    }
+    return out;
+  }
+
+  function customAt(x) {
+    const p = clamp(x,0,1) * (customCurve.length - 1);
+    const i = Math.floor(p);
+    const f = p - i;
+    return lerp(customCurve[i], customCurve[Math.min(customCurve.length - 1, i + 1)], f);
+  }
+
+  function buildTarget(c) {
+    const n = c.n;
+    const total = c.targetEvents;
+    let C = Array(n+1).fill(0);
+    let weights = Array(n).fill(1);
+    const amp = c.amp;
+    const phase = c.phase;
+
+    if (c.shape === "ease") {
+      for (let t=0;t<=n;t++) {
+        const x = t/n;
+        C[t] = total * smootherstep(x);
+      }
+      return finishTarget(C);
+    }
+
+    if (c.shape === "rise") {
+      const pow = 1 + 5 * amp;
+      for (let t=0;t<=n;t++) {
+        const x = t/n;
+        C[t] = total * Math.pow(x, pow);
+      }
+      return finishTarget(C);
+    }
+
+    if (c.shape === "fall") {
+      const pow = 1 + 5 * amp;
+      for (let t=0;t<=n;t++) {
+        const x = t/n;
+        C[t] = total * (1 - Math.pow(1-x, pow));
+      }
+      return finishTarget(C);
+    }
+
+    if (c.shape === "flat") {
+      weights = Array(n).fill(1);
+    } else if (c.shape === "sine") {
+      weights = weights.map((_,t) => {
+        const x = t/n;
+        return 1 + amp * Math.sin(2*Math.PI*(c.freq*x + phase));
+      }).map(v => Math.max(0.03, v));
+    } else if (c.shape === "pulse") {
+      const centers = [0.17,0.39,0.64,0.82].map((x,i)=> (x + 0.09*Math.sin(phase*6.283+i)) % 1);
+      weights = weights.map((_,t) => {
+        const x = t/n;
+        let v = 0.05 + (1-amp)*0.28;
+        for (const center of centers) {
+          let d = Math.abs(x-center);
+          d = Math.min(d, 1-d);
+          v += (0.35 + 1.5*amp) * Math.exp(-(d*d)/(2*Math.pow(0.018 + 0.03*(1-amp),2)));
+        }
+        return v;
+      });
+    } else if (c.shape === "saw") {
+      weights = weights.map((_,t) => {
+        const x = ((c.freq*t/n + phase) % 1 + 1) % 1;
+        return 0.04 + Math.pow(x, 0.35 + 2.5*(1-amp));
+      });
+    } else if (c.shape === "pink") {
+      const noise = pinkNoise(n, c.seed);
+      weights = weights.map((_,t)=> Math.max(0.02, 1 + amp*1.8*noise[t]));
+    } else if (c.shape === "brown") {
+      const noise = brownNoise(n, c.seed);
+      weights = weights.map((_,t)=> Math.max(0.02, 1 + amp*1.6*noise[t]));
+    } else if (c.shape === "custom") {
+      weights = weights.map((_,t)=> 0.02 + 1.8*customAt(t/(n-1)));
+    }
+
+    C = normalizeWeights(weights, total);
+    return finishTarget(C);
+
+    function finishTarget(Cin) {
+      const rates = [];
+      for (let t=0;t<n;t++) rates.push(Cin[t+1]-Cin[t]);
+      return { C: Cin, rates };
+    }
+  }
+
+  function generateSequences(c) {
+    const target = buildTarget(c);
+    const C = target.C;
+    const rates = target.rates;
+    const n = c.n;
+    const seed = c.seed;
+    const p = c.phase;
+
+    const rng = mulberry32(seed * 977 + 17);
+    const random = [];
+    const interval = [];
+    const cumulative = [];
+
+    for (let t=0;t<n;t++) {
+      const r = rates[t];
+      const whole = Math.floor(r);
+      const frac = r - whole;
+      random.push(whole + (rng() < frac ? 1 : 0));
+    }
+
+    const avg = c.targetEvents / n;
+    for (let t=0;t<n;t++) {
+      interval.push(Math.floor((t+1)*avg + p) - Math.floor(t*avg + p));
+      cumulative.push(Math.floor(C[t+1] + p) - Math.floor(C[t] + p));
+    }
+
+    const methods = {
+      random: analyzeMethod("Random Bernoulli", random, C, rates, COLORS.random),
+      interval: analyzeMethod("Fixed Interval Avg", interval, C, rates, COLORS.interval),
+      cumulative: analyzeMethod("Cumulative Target", cumulative, C, rates, COLORS.cumulative),
+    };
+
+    methods.random.desc = "Flip probability from the desired rate each tick. Organic, but count/error drift.";
+    methods.interval.desc = "Spread the average count evenly. Good count, bad shape tracking.";
+    methods.cumulative.desc = "Floor-difference of shaped cumulative target. Exact shape tracking.";
+
+    return { cfg:c, C, rates, methods };
+  }
+
+  function analyzeMethod(name, seq, C, rates, color) {
+    const actual = [0];
+    const err = [0 - (C[0]-C[0])];
+    let cum = 0;
+    let maxAbsError = 0;
+    let rms = 0;
+    let maxBurst = 0;
+    let multiTicks = 0;
+    const eventPositions = [];
+    const events = [];
+    let eventIndex = 0;
+
+    for (let t=0;t<seq.length;t++) {
+      const u = seq[t];
+      if (u > 1) multiTicks++;
+      maxBurst = Math.max(maxBurst, u);
+      for (let k=0;k<u;k++) {
+        events.push({t, index:eventIndex++, unit:k});
+        eventPositions.push(t);
+      }
+      cum += u;
+      actual.push(cum);
+      const e = cum - (C[t+1] - C[0]);
+      err.push(e);
+      maxAbsError = Math.max(maxAbsError, Math.abs(e));
+      rms += e*e;
+    }
+    rms = Math.sqrt(rms / Math.max(1, seq.length));
+    const gaps = [];
+    for (let i=1;i<eventPositions.length;i++) gaps.push(eventPositions[i]-eventPositions[i-1]);
+    return {
+      name, seq, actual, err, events, color,
+      total: seq.reduce((a,b)=>a+b,0),
+      targetTotal: C[C.length-1]-C[0],
+      maxAbsError,
+      rmsError:rms,
+      minGap:gaps.length ? Math.min(...gaps) : null,
+      maxGap:gaps.length ? Math.max(...gaps) : null,
+      gaps,
+      maxBurst,
+      multiTicks,
+      desc:""
+    };
+  }
+
+  function updateData(resetTick=false) {
+    const c = cfg();
+    data = generateSequences(c);
+    if (resetTick || currentTick >= c.n) currentTick = 0;
+    updateLabels();
+    renderAll();
+  }
+
+  function updateLabels() {
+    const c = cfg();
+    $("ticksOut").textContent = c.n;
+    $("eventsOut").textContent = c.targetEvents;
+    $("ampOut").textContent = c.amp.toFixed(2);
+    $("freqOut").textContent = c.freq.toFixed(2);
+    $("phaseOut").textContent = c.phase.toFixed(3);
+    $("speedOut").textContent = c.speed + " t/s";
+    $("seedOut").textContent = c.seed;
+    $("windowOut").textContent = c.window;
+    $("playPause").textContent = playing ? "Pause" : "Play";
+  }
+
+  function methodVisible(key) {
+    if (key === "random") return data.cfg.showRandom;
+    if (key === "interval") return data.cfg.showInterval;
+    if (key === "cumulative") return data.cfg.showCumulative;
+    return true;
+  }
+
+  function visibleMethods() {
+    return ["random","interval","cumulative"].filter(methodVisible);
+  }
+
+  function setupCanvas(canvas) {
+    const r = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const displayW = Math.max(10, Math.round(rect.width * r));
+    const displayH = Math.max(10, Math.round(rect.height * r));
+    if (canvas.width !== displayW || canvas.height !== displayH) {
+      canvas.width = displayW;
+      canvas.height = displayH;
+    }
+    return { w:canvas.width, h:canvas.height, dpr:r };
+  }
+
+  function clearCanvas(g,w,h) {
+    g.clearRect(0,0,w,h);
+    const grd = g.createLinearGradient(0,0,0,h);
+    grd.addColorStop(0,"#07101d");
+    grd.addColorStop(1,"#05070d");
+    g.fillStyle = grd;
+    g.fillRect(0,0,w,h);
+  }
+
+  function drawGrid(g,w,h,px=48,py=48) {
+    g.save();
+    g.strokeStyle = COLORS.grid;
+    g.lineWidth = 1;
+    for (let x=0;x<=w;x+=px) {
+      g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke();
+    }
+    for (let y=0;y<=h;y+=py) {
+      g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke();
+    }
+    g.restore();
+  }
+
+  function drawText(g, text, x, y, opts={}) {
+    g.save();
+    g.font = `${opts.weight || 700} ${opts.size || 13}px Inter, system-ui, sans-serif`;
+    g.fillStyle = opts.color || COLORS.text;
+    g.textAlign = opts.align || "left";
+    g.textBaseline = opts.base || "alphabetic";
+    if (opts.glow) {
+      g.shadowColor = opts.color || COLORS.text;
+      g.shadowBlur = opts.glow;
+    }
+    g.fillText(text, x, y);
+    g.restore();
+  }
+
+  function drawGlowLine(g, points, color, width=2, glow=12) {
+    if (points.length < 2) return;
+    g.save();
+    g.lineJoin = "round";
+    g.lineCap = "round";
+    g.shadowColor = color;
+    g.shadowBlur = glow;
+    g.strokeStyle = color;
+    g.lineWidth = width;
+    g.beginPath();
+    points.forEach((p,i)=> i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+    g.stroke();
+    g.shadowBlur = 0;
+    g.globalAlpha = 0.22;
+    g.lineWidth = width + 6;
+    g.stroke();
+    g.restore();
+  }
+
+  function drawDensity() {
+    const {w,h} = setupCanvas(canvases.density);
+    const g = ctx.density;
+    clearCanvas(g,w,h);
+    drawGrid(g,w,h,w/12,h/5);
+
+    const margin = {l:48,r:54,t:24,b:32};
+    const plotW = w - margin.l - margin.r;
+    const plotH = h - margin.t - margin.b;
+    const maxRate = Math.max(...data.rates, 0.0001);
+    const maxC = data.C[data.C.length-1];
+
+    const ratePts = [];
+    const cumPts = [];
+    for (let t=0;t<data.cfg.n;t++) {
+      const x = margin.l + plotW * t/(data.cfg.n-1);
+      const y = margin.t + plotH * (1 - data.rates[t]/maxRate);
+      ratePts.push({x,y});
+    }
+    for (let t=0;t<data.C.length;t++) {
+      const x = margin.l + plotW * t/data.cfg.n;
+      const y = margin.t + plotH * (1 - data.C[t]/Math.max(1,maxC));
+      cumPts.push({x,y});
+    }
+
+    // Fill under rate curve.
+    g.save();
+    const grad = g.createLinearGradient(0,margin.t,0,margin.t+plotH);
+    grad.addColorStop(0,"rgba(187,92,255,.34)");
+    grad.addColorStop(1,"rgba(187,92,255,0)");
+    g.beginPath();
+    ratePts.forEach((p,i)=> i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+    g.lineTo(margin.l + plotW, margin.t + plotH);
+    g.lineTo(margin.l, margin.t + plotH);
+    g.closePath();
+    g.fillStyle = grad;
+    g.fill();
+    g.restore();
+
+    drawGlowLine(g, ratePts, COLORS.purple, 2.8, 14);
+    drawGlowLine(g, cumPts, COLORS.cyan, 2.2, 10);
+
+    // Cumulative events dots at bottom.
+    const seq = data.methods.cumulative.seq;
+    g.save();
+    g.shadowColor = COLORS.green; g.shadowBlur = 9;
+    for (let t=0;t<seq.length;t++) {
+      if (seq[t] > 0) {
+        const x = margin.l + plotW*t/(data.cfg.n-1);
+        const y = margin.t + plotH + 14;
+        const radius = seq[t] > 1 ? 3.2 : 2.2;
+        g.fillStyle = seq[t] > 1 ? COLORS.gold : COLORS.green;
+        g.beginPath(); g.arc(x,y,radius,0,Math.PI*2); g.fill();
+      }
+    }
+    g.restore();
+
+    const cursorX = margin.l + plotW * currentTick / data.cfg.n;
+    g.strokeStyle = "rgba(255,255,255,.80)";
+    g.lineWidth = 1;
+    g.beginPath(); g.moveTo(cursorX, margin.t); g.lineTo(cursorX, margin.t+plotH+18); g.stroke();
+
+    drawText(g, "Rate density r(t)", margin.l, 18, {color:COLORS.purple, size:13, glow:6});
+    drawText(g, "Cumulative target C(t)", w-margin.r, 18, {color:COLORS.cyan, size:13, align:"right", glow:6});
+    drawText(g, `tick ${currentTick} / ${data.cfg.n}`, cursorX+8, margin.t+18, {color:"#fff", size:12});
+    drawText(g, `rate ${(data.rates[currentTick] || 0).toFixed(3)} events/tick`, cursorX+8, margin.t+36, {color:COLORS.purple, size:12});
+    drawText(g, `C ${(data.C[currentTick] || 0).toFixed(2)}`, cursorX+8, margin.t+54, {color:COLORS.cyan, size:12});
+  }
+
+  function drawEvents() {
+    const {w,h} = setupCanvas(canvases.events);
+    const g = ctx.events;
+    clearCanvas(g,w,h);
+    const methods = visibleMethods();
+    const margin = {l:156,r:24,t:22,b:24};
+    const laneH = (h - margin.t - margin.b) / Math.max(1,methods.length);
+    const win = data.cfg.window;
+    const start = Math.max(0, currentTick - win);
+    const end = Math.min(data.cfg.n, start + win);
+    const plotW = w - margin.l - margin.r;
+
+    drawGrid(g,w,h,plotW/10, laneH);
+
+    methods.forEach((key, mi) => {
+      const m = data.methods[key];
+      const y0 = margin.t + mi*laneH;
+      const yMid = y0 + laneH/2;
+      g.fillStyle = "rgba(255,255,255,.025)";
+      g.fillRect(margin.l, y0+5, plotW, laneH-10);
+      drawText(g, m.name, 18, yMid+4, {color:m.color, size:14, glow:8});
+
+      // density ghost
+      g.save();
+      g.globalAlpha = 0.16;
+      g.strokeStyle = COLORS.purple;
+      g.beginPath();
+      for (let t=start;t<end;t++) {
+        const x = margin.l + plotW*(t-start)/Math.max(1,end-start-1);
+        const y = y0 + laneH - 12 - (laneH-24)*(data.rates[t]/Math.max(...data.rates, 0.001));
+        if (t===start) g.moveTo(x,y); else g.lineTo(x,y);
+      }
+      g.stroke();
+      g.restore();
+
+      g.save();
+      g.shadowColor = m.color;
+      g.shadowBlur = 10;
+      for (let t=start;t<end;t++) {
+        const u = m.seq[t] || 0;
+        if (u > 0) {
+          const x = margin.l + plotW*(t-start)/Math.max(1,end-start-1);
+          const height = Math.min(laneH-18, 14 + u*12);
+          g.strokeStyle = u > 1 ? COLORS.gold : m.color;
+          g.lineWidth = u > 1 ? 2.4 : 1.2;
+          g.beginPath(); g.moveTo(x, yMid-height/2); g.lineTo(x, yMid+height/2); g.stroke();
+        }
+      }
+      g.restore();
+
+      const cursorX = margin.l + plotW*(currentTick-start)/Math.max(1,end-start-1);
+      g.strokeStyle = "rgba(255,255,255,.65)";
+      g.beginPath(); g.moveTo(cursorX,y0+6); g.lineTo(cursorX,y0+laneH-6); g.stroke();
+    });
+  }
+
+  function drawError() {
+    const {w,h} = setupCanvas(canvases.error);
+    const g = ctx.error;
+    clearCanvas(g,w,h);
+    const methods = visibleMethods();
+    const margin = {l:48,r:20,t:24,b:32};
+    const plotW = w - margin.l - margin.r;
+    const plotH = h - margin.t - margin.b;
+
+    let vals = [];
+    methods.forEach(k => vals.push(...data.methods[k].err));
+    let minY = Math.min(-1, ...vals);
+    let maxY = Math.max(1, ...vals);
+    const maxAbs = Math.max(Math.abs(minY), Math.abs(maxY));
+    minY = -maxAbs; maxY = maxAbs;
+
+    drawGrid(g,w,h,plotW/8,plotH/6);
+
+    function xy(i,v) {
+      return {
+        x: margin.l + plotW*i/data.cfg.n,
+        y: margin.t + plotH*(1 - (v-minY)/(maxY-minY))
+      };
+    }
+
+    const zeroY = xy(0,0).y;
+    g.strokeStyle = "rgba(255,255,255,.38)";
+    g.lineWidth = 1;
+    g.beginPath(); g.moveTo(margin.l,zeroY); g.lineTo(margin.l+plotW,zeroY); g.stroke();
+
+    // +/-1 band
+    if (maxAbs >= 1) {
+      const y1 = xy(0,1).y, yn1 = xy(0,-1).y;
+      g.fillStyle = "rgba(99,255,111,.07)";
+      g.fillRect(margin.l, y1, plotW, yn1-y1);
+      g.strokeStyle = "rgba(99,255,111,.26)";
+      g.beginPath(); g.moveTo(margin.l,y1); g.lineTo(margin.l+plotW,y1); g.stroke();
+      g.beginPath(); g.moveTo(margin.l,yn1); g.lineTo(margin.l+plotW,yn1); g.stroke();
+    }
+
+    methods.forEach(key => {
+      const m = data.methods[key];
+      const pts = m.err.map((v,i)=>xy(i,v));
+      drawGlowLine(g, pts, m.color, key === "cumulative" ? 2.6 : 1.8, key === "cumulative" ? 12 : 6);
+    });
+
+    const cursorX = margin.l + plotW * currentTick / data.cfg.n;
+    g.strokeStyle = "rgba(255,255,255,.70)";
+    g.beginPath(); g.moveTo(cursorX, margin.t); g.lineTo(cursorX, margin.t+plotH); g.stroke();
+
+    drawText(g, `+${maxY.toFixed(1)}`, 8, margin.t+5, {color:COLORS.muted, size:12});
+    drawText(g, `${minY.toFixed(1)}`, 8, margin.t+plotH, {color:COLORS.muted, size:12});
+    drawText(g, "green bounded band ±1", margin.l+8, Math.max(18, xy(0,1).y-5), {color:COLORS.green, size:12});
+  }
+
+  function drawGap() {
+    const {w,h} = setupCanvas(canvases.gap);
+    const g = ctx.gap;
+    clearCanvas(g,w,h);
+    const methods = visibleMethods();
+    const margin = {l:46,r:20,t:28,b:40};
+    const plotW = w - margin.l - margin.r;
+    const panelW = plotW / Math.max(1, methods.length);
+    const plotH = h - margin.t - margin.b;
+
+    drawGrid(g,w,h,panelW/3,plotH/4);
+
+    methods.forEach((key, idx) => {
+      const m = data.methods[key];
+      const x0 = margin.l + idx*panelW + 10;
+      const w0 = panelW - 20;
+      const counts = new Map();
+      m.gaps.forEach(gap => counts.set(Math.min(gap, 15), (counts.get(Math.min(gap,15)) || 0) + 1));
+      const labels = Array.from({length:16}, (_,i)=>i);
+      const maxCount = Math.max(1, ...labels.map(l=>counts.get(l)||0));
+      const bw = w0 / labels.length;
+      g.save();
+      g.shadowColor = m.color; g.shadowBlur = 8;
+      labels.forEach((lab,i) => {
+        const v = counts.get(lab) || 0;
+        const bh = plotH * v / maxCount;
+        g.fillStyle = lab === 15 ? COLORS.gold : m.color;
+        g.globalAlpha = 0.85;
+        g.fillRect(x0 + i*bw + 1, margin.t + plotH - bh, Math.max(1,bw-2), bh);
+      });
+      g.restore();
+      drawText(g, m.name, x0, 18, {color:m.color, size:13, glow:7});
+      drawText(g, "0", x0, h-14, {color:COLORS.muted, size:11});
+      drawText(g, "15+", x0+w0-18, h-14, {color:COLORS.muted, size:11});
+    });
+  }
+
+  function eventCountAt(m, tick) {
+    return m.actual[Math.min(tick, m.actual.length-1)] || 0;
+  }
+
+  function drawWorld() {
+    const {w,h} = setupCanvas(canvases.world);
+    const g = ctx.world;
+    clearCanvas(g,w,h);
+    const c = data.cfg;
+    const methods = visibleMethods();
+    const panelGap = 12;
+    const top = 36;
+    const bottom = 24;
+    const panelW = (w - panelGap*(methods.length+1)) / Math.max(1,methods.length);
+    const panelH = h - top - bottom;
+    drawGrid(g,w,h,w/16,h/10);
+
+    methods.forEach((key, i) => {
+      const m = data.methods[key];
+      const x = panelGap + i*(panelW+panelGap);
+      const y = top;
+      drawPanelFrame(g, x, y, panelW, panelH, m.color, m.name);
+      if (c.scene === "rain") drawRain(g, m, x, y, panelW, panelH);
+      else if (c.scene === "fireflies") drawFireflies(g, m, x, y, panelW, panelH);
+      else if (c.scene === "forest") drawForest(g, m, x, y, panelW, panelH);
+      else if (c.scene === "pixel") drawPixelRace(g, m, x, y, panelW, panelH);
+      else if (c.scene === "rhythm") drawRhythm(g, m, x, y, panelW, panelH);
+      drawPanelStats(g, m, x, y, panelW, panelH);
+    });
+  }
+
+  function drawPanelFrame(g,x,y,w,h,color,title) {
+    g.save();
+    g.strokeStyle = color;
+    g.globalAlpha = 0.55;
+    g.lineWidth = 1.5;
+    roundRect(g,x,y,w,h,16);
+    g.stroke();
+    g.globalAlpha = 0.08;
+    g.fillStyle = color;
+    roundRect(g,x,y,w,h,16);
+    g.fill();
+    g.restore();
+    drawText(g, title, x+14, y-12, {color, size:14, glow:8});
+  }
+
+  function drawPanelStats(g,m,x,y,w,h) {
+    const tick = currentTick;
+    const actual = eventCountAt(m, tick);
+    const target = data.C[Math.min(tick, data.C.length-1)] - data.C[0];
+    const err = actual - target;
+    const text = `count ${actual}  target ${target.toFixed(1)}  err ${err>=0?"+":""}${err.toFixed(2)}`;
+    drawText(g, text, x+12, y+h-14, {color: err === 0 ? COLORS.text : (Math.abs(err) <= 1.001 ? COLORS.green : COLORS.gold), size:12});
+  }
+
+  function roundRect(g,x,y,w,h,r) {
+    r = Math.min(r,w/2,h/2);
+    g.beginPath();
+    g.moveTo(x+r,y);
+    g.arcTo(x+w,y,x+w,y+h,r);
+    g.arcTo(x+w,y+h,x,y+h,r);
+    g.arcTo(x,y+h,x,y,r);
+    g.arcTo(x,y,x+w,y,r);
+    g.closePath();
+  }
+
+  function drawRain(g,m,x,y,w,h) {
+    const now = currentTick;
+    const ttl = Math.min(190, data.cfg.window);
+    g.save();
+    g.beginPath(); roundRect(g,x,y,w,h,16); g.clip();
+    for (const ev of m.events) {
+      const age = now - ev.t;
+      if (age < 0 || age > ttl) continue;
+      const rx = x + 12 + hash01(ev.index, 10, data.cfg.seed)*(w-24);
+      const speed = 1.1 + hash01(ev.index, 11)*1.8;
+      const ry = y + 20 + age/ttl * h * speed;
+      if (ry > y+h-28) continue;
+      const len = 9 + hash01(ev.index, 12)*22;
+      const alpha = 1 - age/ttl;
+      g.globalAlpha = alpha;
+      g.strokeStyle = ev.unit > 0 ? COLORS.gold : m.color;
+      g.shadowColor = g.strokeStyle;
+      g.shadowBlur = 10;
+      g.lineWidth = 1 + hash01(ev.index,13)*1.6;
+      g.beginPath(); g.moveTo(rx, ry); g.lineTo(rx - 2, ry + len); g.stroke();
+    }
+    g.restore();
+  }
+
+  function drawFireflies(g,m,x,y,w,h) {
+    const now = currentTick;
+    const ttl = data.cfg.n;
+    g.save();
+    g.beginPath(); roundRect(g,x,y,w,h,16); g.clip();
+    const maxDraw = 600;
+    const startIndex = Math.max(0, m.events.length - maxDraw);
+    for (let idx=startIndex; idx<m.events.length; idx++) {
+      const ev = m.events[idx];
+      if (ev.t > now) continue;
+      const age = now - ev.t;
+      const life = Math.min(1, age / 50);
+      const baseX = hash01(ev.index, 20, data.cfg.seed);
+      const baseY = hash01(ev.index, 21, data.cfg.seed);
+      const drift = now*0.012 + ev.index;
+      const rx = x + 18 + ((baseX + 0.035*Math.sin(drift*1.7)) % 1)*(w-36);
+      const ry = y + 24 + clamp(baseY + 0.045*Math.cos(drift*1.2),0,1)*(h-60);
+      const pulse = 0.45 + 0.55*Math.sin(now*0.08 + ev.index*2.1);
+      const radius = 1.5 + 4.2*pulse*(1-life*0.25);
+      g.globalAlpha = 0.25 + 0.65*pulse;
+      g.fillStyle = m.color;
+      g.shadowColor = m.color;
+      g.shadowBlur = 15 + 10*pulse;
+      g.beginPath(); g.arc(rx, ry, radius, 0, Math.PI*2); g.fill();
+    }
+    g.restore();
+  }
+
+  function drawForest(g,m,x,y,w,h) {
+    const now = currentTick;
+    const count = eventCountAt(m, now);
+    const maxTrees = Math.min(count, 1200);
+    g.save();
+    g.beginPath(); roundRect(g,x,y,w,h,16); g.clip();
+
+    // Ground gradient.
+    const grd = g.createLinearGradient(0,y,0,y+h);
+    grd.addColorStop(0,"rgba(25,217,255,.03)");
+    grd.addColorStop(1,"rgba(99,255,111,.09)");
+    g.fillStyle = grd; g.fillRect(x,y,w,h);
+
+    for (let i=0;i<maxTrees;i++) {
+      const gx = hash01(i, 30, data.cfg.seed);
+      const gy = hash01(i, 31, data.cfg.seed);
+      const px = x + 12 + gx*(w-24);
+      const py = y + 20 + gy*(h-58);
+      const size = 3 + hash01(i,32)*7;
+      const ageAlpha = clamp((now - (m.events[i]?.t ?? 0)) / 60, 0.25, 1);
+      g.globalAlpha = ageAlpha * 0.88;
+      g.shadowColor = m.color; g.shadowBlur = 6;
+      g.fillStyle = m.color;
+      // tiny stylized tree
+      g.beginPath();
+      g.moveTo(px, py-size);
+      g.lineTo(px-size*.75, py+size*.25);
+      g.lineTo(px+size*.75, py+size*.25);
+      g.closePath(); g.fill();
+      g.shadowBlur = 0;
+      g.fillStyle = "rgba(80,48,20,.8)";
+      g.fillRect(px-size*.12, py+size*.25, size*.24, size*.55);
+    }
+    if (count > maxTrees) {
+      drawText(g, `+${count-maxTrees} more`, x+w-18, y+24, {align:"right", color:COLORS.gold, size:12});
+    }
+    g.restore();
+  }
+
+  function drawPixelRace(g,m,x,y,w,h) {
+    const now = currentTick;
+    const actual = eventCountAt(m, now);
+    const target = data.C[Math.min(now,data.C.length-1)] - data.C[0];
+    const total = Math.max(1, data.cfg.targetEvents);
+    const railY = y + h*0.48;
+    const left = x + 28;
+    const right = x + w - 28;
+
+    g.save();
+    g.strokeStyle = "rgba(255,255,255,.18)";
+    g.lineWidth = 5;
+    g.beginPath(); g.moveTo(left,railY); g.lineTo(right,railY); g.stroke();
+
+    // target ghost
+    const targetX = left + (right-left)*clamp(target/total,0,1);
+    g.strokeStyle = COLORS.cyan;
+    g.shadowColor = COLORS.cyan; g.shadowBlur = 12;
+    g.lineWidth = 2;
+    g.beginPath(); g.moveTo(targetX, railY-52); g.lineTo(targetX, railY+52); g.stroke();
+    drawText(g, "target", targetX+5, railY-56, {color:COLORS.cyan, size:11});
+
+    // actual runner
+    const xPos = left + (right-left)*clamp(actual/total,0,1);
+    g.fillStyle = m.color;
+    g.shadowColor = m.color; g.shadowBlur = 20;
+    g.beginPath(); g.arc(xPos, railY, 13, 0, Math.PI*2); g.fill();
+    g.fillStyle = "#05070d";
+    g.shadowBlur = 0;
+    g.fillRect(xPos-5, railY-5, 10, 10);
+
+    // Trail
+    g.globalAlpha = 0.28;
+    g.strokeStyle = m.color;
+    g.lineWidth = 3;
+    g.beginPath(); g.moveTo(left, railY+32); g.lineTo(xPos, railY+32); g.stroke();
+    g.globalAlpha = 1;
+
+    const err = actual-target;
+    drawText(g, `position ${actual}px`, left, railY+70, {color:m.color, size:13, glow:8});
+    drawText(g, `error ${err>=0?"+":""}${err.toFixed(2)}px`, left, railY+90, {color:Math.abs(err)<=1.001?COLORS.green:COLORS.gold, size:13});
+    g.restore();
+  }
+
+  function drawRhythm(g,m,x,y,w,h) {
+    const now = currentTick;
+    const cols = 32;
+    const rows = 8;
+    const pad = 18;
+    const cellW = (w - pad*2) / cols;
+    const cellH = (h - 64) / rows;
+    const start = Math.max(0, now - cols*rows);
+    g.save();
+    g.beginPath(); roundRect(g,x,y,w,h,16); g.clip();
+    for (let i=0;i<cols*rows;i++) {
+      const t = start + i;
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const px = x + pad + col*cellW + cellW/2;
+      const py = y + 26 + row*cellH + cellH/2;
+      const u = m.seq[t] || 0;
+      const age = Math.abs(now - t);
+      const r = Math.min(cellW,cellH)*0.28;
+      g.globalAlpha = t > now ? 0.08 : 0.18;
+      g.fillStyle = "#2a3556";
+      g.beginPath(); g.arc(px,py,r,0,Math.PI*2); g.fill();
+      if (u > 0 && t <= now) {
+        g.globalAlpha = 1;
+        g.fillStyle = u > 1 ? COLORS.gold : m.color;
+        g.shadowColor = g.fillStyle; g.shadowBlur = 12;
+        g.beginPath(); g.arc(px,py,r*(1.1+0.35*Math.sin(age*.2)),0,Math.PI*2); g.fill();
+        if (u > 1) drawText(g, String(u), px, py+4, {align:"center", color:"#05070d", size:10, weight:950});
+      }
+    }
+    g.restore();
+  }
+
+  function updateMetrics() {
+    const c = data.cfg;
+    const cum = data.methods.cumulative;
+    $("topMetrics").innerHTML = `
+      <div class="metric"><div class="k">Total ticks</div><div class="v cyan">${c.n}</div></div>
+      <div class="metric"><div class="k">Target events</div><div class="v purple">${c.targetEvents}</div></div>
+      <div class="metric"><div class="k">Cumulative emitted</div><div class="v green">${cum.total}</div></div>
+      <div class="metric"><div class="k">Max green error</div><div class="v ${cum.maxAbsError <= 1.001 ? "orange" : "red"}">${cum.maxAbsError.toFixed(3)}</div></div>
+    `;
+
+    const tick = Math.min(currentTick, c.n-1);
+    const rate = data.rates[tick] || 0;
+    const C0 = data.C[tick] || 0;
+    const C1 = data.C[tick+1] || C0;
+    $("liveStats").innerHTML = `
+      <div class="metric"><div class="k">Current tick</div><div class="v cyan">${currentTick}</div></div>
+      <div class="metric"><div class="k">Rate now</div><div class="v purple">${rate.toFixed(3)}</div></div>
+      <div class="metric"><div class="k">C0 → C1</div><div class="v cyan">${C0.toFixed(1)} → ${C1.toFixed(1)}</div></div>
+      <div class="metric"><div class="k">Green u[t]</div><div class="v green">${cum.seq[tick] || 0}</div></div>
+    `;
+
+    const cards = ["random","interval","cumulative"].map(key => {
+      const m = data.methods[key];
+      const visible = methodVisible(key);
+      const currentError = m.actual[Math.min(currentTick,m.actual.length-1)] - (data.C[Math.min(currentTick,data.C.length-1)] - data.C[0]);
+      return `
+        <div class="methodCard ${key}C" style="display:${visible?"block":"none"};color:${m.color}">
+          <div class="name"><span>${m.name}</span><span>${m.total.toFixed(0)}/${m.targetTotal.toFixed(0)}</span></div>
+          <div class="desc">${m.desc}</div>
+          <div class="methodStats">
+            <div class="miniStat"><div class="mk">max error</div><div class="mv">${m.maxAbsError.toFixed(2)}</div></div>
+            <div class="miniStat"><div class="mk">now error</div><div class="mv">${currentError>=0?"+":""}${currentError.toFixed(2)}</div></div>
+            <div class="miniStat"><div class="mk">gap min/max</div><div class="mv">${m.minGap ?? "—"}/${m.maxGap ?? "—"}</div></div>
+            <div class="miniStat"><div class="mk">RMS error</div><div class="mv">${m.rmsError.toFixed(2)}</div></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+    $("methodCards").innerHTML = cards;
+  }
+
+  function updateTable() {
+    const c = data.cfg;
+    const start = clamp(currentTick - 18, 0, Math.max(0,c.n-36));
+    const end = Math.min(c.n, start + 42);
+    const rows = [];
+    for (let t=start;t<end;t++) {
+      const cumM = data.methods.cumulative;
+      const err = cumM.actual[t+1] - (data.C[t+1]-data.C[0]);
+      const isNow = t === currentTick;
+      rows.push(`
+        <tr style="${isNow?"outline:1px solid rgba(99,255,111,.35);background:rgba(99,255,111,.08)":""}">
+          <td>${t}${isNow?" ◀":""}</td>
+          <td>${data.rates[t].toFixed(4)}</td>
+          <td>${data.C[t].toFixed(3)}</td>
+          <td>${data.C[t+1].toFixed(3)}</td>
+          <td class="randomC">${data.methods.random.seq[t] || 0}</td>
+          <td class="intervalC">${data.methods.interval.seq[t] || 0}</td>
+          <td class="cumC">${data.methods.cumulative.seq[t] || 0}</td>
+          <td style="color:${Math.abs(err)<=1.001?COLORS.green:COLORS.gold}">${err>=0?"+":""}${err.toFixed(3)}</td>
+        </tr>
+      `);
+    }
+    $("tickTable").innerHTML = rows.join("");
+  }
+
+  function drawDrawPad() {
+    const canvas = canvases.draw;
+    const g = ctx.draw;
+    const w = canvas.width, h = canvas.height;
+    g.clearRect(0,0,w,h);
+    g.fillStyle = "#060913";
+    g.fillRect(0,0,w,h);
+    g.strokeStyle = "rgba(255,255,255,.10)";
+    g.lineWidth = 1;
+    for (let i=1;i<4;i++) {
+      g.beginPath(); g.moveTo(0,h*i/4); g.lineTo(w,h*i/4); g.stroke();
+    }
+    const pts = customCurve.map((v,i)=>({
+      x:i/(customCurve.length-1)*w,
+      y:h - clamp(v,0,1)*h
+    }));
+    g.save();
+    const grad = g.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,"rgba(187,92,255,.38)");
+    grad.addColorStop(1,"rgba(187,92,255,0)");
+    g.beginPath();
+    pts.forEach((p,i)=> i ? g.lineTo(p.x,p.y) : g.moveTo(p.x,p.y));
+    g.lineTo(w,h); g.lineTo(0,h); g.closePath();
+    g.fillStyle = grad; g.fill();
+    drawGlowLine(g, pts, COLORS.purple, 2, 8);
+    g.restore();
+  }
+
+  function renderAll() {
+    if (!data) return;
+    updateMetrics();
+    drawDensity();
+    drawEvents();
+    drawError();
+    drawGap();
+    drawWorld();
+    updateTable();
+    drawDrawPad();
+  }
+
+  function animate(now) {
+    const dt = Math.min(0.12, (now - lastFrameTime) / 1000);
+    lastFrameTime = now;
+    if (playing && data) {
+      tickCarry += dt * data.cfg.speed;
+      let steps = Math.floor(tickCarry);
+      tickCarry -= steps;
+      if (steps > 0) {
+        currentTick += steps;
+        if (currentTick >= data.cfg.n) currentTick = currentTick % data.cfg.n;
+        renderAll();
+      } else {
+        // still redraw world for gentle motion
+        drawWorld();
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  function exportCsv() {
+    if (!data) return;
+    const lines = ["tick,rate,C0,C1,random,interval,cumulative,cumulative_actual,cumulative_target,cumulative_error"];
+    for (let t=0;t<data.cfg.n;t++) {
+      const cumM = data.methods.cumulative;
+      const actual = cumM.actual[t+1];
+      const target = data.C[t+1] - data.C[0];
+      const err = actual - target;
+      lines.push([
+        t,
+        data.rates[t],
+        data.C[t],
+        data.C[t+1],
+        data.methods.random.seq[t] || 0,
+        data.methods.interval.seq[t] || 0,
+        cumM.seq[t] || 0,
+        actual,
+        target,
+        err
+      ].join(","));
+    }
+    const blob = new Blob([lines.join("\n")], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "curve_to_events_demo.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function setCustomFromPointer(ev) {
+    const rect = canvases.draw.getBoundingClientRect();
+    const x = clamp((ev.clientX - rect.left) / rect.width, 0, 1);
+    const y = clamp((ev.clientY - rect.top) / rect.height, 0, 1);
+    const idx = Math.round(x * (customCurve.length - 1));
+    const val = 1 - y;
+    const radius = 2;
+    for (let i=idx-radius;i<=idx+radius;i++) {
+      if (i >= 0 && i < customCurve.length) {
+        const f = 1 - Math.abs(i-idx)/(radius+1);
+        customCurve[i] = lerp(customCurve[i], val, f);
+      }
+    }
+    controls.shape.value = "custom";
+    updateData(false);
+  }
+
+  for (const el of Object.values(controls)) {
+    el.addEventListener("input", () => updateData(false));
+    el.addEventListener("change", () => updateData(false));
+  }
+
+  $("playPause").addEventListener("click", () => {
+    playing = !playing;
+    updateLabels();
+  });
+  $("reset").addEventListener("click", () => {
+    currentTick = 0;
+    tickCarry = 0;
+    renderAll();
+  });
+  $("reroll").addEventListener("click", () => {
+    controls.seed.value = (Number(controls.seed.value) || 1) + 1;
+    updateData(false);
+  });
+  $("exportCsv").addEventListener("click", exportCsv);
+
+  canvases.draw.addEventListener("pointerdown", ev => { drawing = true; canvases.draw.setPointerCapture(ev.pointerId); setCustomFromPointer(ev); });
+  canvases.draw.addEventListener("pointermove", ev => { if (drawing) setCustomFromPointer(ev); });
+  canvases.draw.addEventListener("pointerup", ev => { drawing = false; try { canvases.draw.releasePointerCapture(ev.pointerId); } catch(e){} });
+  canvases.draw.addEventListener("pointercancel", () => { drawing = false; });
+
+  window.addEventListener("resize", () => renderAll());
+
+  updateData(true);
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
