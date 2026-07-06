@@ -1,0 +1,438 @@
+{
+  "icons": {
+    "action.clear": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Warning Error",
+      "icon_id": "ocha:mapaction:warning-error",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__warning-error.svg",
+      "source_family": "OCHA"
+    },
+    "action.export": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "action.fallback": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Alert",
+      "icon_id": "ocha:mapaction:alert",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__alert.svg",
+      "source_family": "OCHA"
+    },
+    "action.filter": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "action.import": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "action.open": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "action.reset": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Warning Error",
+      "icon_id": "ocha:mapaction:warning-error",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__warning-error.svg",
+      "source_family": "OCHA"
+    },
+    "action.search": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Search",
+      "icon_id": "ocha:mapaction:search",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__search.svg",
+      "source_family": "OCHA"
+    },
+    "concept.chemical": {
+      "attribution": "Health Icons by Resolve to Save Lives; MIT",
+      "display_name": "Chemical Burn",
+      "icon_id": "iconify:healthicons:chemical-burn",
+      "license_spdx": "MIT",
+      "license_title": "MIT",
+      "path": "icons/iconify__healthicons__chemical-burn.svg",
+      "source_family": "Iconify"
+    },
+    "concept.earthquake": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Earthquake",
+      "icon_id": "ocha:mapaction:earthquake",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__earthquake.svg",
+      "source_family": "OCHA"
+    },
+    "concept.fire_smoke": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Fire",
+      "icon_id": "ocha:mapaction:fire",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__fire.svg",
+      "source_family": "OCHA"
+    },
+    "concept.first_aid": {
+      "attribution": "Medical Icons by Samuel Frémondière; MIT",
+      "display_name": "First Aid",
+      "icon_id": "iconify:medical-icon:first-aid",
+      "license_spdx": "MIT",
+      "license_title": "MIT",
+      "path": "icons/iconify__medical-icon__first-aid.svg",
+      "source_family": "Iconify"
+    },
+    "concept.flood": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Flood",
+      "icon_id": "ocha:mapaction:flood",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__flood.svg",
+      "source_family": "OCHA"
+    },
+    "concept.food": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Food",
+      "icon_id": "ocha:mapaction:food",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__food.svg",
+      "source_family": "OCHA"
+    },
+    "concept.radiation": {
+      "attribution": "Temaki by Bryan Housel; CC0",
+      "display_name": "Radiation",
+      "icon_id": "iconify:temaki:radiation",
+      "license_spdx": "CC0-1.0",
+      "license_title": "CC0",
+      "path": "icons/iconify__temaki__radiation.svg",
+      "source_family": "Iconify"
+    },
+    "concept.radio": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Radio",
+      "icon_id": "ocha:mapaction:radio",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__radio.svg",
+      "source_family": "OCHA"
+    },
+    "concept.sanitation": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Sanitation",
+      "icon_id": "ocha:mapaction:sanitation",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__sanitation.svg",
+      "source_family": "OCHA"
+    },
+    "concept.shelter": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Shelter",
+      "icon_id": "ocha:mapaction:shelter",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__shelter.svg",
+      "source_family": "OCHA"
+    },
+    "concept.tornado": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Tornado",
+      "icon_id": "ocha:mapaction:tornado",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__tornado.svg",
+      "source_family": "OCHA"
+    },
+    "concept.tsunami": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Tsunami",
+      "icon_id": "ocha:mapaction:tsunami",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__tsunami.svg",
+      "source_family": "OCHA"
+    },
+    "concept.water": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Water Source",
+      "icon_id": "ocha:mapaction:water-source",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__water-source.svg",
+      "source_family": "OCHA"
+    },
+    "meta.band": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "meta.confidence": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Search",
+      "icon_id": "ocha:mapaction:search",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__search.svg",
+      "source_family": "OCHA"
+    },
+    "meta.kind": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Logistics",
+      "icon_id": "ocha:mapaction:logistics",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__logistics.svg",
+      "source_family": "OCHA"
+    },
+    "meta.prerequisite": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Logistics",
+      "icon_id": "ocha:mapaction:logistics",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__logistics.svg",
+      "source_family": "OCHA"
+    },
+    "meta.provenance": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "meta.risk": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Warning Error",
+      "icon_id": "ocha:mapaction:warning-error",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__warning-error.svg",
+      "source_family": "OCHA"
+    },
+    "meta.unlock": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "node.FD-01": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Warning Error",
+      "icon_id": "ocha:mapaction:warning-error",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__warning-error.svg",
+      "source_family": "OCHA"
+    },
+    "node.HC-12": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Virus",
+      "icon_id": "ocha:mapaction:virus",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__virus.svg",
+      "source_family": "OCHA"
+    },
+    "node.MED-01": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Medical Supply",
+      "icon_id": "ocha:mapaction:medical-supply",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__medical-supply.svg",
+      "source_family": "OCHA"
+    },
+    "node.RDE-01": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "node.WAT-01": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Water Source",
+      "icon_id": "ocha:mapaction:water-source",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__water-source.svg",
+      "source_family": "OCHA"
+    },
+    "progress.blocked": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Warning Error",
+      "icon_id": "ocha:mapaction:warning-error",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__warning-error.svg",
+      "source_family": "OCHA"
+    },
+    "progress.done": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Logistics",
+      "icon_id": "ocha:mapaction:logistics",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__logistics.svg",
+      "source_family": "OCHA"
+    },
+    "progress.in_progress": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "progress.unseen": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "section.dependencies": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Logistics",
+      "icon_id": "ocha:mapaction:logistics",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__logistics.svg",
+      "source_family": "OCHA"
+    },
+    "section.immediate": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Alert",
+      "icon_id": "ocha:mapaction:alert",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__alert.svg",
+      "source_family": "OCHA"
+    },
+    "section.node": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "section.progress": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "section.rde": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "section.search": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Search",
+      "icon_id": "ocha:mapaction:search",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__search.svg",
+      "source_family": "OCHA"
+    },
+    "tab.graph": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Logistics",
+      "icon_id": "ocha:mapaction:logistics",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__logistics.svg",
+      "source_family": "OCHA"
+    },
+    "tab.node": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Document",
+      "icon_id": "ocha:mapaction:document",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__document.svg",
+      "source_family": "OCHA"
+    },
+    "tab.progress": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Preparedness",
+      "icon_id": "ocha:mapaction:preparedness",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__preparedness.svg",
+      "source_family": "OCHA"
+    },
+    "tab.search": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Search",
+      "icon_id": "ocha:mapaction:search",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__search.svg",
+      "source_family": "OCHA"
+    },
+    "tab.triage": {
+      "attribution": "Source: OCHA & MapAction",
+      "display_name": "Alert",
+      "icon_id": "ocha:mapaction:alert",
+      "license_spdx": "LicenseRef-OCHA-Public-Domain",
+      "license_title": "Public domain / free use",
+      "path": "icons/ocha__mapaction__alert.svg",
+      "source_family": "OCHA"
+    }
+  },
+  "schema_version": "eotfw.runtime_icon_artifact.v1",
+  "source_map": "resources/icons/runtime_icon_map.json"
+}

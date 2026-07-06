@@ -1,0 +1,374 @@
+[
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "emergency front door"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "immediate danger"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "life threatening"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "triage first"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "urgent danger"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "emergency"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "help"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "hurt"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "not okay"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "cannot breathe"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "severe bleeding"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "shock"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "unconscious"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "biological"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "contagious disease"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "outbreak"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "pandemic"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "sick household"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "contagious illness"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "crowded shelter"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "false all clear"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "not improving"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "crowd exposure"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "difficulty breathing"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "persistent fever"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "worsening illness"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "device dependency"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "first aid"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "medical continuity"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "severe bleeding"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "unconscious"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "wound"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "bleeding"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "can not breathe"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "emergency medical help"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "injury"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "burn and smoke injury"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "choking"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "no medication"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "severe bleeding"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "unresponsive"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "later stubs"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "next chapter"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "routing index"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "where next"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "panic_alias",
+    "term": "help is unavailable"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "panic_alias",
+    "term": "what next"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "panic_alias",
+    "term": "where do i go"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "symptom",
+    "term": "after initial stabilization"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "symptom",
+    "term": "conflicting instructions"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "symptom",
+    "term": "no safe shelter"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "bottled water"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "food minimums"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "hygiene"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "water"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "water safe"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "panic_alias",
+    "term": "contamination"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "panic_alias",
+    "term": "food bad"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "panic_alias",
+    "term": "no water"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "symptom",
+    "term": "diarrhea risk"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "symptom",
+    "term": "food spoilage smell"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "symptom",
+    "term": "severe thirst"
+  }
+]

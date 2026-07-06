@@ -1,0 +1,137 @@
+{
+  "adjacency": {
+    "FD-01": {
+      "dependents": {
+        "hard": [
+          "HC-12",
+          "MED-01",
+          "RDE-01",
+          "WAT-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "HC-12": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01",
+          "MED-01",
+          "WAT-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "MED-01": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "RDE-01": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "WAT-01": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    }
+  },
+  "edges": [
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "HC-12"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "MED-01"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "RDE-01"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "WAT-01"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "MED-01",
+      "kind": "prerequisite.hard",
+      "to": "HC-12"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "WAT-01",
+      "kind": "prerequisite.hard",
+      "to": "HC-12"
+    }
+  ],
+  "node_count": 5,
+  "nodes": [
+    "FD-01",
+    "HC-12",
+    "MED-01",
+    "RDE-01",
+    "WAT-01"
+  ],
+  "schema_version": "1.0.0",
+  "source": "notes/eotfw_nodes/*.md"
+}

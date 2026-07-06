@@ -1,0 +1,697 @@
+[
+  {
+    "band": "life_support",
+    "dependents": {
+      "hard": [
+        "HC-12",
+        "MED-01",
+        "RDE-01",
+        "WAT-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "environmental severity",
+        "conflicting instructions"
+      ],
+      "requires_recording": [
+        "time_of_event"
+      ]
+    },
+    "id": "FD-01",
+    "kind": "routing",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "triage",
+        "routing"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "hazard_cards/13_CONFLICTING_UNRELIABLE_INSTRUCTIONS.md"
+      ],
+      "print_cross_ref": {
+        "HC-12": {
+          "page_anchor": "SEC-HC-12"
+        },
+        "MED-01": {
+          "page_anchor": "SEC-MED-01"
+        },
+        "RDE-01": {
+          "page_anchor": "SEC-RDE-01"
+        },
+        "WAT-01": {
+          "page_anchor": "SEC-WAT-01"
+        }
+      },
+      "see_also": [
+        "HC-12",
+        "MED-01",
+        "RDE-01",
+        "WAT-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "FD-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-FD-01",
+    "print_section": "Volume 1: Emergency Front Door",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/emergency_front_door_rde_routing.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Allowed claims and scope",
+            "Claimed first-pass order",
+            "Safety boundary checks"
+          ],
+          "source_id": "triage_front_door_rde",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/01_EMERGENCY_FRONT_DOOR.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": true,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D1",
+      "min_environment": "E1",
+      "panic_fork_priority": 1,
+      "resource_requirements": [
+        "R1"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "show safe fallback",
+          "code": "HS-001",
+          "rule": "Do not route to non-reviewed procedural claims."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "low"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "emergency front door",
+        "immediate danger",
+        "life threatening",
+        "triage first",
+        "urgent danger"
+      ],
+      "confidence_min": 0.95,
+      "panic_aliases": [
+        "emergency",
+        "help",
+        "hurt",
+        "not okay"
+      ],
+      "symptoms": [
+        "cannot breathe",
+        "severe bleeding",
+        "shock",
+        "unconscious"
+      ]
+    },
+    "source_body": "# Emergency Front Door\n\nPilot SSOT node for immediate danger sequencing.\n\nThis node is the first entry for:\n\n- severe fire/smoke/kill-zone checks,\n- life-threatening injury triage,\n- utility/environment routing guardrails,\n- then forwarding to follow-up nodes by risk and dependency.\n\nSource trace:\n- `notes/source_reviews/volume01/emergency_front_door_rde_routing.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\FD-01.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "Emergency Front Door",
+    "version": "1.0.0"
+  },
+  {
+    "band": "safety",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "crowd_safety",
+        "reliability_vs_speed tradeoff"
+      ],
+      "requires_recording": [
+        "symptom_progress",
+        "isolation_or_shelter_moves"
+      ]
+    },
+    "id": "HC-12",
+    "kind": "hazard",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "health",
+        "hazards",
+        "public_health"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "hazard_cards/13_CONFLICTING_UNRELIABLE_INSTRUCTIONS.md"
+      ],
+      "print_cross_ref": {
+        "MED-01": {
+          "page_anchor": "SEC-MED-01"
+        },
+        "WAT-01": {
+          "page_anchor": "SEC-WAT-01"
+        }
+      },
+      "see_also": [
+        "FD-01",
+        "MED-01",
+        "WAT-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "HC-12",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01",
+        "MED-01",
+        "WAT-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-HC-12",
+    "print_section": "Volume 1: Hazard Card 12",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/hazard_biological_pandemic.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-06-05",
+          "reviewer": "Codex",
+          "sections": [
+            "Claims allowed into draft manual",
+            "Claims not yet allowed",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "hazard_biological_pandemic",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/hazard_cards/12_BIOLOGICAL_PANDEMIC_CONTAGIOUS_DISEASE.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D2",
+      "min_environment": "E1",
+      "panic_fork_priority": 2,
+      "resource_requirements": [
+        "R1",
+        "HEALTH",
+        "SHELTER"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "route to local public-health, healthcare, and established shelter paths",
+          "code": "HS-001",
+          "rule": "Do not include diagnosis or treatment claims."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "high"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "biological",
+        "contagious disease",
+        "outbreak",
+        "pandemic",
+        "sick household"
+      ],
+      "confidence_min": 0.86,
+      "panic_aliases": [
+        "contagious illness",
+        "crowded shelter",
+        "false all clear",
+        "not improving"
+      ],
+      "symptoms": [
+        "crowd exposure",
+        "difficulty breathing",
+        "persistent fever",
+        "worsening illness"
+      ]
+    },
+    "source_body": "# Biological / Pandemic / Contagious Disease\n\nPilot SSOT node for respiratory and contagion-aware routing.\n\nCore routing intent:\n\n- Follow current local public-health and healthcare guidance first.\n- Use this node as a hazard routing boundary for sick/exposed, vulnerable people,\n  shelter crowding, and care continuity while avoiding diagnosis or treatment.\n\nSource trace:\n- `notes/source_reviews/volume01/hazard_biological_pandemic.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\HC-12.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "Biological / Pandemic / Contagious Disease",
+    "version": "1.0.0"
+  },
+  {
+    "band": "health",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "medical escalation threshold",
+        "vulnerable-person risk"
+      ],
+      "requires_recording": [
+        "injury_timestamp",
+        "medicine_device_status"
+      ]
+    },
+    "id": "MED-01",
+    "kind": "capability",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "medical",
+        "first_aid",
+        "continuity"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "06_FIRE_POWER_UTILITIES_CO.md"
+      ],
+      "print_cross_ref": {
+        "FD-01": {
+          "page_anchor": "SEC-FD-01"
+        }
+      },
+      "see_also": [
+        "FD-01",
+        "HC-12",
+        "RDE-01"
+      ]
+    },
+    "maturity_level": "M2",
+    "node_id": "MED-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-MED-01",
+    "print_section": "Volume 1: First Aid And Health Continuity",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/first_aid_wound_care.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Claims allowed into draft manual",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "first_aid_wound_care",
+          "trust_tier": "official"
+        },
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Allowed claims",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "vulnerable_people_medical_continuity",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/07_FIRST_AID_AND_HEALTH_CONTINUITY.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D1",
+      "min_environment": "E1",
+      "panic_fork_priority": 1,
+      "resource_requirements": [
+        "R2",
+        "MED"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "route only, escalate to trained help paths",
+          "code": "HS-001",
+          "rule": "Do not include dosing, diagnosis, or treatment-protocol details."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "high"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "device dependency",
+        "first aid",
+        "medical continuity",
+        "severe bleeding",
+        "unconscious",
+        "wound"
+      ],
+      "confidence_min": 0.92,
+      "panic_aliases": [
+        "bleeding",
+        "can not breathe",
+        "emergency medical help",
+        "injury"
+      ],
+      "symptoms": [
+        "burn and smoke injury",
+        "choking",
+        "no medication",
+        "severe bleeding",
+        "unresponsive"
+      ]
+    },
+    "source_body": "# First Aid And Health Continuity\n\nPilot SSOT node for routing life-threatening injury and continuity needs.\n\nCore routing intent:\n\n- This is the first aid and care-continuity entry after the emergency-front-door checks.\n- Do not include treatment procedures; this node routes to escalation and specialist help\n  and tracks medicine/device continuity risks.\n\nSource traces:\n- `notes/source_reviews/volume01/first_aid_wound_care.md`\n- `notes/source_reviews/volume01/vulnerable_people_medical_continuity.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\MED-01.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "First Aid And Health Continuity",
+    "version": "1.0.0"
+  },
+  {
+    "band": "safety",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "post-incident sequencing",
+        "unresolved domains"
+      ],
+      "requires_recording": [
+        "routing_path"
+      ]
+    },
+    "id": "RDE-01",
+    "kind": "meta",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "routing",
+        "stubs"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "hazard_cards/13_CONFLICTING_UNRELIABLE_INSTRUCTIONS.md"
+      ],
+      "see_also": [
+        "FD-01",
+        "HC-12",
+        "MED-01",
+        "WAT-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "RDE-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-RDE-01",
+    "print_section": "Volume 1: Routing Index And Later Stubs",
+    "provenance": {
+      "source_review_file": "notes/VOLUME_01_RECONCILIATION_PASS.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Reconciliation edits",
+            "Routing map",
+            "Next action sequencing"
+          ],
+          "source_id": "v1_reconciliation_pass",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/13_ROUTING_INDEX_AND_LATER_STUBS.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D2",
+      "min_environment": "E1",
+      "panic_fork_priority": 3,
+      "resource_requirements": [
+        "R1",
+        "GRAPH"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "show placeholder and safe fallback",
+          "code": "HS-001",
+          "rule": "Do not route directly to unreviewed stub content."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "medium"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "later stubs",
+        "next chapter",
+        "routing index",
+        "where next"
+      ],
+      "confidence_min": 0.87,
+      "panic_aliases": [
+        "help is unavailable",
+        "what next",
+        "where do i go"
+      ],
+      "symptoms": [
+        "after initial stabilization",
+        "conflicting instructions",
+        "no safe shelter"
+      ]
+    },
+    "source_body": "# Routing Index And Later Stubs\n\nPilot SSOT node that stabilizes routing from first checks into the main graph.\n\nCore routing intent:\n\n- Use this node as the domain bridge after emergency, R-D-E, and first-48-hour sequencing.\n- Keep unresolved nodes explicit as stubs, and never resolve to unreviewed procedural claims.\n\nSource trace:\n- `notes/VOLUME_01_RECONCILIATION_PASS.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\RDE-01.md",
+    "status": "reviewed",
+    "tier": 1,
+    "title": "Routing Index And Later Stubs",
+    "version": "1.0.0"
+  },
+  {
+    "band": "life_support",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "flood contamination depth",
+        "power outage duration"
+      ],
+      "requires_recording": [
+        "water_source_checks"
+      ]
+    },
+    "id": "WAT-01",
+    "kind": "capability",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "water",
+        "wash",
+        "food"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "01_EMERGENCY_FRONT_DOOR.md"
+      ],
+      "print_cross_ref": {
+        "FD-01": {
+          "page_anchor": "SEC-FD-01"
+        },
+        "HC-12": {
+          "page_anchor": "SEC-HC-12"
+        }
+      },
+      "see_also": [
+        "FD-01",
+        "HC-12",
+        "RDE-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "WAT-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-WAT-01",
+    "print_section": "Volume 1: Water, Hygiene, And Food Minimums",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/water_hygiene_food_minimums.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Strongest sources",
+            "Claims allowed into draft manual",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "water_food_minimums",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/05_WATER_HYGIENE_FOOD_MINIMUMS.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D1",
+      "min_environment": "E1",
+      "panic_fork_priority": 2,
+      "resource_requirements": [
+        "R1",
+        "WATER"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "route to known-safe hazard checks first",
+          "code": "HS-001",
+          "rule": "Do not route to unreviewed chemical, toxic, or radiological treatment claims."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "medium"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "bottled water",
+        "food minimums",
+        "hygiene",
+        "water",
+        "water safe"
+      ],
+      "confidence_min": 0.9,
+      "panic_aliases": [
+        "contamination",
+        "food bad",
+        "no water"
+      ],
+      "symptoms": [
+        "diarrhea risk",
+        "food spoilage smell",
+        "severe thirst"
+      ]
+    },
+    "source_body": "# Water, Hygiene, And Food Minimums\n\nPilot SSOT node for minimum safe-life checks on hydration, sanitation separation,\nand short-duration food safety.\n\nCore routing intent:\n\n- Use this node after immediate-danger handling when the immediate threat map includes\n  water contamination, hygiene breakdown, or spoiled food risk.\n- Defer detailed engineering or treatment recipes to later reviewed packets.\n\nSource trace:\n- `notes/source_reviews/volume01/water_hygiene_food_minimums.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\WAT-01.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "Water, Hygiene, And Food Minimums",
+    "version": "1.0.0"
+  }
+]

@@ -1,0 +1,2556 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EOTFW Offline Runtime v1</title>
+  <style>
+    :root {
+      --bg: #151b26;
+      --surface: #1b2534;
+      --surface-2: #223246;
+      --surface-alert: #281f2b;
+      --text: #e8edf6;
+      --muted: #a5b1c6;
+      --line: #32415a;
+      --accent: #86aef8;
+      --accent-2: #adc8ff;
+      --warn: #f0b95e;
+      --ok: #79cf9c;
+      --bad: #f39b9b;
+      --shadow: rgba(4, 11, 25, 0.35);
+      --icon-plate: #dce8ff;
+      --icon-plate-strong: #ffe0e0;
+      --icon-plate-muted: #cfd9ee;
+      color-scheme: dark;
+    }
+    :root[data-theme='light'] {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-2: #edf3fb;
+      --surface-alert: #fff0f0;
+      --text: #1f2b45;
+      --muted: #4f5d77;
+      --line: #cad4e6;
+      --accent: #1f59de;
+      --accent-2: #3a72ff;
+      --warn: #905c00;
+      --ok: #176b42;
+      --bad: #bc2f2f;
+      --shadow: rgba(19, 35, 62, 0.14);
+      --icon-plate: #e6edff;
+      --icon-plate-strong: #ffe7e7;
+      --icon-plate-muted: #dce5f5;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Trebuchet MS, Segoe UI, Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app { max-width: 980px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    h1 { margin: 0; font-size: 1.45rem; }
+    .subhead { margin: 2px 0 0; color: var(--muted); font-size: .93rem; }
+    .toolbar { display: flex; gap: 12px; align-items: center; font-size: .9rem; }
+    .status {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    .status.info { color: var(--text); border-left: 4px solid var(--accent); }
+    .status.warn { color: var(--warn); border-left: 4px solid var(--warn); }
+    .status.error { color: var(--bad); border-left: 4px solid var(--bad); background: var(--surface-alert); }
+    .tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .tabs button {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 7px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: var(--accent-2);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 42px;
+      min-width: 0;
+    }
+    .tabs button.active { color: var(--bg); background: linear-gradient(180deg, #4f75d8, #4060bf); border-color: #4f75d8; }
+    .panel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 10px 22px var(--shadow);
+    }
+    .panel.active { display: block; }
+    .panel h2 { margin: 0 0 8px 0; font-size: 1.05rem; }
+    .quick-actions {
+      border: 1px solid rgba(243,155,155,.55);
+      border-radius: 8px;
+      background: var(--surface-alert);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .quick-actions h2 { color: var(--bad); margin-bottom: 0; }
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 8px;
+    }
+    .quick-open {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 88px;
+      text-align: left;
+      align-items: center;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      padding: 10px;
+    }
+    .quick-open .quick-copy { display: grid; gap: 4px; min-width: 0; color: var(--text); font-size: inherit; }
+    .quick-open strong { font-size: .98rem; }
+    .quick-open .quick-copy > span { color: var(--muted); font-size: .82rem; line-height: 1.25; }
+    .quick-open.critical { border-color: rgba(243,155,155,.8); box-shadow: inset 0 0 0 1px rgba(243,155,155,.16); }
+    .quick-open:hover { border-color: var(--accent-2); }
+    .divider { height: 1px; background: var(--line); margin: 12px 0; }
+    .field { display: grid; gap: 5px; margin-bottom: 8px; }
+    .field label { color: var(--muted); font-size: .88rem; }
+    .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    select, input, button { font: inherit; background: var(--surface-2); color: inherit; border: 1px solid var(--line); border-radius: 7px; padding: 8px; }
+    button { cursor: pointer; }
+    button.with-static-icon, .actions button, .row-head button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 0;
+    }
+    .primary { color: var(--bg); font-weight: 700; background: linear-gradient(180deg, #5780df, #4468c0); border-color: #5f82ce; }
+    .secondary { background: var(--surface-2); }
+    .actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .result-list { margin: 10px 0 0; list-style: none; padding: 0; display: grid; gap: 8px; }
+    .result-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+      background: var(--surface-2);
+    }
+    .row-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .meta { color: var(--muted); font-size: .86rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .chip { border: 1px solid; border-radius: 999px; padding: 2px 8px; font-size: .75rem; display: inline-flex; align-items: center; gap: 5px; }
+    .low { color: var(--ok); border-color: rgba(121,207,156,.75); background: rgba(121,207,156,.18); }
+    .medium { color: var(--warn); border-color: rgba(240,185,94,.75); background: rgba(240,185,94,.18); }
+    .high, .critical { color: var(--bad); border-color: rgba(243,155,155,.75); background: rgba(243,155,155,.18); }
+    .safe { color: var(--ok); }
+    .blocked { color: var(--bad); }
+    .detail { display: grid; gap: 10px; }
+    .detail pre {
+      margin: 0;
+      white-space: pre-wrap;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px;
+      max-height: 280px;
+      overflow: auto;
+    }
+    .fallback {
+      background: rgba(240,185,94,.1);
+      border: 1px solid rgba(240,185,94,.65);
+      border-radius: 7px;
+      padding: 8px;
+      color: var(--muted);
+      display: grid;
+      gap: 6px;
+    }
+    ul { margin: 0; padding-left: 20px; }
+    .hidden { display: none !important; }
+    .node-meta { color: var(--muted); font-size: .9rem; display: flex; gap: 10px; flex-wrap: wrap; }
+    .graph-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--surface-2);
+      display: grid;
+      gap: 8px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+    .section-title span:last-child { min-width: 0; overflow-wrap: anywhere; }
+    .icon-plate {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--icon-plate);
+      border: 1px solid rgba(255,255,255,.44);
+      box-shadow: inset 0 0 0 1px rgba(10,20,36,.08);
+      vertical-align: middle;
+      pointer-events: none;
+    }
+    .icon-plate.strong { background: var(--icon-plate-strong); }
+    .icon-plate.muted { background: var(--icon-plate-muted); }
+    .icon-plate.xs { width: 18px; height: 18px; min-width: 18px; border-radius: 5px; }
+    .icon-plate.sm { width: 20px; height: 20px; min-width: 20px; border-radius: 5px; }
+    .icon-plate.md { width: 24px; height: 24px; min-width: 24px; }
+    .icon-plate.lg { width: 40px; height: 40px; min-width: 40px; border-radius: 8px; }
+    .icon-plate img { width: 72%; height: 72%; object-fit: contain; display: block; }
+    .icon-plate.missing { visibility: hidden; }
+    .tabs button.active .icon-plate { background: rgba(255,255,255,.9); border-color: rgba(255,255,255,.72); }
+    .quick-open.critical > .icon-plate { background: var(--icon-plate-strong); }
+    .icon-with-text, .result-title, .graph-title, .progress-label, .dependency-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .result-title, .graph-title, .progress-label { overflow-wrap: anywhere; }
+    .progress-label { flex-wrap: wrap; }
+    .result-title strong, .graph-title strong, .progress-label b { min-width: 0; overflow-wrap: anywhere; }
+    .meta-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+    .dependency-list { display: grid; gap: 6px; margin-top: 4px; }
+    .dependency-list li { min-height: 30px; }
+    .progress-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      padding: 8px;
+      border-radius: 7px;
+      background: var(--surface-2);
+      margin-top: 8px;
+    }
+    .progress-row b { max-width: 620px; overflow-wrap: anywhere; }
+    .state-select { min-width: 136px; }
+    @media (max-width: 900px) { .tabs { grid-template-columns: repeat(3, 1fr);} .row { grid-template-columns: 1fr; } }
+    @media (max-width: 520px) {
+      .app { padding: 12px; }
+      header { flex-direction: column; }
+      .toolbar { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+      .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .quick-grid { grid-template-columns: 1fr; }
+      .row-head { align-items: flex-start; flex-direction: column; }
+      .progress-row { grid-template-columns: 1fr; }
+      .state-select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Offline EOTFW Runtime v1</h1>
+      <p class="subhead">Phase 3 MVP — local artifacts only (nodes/search/graph)</p>
+    </div>
+    <div class="toolbar">
+      <label><input type="checkbox" id="theme"> Light mode</label>
+      <button class="secondary" id="reset-progress" data-icon-key="action.reset">Reset all progress</button>
+    </div>
+  </header>
+
+  <div id="status" class="status">Booting offline app...</div>
+
+  <div class="tabs">
+    <button data-tab="triage" data-icon-key="tab.triage" class="active"><span class="tab-label">Triage</span></button>
+    <button data-tab="search" data-icon-key="tab.search"><span class="tab-label">Search</span></button>
+    <button data-tab="node" data-icon-key="tab.node"><span class="tab-label">Node</span></button>
+    <button data-tab="graph" data-icon-key="tab.graph"><span class="tab-label">Graph</span></button>
+    <button data-tab="progress" data-icon-key="tab.progress"><span class="tab-label">Progress</span></button>
+  </div>
+
+  <section class="panel active" data-panel="triage">
+    <div class="quick-actions" aria-label="Immediate threat actions">
+      <h2 class="section-title" data-icon-key="section.immediate"><span>Immediate Threat Action Fork</span></h2>
+      <div class="quick-grid">
+        <button class="quick-open critical" type="button" data-open="FD-01" data-icon-key="node.FD-01">
+          <span class="quick-copy">
+            <strong>Emergency Front Door</strong>
+            <span>Fire, smoke, kill-zone checks, and life-safety sequencing.</span>
+          </span>
+        </button>
+        <button class="quick-open critical" type="button" data-open="MED-01" data-icon-key="node.MED-01">
+          <span class="quick-copy">
+            <strong>Severe Injury / First Aid</strong>
+            <span>Unconscious, severe bleeding, choking, burns, or urgent medical continuity.</span>
+          </span>
+        </button>
+        <button class="quick-open" type="button" data-open="WAT-01" data-icon-key="node.WAT-01">
+          <span class="quick-copy">
+            <strong>No Water / Contamination</strong>
+            <span>Severe thirst, unsafe water, hygiene breakdown, or food minimums.</span>
+          </span>
+        </button>
+        <button class="quick-open" type="button" data-open="HC-12" data-icon-key="node.HC-12">
+          <span class="quick-copy">
+            <strong>Contagion / Sick Household</strong>
+            <span>Respiratory illness, outbreak routing, or crowded-shelter exposure.</span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2 class="section-title" data-icon-key="section.rde"><span>Systematic R-D-E Assessment</span></h2>
+    <p class="subhead">Pick R1-R5, D1-D5, E1-E5, then optional tags/symptoms.</p>
+    <form id="triage-form">
+      <div class="row">
+        <div class="field">
+          <label for="triage-r">Resources</label>
+          <select id="triage-r">
+            <option value="">-- Select resources --</option>
+            <option value="R1">R1 - Extreme scarcity / nothing</option>
+            <option value="R2">R2 - Basic kit / emergency supplies</option>
+            <option value="R3">R3 - Household tools / ordinary supplies</option>
+            <option value="R4">R4 - Workshop / stored supplies</option>
+            <option value="R5">R5 - Institutional / industrial scale</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="triage-d">Disruption</label>
+          <select id="triage-d">
+            <option value="">-- Select disruption --</option>
+            <option value="D1">D1 - Normal / brief outage</option>
+            <option value="D2">D2 - Localized failure</option>
+            <option value="D3">D3 - Regional disruption</option>
+            <option value="D4">D4 - Systemic breakdown</option>
+            <option value="D5">D5 - Total collapse</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="triage-e">Environment</label>
+          <select id="triage-e">
+            <option value="">-- Select environment --</option>
+            <option value="E1">E1 - Mild / benign conditions</option>
+            <option value="E2">E2 - Moderate weather / exposure</option>
+            <option value="E3">E3 - Harsh cold, heat, or exposure</option>
+            <option value="E4">E4 - Extreme hostile weather</option>
+            <option value="E5">E5 - Lethal / flood / CBRN conditions</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="triage-tags">Optional tags/symptoms</label>
+        <input id="triage-tags" type="text" placeholder="water, severe thirst, contamination, smoke" />
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" data-icon-key="action.filter">Filter nodes</button>
+        <button class="secondary" type="button" id="triage-clear" data-icon-key="action.clear">Reset filters</button>
+      </div>
+    </form>
+    <ul id="triage-results" class="result-list"></ul>
+  </section>
+
+  <section class="panel" data-panel="search">
+    <h2 class="section-title" data-icon-key="section.search"><span>Conservative search</span></h2>
+    <p class="subhead">Direct navigation only when one clear high-confidence match is found.</p>
+    <form id="search-form">
+      <div class="field">
+        <label for="search-query">Search</label>
+        <input id="search-query" type="text" placeholder="emergency front door, severe thirst, where next" />
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" data-icon-key="action.search">Search</button>
+        <button class="secondary" type="button" id="search-clear" data-icon-key="action.clear">Clear</button>
+      </div>
+    </form>
+    <ul id="search-results" class="result-list"></ul>
+  </section>
+
+  <section class="panel" data-panel="node">
+    <h2 class="section-title" data-icon-key="section.node"><span>Selected node</span></h2>
+    <p class="subhead">Runtime applies safety gates before showing node actions.</p>
+    <div class="detail">
+      <div>
+        <div class="row-head">
+          <strong id="node-title">No node selected</strong>
+          <button class="secondary" id="node-fallback-btn" data-icon-key="action.fallback">Show safe fallback</button>
+        </div>
+        <div id="node-id" class="subhead"></div>
+        <div id="node-meta" class="node-meta"></div>
+      </div>
+      <pre id="node-body">Select a node from triage or search.</pre>
+      <div id="node-safe-warning" class="fallback hidden"></div>
+      <div>
+        <div id="node-provenance" class="meta"></div>
+        <h3 class="section-title" data-icon-key="meta.prerequisite"><span>Prerequisites (Required Before)</span></h3>
+        <ul id="node-prereqs" class="dependency-list"></ul>
+        <h3 class="section-title" data-icon-key="meta.unlock"><span>Unlocks Next</span></h3>
+        <ul id="node-unlocks" class="dependency-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" data-panel="graph">
+    <h2 class="section-title" data-icon-key="section.dependencies"><span>Dependencies</span></h2>
+    <p class="subhead">Built from <strong>build/graph.json</strong>, unknown references are filtered out.</p>
+    <ul id="graph-list" class="result-list"></ul>
+  </section>
+
+  <section class="panel" data-panel="progress">
+    <h2 class="section-title" data-icon-key="section.progress"><span>Progress (localStorage)</span></h2>
+    <p class="subhead">Store by node: unseen / in_progress / done / blocked</p>
+    <div class="actions">
+      <button class="secondary" id="progress-export" data-icon-key="action.export">Export JSON</button>
+      <label><input id="progress-import-file" type="file" accept="application/json" /> Import JSON</label>
+    </div>
+    <p id="import-message" class="subhead"></p>
+    <div id="progress-list"></div>
+  </section>
+</div>
+
+<!-- Embedded artifact snapshot for file:// offline use. HTTP loads external JSON first. -->
+<script type="application/json" id="eotfw-embedded-nodes">
+[
+  {
+    "band": "life_support",
+    "dependents": {
+      "hard": [
+        "HC-12",
+        "MED-01",
+        "RDE-01",
+        "WAT-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "environmental severity",
+        "conflicting instructions"
+      ],
+      "requires_recording": [
+        "time_of_event"
+      ]
+    },
+    "id": "FD-01",
+    "kind": "routing",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "triage",
+        "routing"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "hazard_cards/13_CONFLICTING_UNRELIABLE_INSTRUCTIONS.md"
+      ],
+      "print_cross_ref": {
+        "HC-12": {
+          "page_anchor": "SEC-HC-12"
+        },
+        "MED-01": {
+          "page_anchor": "SEC-MED-01"
+        },
+        "RDE-01": {
+          "page_anchor": "SEC-RDE-01"
+        },
+        "WAT-01": {
+          "page_anchor": "SEC-WAT-01"
+        }
+      },
+      "see_also": [
+        "HC-12",
+        "MED-01",
+        "RDE-01",
+        "WAT-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "FD-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-FD-01",
+    "print_section": "Volume 1: Emergency Front Door",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/emergency_front_door_rde_routing.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Allowed claims and scope",
+            "Claimed first-pass order",
+            "Safety boundary checks"
+          ],
+          "source_id": "triage_front_door_rde",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/01_EMERGENCY_FRONT_DOOR.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": true,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D1",
+      "min_environment": "E1",
+      "panic_fork_priority": 1,
+      "resource_requirements": [
+        "R1"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "show safe fallback",
+          "code": "HS-001",
+          "rule": "Do not route to non-reviewed procedural claims."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "low"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "emergency front door",
+        "immediate danger",
+        "life threatening",
+        "triage first",
+        "urgent danger"
+      ],
+      "confidence_min": 0.95,
+      "panic_aliases": [
+        "emergency",
+        "help",
+        "hurt",
+        "not okay"
+      ],
+      "symptoms": [
+        "cannot breathe",
+        "severe bleeding",
+        "shock",
+        "unconscious"
+      ]
+    },
+    "source_body": "# Emergency Front Door\n\nPilot SSOT node for immediate danger sequencing.\n\nThis node is the first entry for:\n\n- severe fire/smoke/kill-zone checks,\n- life-threatening injury triage,\n- utility/environment routing guardrails,\n- then forwarding to follow-up nodes by risk and dependency.\n\nSource trace:\n- `notes/source_reviews/volume01/emergency_front_door_rde_routing.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\FD-01.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "Emergency Front Door",
+    "version": "1.0.0"
+  },
+  {
+    "band": "safety",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "crowd_safety",
+        "reliability_vs_speed tradeoff"
+      ],
+      "requires_recording": [
+        "symptom_progress",
+        "isolation_or_shelter_moves"
+      ]
+    },
+    "id": "HC-12",
+    "kind": "hazard",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "health",
+        "hazards",
+        "public_health"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "hazard_cards/13_CONFLICTING_UNRELIABLE_INSTRUCTIONS.md"
+      ],
+      "print_cross_ref": {
+        "MED-01": {
+          "page_anchor": "SEC-MED-01"
+        },
+        "WAT-01": {
+          "page_anchor": "SEC-WAT-01"
+        }
+      },
+      "see_also": [
+        "FD-01",
+        "MED-01",
+        "WAT-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "HC-12",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01",
+        "MED-01",
+        "WAT-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-HC-12",
+    "print_section": "Volume 1: Hazard Card 12",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/hazard_biological_pandemic.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-06-05",
+          "reviewer": "Codex",
+          "sections": [
+            "Claims allowed into draft manual",
+            "Claims not yet allowed",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "hazard_biological_pandemic",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/hazard_cards/12_BIOLOGICAL_PANDEMIC_CONTAGIOUS_DISEASE.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D2",
+      "min_environment": "E1",
+      "panic_fork_priority": 2,
+      "resource_requirements": [
+        "R1",
+        "HEALTH",
+        "SHELTER"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "route to local public-health, healthcare, and established shelter paths",
+          "code": "HS-001",
+          "rule": "Do not include diagnosis or treatment claims."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "high"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "biological",
+        "contagious disease",
+        "outbreak",
+        "pandemic",
+        "sick household"
+      ],
+      "confidence_min": 0.86,
+      "panic_aliases": [
+        "contagious illness",
+        "crowded shelter",
+        "false all clear",
+        "not improving"
+      ],
+      "symptoms": [
+        "crowd exposure",
+        "difficulty breathing",
+        "persistent fever",
+        "worsening illness"
+      ]
+    },
+    "source_body": "# Biological / Pandemic / Contagious Disease\n\nPilot SSOT node for respiratory and contagion-aware routing.\n\nCore routing intent:\n\n- Follow current local public-health and healthcare guidance first.\n- Use this node as a hazard routing boundary for sick/exposed, vulnerable people,\n  shelter crowding, and care continuity while avoiding diagnosis or treatment.\n\nSource trace:\n- `notes/source_reviews/volume01/hazard_biological_pandemic.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\HC-12.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "Biological / Pandemic / Contagious Disease",
+    "version": "1.0.0"
+  },
+  {
+    "band": "health",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "medical escalation threshold",
+        "vulnerable-person risk"
+      ],
+      "requires_recording": [
+        "injury_timestamp",
+        "medicine_device_status"
+      ]
+    },
+    "id": "MED-01",
+    "kind": "capability",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "medical",
+        "first_aid",
+        "continuity"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "06_FIRE_POWER_UTILITIES_CO.md"
+      ],
+      "print_cross_ref": {
+        "FD-01": {
+          "page_anchor": "SEC-FD-01"
+        }
+      },
+      "see_also": [
+        "FD-01",
+        "HC-12",
+        "RDE-01"
+      ]
+    },
+    "maturity_level": "M2",
+    "node_id": "MED-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-MED-01",
+    "print_section": "Volume 1: First Aid And Health Continuity",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/first_aid_wound_care.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Claims allowed into draft manual",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "first_aid_wound_care",
+          "trust_tier": "official"
+        },
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Allowed claims",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "vulnerable_people_medical_continuity",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/07_FIRST_AID_AND_HEALTH_CONTINUITY.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D1",
+      "min_environment": "E1",
+      "panic_fork_priority": 1,
+      "resource_requirements": [
+        "R2",
+        "MED"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "route only, escalate to trained help paths",
+          "code": "HS-001",
+          "rule": "Do not include dosing, diagnosis, or treatment-protocol details."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "high"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "device dependency",
+        "first aid",
+        "medical continuity",
+        "severe bleeding",
+        "unconscious",
+        "wound"
+      ],
+      "confidence_min": 0.92,
+      "panic_aliases": [
+        "bleeding",
+        "can not breathe",
+        "emergency medical help",
+        "injury"
+      ],
+      "symptoms": [
+        "burn and smoke injury",
+        "choking",
+        "no medication",
+        "severe bleeding",
+        "unresponsive"
+      ]
+    },
+    "source_body": "# First Aid And Health Continuity\n\nPilot SSOT node for routing life-threatening injury and continuity needs.\n\nCore routing intent:\n\n- This is the first aid and care-continuity entry after the emergency-front-door checks.\n- Do not include treatment procedures; this node routes to escalation and specialist help\n  and tracks medicine/device continuity risks.\n\nSource traces:\n- `notes/source_reviews/volume01/first_aid_wound_care.md`\n- `notes/source_reviews/volume01/vulnerable_people_medical_continuity.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\MED-01.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "First Aid And Health Continuity",
+    "version": "1.0.0"
+  },
+  {
+    "band": "safety",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "post-incident sequencing",
+        "unresolved domains"
+      ],
+      "requires_recording": [
+        "routing_path"
+      ]
+    },
+    "id": "RDE-01",
+    "kind": "meta",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "routing",
+        "stubs"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "hazard_cards/13_CONFLICTING_UNRELIABLE_INSTRUCTIONS.md"
+      ],
+      "see_also": [
+        "FD-01",
+        "HC-12",
+        "MED-01",
+        "WAT-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "RDE-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-RDE-01",
+    "print_section": "Volume 1: Routing Index And Later Stubs",
+    "provenance": {
+      "source_review_file": "notes/VOLUME_01_RECONCILIATION_PASS.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Reconciliation edits",
+            "Routing map",
+            "Next action sequencing"
+          ],
+          "source_id": "v1_reconciliation_pass",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/13_ROUTING_INDEX_AND_LATER_STUBS.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D2",
+      "min_environment": "E1",
+      "panic_fork_priority": 3,
+      "resource_requirements": [
+        "R1",
+        "GRAPH"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "show placeholder and safe fallback",
+          "code": "HS-001",
+          "rule": "Do not route directly to unreviewed stub content."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "medium"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "later stubs",
+        "next chapter",
+        "routing index",
+        "where next"
+      ],
+      "confidence_min": 0.87,
+      "panic_aliases": [
+        "help is unavailable",
+        "what next",
+        "where do i go"
+      ],
+      "symptoms": [
+        "after initial stabilization",
+        "conflicting instructions",
+        "no safe shelter"
+      ]
+    },
+    "source_body": "# Routing Index And Later Stubs\n\nPilot SSOT node that stabilizes routing from first checks into the main graph.\n\nCore routing intent:\n\n- Use this node as the domain bridge after emergency, R-D-E, and first-48-hour sequencing.\n- Keep unresolved nodes explicit as stubs, and never resolve to unreviewed procedural claims.\n\nSource trace:\n- `notes/VOLUME_01_RECONCILIATION_PASS.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\RDE-01.md",
+    "status": "reviewed",
+    "tier": 1,
+    "title": "Routing Index And Later Stubs",
+    "version": "1.0.0"
+  },
+  {
+    "band": "life_support",
+    "dependents": {
+      "hard": [],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "flags": {
+      "allows_local_only_pack_only": false,
+      "requires_judgment": [
+        "flood contamination depth",
+        "power outage duration"
+      ],
+      "requires_recording": [
+        "water_source_checks"
+      ]
+    },
+    "id": "WAT-01",
+    "kind": "capability",
+    "license_context": {
+      "license": "unknown",
+      "redistributable": "local_only",
+      "source_bundle_tags": [
+        "water",
+        "wash",
+        "food"
+      ]
+    },
+    "links": {
+      "fallback_to": [
+        "01_EMERGENCY_FRONT_DOOR.md"
+      ],
+      "print_cross_ref": {
+        "FD-01": {
+          "page_anchor": "SEC-FD-01"
+        },
+        "HC-12": {
+          "page_anchor": "SEC-HC-12"
+        }
+      },
+      "see_also": [
+        "FD-01",
+        "HC-12",
+        "RDE-01"
+      ]
+    },
+    "maturity_level": "M1",
+    "node_id": "WAT-01",
+    "phase": 0,
+    "prerequisites": {
+      "hard": [
+        "FD-01"
+      ],
+      "phase_gates": [],
+      "safety": [],
+      "soft": []
+    },
+    "print_page_anchor": "SEC-WAT-01",
+    "print_section": "Volume 1: Water, Hygiene, And Food Minimums",
+    "provenance": {
+      "source_review_file": "notes/source_reviews/volume01/water_hygiene_food_minimums.md",
+      "sources": [
+        {
+          "allowed_for_app": true,
+          "allowed_for_print": true,
+          "reviewed_on": "2026-05-14",
+          "reviewer": "Codex",
+          "sections": [
+            "Strongest sources",
+            "Claims allowed into draft manual",
+            "Safety-sensitive claims"
+          ],
+          "source_id": "water_food_minimums",
+          "trust_tier": "official"
+        }
+      ]
+    },
+    "publication": {
+      "body_md_path": "manual/volume_01/05_WATER_HYGIENE_FOOD_MINIMUMS.md",
+      "generated_from": "notes/EOTFW_OFFLINE_FIRST_WRAPPER_PLAN.md",
+      "generated_on": "2026-07-06"
+    },
+    "rde_trigger": {
+      "emergency_front_door": false,
+      "max_disruption": "D5",
+      "max_environment": "E5",
+      "min_disruption": "D1",
+      "min_environment": "E1",
+      "panic_fork_priority": 2,
+      "resource_requirements": [
+        "R1",
+        "WATER"
+      ]
+    },
+    "safety": {
+      "allowed_in_uncertain_context": false,
+      "hard_stops": [
+        {
+          "action": "route to known-safe hazard checks first",
+          "code": "HS-001",
+          "rule": "Do not route to unreviewed chemical, toxic, or radiological treatment claims."
+        }
+      ],
+      "no_treatment_claims": true,
+      "risk_class": "medium"
+    },
+    "schema_version": "1.0.0",
+    "search": {
+      "aliases": [
+        "bottled water",
+        "food minimums",
+        "hygiene",
+        "water",
+        "water safe"
+      ],
+      "confidence_min": 0.9,
+      "panic_aliases": [
+        "contamination",
+        "food bad",
+        "no water"
+      ],
+      "symptoms": [
+        "diarrhea risk",
+        "food spoilage smell",
+        "severe thirst"
+      ]
+    },
+    "source_body": "# Water, Hygiene, And Food Minimums\n\nPilot SSOT node for minimum safe-life checks on hydration, sanitation separation,\nand short-duration food safety.\n\nCore routing intent:\n\n- Use this node after immediate-danger handling when the immediate threat map includes\n  water contamination, hygiene breakdown, or spoiled food risk.\n- Defer detailed engineering or treatment recipes to later reviewed packets.\n\nSource trace:\n- `notes/source_reviews/volume01/water_hygiene_food_minimums.md`",
+    "source_file": "J:\\survival\\notes\\eotfw_nodes\\WAT-01.md",
+    "status": "reviewed",
+    "tier": 0,
+    "title": "Water, Hygiene, And Food Minimums",
+    "version": "1.0.0"
+  }
+]
+</script>
+<script type="application/json" id="eotfw-embedded-search-index">
+[
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "emergency front door"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "immediate danger"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "life threatening"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "triage first"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "alias",
+    "term": "urgent danger"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "emergency"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "help"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "hurt"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "panic_alias",
+    "term": "not okay"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "cannot breathe"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "severe bleeding"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "shock"
+  },
+  {
+    "confidence_min": 0.95,
+    "node_id": "FD-01",
+    "query_type": "symptom",
+    "term": "unconscious"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "biological"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "contagious disease"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "outbreak"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "pandemic"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "alias",
+    "term": "sick household"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "contagious illness"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "crowded shelter"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "false all clear"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "panic_alias",
+    "term": "not improving"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "crowd exposure"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "difficulty breathing"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "persistent fever"
+  },
+  {
+    "confidence_min": 0.86,
+    "node_id": "HC-12",
+    "query_type": "symptom",
+    "term": "worsening illness"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "device dependency"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "first aid"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "medical continuity"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "severe bleeding"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "unconscious"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "alias",
+    "term": "wound"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "bleeding"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "can not breathe"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "emergency medical help"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "panic_alias",
+    "term": "injury"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "burn and smoke injury"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "choking"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "no medication"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "severe bleeding"
+  },
+  {
+    "confidence_min": 0.92,
+    "node_id": "MED-01",
+    "query_type": "symptom",
+    "term": "unresponsive"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "later stubs"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "next chapter"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "routing index"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "alias",
+    "term": "where next"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "panic_alias",
+    "term": "help is unavailable"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "panic_alias",
+    "term": "what next"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "panic_alias",
+    "term": "where do i go"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "symptom",
+    "term": "after initial stabilization"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "symptom",
+    "term": "conflicting instructions"
+  },
+  {
+    "confidence_min": 0.87,
+    "node_id": "RDE-01",
+    "query_type": "symptom",
+    "term": "no safe shelter"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "bottled water"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "food minimums"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "hygiene"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "water"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "alias",
+    "term": "water safe"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "panic_alias",
+    "term": "contamination"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "panic_alias",
+    "term": "food bad"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "panic_alias",
+    "term": "no water"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "symptom",
+    "term": "diarrhea risk"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "symptom",
+    "term": "food spoilage smell"
+  },
+  {
+    "confidence_min": 0.9,
+    "node_id": "WAT-01",
+    "query_type": "symptom",
+    "term": "severe thirst"
+  }
+]
+</script>
+<script type="application/json" id="eotfw-embedded-graph">
+{
+  "adjacency": {
+    "FD-01": {
+      "dependents": {
+        "hard": [
+          "HC-12",
+          "MED-01",
+          "RDE-01",
+          "WAT-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "HC-12": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01",
+          "MED-01",
+          "WAT-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "MED-01": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "RDE-01": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    },
+    "WAT-01": {
+      "dependents": {
+        "hard": [],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      },
+      "prerequisites": {
+        "hard": [
+          "FD-01"
+        ],
+        "phase_gates": [],
+        "safety": [],
+        "soft": []
+      }
+    }
+  },
+  "edges": [
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "HC-12"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "MED-01"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "RDE-01"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "FD-01",
+      "kind": "prerequisite.hard",
+      "to": "WAT-01"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "MED-01",
+      "kind": "prerequisite.hard",
+      "to": "HC-12"
+    },
+    {
+      "direction": "prereq_to_node",
+      "from": "WAT-01",
+      "kind": "prerequisite.hard",
+      "to": "HC-12"
+    }
+  ],
+  "node_count": 5,
+  "nodes": [
+    "FD-01",
+    "HC-12",
+    "MED-01",
+    "RDE-01",
+    "WAT-01"
+  ],
+  "schema_version": "1.0.0",
+  "source": "notes/eotfw_nodes/*.md"
+}
+</script>
+
+<script>
+'use strict';
+
+const STORAGE_KEY = "eotfw:v3:progress:v1";
+const THEME_KEY = "eotfw:v3:theme:v1";
+const VALID_STATES = ["unseen", "in_progress", "done", "blocked"];
+const D_LIST = ["D1","D2","D3","D4","D5"];
+const E_LIST = ["E1","E2","E3","E4","E5"];
+const EMBEDDED_ARTIFACT_IDS = {
+  nodes: "eotfw-embedded-nodes",
+  searchIndex: "eotfw-embedded-search-index",
+  graph: "eotfw-embedded-graph",
+};
+const RUNTIME_ICON_FALLBACK = {
+  "action.clear": "icons/ocha__mapaction__warning-error.svg",
+  "action.export": "icons/ocha__mapaction__document.svg",
+  "action.fallback": "icons/ocha__mapaction__alert.svg",
+  "action.filter": "icons/ocha__mapaction__preparedness.svg",
+  "action.import": "icons/ocha__mapaction__document.svg",
+  "action.open": "icons/ocha__mapaction__document.svg",
+  "action.reset": "icons/ocha__mapaction__warning-error.svg",
+  "action.search": "icons/ocha__mapaction__search.svg",
+  "concept.chemical": "icons/iconify__healthicons__chemical-burn.svg",
+  "concept.earthquake": "icons/ocha__mapaction__earthquake.svg",
+  "concept.fire_smoke": "icons/ocha__mapaction__fire.svg",
+  "concept.first_aid": "icons/iconify__medical-icon__first-aid.svg",
+  "concept.flood": "icons/ocha__mapaction__flood.svg",
+  "concept.food": "icons/ocha__mapaction__food.svg",
+  "concept.radiation": "icons/iconify__temaki__radiation.svg",
+  "concept.radio": "icons/ocha__mapaction__radio.svg",
+  "concept.sanitation": "icons/ocha__mapaction__sanitation.svg",
+  "concept.shelter": "icons/ocha__mapaction__shelter.svg",
+  "concept.tornado": "icons/ocha__mapaction__tornado.svg",
+  "concept.tsunami": "icons/ocha__mapaction__tsunami.svg",
+  "concept.water": "icons/ocha__mapaction__water-source.svg",
+  "meta.band": "icons/ocha__mapaction__preparedness.svg",
+  "meta.confidence": "icons/ocha__mapaction__search.svg",
+  "meta.kind": "icons/ocha__mapaction__logistics.svg",
+  "meta.prerequisite": "icons/ocha__mapaction__logistics.svg",
+  "meta.provenance": "icons/ocha__mapaction__document.svg",
+  "meta.risk": "icons/ocha__mapaction__warning-error.svg",
+  "meta.unlock": "icons/ocha__mapaction__preparedness.svg",
+  "node.FD-01": "icons/ocha__mapaction__warning-error.svg",
+  "node.HC-12": "icons/ocha__mapaction__virus.svg",
+  "node.MED-01": "icons/ocha__mapaction__medical-supply.svg",
+  "node.RDE-01": "icons/ocha__mapaction__preparedness.svg",
+  "node.WAT-01": "icons/ocha__mapaction__water-source.svg",
+  "progress.blocked": "icons/ocha__mapaction__warning-error.svg",
+  "progress.done": "icons/ocha__mapaction__logistics.svg",
+  "progress.in_progress": "icons/ocha__mapaction__preparedness.svg",
+  "progress.unseen": "icons/ocha__mapaction__document.svg",
+  "section.dependencies": "icons/ocha__mapaction__logistics.svg",
+  "section.immediate": "icons/ocha__mapaction__alert.svg",
+  "section.node": "icons/ocha__mapaction__document.svg",
+  "section.progress": "icons/ocha__mapaction__preparedness.svg",
+  "section.rde": "icons/ocha__mapaction__preparedness.svg",
+  "section.search": "icons/ocha__mapaction__search.svg",
+  "tab.graph": "icons/ocha__mapaction__logistics.svg",
+  "tab.node": "icons/ocha__mapaction__document.svg",
+  "tab.progress": "icons/ocha__mapaction__preparedness.svg",
+  "tab.search": "icons/ocha__mapaction__search.svg",
+  "tab.triage": "icons/ocha__mapaction__alert.svg",
+};
+
+const state = {
+  nodes: [],
+  nodesById: new Map(),
+  searchIndex: [],
+  graph: { adjacency: {} },
+  graphAdj: {},
+  runtimeIcons: { icons: {} },
+  progress: {},
+  activeNodeId: null,
+  loaded: false,
+};
+
+const ui = {
+  status: document.getElementById("status"),
+  theme: document.getElementById("theme"),
+  triageForm: document.getElementById("triage-form"),
+  searchForm: document.getElementById("search-form"),
+  triageR: document.getElementById("triage-r"),
+  triageD: document.getElementById("triage-d"),
+  triageE: document.getElementById("triage-e"),
+  triageTags: document.getElementById("triage-tags"),
+  triageResults: document.getElementById("triage-results"),
+  triageClear: document.getElementById("triage-clear"),
+  searchQuery: document.getElementById("search-query"),
+  searchResults: document.getElementById("search-results"),
+  searchClear: document.getElementById("search-clear"),
+  nodeTitle: document.getElementById("node-title"),
+  nodeId: document.getElementById("node-id"),
+  nodeMeta: document.getElementById("node-meta"),
+  nodeBody: document.getElementById("node-body"),
+  nodeWarning: document.getElementById("node-safe-warning"),
+  nodeProvenance: document.getElementById("node-provenance"),
+  nodePrereqs: document.getElementById("node-prereqs"),
+  nodeUnlocks: document.getElementById("node-unlocks"),
+  nodeFallbackButton: document.getElementById("node-fallback-btn"),
+  graphList: document.getElementById("graph-list"),
+  progressExport: document.getElementById("progress-export"),
+  progressImport: document.getElementById("progress-import-file"),
+  progressList: document.getElementById("progress-list"),
+  importMessage: document.getElementById("import-message"),
+  resetProgress: document.getElementById("reset-progress"),
+};
+
+function setStatus(text, level = "info") {
+  ui.status.textContent = text;
+  ui.status.className = `status ${level}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function normalize(value) {
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function safeText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeRuntimeIcons(raw) {
+  const source = raw && typeof raw === "object" && raw.icons && typeof raw.icons === "object"
+    ? raw.icons
+    : RUNTIME_ICON_FALLBACK;
+  const icons = {};
+  for (const [key, value] of Object.entries(source)) {
+    const pathValue = typeof value === "string" ? value : value?.path;
+    const iconPath = safeText(pathValue);
+    if (!key || !iconPath) continue;
+    icons[key] = { path: iconPath, display_name: safeText(value?.display_name || key) };
+  }
+  return { icons };
+}
+
+function runtimeIcon(key) {
+  return state.runtimeIcons?.icons?.[key] || null;
+}
+
+function iconClasses(size = "md", tone = "") {
+  const allowedSizes = new Set(["xs", "sm", "md", "lg"]);
+  const allowedTones = new Set(["strong", "muted"]);
+  const classes = ["icon-plate", allowedSizes.has(size) ? size : "md"];
+  if (allowedTones.has(tone)) classes.push(tone);
+  return classes.join(" ");
+}
+
+function iconPlateHtml(key, label = "", size = "md", tone = "") {
+  const icon = runtimeIcon(key);
+  if (!icon) return "";
+  return `<span class="${iconClasses(size, tone)}" aria-hidden="true"><img src="${escapeHtml(icon.path)}" alt="" loading="lazy" decoding="async" onerror="this.parentElement.classList.add('missing')" /></span>`;
+}
+
+function iconPlateElement(key, size = "md", tone = "") {
+  const icon = runtimeIcon(key);
+  if (!icon) return null;
+  const span = document.createElement("span");
+  span.className = iconClasses(size, tone);
+  span.setAttribute("aria-hidden", "true");
+  const img = document.createElement("img");
+  img.src = icon.path;
+  img.alt = "";
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.addEventListener("error", () => span.classList.add("missing"));
+  span.appendChild(img);
+  return span;
+}
+
+function nodeIconKey(id) {
+  return `node.${safeText(id)}`;
+}
+
+function progressIconKey(value) {
+  return `progress.${canStoreState(value) ? value : "unseen"}`;
+}
+
+function staticIconSize(target) {
+  if (target.classList.contains("quick-open")) return "lg";
+  if (target.closest(".tabs")) return "sm";
+  if (target.matches("h2, h3")) return "md";
+  return "xs";
+}
+
+function staticIconTone(target, key) {
+  if (target.classList.contains("critical")) return "strong";
+  if (/warning|alert|risk|fallback|reset|clear|blocked/.test(key)) return "strong";
+  if (target.closest(".tabs")) return "muted";
+  return "";
+}
+
+function hydrateStaticIcons() {
+  document.querySelectorAll("[data-icon-key]").forEach((target) => {
+    if (target.dataset.iconHydrated === "true") return;
+    const key = safeText(target.dataset.iconKey);
+    const icon = iconPlateElement(key, staticIconSize(target), staticIconTone(target, key));
+    if (!icon) return;
+    target.insertBefore(icon, target.firstChild);
+    target.classList.add("with-static-icon");
+    target.dataset.iconHydrated = "true";
+  });
+}
+
+function idxIn(list, v) {
+  const n = list.indexOf(String(v || ""));
+  return n < 0 ? -1 : n;
+}
+
+function inRange(v, min, max, list) {
+  const vi = idxIn(list, v);
+  const lo = idxIn(list, min);
+  const hi = idxIn(list, max);
+  return vi >= 0 && lo >= 0 && hi >= 0 && vi >= lo && vi <= hi;
+}
+
+function canStoreState(v) {
+  return VALID_STATES.includes(v);
+}
+
+function readProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const bag = parsed && typeof parsed === "object" && parsed.progress ? parsed.progress : parsed;
+    const out = {};
+    if (bag && typeof bag === "object") {
+      Object.entries(bag).forEach(([k, v]) => {
+        const id = safeText(k);
+        if (!id || !state.nodesById.has(id)) return;
+        if (!canStoreState(v)) return;
+        out[id] = v;
+      });
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeProgress() {
+  const payload = JSON.stringify(state.progress);
+  try {
+    localStorage.setItem(STORAGE_KEY, payload);
+  } catch {
+    // ignore
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  ui.theme.checked = theme === "light";
+}
+
+function safeNode(node) {
+  const p = node.provenance || {};
+  if (typeof p.source_review_file !== "string" || !safeText(p.source_review_file)) return false;
+  const sources = Array.isArray(p.sources) ? p.sources : [];
+  if (!sources.length) return false;
+  const sourceOk = sources.every((s) => {
+    return s && typeof s.source_id === "string" && safeText(s.source_id) && Array.isArray(s.sections) && s.sections.length > 0 &&
+      typeof s.allowed_for_app === "boolean" && typeof s.allowed_for_print === "boolean";
+  });
+  if (!sourceOk) return false;
+  const risk = String(node.safety?.risk_class || "low").toLowerCase();
+  if (risk === "high" || risk === "critical") {
+    return sources.some((s) => s.allowed_for_app === true);
+  }
+  return true;
+}
+
+function severityClass(risk) {
+  return String(risk || "low");
+}
+
+function canOpenActions(node) {
+  return safeNode(node);
+}
+
+function nodeById(id) {
+  return state.nodesById.get(String(id || ""));
+}
+
+function tokenScore(query, term) {
+  const q = normalize(query);
+  const t = normalize(term);
+  if (!q || !t) return 0;
+  if (q === t) return 1;
+  if (q.includes(t) || t.includes(q)) {
+    const ratio = Math.min(q.length, t.length) / Math.max(q.length, t.length);
+    return 0.55 + ratio * 0.35;
+  }
+  const qSet = new Set(q.split(" ").filter(Boolean));
+  const tTokens = t.split(" ").filter(Boolean);
+  let overlap = 0;
+  for (const token of tTokens) {
+    if (qSet.has(token)) overlap += 1;
+  }
+  if (!overlap) return 0;
+  return 0.25 + (overlap / Math.max(qSet.size, tTokens.length)) * 0.45;
+}
+
+function buildSearchResults(rawQuery) {
+  const query = normalize(rawQuery);
+  if (!query) return [];
+  const byNode = new Map();
+  for (const row of state.searchIndex) {
+    const n = nodeById(row.node_id);
+    if (!n) continue;
+    const score = tokenScore(query, row.term_norm);
+    if (score < 0.1) continue;
+    const prev = byNode.get(row.node_id);
+    if (!prev || score > prev.score) {
+      byNode.set(row.node_id, {
+        node: n,
+        score,
+        term: row.term,
+        qtype: row.query_type,
+        canOpen: canOpenActions(n),
+        confidence: row.confidence_min,
+      });
+    }
+  }
+
+  return [...byNode.values()].sort((a, b) => {
+    const d = b.score - a.score;
+    if (d !== 0) return d;
+    return a.node.id.localeCompare(b.node.id);
+  });
+}
+
+function isClearWinner(items) {
+  if (!items.length) return false;
+  const top = items[0];
+  const second = items[1];
+  if (top.score < top.confidence) return false;
+  if (!second) return true;
+  if (second.score < top.confidence) return true;
+  return top.score - second.score >= 0.15;
+}
+
+function showResultItems(items, target, includeScore = false, includeMatch = false) {
+  target.innerHTML = "";
+  for (const item of items) {
+    const li = document.createElement("li");
+    li.className = "result-item";
+    const risk = severityClass(item.node.safety?.risk_class);
+    const statusClass = item.canOpen ? "safe" : "blocked";
+    const scoreText = includeScore ? `score ${(item.score || 0).toFixed(2)}` : "";
+    const matchText = includeMatch ? `${item.qtype || "alias"}: ${item.term}` : "";
+    const actionText = item.canOpen ? "Open" : "Open fallback";
+    const nodeIcon = iconPlateHtml(nodeIconKey(item.node.id), item.node.title, "md", item.node.id === "FD-01" || item.node.id === "MED-01" ? "strong" : "");
+    const actionIcon = iconPlateHtml(item.canOpen ? "action.open" : "action.fallback", actionText, "xs", item.canOpen ? "" : "strong");
+    const scoreMarkup = scoreText ? `<span class="${statusClass}">${escapeHtml(scoreText)}</span>` : "";
+    const matchMarkup = matchText ? `<span>${escapeHtml(matchText)}</span>` : "";
+    li.innerHTML = `
+      <div class="row-head">
+        <span class="result-title">${nodeIcon}<strong>${escapeHtml(item.node.id)} ${escapeHtml(item.node.title)}</strong></span>
+        <button class="secondary" data-open="${escapeHtml(item.node.id)}" type="button">${actionIcon}<span>${escapeHtml(actionText)}</span></button>
+      </div>
+      <div class="meta">
+        <span class="chip ${risk}">${iconPlateHtml("meta.risk", "risk", "xs", risk === "high" || risk === "critical" ? "strong" : "")}${escapeHtml(risk)}</span>
+        <span class="meta-item">${iconPlateHtml("meta.band", "band", "xs")}${escapeHtml(item.node.band || "")}</span>
+        <span class="meta-item">${iconPlateHtml("meta.kind", "kind", "xs")}${escapeHtml(item.node.kind || "")}</span>
+        ${scoreMarkup}
+        ${matchMarkup}
+      </div>
+    `;
+    target.appendChild(li);
+  }
+  if (!items.length) {
+    target.innerHTML = "<li class='result-item'>No results.</li>";
+  }
+}
+
+function normalizeSearch(rawRows) {
+  const out = [];
+  if (!Array.isArray(rawRows)) return out;
+  for (const row of rawRows) {
+    if (!row || typeof row !== "object") continue;
+    const id = safeText(row.node_id || row.id || row.node);
+    if (!id || !state.nodesById.has(id)) continue;
+    const term = safeText(row.term);
+    const termNorm = normalize(term);
+    const confidence = Number(row.confidence_min);
+    const qType = safeText(row.query_type) || "alias";
+    if (!termNorm) continue;
+    out.push({ node_id: id, term, term_norm: termNorm, query_type: qType, confidence_min: Number.isFinite(confidence) ? confidence : 0.75 });
+  }
+  return out.sort((a, b) => {
+    if (a.node_id !== b.node_id) return a.node_id.localeCompare(b.node_id);
+    if (a.query_type !== b.query_type) return a.query_type.localeCompare(b.query_type);
+    return a.term_norm.localeCompare(b.term_norm);
+  });
+}
+
+function buildGraph(nodeIds) {
+  const out = {};
+  const source = state.graph?.adjacency || {};
+  for (const id of nodeIds) {
+    const row = source[id] || {};
+    const addKnown = (arr) => (Array.isArray(arr) ? arr.filter((x) => state.nodesById.has(safeText(x))).sort() : []);
+    out[id] = {
+      prerequisites: {
+        hard: addKnown(row.prerequisites?.hard),
+        safety: addKnown(row.prerequisites?.safety),
+        soft: addKnown(row.prerequisites?.soft),
+        phase_gates: addKnown(row.prerequisites?.phase_gates),
+      },
+      dependents: {
+        hard: addKnown(row.dependents?.hard),
+        safety: addKnown(row.dependents?.safety),
+        soft: addKnown(row.dependents?.soft),
+        phase_gates: addKnown(row.dependents?.phase_gates),
+      },
+    };
+  }
+  return out;
+}
+
+function renderNodeDependencies(id) {
+  const deps = state.graphAdj[id] || { prerequisites: {}, dependents: {} };
+  const reqAll = [
+    ...deps.prerequisites.hard,
+    ...deps.prerequisites.safety,
+    ...deps.prerequisites.soft,
+    ...deps.prerequisites.phase_gates,
+  ];
+  const unAll = [
+    ...deps.dependents.hard,
+    ...deps.dependents.safety,
+    ...deps.dependents.soft,
+    ...deps.dependents.phase_gates,
+  ];
+
+  const renderList = (target, items) => {
+    target.innerHTML = "";
+    if (!items.length) {
+      const li = document.createElement("li");
+      li.textContent = "(none)";
+      target.appendChild(li);
+      return;
+    }
+    items.forEach((n) => {
+      const li = document.createElement("li");
+      const label = nodeById(n);
+      li.innerHTML = `
+        <span class="dependency-link">
+          ${iconPlateHtml(nodeIconKey(n), label?.title || n, "sm")}
+          <button class="secondary" data-open="${escapeHtml(n)}" type="button">${iconPlateHtml("action.open", "open", "xs")}<span>${escapeHtml(n)}</span></button>
+          <span>${escapeHtml(label?.title || "")}</span>
+        </span>
+      `;
+      target.appendChild(li);
+    });
+  };
+
+  renderList(ui.nodePrereqs, reqAll);
+  renderList(ui.nodeUnlocks, unAll);
+}
+
+function showNode(node, forceFallback = false) {
+  const n = nodeById(node);
+  if (!n) {
+    setStatus(`No node found for ${node}`, "error");
+    return;
+  }
+
+  const safe = canOpenActions(n);
+  const risk = severityClass(n.safety?.risk_class);
+  const stateValue = state.progress[n.id] || "unseen";
+  ui.nodeTitle.classList.add("result-title");
+  ui.nodeTitle.innerHTML = `${iconPlateHtml(nodeIconKey(n.id), n.title || n.id, "md", n.id === "FD-01" || n.id === "MED-01" ? "strong" : "")}<span>${escapeHtml(n.title || n.id)}</span>`;
+  ui.nodeId.textContent = `ID ${n.id} · status ${stateValue}`;
+  ui.nodeMeta.innerHTML = `
+    <span class="chip ${risk}">${iconPlateHtml("meta.risk", "risk", "xs", risk === "high" || risk === "critical" ? "strong" : "")}${escapeHtml(risk)}</span>
+    <span class="meta-item">${iconPlateHtml("meta.kind", "kind", "xs")}kind ${escapeHtml(n.kind || "")}</span>
+    <span class="meta-item">${iconPlateHtml("meta.band", "band", "xs")}band ${escapeHtml(n.band || "")}</span>
+    <span class="meta-item">${iconPlateHtml("meta.confidence", "confidence", "xs")}confidence_min ${String((n.search?.confidence_min ?? 0).toFixed(2))}</span>
+    <span class="meta-item">${iconPlateHtml(progressIconKey(stateValue), "progress", "xs", stateValue === "blocked" ? "strong" : "")}status ${escapeHtml(stateValue)}</span>
+  `;
+
+  if (safe && !forceFallback) {
+    ui.nodeWarning.classList.add("hidden");
+    ui.nodeBody.textContent = safeText(n.source_body) || "No source body available.";
+  } else {
+    const reasons = [];
+    if (!safeText(n.provenance?.source_review_file)) {
+      reasons.push("missing or empty source_review_file");
+    }
+    if (!Array.isArray(n.provenance?.sources) || !n.provenance.sources.length) {
+      reasons.push("missing provenance sources");
+    }
+    const r = String(n.safety?.risk_class || "");
+    if ((r === "high" || r === "critical") && !((n.provenance?.sources || []).some((s) => s?.allowed_for_app === true))) {
+      reasons.push("high/critical requires allowed_for_app provenance source");
+    }
+    if (!reasons.length && !safe) reasons.push("provenance incomplete");
+
+    ui.nodeWarning.classList.remove("hidden");
+    ui.nodeWarning.innerHTML = `Safe fallback: this node is not safe for direct actions because ${escapeHtml(reasons.join(" and ")) || "no allowed provenance state."}`;
+    ui.nodeBody.textContent = "Use safe fallback only. No direct action claims are shown.";
+  }
+
+  const sourcePath = safeText(n.provenance?.source_review_file);
+  const allowForApp = Array.isArray(n.provenance?.sources)
+    ? n.provenance.sources.filter((s) => s?.allowed_for_app === true).length
+    : 0;
+  const sourceCount = Array.isArray(n.provenance?.sources) ? n.provenance.sources.length : 0;
+  ui.nodeProvenance.innerHTML = `
+    <span class="meta-item">${iconPlateHtml("meta.provenance", "provenance", "xs")}source_review_file: ${escapeHtml(sourcePath || "missing")}</span>
+    <span>provenance sources ${sourceCount}, allowed_for_app true: ${allowForApp}</span>
+  `;
+
+  renderNodeDependencies(n.id);
+  ui.nodeWarning.dataset.node = n.id;
+  state.activeNodeId = n.id;
+}
+
+function renderFrontDoorList() {
+  const items = [...state.nodes]
+    .map((n) => ({
+      node: n,
+      sortScore: n.rde_trigger?.emergency_front_door ? 10 : 1,
+      canOpen: canOpenActions(n),
+    }))
+    .sort((a, b) => {
+      if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+      return a.node.id.localeCompare(b.node.id);
+    });
+  showResultItems(items, ui.triageResults);
+  if (items[0]) showNode(items[0].node.id);
+}
+
+function runTriage() {
+  const r = safeText(ui.triageR.value).toUpperCase();
+  const d = safeText(ui.triageD.value).toUpperCase();
+  const e = safeText(ui.triageE.value).toUpperCase();
+  const rawTags = normalize(ui.triageTags.value);
+  const tags = rawTags ? rawTags.split(",").map((x) => x.trim()).filter(Boolean) : [];
+
+  if (!r && !d && !e) {
+    setStatus("No triage filters selected. Showing FD-first default list.", "info");
+    return renderFrontDoorList();
+  }
+
+  const list = [];
+  for (const n of state.nodes) {
+    const trig = n.rde_trigger || {};
+    if (d && !inRange(d, trig.min_disruption, trig.max_disruption, D_LIST)) continue;
+    if (e && !inRange(e, trig.min_environment, trig.max_environment, E_LIST)) continue;
+    if (r && !(trig.resource_requirements || []).includes(r)) continue;
+
+    const tokenSource = normalize([n.title, ...(n.search?.aliases || []), ...(n.search?.panic_aliases || []), ...(n.search?.symptoms || [])].join(" "));
+    const tagScore = tags.length ? tags.some((t) => tokenSource.includes(t)) : true;
+    if (!tagScore) continue;
+
+    let score = 0;
+    if (trig.emergency_front_door) score += 2;
+    if (n.safety?.risk_class === "low") score += 0.8;
+    if (n.safety?.risk_class === "medium") score += 0.5;
+    score += d ? 1 : 0;
+    score += e ? 1 : 0;
+    score += r ? 1 : 0;
+
+    list.push({ node: n, sortScore: score, canOpen: canOpenActions(n) });
+  }
+
+  list.sort((a, b) => {
+    if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+    return a.node.id.localeCompare(b.node.id);
+  });
+
+  if (!list.length) {
+    setStatus("No triage matches. Showing FD-first defaults.", "warn");
+    return renderFrontDoorList();
+  }
+  setStatus(`Triage resolved ${list.length} nodes`, "info");
+  showResultItems(list, ui.triageResults);
+  showNode(list[0].node.id);
+}
+
+function runSearch() {
+  const q = ui.searchQuery.value;
+  const results = buildSearchResults(q);
+  if (!results.length) {
+    setStatus(`No hits for: ${q}`, "warn");
+    return showResultItems([], ui.searchResults);
+  }
+
+  if (isClearWinner(results) && results[0].canOpen) {
+    setStatus(`Direct match: ${results[0].node.id}`, "info");
+    showResultItems([results[0]], ui.searchResults, true, true);
+    return showNode(results[0].node.id);
+  }
+
+  if (results[0] && !results[0].canOpen) {
+    setStatus("Exact hit blocked by safety gate. Select explicitly to inspect fallback.", "warn");
+  } else {
+    setStatus("Ambiguous or low-confidence search. Please select a candidate.", "warn");
+  }
+  showResultItems(results, ui.searchResults, true, true);
+}
+
+function renderGraph() {
+  ui.graphList.innerHTML = "";
+  for (const id of [...state.nodesById.keys()]) {
+    const n = nodeById(id);
+    const deps = state.graphAdj[id] || { prerequisites: {}, dependents: {} };
+    const reqAll = [...deps.prerequisites.hard, ...deps.prerequisites.safety, ...deps.prerequisites.soft, ...deps.prerequisites.phase_gates];
+    const unAll = [...deps.dependents.hard, ...deps.dependents.safety, ...deps.dependents.soft, ...deps.dependents.phase_gates];
+    const li = document.createElement("li");
+    li.className = "graph-item";
+    li.innerHTML = `
+      <div class="row-head">
+        <span class="graph-title">${iconPlateHtml(nodeIconKey(id), n?.title || id, "md")}<strong>${escapeHtml(id)} ${escapeHtml(n?.title || "")}</strong></span>
+        <button class="secondary" data-open="${escapeHtml(id)}" type="button">${iconPlateHtml("action.open", "open", "xs")}<span>open</span></button>
+      </div>
+      <div class="meta">${iconPlateHtml("meta.prerequisite", "required before", "xs")}Req before: ${reqAll.length ? reqAll.join(", ") : "(none)"}</div>
+      <div class="meta">${iconPlateHtml("meta.unlock", "unlocks", "xs")}Unlocks: ${unAll.length ? unAll.join(", ") : "(none)"}</div>
+    `;
+    ui.graphList.appendChild(li);
+  }
+}
+
+function renderProgress() {
+  ui.progressList.innerHTML = "";
+  const ids = [...state.nodesById.keys()].sort();
+  for (const id of ids) {
+    const n = nodeById(id);
+    const stateValue = state.progress[id] || "unseen";
+    const row = document.createElement("div");
+    row.className = "progress-row";
+    const label = document.createElement("span");
+    label.className = "progress-label";
+    label.innerHTML = `${iconPlateHtml(nodeIconKey(id), n.title, "sm")}<b>${escapeHtml(id)} ${escapeHtml(n.title)}</b><span class="meta-item">${iconPlateHtml(progressIconKey(stateValue), stateValue, "xs", stateValue === "blocked" ? "strong" : "")}${escapeHtml(stateValue)}</span>`;
+    const select = document.createElement("select");
+    select.dataset.id = id;
+    select.className = "state-select";
+    VALID_STATES.forEach((s) => {
+      const o = document.createElement("option");
+      o.value = s;
+      o.textContent = s;
+      if (stateValue === s) o.selected = true;
+      select.appendChild(o);
+    });
+    select.classList.add(`state-${stateValue}`);
+    row.appendChild(label);
+    row.appendChild(select);
+    ui.progressList.appendChild(row);
+  }
+}
+
+function toPayloadState() {
+  return { progress: state.progress, exported_at: new Date().toISOString(), schema_version: "v1" };
+}
+
+function exportProgress() {
+  const blob = new Blob([JSON.stringify(toPayloadState(), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "eotfw-progress-v3.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  setStatus("Progress export written.", "info");
+}
+
+async function importProgress(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const incoming = parsed && parsed.progress && typeof parsed.progress === "object" ? parsed.progress : parsed;
+    if (!incoming || typeof incoming !== "object") {
+      setStatus("Import failed: JSON has no progress map", "error");
+      ui.importMessage.textContent = "Import invalid: no progress map.";
+      return;
+    }
+
+    let merged = 0;
+    let ignored = 0;
+    for (const [id, value] of Object.entries(incoming)) {
+      if (!canStoreState(value)) {
+        ignored += 1;
+        continue;
+      }
+      const nodeId = safeText(id);
+      if (!state.nodesById.has(nodeId)) {
+        ignored += 1;
+        continue;
+      }
+      state.progress[nodeId] = value;
+      merged += 1;
+    }
+
+    writeProgress();
+    renderProgress();
+    const msg = `Imported ${merged} values, ignored ${ignored}.`;
+    ui.importMessage.textContent = msg;
+    if (state.activeNodeId) showNode(state.activeNodeId);
+    if (!merged) {
+      setStatus("Import loaded, but no valid updates.", "warn");
+    } else {
+      setStatus(`Import complete: ${merged} entries.`, "info");
+    }
+  } catch {
+    setStatus("Import failed: invalid JSON", "error");
+    ui.importMessage.textContent = "Import failed: invalid JSON.";
+  }
+  ui.progressImport.value = "";
+}
+
+function setTab(name) {
+  document.querySelectorAll(".tabs button").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === name);
+  });
+  document.querySelectorAll("[data-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panel === name);
+  });
+
+  if (name === "graph") renderGraph();
+  if (name === "progress") renderProgress();
+}
+
+function registerEvents() {
+  document.querySelectorAll(".tabs button").forEach((btn) => {
+    btn.addEventListener("click", () => setTab(btn.dataset.tab));
+  });
+
+  ui.theme.addEventListener("change", (e) => {
+    const theme = e.currentTarget.checked ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // ignore
+    }
+  });
+
+  ui.triageForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    runTriage();
+  });
+
+  ui.triageClear.addEventListener("click", () => {
+    ui.triageR.value = "";
+    ui.triageD.value = "";
+    ui.triageE.value = "";
+    ui.triageTags.value = "";
+    renderFrontDoorList();
+  });
+
+  ui.searchForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    runSearch();
+  });
+
+  ui.searchClear.addEventListener("click", () => {
+    ui.searchQuery.value = "";
+    ui.searchResults.innerHTML = "";
+  });
+
+  ui.nodeFallbackButton.addEventListener("click", () => {
+    if (state.activeNodeId) showNode(state.activeNodeId, true);
+  });
+
+  ui.progressExport.addEventListener("click", exportProgress);
+  ui.progressImport.addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    importProgress(f);
+  });
+
+  ui.resetProgress.addEventListener("click", () => {
+    state.progress = {};
+    for (const id of state.nodesById.keys()) state.progress[id] = "unseen";
+    writeProgress();
+    renderProgress();
+    setStatus("Progress reset to unseen", "info");
+    if (state.activeNodeId) showNode(state.activeNodeId);
+  });
+
+  document.body.addEventListener("click", (e) => {
+    const target = e.target.closest("[data-open]");
+    if (target) {
+      const id = target.dataset.open;
+      showNode(id);
+      setTab("node");
+    }
+  });
+
+  document.body.addEventListener("change", (e) => {
+    const target = e.target.closest(".state-select");
+    if (!target) return;
+    const id = target.dataset.id;
+    const value = target.value;
+    if (!canStoreState(value)) return;
+    state.progress[id] = value;
+    writeProgress();
+    if (state.activeNodeId === id) {
+      showNode(id);
+    }
+  });
+}
+
+function currentProtocol() {
+  return typeof window !== "undefined" && window.location ? window.location.protocol : "";
+}
+
+function readEmbeddedJson(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    throw new Error(`Missing embedded artifact: ${id}`);
+  }
+  try {
+    return JSON.parse(el.textContent || "");
+  } catch (error) {
+    throw new Error(`Invalid embedded artifact ${id}: ${error.message}`);
+  }
+}
+
+async function fetchJson(url) {
+  const r = await fetch(url);
+  if (!r.ok) {
+    throw new Error(`Failed to load ${url}: ${r.status}`);
+  }
+  return r.json();
+}
+
+async function loadArtifactJson(url, embeddedId) {
+  if (currentProtocol() === "file:") {
+    return readEmbeddedJson(embeddedId);
+  }
+  try {
+    return await fetchJson(url);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      return readEmbeddedJson(embeddedId);
+    }
+    throw error;
+  }
+}
+
+async function loadRuntimeIcons() {
+  if (currentProtocol() === "file:") {
+    return normalizeRuntimeIcons(RUNTIME_ICON_FALLBACK);
+  }
+  try {
+    return normalizeRuntimeIcons(await fetchJson("runtime_icon_map.json"));
+  } catch {
+    return normalizeRuntimeIcons(RUNTIME_ICON_FALLBACK);
+  }
+}
+
+function normalizeNode(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const node = Object.assign({}, raw);
+  node.id = safeText(node.id || node.node_id);
+  node.node_id = node.id;
+  return node;
+}
+
+async function loadArtifacts() {
+  const [nodes, searchIndex, graph, runtimeIcons] = await Promise.all([
+    loadArtifactJson("nodes.json", EMBEDDED_ARTIFACT_IDS.nodes),
+    loadArtifactJson("search_index.json", EMBEDDED_ARTIFACT_IDS.searchIndex),
+    loadArtifactJson("graph.json", EMBEDDED_ARTIFACT_IDS.graph),
+    loadRuntimeIcons(),
+  ]);
+
+  const normalizedNodes = Array.isArray(nodes) ? nodes.map(normalizeNode).filter(Boolean) : [];
+  normalizedNodes.sort((a, b) => a.id.localeCompare(b.id));
+  state.nodes = normalizedNodes;
+  state.nodesById = new Map(normalizedNodes.map((n) => [n.id, n]));
+  state.searchIndex = normalizeSearch(searchIndex);
+  state.graph = graph || {};
+  state.graphAdj = buildGraph([...state.nodesById.keys()]);
+  state.runtimeIcons = runtimeIcons;
+  state.progress = readProgress();
+  for (const node of state.nodes) {
+    if (!state.progress[node.id]) state.progress[node.id] = "unseen";
+  }
+  writeProgress();
+}
+
+async function bootstrap() {
+  try {
+    const theme = localStorage.getItem(THEME_KEY);
+    applyTheme(theme === "light" ? "light" : "dark");
+
+    await loadArtifacts();
+    state.loaded = true;
+    setStatus(`Loaded ${state.nodes.length} nodes from build artifacts.`, "info");
+    hydrateStaticIcons();
+    renderFrontDoorList();
+    registerEvents();
+    renderProgress();
+  } catch (error) {
+    state.loaded = false;
+    setStatus(`Failed to initialize: ${error.message}`, "error");
+  }
+}
+
+bootstrap();
+</script>
+</body>
+</html>
