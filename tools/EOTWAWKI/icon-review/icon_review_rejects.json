@@ -1,0 +1,41 @@
+{
+  "schema": "eotfw.icon_review.rejected_sidecar.v1",
+  "generated_at": "2026-07-06T14:37:38.201Z",
+  "source_manifest_generated_at": "2026-07-06T14:00:48Z",
+  "storage_key": "eotfw:icon-review:v1",
+  "semantics": "Only rejected icons are listed. Omitted icons remain keep-by-default candidates.",
+  "counts": {
+    "total_icons": 646,
+    "rejected": 3,
+    "keep_by_default": 643
+  },
+  "rejected": [
+    {
+      "id": "iconify:game-icons:chemical-arrow",
+      "display_name": "Chemical Arrow",
+      "source_family": "Iconify",
+      "origin_query": "chemical",
+      "license_family": "cc-by-attribution",
+      "license_title": "CC BY 3.0",
+      "local_path": "resources/icons/iconify/iconify__game-icons__chemical-arrow.svg"
+    },
+    {
+      "id": "iconify:game-icons:dice-fire",
+      "display_name": "Dice Fire",
+      "source_family": "Iconify",
+      "origin_query": "fire",
+      "license_family": "cc-by-attribution",
+      "license_title": "CC BY 3.0",
+      "local_path": "resources/icons/iconify/iconify__game-icons__dice-fire.svg"
+    },
+    {
+      "id": "iconify:game-icons:fire-gem",
+      "display_name": "Fire Gem",
+      "source_family": "Iconify",
+      "origin_query": "fire",
+      "license_family": "cc-by-attribution",
+      "license_title": "CC BY 3.0",
+      "local_path": "resources/icons/iconify/iconify__game-icons__fire-gem.svg"
+    }
+  ]
+}
