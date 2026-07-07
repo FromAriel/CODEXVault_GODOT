@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniClone HD | The $5 Windows Boot-Disk Cloner</title>
+    <meta name="description" content="No bait-and-switch. No $60 surprise bills. Just an honest, raw-sector Windows volume cloner that copies your boot disk for exactly five dollars.">
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <div class="logo">
+                <span class="logo-accent">MiniClone</span><span class="logo-bold">HD</span>
+            </div>
+            <nav class="nav">
+                <a href="#rants" class="nav-link">The Real Truth</a>
+                <a href="#how-it-works" class="nav-link">How it Works</a>
+                <a href="#sandbox" class="nav-link">Live Console Demo</a>
+                <a href="#download" class="btn btn-secondary btn-sm">Get It</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <div class="badge">Version 0.1.0 (Elevated Physical Restore Stable)</div>
+                    <h1 class="hero-title">The <span class="text-glow">$5</span> Windows Disk Cloner.</h1>
+                    <p class="hero-subtitle">
+                        No dynamic subscriptions. No bait-and-switch pricing. No locked restore features at 99%. Just an honest utility that copies your active Windows boot disk for a single fiver.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="#download" class="btn btn-primary">Download for $5</a>
+                        <a href="#rants" class="btn btn-outline">Read the Rant</a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="disk-canvas">
+                        <div class="svg-container">
+                            <svg viewBox="0 0 400 400" width="100%" height="100%" class="disk-svg">
+                                <!-- Source Drive -->
+                                <g transform="translate(100, 140)">
+                                    <rect x="-60" y="-80" width="120" height="160" rx="10" fill="#1b1d24" stroke="#45A29E" stroke-width="2" />
+                                    <circle cx="0" cy="-20" r="35" fill="none" stroke="#66FCF1" stroke-width="2" stroke-dasharray="8,4" class="spin" />
+                                    <path d="M 0,-20 L 25,10" stroke="#66FCF1" stroke-width="3" stroke-linecap="round" class="arm" />
+                                    <text x="0" y="55" text-anchor="middle" fill="#45A29E" font-family="'Space Grotesk', sans-serif" font-size="12">SOURCE (C:)</text>
+                                </g>
+                                <!-- Flowing Laser Line -->
+                                <path d="M 160,140 Q 200,80 240,140" fill="none" stroke="#66FCF1" stroke-width="3" stroke-dasharray="10, 5" class="laser-flow" />
+                                <!-- Target Drive -->
+                                <g transform="translate(300, 140)">
+                                    <rect x="-60" y="-80" width="120" height="160" rx="10" fill="#1b1d24" stroke="#FF4D00" stroke-width="2" class="glow-target" />
+                                    <circle cx="0" cy="-20" r="35" fill="none" stroke="#FF4D00" stroke-width="2" stroke-dasharray="8,4" class="spin-reverse" />
+                                    <path d="M 0,-20 L 25,10" stroke="#FF4D00" stroke-width="3" stroke-linecap="round" class="arm-target" />
+                                    <text x="0" y="55" text-anchor="middle" fill="#FF4D00" font-family="'Space Grotesk', sans-serif" font-size="12">TARGET</text>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rants/Competitor Grid -->
+        <section id="rants" class="section rants-section">
+            <div class="container">
+                <h2 class="section-title text-center">Tired of the "Free" Bait & Switch?</h2>
+                <p class="section-desc text-center">We built MiniClone because we were exactly where you are right now. We needed to copy our drive, and we got tired of being lied to.</p>
+                
+                <div class="comparison-grid">
+                    <div class="card competitor-card">
+                        <div class="card-badge badge-error">Those Other Guys</div>
+                        <h3>The Bait & Switch</h3>
+                        <p class="card-intro">They advertise as "Free Download" on search engines, let you install, select your drive, and wait hours for the copy to compile.</p>
+                        <ul class="comparison-list">
+                            <li>❌ Locked recovery at 99% until you pay</li>
+                            <li>❌ $50 to $60 dynamic monthly/yearly bills</li>
+                            <li>❌ Desperate discount bait if you try to uninstall</li>
+                            <li>❌ Bloated installers with tracking telemetry</li>
+                        </ul>
+                    </div>
+
+                    <div class="card miniclone-card">
+                        <div class="card-badge badge-success">MiniClone HD</div>
+                        <h3>Aggressive Honesty</h3>
+                        <p class="card-intro">We charge you $5 upfront before download. That fiver buys you a lifetime license. No hidden bills. No dynamic scaling.</p>
+                        <ul class="comparison-list">
+                            <li>✅ Exactly $5 once. Lifetime downloads.</li>
+                            <li>✅ Dead-simple auto-detection of your boot drive</li>
+                            <li>✅ Zero telemetry, offline native executions</li>
+                            <li>✅ Transparency: run logs & plans are plain JSON</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Demo Sandbox -->
+        <section id="sandbox" class="section sandbox-section">
+            <div class="container">
+                <h2 class="section-title text-center">Interactive Console Sandbox</h2>
+                <p class="section-desc text-center">Experience exactly how our CLI worker reports chunk copies and validation progress in real time.</p>
+                
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span class="terminal-title">miniclone-cli.exe --elevated</span>
+                    </div>
+                    <div class="terminal-body" id="terminal-output">
+                        <p class="term-line color-muted">[00:00:01] [STAGE] Initializing host discovery...</p>
+                        <p class="term-line">[00:00:02] [INFO] Firmware type: UEFI</p>
+                        <p class="term-line">[00:00:03] [INFO] Running source detected: Disk 2 (Intel SSD 512GB) -> Volume C:\</p>
+                        <p class="term-line">[00:00:04] [INFO] Eligible target selected: Disk 0 (Netac SSD 256GB)</p>
+                        <!-- Interactive Progress -->
+                        <div id="interactive-progress" class="interactive-area">
+                            <button id="run-sandbox-btn" class="btn btn-accent btn-sm">Simulate Copy Process</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Stepper -->
+        <section id="how-it-works" class="section steps-section">
+            <div class="container">
+                <h2 class="section-title text-center">Simple 3-Step Cloning</h2>
+                <div class="stepper">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <h3>Plug in Target</h3>
+                        <p>Connect your new SSD/HDD. It must be empty and equal to or larger than your source volume size.</p>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <h3>Select & Point</h3>
+                        <p>Launch MiniClone. The engine automatically finds your boot disk. Point it to your new target and confirm target identity.</p>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <h3>Done when it's Done</h3>
+                        <p>It clones your files from a VSS shadow copy, builds the MBR/GPT boot configuration, and detaches safely.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Hard Guarantee Warning -->
+        <section class="section warning-section">
+            <div class="container warning-box">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-content">
+                    <h3>The Disk Restore Guarantee: Zero.</h3>
+                    <p>
+                        Disk restoration is one of the most volatile operations you can execute in Windows. We do not offer warranties of fitness or merchantability. We don't guarantee it will save your drive. The only guarantee we offer is that for $5 you are getting the absolute best cloner we know how to build. We even test write boundaries and recovery margins on a failing Intel SSD with 0% SMART health to ensure our chunked error-recovery windows stand up to the challenge.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Download / CTA -->
+        <section id="download" class="section download-section text-center">
+            <div class="container">
+                <h2>Get MiniClone HD</h2>
+                <p class="download-pricing">Exactly <strong>$5.00</strong>. Pay once, use for life.</p>
+                <div class="payment-box">
+                    <div class="stripe-badge">Stripe Secure Checkout</div>
+                    <a href="#" class="btn btn-accent btn-lg" onclick="alert('Checkout is in placeholder/sandbox mode.'); return false;">Secure Payment & Download</a>
+                    <p class="download-clause">Come back in 20 years. If this site is still here, you can download it again for free.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <p>&copy; 2026 MiniClone HD. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#rants" class="footer-link">Rant</a>
+                <a href="https://github.com/Ariel/MiniClone" class="footer-link">Source GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
