@@ -1,13 +1,539 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sentinel Mecha Builder</title>
-    <script type="module" crossorigin src="./assets/index-Coa3c8YV.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BtzLeyRC.css">
-  </head>
-  <body>
-    <div id="app"></div>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniClone - Clone Progress</title>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #060913;
+            --bg-panel: #0a0f1d;
+            --bg-panel-light: #111827;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --cyan-glow: #00f0ff;
+            --cyan-dark: #005a66;
+            --magenta-glow: #b520ff;
+            --magenta-dark: #4a0d66;
+            --green-ok: #10b981;
+            --red-cancel: #ef4444;
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: #000;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; padding: 2rem;
+        }
+
+        .app-window {
+            width: 100%; max-width: 1000px;
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 240, 255, 0.05);
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        .title-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .brand {
+            display: flex; align-items: center; gap: 0.75rem;
+            font-size: 1.25rem; font-weight: 600; color: white; letter-spacing: 0.5px;
+        }
+        .brand iconify-icon { color: var(--cyan-glow); font-size: 1.5rem; }
+
+        .window-controls { display: flex; gap: 1rem; color: var(--text-muted); }
+        .window-controls iconify-icon { cursor: pointer; transition: color 0.2s; }
+        .window-controls iconify-icon:hover { color: white; }
+
+        .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+        .panel-snapshot {
+            display: grid; grid-template-columns: 1fr 1.5fr;
+            background: linear-gradient(145deg, rgba(0,240,255,0.03) 0%, rgba(181,32,255,0.03) 100%);
+            background-color: var(--bg-panel);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 12px; padding: 2rem; position: relative; overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.02);
+        }
+
+        .nerd-toggle {
+            position: absolute; top: 1.5rem; right: 1.5rem;
+            background: rgba(0, 0, 0, 0.3); border: 1px solid var(--cyan-dark);
+            color: var(--cyan-dark); border-radius: 50%;
+            width: 36px; height: 36px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.3s ease; z-index: 10; font-size: 1.2rem;
+        }
+        .nerd-toggle:hover, .nerd-toggle.active {
+            color: var(--cyan-glow); border-color: var(--cyan-glow);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .graphic-container { display: flex; justify-content: center; align-items: center; position: relative; }
+        .hologram-drive {
+            position: relative; font-size: 8rem; color: var(--cyan-glow);
+            filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.6));
+            animation: float 4s ease-in-out infinite;
+        }
+        .light-beams {
+            position: absolute; top: -50px; width: 100px; height: 150px;
+            background: linear-gradient(to top, rgba(0, 240, 255, 0.4), transparent);
+            filter: blur(15px); z-index: 0; animation: pulse-beam 3s infinite alternate;
+        }
+
+        .snapshot-details {
+            display: flex; flex-direction: column; justify-content: center;
+            z-index: 1; position: relative; min-height: 250px;
+        }
+        .snapshot-header {
+            color: var(--green-ok); font-size: 1.1rem; font-weight: 600;
+            letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.5rem;
+        }
+        .snapshot-sub {
+            color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;
+            margin-bottom: 2rem; padding-right: 3rem;
+        }
+
+        .checklist { display: flex; flex-direction: column; gap: 1rem; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .check-item { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 1rem; font-size: 0.9rem; }
+        .check-item iconify-icon { color: var(--cyan-glow); font-size: 1.2rem; }
+        .check-text { color: var(--text-muted); }
+        .check-status { font-weight: 600; font-size: 0.85rem; }
+        
+        .status-pending { color: var(--text-muted); }
+        .status-ok { color: var(--green-ok); }
+        .status-active { color: var(--green-ok); }
+        .status-progress { color: var(--cyan-glow); text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+
+        .nerd-terminal {
+            display: none; position: absolute; bottom: 0; left: 0; right: 0;
+            height: 100%; max-height: 200px; background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 8px; padding: 1rem;
+            overflow-y: auto; font-family: var(--font-mono); font-size: 0.75rem;
+            color: var(--text-muted); box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
+        .nerd-terminal::-webkit-scrollbar { width: 6px; }
+        .nerd-terminal::-webkit-scrollbar-track { background: transparent; }
+        .nerd-terminal::-webkit-scrollbar-thumb { background: var(--cyan-dark); border-radius: 3px; }
+        .nerd-terminal::-webkit-scrollbar-thumb:hover { background: var(--cyan-glow); }
+
+        .log-line { margin-bottom: 0.2rem; white-space: pre-wrap; word-wrap: break-word; }
+        .log-key { color: #38bdf8; }
+        .log-string { color: var(--green-ok); }
+        .log-number { color: var(--magenta-glow); }
+        .log-boolean { color: #f59e0b; }
+
+        .nerd-mode-active .checklist { opacity: 0; pointer-events: none; transform: translateY(10px); position: absolute; }
+        .nerd-mode-active .nerd-terminal { display: block; animation: slideUpFade 0.4s ease forwards; }
+
+        .panel-drives { display: flex; align-items: stretch; gap: 1rem; }
+        .drive-box {
+            flex: 1; display: flex; align-items: center; gap: 1.5rem;
+            padding: 1.5rem; background-color: var(--bg-panel); border-radius: 12px; position: relative;
+        }
+        .drive-source { border: 1px solid rgba(0, 240, 255, 0.2); box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.05); }
+        .drive-target { border: 1px solid rgba(181, 32, 255, 0.3); box-shadow: inset 0 0 15px rgba(181, 32, 255, 0.05); }
+        .drive-icon { font-size: 3.5rem; position: relative; }
+        .drive-source .drive-icon { color: var(--cyan-glow); filter: drop-shadow(0 0 10px rgba(0,240,255,0.4)); }
+        .drive-target .drive-icon { color: var(--magenta-glow); filter: drop-shadow(0 0 10px rgba(181,32,255,0.4)); }
+        .drive-badge {
+            position: absolute; bottom: -5px; right: -5px;
+            background: var(--bg-base); border-radius: 50%; padding: 2px;
+            color: var(--green-ok); font-size: 1.2rem;
+        }
+
+        .drive-info { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; }
+        .drive-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; color: var(--cyan-glow); }
+        .drive-target .drive-label { color: var(--magenta-glow); }
+        .drive-name { font-weight: 500; color: white; font-size: 1rem; }
+        .drive-hardware { font-size: 0.85rem; color: var(--text-muted); }
+
+        .btn-change {
+            background: transparent; border: 1px solid rgba(181, 32, 255, 0.5);
+            color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px;
+            font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-change:hover { background: rgba(181, 32, 255, 0.1); box-shadow: 0 0 10px rgba(181, 32, 255, 0.2); }
+
+        .transfer-arrows { display: flex; gap: 2px; color: var(--cyan-dark); font-size: 2rem; align-items: center; opacity: 0; transition: opacity 0.5s; }
+        .arrow { animation: pulse-arrow 1.5s infinite; }
+        .arrow:nth-child(1) { animation-delay: 0s; }
+        .arrow:nth-child(2) { animation-delay: 0.2s; }
+        .arrow:nth-child(3) { animation-delay: 0.4s; }
+
+        .progress-section {
+            display: none; flex-direction: column; gap: 0.75rem;
+            padding: 0.5rem 0 1.5rem 0; border-bottom: 1px solid var(--border-subtle);
+        }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.85rem; }
+        .progress-label { color: var(--cyan-glow); font-weight: 600; letter-spacing: 1px; }
+        .progress-time { color: var(--text-muted); }
+        .progress-bar-container { display: flex; align-items: center; gap: 1.5rem; }
+        .progress-track {
+            flex: 1; height: 12px; background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .progress-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--cyan-dark) 0%, var(--cyan-glow) 100%);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.6); border-radius: 10px; position: relative;
+            transition: width 0.3s ease;
+        }
+        .progress-fill::after {
+            content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite linear;
+        }
+        .progress-percent { font-size: 1.5rem; font-weight: 300; color: var(--cyan-glow); width: 60px; text-align: right; }
+
+        .footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; }
+        .footer-left, .footer-right { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.85rem; width: 120px; }
+        .footer-left { cursor: pointer; transition: color 0.2s; }
+        .footer-left:hover { color: white; }
+        .footer-right { color: var(--cyan-dark); justify-content: flex-end; }
+        .footer-right iconify-icon { color: var(--cyan-glow); }
+
+        .btn-cancel {
+            display: none; background: transparent; border: 1px solid var(--red-cancel);
+            color: var(--red-cancel); padding: 0.75rem 3rem; border-radius: 6px;
+            font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+            box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1);
+        }
+        .btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.1);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), inset 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+
+        @keyframes pulse-arrow {
+            0% { color: var(--cyan-dark); filter: drop-shadow(0 0 0 transparent); }
+            50% { color: var(--cyan-glow); filter: drop-shadow(0 0 8px rgba(0,240,255,0.6)); }
+            100% { color: var(--cyan-dark); filter: drop-shadow(0 0 0 transparent); }
+        }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        @keyframes pulse-beam { 0% { opacity: 0.5; } 100% { opacity: 1; height: 180px; } }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="app-window">
+        <!-- Title Bar -->
+        <div class="title-bar" data-tauri-drag-region>
+            <div class="brand">
+                <iconify-icon icon="ph:stack-fill"></iconify-icon> MiniClone
+            </div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div class="dev-mode-toggle" style="color: var(--red-cancel); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: bold;">
+                    <input type="checkbox" id="devModeCheck" checked style="accent-color: var(--red-cancel); width: 16px; height: 16px; cursor: pointer;">
+                    <label for="devModeCheck" style="cursor: pointer;">DEV</label>
+                </div>
+                <div class="window-controls">
+                    <iconify-icon icon="mdi:window-minimize" id="btnMinimize"></iconify-icon>
+                    <iconify-icon icon="mdi:close" id="btnClose"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Snapshot Panel -->
+            <div class="panel-snapshot">
+                <button class="nerd-toggle" id="nerdToggle" title="Toggle Nerd Mode"><iconify-icon icon="ph:lightbulb-filament-duotone"></iconify-icon></button>
+                <div class="graphic-container">
+                    <div class="light-beams"></div>
+                    <iconify-icon icon="ph:hard-drive-fill" class="hologram-drive"></iconify-icon>
+                </div>
+                <div class="snapshot-details" id="snapshotDetails">
+                    <div class="snapshot-header" id="snapshotHeader">SYSTEM SNAPSHOT PREFLIGHT</div>
+                    <div class="snapshot-sub" id="snapshotSub">Ready to lock down source drive for safe cloning.</div>
+                    
+                    <div id="preflightStart" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 1rem; margin-bottom: 2rem; gap: 1rem;">
+                        <iconify-icon icon="mdi:shield-lock-outline" style="font-size: 4rem; color: var(--cyan-glow); filter: drop-shadow(0 0 10px rgba(0,240,255,0.4));"></iconify-icon>
+                        <button id="btnStartLockdown" style="background: rgba(0, 240, 255, 0.1); border: 1px solid var(--cyan-glow); color: var(--cyan-glow); padding: 1rem 2rem; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); letter-spacing: 1px;">LOCK DOWN C:\ TO PROTECT DATA</button>
+                    </div>
+
+                    <div id="preflightContainer" style="display: none; gap: 2rem; width: 100%;">
+                        <div class="checklist" id="preflightChecklist" style="flex: 1;">
+                            <div class="check-item"><iconify-icon icon="mdi:target"></iconify-icon><span class="check-text">Detecting boot drive</span><span class="check-status status-pending">...</span></div>
+                            <div class="check-item"><iconify-icon icon="mdi:lock-outline"></iconify-icon><span class="check-text">Locking source drive (read-only)</span><span class="check-status status-pending">...</span></div>
+                            <div class="check-item"><iconify-icon icon="mdi:database-outline"></iconify-icon><span class="check-text">Volume Shadow Copy Service</span><span class="check-status status-pending">...</span></div>
+                            <div class="check-item"><iconify-icon icon="mdi:format-list-bulleted"></iconify-icon><span class="check-text">Reading drive layout</span><span class="check-status status-pending">...</span></div>
+                            <div class="check-item"><iconify-icon icon="mdi:folder-search-outline"></iconify-icon><span class="check-text">Reading volume index</span><span class="check-status status-pending">...</span></div>
+                            <div class="check-item"><iconify-icon icon="ph:hard-drive"></iconify-icon><span class="check-text">Testing scratch space I/O</span><span class="check-status status-pending">...</span></div>
+                            <div class="check-item"><iconify-icon icon="mdi:pulse"></iconify-icon><span class="check-text">Ready for clone operation</span><span class="check-status status-pending">...</span></div>
+                        </div>
+
+                        <div class="file-tree-preview" id="fileTreePreview" style="flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.4); border: 1px solid rgba(0,240,255,0.15); border-radius: 8px; padding: 0.75rem; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); position: relative; overflow: hidden; box-shadow: inset 0 0 10px rgba(0,240,255,0.05);">
+                            <div style="color: var(--cyan-glow); margin-bottom: 0.5rem; font-weight: bold; font-family: var(--font-main); font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.2rem;">
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <iconify-icon icon="mdi:folder-lock"></iconify-icon> <span id="treeDriveLetter" style="opacity: 0.5; transition: opacity 0.3s;">[AWAITING DRIVE DETECTION...]</span>
+                                </div>
+                                <div id="treeDriveMeta" style="font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); font-weight: normal; margin-left: 1.4rem; opacity: 0; transition: opacity 0.3s;">Label: Windows | SN: 1A2B-3C4D | 1.0 TB</div>
+                            </div>
+                            <div id="fileTreeContent" style="display: flex; flex-direction: column; gap: 0.3rem; margin-left: 0.7rem; border-left: 1px solid rgba(0,240,255,0.2); padding-left: 0.5rem; overflow-y: hidden; max-height: 140px; position: relative;">
+                                <div id="treeFadeMask" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 20px; background: linear-gradient(to bottom, transparent, rgba(10,15,29,0.9)); z-index: 2;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nerd-terminal" id="nerdTerminal"></div>
+                </div>
+            </div>
+
+            <!-- Drives Panel -->
+            <div class="panel-drives">
+                <!-- Source Drive -->
+                <div class="drive-box drive-source">
+                    <div class="drive-icon"><iconify-icon icon="ph:hard-drives"></iconify-icon><iconify-icon icon="mdi:shield-check" class="drive-badge"></iconify-icon></div>
+                    <div class="drive-info">
+                        <span class="drive-label">SOURCE</span>
+                        <span class="drive-name">Windows Boot Drive</span>
+                        <span class="drive-hardware" id="sourceDriveModel">Scanning...</span>
+                    </div>
+                </div>
+
+                <!-- Transfer Animation -->
+                <div class="transfer-arrows" id="transferArrows">
+                    <iconify-icon icon="mdi:chevron-right" class="arrow"></iconify-icon>
+                    <iconify-icon icon="mdi:chevron-right" class="arrow"></iconify-icon>
+                    <iconify-icon icon="mdi:chevron-right" class="arrow"></iconify-icon>
+                </div>
+
+                <!-- Target Drive -->
+                <div class="drive-box drive-target" id="targetDriveBox" style="display: none; flex-direction: column; align-items: stretch; gap: 1rem;">
+                    
+                    <div id="targetDriveInfo" style="display: none; align-items: center; gap: 1.5rem; justify-content: space-between; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 1.5rem;">
+                            <div class="drive-icon"><iconify-icon icon="ph:hard-drive"></iconify-icon></div>
+                            <div class="drive-info">
+                                <span class="drive-label">TARGET</span>
+                                <span class="drive-name">Samsung SSD 870 EVO 2TB</span>
+                                <span class="drive-hardware">(F:)</span>
+                            </div>
+                        </div>
+                        <button class="btn-change">Change</button>
+                    </div>
+
+                    <!-- Destruct confirmation shown in State 1 -->
+                    <div class="destruct-confirm" id="destructConfirm" style="display: flex; flex-direction: column; gap: 0.75rem; text-align: center; width: 100%; justify-content: center;">
+                        <div class="drive-icon" style="color: var(--red-cancel); font-size: 2rem;"><iconify-icon icon="ph:warning-duotone"></iconify-icon></div>
+                        <div style="color: var(--text-main); font-weight: bold;">TARGET SELECTED: SSD 870 EVO 2TB</div>
+                        <div style="color: var(--red-cancel); font-size: 0.85rem; font-weight: bold;">TYPE 'DESTRUCT' TO WIPE DISK</div>
+                        <input type="text" id="destructInput" placeholder="DESTRUCT" style="background: rgba(0,0,0,0.5); border: 1px solid var(--red-cancel); color: white; padding: 0.75rem; border-radius: 4px; outline: none; width: 100%; text-align: center; text-transform: uppercase; font-family: var(--font-mono); letter-spacing: 2px;">
+                        <button class="btn-change" id="btnBeginClone" disabled style="opacity: 0.5; border-color: var(--red-cancel); color: var(--red-cancel); margin-top: 0.5rem; font-weight: bold; letter-spacing: 1px; padding: 0.75rem;">BEGIN CLONE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section" id="progressSection">
+                <div class="progress-header">
+                    <span class="progress-label" id="progressLabel">CLONING DRIVE...</span>
+                    <span class="progress-time" id="progressTime">Estimated time remaining: Calculating...</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="progress-percent" id="progressPercent">0%</div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="footer-left"><iconify-icon icon="mdi:cog"></iconify-icon> Settings</div>
+                <button class="btn-cancel" id="btnCancel">CANCEL CLONE</button>
+                <div class="footer-right"><iconify-icon icon="mdi:shield-check-outline"></iconify-icon> Verified & Safe</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const devModeCheck = document.getElementById('devModeCheck');
+        const nerdToggle = document.getElementById('nerdToggle');
+        const snapshotDetails = document.getElementById('snapshotDetails');
+        const terminal = document.getElementById('nerdTerminal');
+        const sourceDriveModel = document.getElementById('sourceDriveModel');
+        const transferArrows = document.getElementById('transferArrows');
+        const targetDriveBox = document.getElementById('targetDriveBox');
+        const targetDriveInfo = document.getElementById('targetDriveInfo');
+        const destructConfirm = document.getElementById('destructConfirm');
+        const destructInput = document.getElementById('destructInput');
+        const btnBeginClone = document.getElementById('btnBeginClone');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const btnCancel = document.getElementById('btnCancel');
+        const checklistItems = document.querySelectorAll('#preflightChecklist .check-item');
+        
+        const btnStartLockdown = document.getElementById('btnStartLockdown');
+        const preflightStart = document.getElementById('preflightStart');
+        const preflightContainer = document.getElementById('preflightContainer');
+        const snapshotSub = document.getElementById('snapshotSub');
+
+        // Nerd Toggle
+        nerdToggle.addEventListener('click', () => {
+            nerdToggle.classList.toggle('active');
+            snapshotDetails.classList.toggle('nerd-mode-active');
+            if (snapshotDetails.classList.contains('nerd-mode-active')) {
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+        });
+
+        function addLog(event, status, isNum=false) {
+            const valClass = isNum ? 'log-number' : 'log-string';
+            const valStr = isNum ? status : `"${status}"`;
+            terminal.innerHTML += `<div class="log-line">{<span class="log-key">"event"</span>: <span class="log-string">"${event}"</span>, <span class="log-key">"status"</span>: <span class="${valClass}">${valStr}</span>}</div>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function simulateFileTree() {
+            const tree = document.getElementById('fileTreeContent');
+            const files = ['Windows', 'Users', 'Program Files', 'Program Files (x86)', 'PerfLogs', 'Recovery', 'System Volume Information', '$Recycle.Bin', 'Documents and Settings', 'pagefile.sys', 'swapfile.sys', 'hiberfil.sys'];
+            let i = 0;
+            while(i < files.length) {
+                if (!devModeCheck.checked) return;
+                const file = files[i];
+                const isDir = !file.includes('.');
+                const icon = isDir ? 'mdi:folder-outline' : 'mdi:file-outline';
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '0.4rem';
+                div.style.color = 'var(--cyan-dark)';
+                div.style.whiteSpace = 'nowrap';
+                div.innerHTML = `<iconify-icon icon="${icon}"></iconify-icon> ${file}`;
+                tree.insertBefore(div, document.getElementById('treeFadeMask'));
+                
+                tree.scrollTop = tree.scrollHeight;
+                
+                await new Promise(r => setTimeout(r, 150));
+                i++;
+            }
+            addLog("file_tree_rendered", "root_directory_scanned");
+        }
+
+        // --- SIMULATION LOGIC ---
+        btnStartLockdown.addEventListener('click', () => {
+            preflightStart.style.display = 'none';
+            preflightContainer.style.display = 'flex';
+            snapshotSub.textContent = "Running strict diagnostic verifications. Source drive is locked.";
+            runDevPreflight();
+        });
+
+        async function runDevPreflight() {
+            if (!devModeCheck.checked) return;
+            
+            // Step 1: Detect Boot Drive
+            await new Promise(r => setTimeout(r, 600));
+            sourceDriveModel.textContent = "Samsung SSD 970 EVO Plus 1TB";
+            
+            const checks = [
+                { idx: 0, text: 'OK', class: 'status-ok' },
+                { idx: 1, text: 'LOCKED', class: 'status-ok' },
+                { idx: 2, text: 'ACTIVE', class: 'status-active' },
+                { idx: 3, text: 'OK', class: 'status-ok' },
+                { idx: 4, text: 'INDEXED', class: 'status-ok' },
+                { idx: 5, text: 'VERIFIED', class: 'status-ok' },
+                { idx: 6, text: 'WAITING', class: 'status-progress' }
+            ];
+
+            for (let c of checks) {
+                if (!devModeCheck.checked) return;
+                await new Promise(r => setTimeout(r, 700));
+                
+                const statusSpan = checklistItems[c.idx].querySelector('.check-status');
+                statusSpan.textContent = c.text;
+                statusSpan.className = 'check-status ' + c.class;
+                addLog(`preflight_step_${c.idx}`, 'ok');
+
+                if (c.idx === 0) {
+                    document.getElementById('treeDriveLetter').textContent = 'OS_BOOT_DRIVE (C:\\)';
+                    document.getElementById('treeDriveLetter').style.opacity = '1';
+                } else if (c.idx === 1) {
+                    document.getElementById('treeDriveMeta').style.opacity = '1';
+                } else if (c.idx === 3) {
+                    simulateFileTree();
+                }
+            }
+
+            // Show Target Selection
+            targetDriveBox.style.display = 'flex';
+        }
+
+        destructInput.addEventListener('input', (e) => {
+            if (e.target.value.toUpperCase() === 'DESTRUCT') {
+                btnBeginClone.disabled = false;
+                btnBeginClone.style.opacity = '1';
+                btnBeginClone.style.color = 'white';
+                btnBeginClone.style.background = 'var(--red-cancel)';
+            } else {
+                btnBeginClone.disabled = true;
+                btnBeginClone.style.opacity = '0.5';
+                btnBeginClone.style.color = 'var(--red-cancel)';
+                btnBeginClone.style.background = 'transparent';
+            }
+        });
+
+        btnBeginClone.addEventListener('click', () => {
+            if (!devModeCheck.checked) return;
+            
+            // Transition to Clone Mode
+            destructConfirm.style.display = 'none';
+            targetDriveInfo.style.display = 'flex';
+            transferArrows.style.opacity = '1';
+            progressSection.style.display = 'flex';
+            btnCancel.style.display = 'block';
+            
+            checklistItems[6].querySelector('.check-text').textContent = "Copying Data blocks";
+            checklistItems[6].querySelector('.check-status').textContent = "IN PROGRESS";
+
+            simulateCloning();
+        });
+
+        async function simulateCloning() {
+            let percent = 0;
+            while(percent <= 100) {
+                if (!devModeCheck.checked) return;
+                
+                progressPercent.textContent = `${percent}%`;
+                progressFill.style.width = `${percent}%`;
+                addLog('chunk_written', percent, true);
+                
+                if (percent >= 100) break;
+                
+                await new Promise(r => setTimeout(r, 150));
+                percent += Math.floor(Math.random() * 4) + 1;
+                if (percent > 100) percent = 100;
+            }
+
+            document.getElementById('progressLabel').textContent = "CLONE COMPLETED SUCCESSFULLY";
+            document.getElementById('progressTime').textContent = "";
+            transferArrows.style.opacity = '0';
+            btnCancel.style.display = 'none';
+            checklistItems[6].querySelector('.check-text').textContent = "Clone verified";
+            checklistItems[6].querySelector('.check-status').textContent = "DONE";
+            checklistItems[6].querySelector('.check-status').className = 'check-status status-ok';
+            addLog('operation_complete', 'success');
+        }
+
+        // Simulation awaits user click on btnStartLockdown now
+
+    </script>
+</body>
 </html>
