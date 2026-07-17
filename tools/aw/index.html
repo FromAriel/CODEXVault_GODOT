@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0d1117">
+  <script>document.documentElement.classList.add("js");</script>
+
+  <title>Ariel Williams — AI Consultant, Vibe Coder &amp; Writer</title>
+  <meta name="description" content="Ariel Williams is an AI consultant, vibe coder, technology and culture writer, and six-time Quora Top Writer. Book a tailored $500 AI readiness presentation and Q&amp;A for your organization.">
+  <meta name="author" content="Ariel Williams">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://arielwilliams.com/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Ariel Williams — AI Consultant, Vibe Coder &amp; Writer">
+  <meta property="og:description" content="Book a tailored $500 AI readiness presentation and Q&amp;A for your organization.">
+  <meta property="og:url" content="https://arielwilliams.com/">
+  <meta property="og:image" content="https://arielwilliams.com/assets/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Ariel Williams",
+    "alternateName": ["FromAriel", "A. M. Williams"],
+    "url": "https://arielwilliams.com/",
+    "email": "mailto:fromariel@gmail.com",
+    "jobTitle": "AI Consultant, Software Developer and Writer",
+    "description": "AI consultant, vibe coder, technology and culture writer, artist, and six-time Quora Top Writer.",
+    "sameAs": [
+      "https://github.com/FromAriel",
+      "https://www.quora.com/profile/Ariel-Williams",
+      "https://www.linkedin.com/in/ariel-williams-79409231",
+      "https://www.amazon.com/stores/author/B0C6C6MW6C"
+    ]
+  }
+  </script>
+
+  <link rel="stylesheet" href="assets/signal-field.css">
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #141a22;
+      --panel-2: #1a222d;
+      --text: #f2f5f7;
+      --text-soft: #c8d0da;
+      --muted: #a9b2bf;
+      --faint: #8491a0;
+      --placeholder: #8290a1;
+      --line: rgba(173, 194, 216, .16);
+      --control-border: #5b6d82;
+      --accent: #67d6e8;
+      --accent-hover: #8be3ef;
+      --accent-soft: rgba(103, 214, 232, .14);
+      --accent-border: rgba(103, 214, 232, .34);
+      --accent-glow: rgba(103, 214, 232, .18);
+      --accent-ink: #071116;
+      --violet: #a78bfa;
+      --violet-soft: rgba(167, 139, 250, .18);
+      --focus: #8be3ef;
+      --header: rgba(13, 17, 23, .72);
+      --header-solid: rgba(13, 17, 23, .92);
+      --grid: rgba(190, 210, 230, .04);
+      --surface-soft: rgba(255, 255, 255, .035);
+      --surface-raised: rgba(255, 255, 255, .07);
+      --surface-hover: rgba(255, 255, 255, .075);
+      --field-bg: rgba(255, 255, 255, .045);
+      --field-focus-bg: rgba(255, 255, 255, .065);
+      --brief-bg: rgba(6, 10, 16, .35);
+      --offer-deep: #0f1620;
+      --link-hover: #202a35;
+      --toast-bg: #1c2632;
+      --option-bg: #141a22;
+      --mark-detail: rgba(7, 17, 22, .34);
+      --scan-sheen: rgba(255, 255, 255, .055);
+      --max: 1160px;
+      --radius: 24px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .42);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f4f7fa;
+      --panel: #ffffff;
+      --panel-2: #e8eef5;
+      --text: #17202b;
+      --text-soft: #354454;
+      --muted: #526172;
+      --faint: #5b6978;
+      --placeholder: #637284;
+      --line: rgba(23, 32, 43, .17);
+      --control-border: #77899e;
+      --accent: #0b7285;
+      --accent-hover: #095d6d;
+      --accent-soft: rgba(11, 114, 133, .13);
+      --accent-border: rgba(11, 114, 133, .38);
+      --accent-glow: rgba(11, 114, 133, .12);
+      --accent-ink: #ffffff;
+      --violet: #6d4cc8;
+      --violet-soft: rgba(109, 76, 200, .13);
+      --focus: #0b7285;
+      --header: rgba(244, 247, 250, .82);
+      --header-solid: rgba(244, 247, 250, .96);
+      --grid: rgba(23, 32, 43, .055);
+      --surface-soft: rgba(23, 32, 43, .045);
+      --surface-raised: rgba(255, 255, 255, .92);
+      --surface-hover: rgba(23, 32, 43, .09);
+      --field-bg: rgba(255, 255, 255, .82);
+      --field-focus-bg: #ffffff;
+      --brief-bg: rgba(232, 238, 245, .72);
+      --offer-deep: #ffffff;
+      --link-hover: #e2e9f1;
+      --toast-bg: #ffffff;
+      --option-bg: #ffffff;
+      --mark-detail: rgba(255, 255, 255, .48);
+      --scan-sheen: rgba(11, 114, 133, .10);
+      --shadow: 0 24px 80px rgba(37, 55, 75, .16);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 80% 4%, var(--violet-soft), transparent 30rem),
+        radial-gradient(circle at 5% 18%, var(--accent-soft), transparent 28rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 68px 68px;
+      mask-image: linear-gradient(to bottom, black, transparent 85%);
+    }
+
+    a { color: inherit; }
+    button, input, select, textarea { font: inherit; }
+    img, svg { display: block; max-width: 100%; }
+    .symbol-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+    :where(a, button, input, select, textarea):focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+    section[id], aside[id] { scroll-margin-top: 88px; }
+
+    .skip-link {
+      position: fixed;
+      left: 16px;
+      top: 12px;
+      z-index: 20;
+      transform: translateY(-160%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--accent-ink);
+      background: var(--accent);
+      font-weight: 800;
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .shell { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid transparent;
+      background: var(--header);
+      backdrop-filter: blur(18px);
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .site-header.scrolled { border-color: var(--line); background: var(--header-solid); }
+    .nav {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      font-weight: 850;
+      letter-spacing: -.02em;
+    }
+    .mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      color: var(--accent-ink);
+      background: var(--accent);
+      border-radius: 11px;
+      box-shadow: 0 0 0 1px var(--line), 0 0 35px var(--accent-glow);
+      font-size: .82rem;
+      letter-spacing: -.08em;
+    }
+    .brand small { display: block; color: var(--muted); font-size: .72rem; font-weight: 650; letter-spacing: .03em; }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a {
+      padding: 9px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 720;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--surface-soft); }
+    .nav-links .nav-cta { color: var(--accent-ink); background: var(--accent); }
+    .nav-links .nav-cta:hover { color: var(--accent-ink); background: var(--accent-hover); }
+    .nav-cta { white-space: nowrap; }
+    .theme-toggle {
+      display: none;
+      min-height: 38px;
+      padding: 8px 11px;
+      border: 1px solid var(--control-border);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface-soft);
+      cursor: pointer;
+      font-size: .78rem;
+      font-weight: 760;
+      transition: color .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .js .theme-toggle { display: inline-flex; align-items: center; }
+    .theme-toggle:hover { color: var(--text); border-color: var(--accent-border); background: var(--surface-hover); }
+    .theme-toggle[aria-pressed="true"] { color: var(--text); border-color: var(--accent-border); background: var(--accent-soft); }
+
+    .hero { padding: clamp(68px, 9vw, 118px) 0 64px; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+      gap: clamp(36px, 6vw, 82px);
+      align-items: center;
+    }
+    .eyebrow {
+      margin: 0 0 18px;
+      color: var(--accent);
+      font-size: .75rem;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 840px;
+      margin-bottom: 24px;
+      font-size: clamp(3.1rem, 7.2vw, 7.1rem);
+      line-height: .93;
+      letter-spacing: -.068em;
+    }
+    .gradient { color: var(--accent); }
+    @supports (background-clip: text) or (-webkit-background-clip: text) {
+      .gradient {
+        color: transparent;
+        background: linear-gradient(120deg, var(--violet), var(--accent) 52%, var(--text-soft));
+        -webkit-background-clip: text;
+        background-clip: text;
+      }
+    }
+    .hero-copy > p:not(.eyebrow) {
+      max-width: 720px;
+      margin-bottom: 30px;
+      color: var(--text-soft);
+      font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .button {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 12px 17px;
+      border: 1px solid var(--control-border);
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--surface-soft);
+      text-decoration: none;
+      font-weight: 820;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .button:hover { transform: translateY(-2px); border-color: var(--accent-border); background: var(--surface-hover); }
+    .button.primary { color: var(--accent-ink); border-color: transparent; background: var(--accent); }
+    .button.primary:hover { color: var(--accent-ink); background: var(--accent-hover); }
+    .button:disabled { cursor: wait; opacity: .65; transform: none; }
+    .button svg { width: 18px; height: 18px; }
+
+    .identity-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 360px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, var(--surface-raised), var(--surface-soft));
+      box-shadow: var(--shadow);
+    }
+    .identity-card::before {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      right: -100px;
+      top: -100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--violet-soft), transparent 68%);
+    }
+    .signal {
+      position: relative;
+      width: 132px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      color: var(--accent-ink);
+      background: var(--accent);
+      font-size: 2.15rem;
+      font-weight: 950;
+      letter-spacing: -.12em;
+      transform: rotate(-3deg);
+    }
+    .signal::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px dashed var(--mark-detail);
+      border-radius: 18px;
+    }
+    .identity-card h2 { margin-bottom: 10px; font-size: 1.7rem; letter-spacing: -.035em; }
+    .identity-card p { margin-bottom: 0; color: var(--muted); }
+
+    .proof {
+      padding: 0 0 82px;
+    }
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .proof-item { padding: 24px 24px 24px 0; }
+    .proof-item + .proof-item { padding-left: 24px; border-left: 1px solid var(--line); }
+    .proof-item strong { display: block; margin-bottom: 4px; font-size: 1.5rem; letter-spacing: -.035em; }
+    .proof-item span { color: var(--muted); font-size: .93rem; }
+
+    .offer { padding: 92px 0; }
+    .offer-shell {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--accent-border);
+      border-radius: 34px;
+      background:
+        linear-gradient(125deg, var(--accent-soft), transparent 34%),
+        linear-gradient(150deg, var(--panel-2), var(--offer-deep) 64%);
+      box-shadow: var(--shadow);
+    }
+    .offer-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, var(--scan-sheen), transparent);
+      transform: translateX(-100%);
+      animation: scan 8s ease-in-out infinite;
+    }
+    @keyframes scan { 0%, 50% { transform: translateX(-100%); } 75%, 100% { transform: translateX(100%); } }
+    .offer-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .offer-copy { padding: clamp(32px, 6vw, 68px); }
+    .offer-copy h2 {
+      max-width: 680px;
+      margin-bottom: 20px;
+      font-size: clamp(2.6rem, 5.2vw, 5.4rem);
+      line-height: .96;
+      letter-spacing: -.06em;
+    }
+    .offer-lead { max-width: 700px; margin-bottom: 24px; color: var(--text-soft); font-size: 1.1rem; }
+    .price-row { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; margin: 28px 0; }
+    .price { font-size: clamp(3.5rem, 7vw, 6.3rem); line-height: .85; font-weight: 950; letter-spacing: -.07em; }
+    .price-note { max-width: 260px; color: var(--muted); font-size: .92rem; }
+    .deliverables { display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
+    .deliverables li { display: flex; gap: 11px; color: var(--text-soft); }
+    .deliverables svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 2px; color: var(--accent); }
+    .fine-print { margin-top: 20px; color: var(--faint); font-size: .76rem; }
+
+    .brief-card {
+      position: relative;
+      padding: clamp(28px, 4vw, 48px);
+      border-left: 1px solid var(--line);
+      background: var(--brief-bg);
+    }
+    .brief-card h3 { margin-bottom: 8px; font-size: 1.35rem; letter-spacing: -.025em; }
+    .brief-card > p { margin-bottom: 24px; color: var(--muted); font-size: .92rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: grid; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: var(--text-soft); font-size: .78rem; font-weight: 780; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--control-border);
+      border-radius: 13px;
+      outline: 0;
+      color: var(--text);
+      background: var(--field-bg);
+      padding: 12px 13px;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      background: var(--field-focus-bg);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    select option { color: var(--text); background: var(--option-bg); }
+    ::placeholder { color: var(--placeholder); opacity: 1; }
+    textarea { min-height: 112px; resize: vertical; }
+    .form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .form-status { min-height: 24px; margin: 12px 0 0; color: var(--accent); font-size: .82rem; }
+
+    .after { padding: 30px 0 100px; }
+    .after-grid {
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap: 18px;
+    }
+    .after-card {
+      padding: 31px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-soft);
+    }
+    .after-card h2, .after-card h3 { margin-bottom: 12px; letter-spacing: -.04em; }
+    .after-card h2 { font-size: clamp(2rem, 4vw, 3.7rem); line-height: 1; }
+    .after-card p { color: var(--muted); }
+    .service-list { display: flex; flex-wrap: wrap; gap: 9px; margin: 20px 0 24px; padding: 0; list-style: none; }
+    .service-list li { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-soft); background: var(--surface-soft); font-size: .82rem; }
+    .link-list { display: grid; gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--line); }
+    .link-list a {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px;
+      color: var(--text);
+      background: var(--panel);
+      text-decoration: none;
+      transition: background .18s ease;
+    }
+    .link-list a:hover { background: var(--link-hover); }
+    .link-list small { color: var(--muted); }
+
+    .footer { padding: 28px 0 40px; border-top: 1px solid var(--line); }
+    .footer-grid { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .footer p { margin: 0; color: var(--muted); font-size: .82rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+    .footer-links a { color: var(--text-soft); font-size: .82rem; text-decoration: none; }
+    .footer-links a:hover { color: var(--accent); }
+
+    .reveal { opacity: 1; transform: none; }
+    .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .65s ease, transform .65s ease; }
+    .js .reveal.visible { opacity: 1; transform: none; }
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 30;
+      padding: 12px 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--toast-bg);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      font-size: .84rem;
+      font-weight: 760;
+    }
+    .toast.show { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .nav { gap: 12px; }
+      .nav-links { gap: 6px; }
+      .hero-grid, .offer-grid, .after-grid { grid-template-columns: 1fr; }
+      .identity-card { min-height: 280px; }
+      .brief-card { border-top: 1px solid var(--line); border-left: 0; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .proof-grid { grid-template-columns: 1fr; }
+      .proof-item { padding: 19px 0; }
+      .proof-item + .proof-item { padding-left: 0; border-top: 1px solid var(--line); border-left: 0; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(calc(100% - 24px), var(--max)); }
+      .nav { min-height: 64px; }
+      .brand small { display: none; }
+      .theme-toggle { min-height: 36px; padding-inline: 10px; font-size: .74rem; }
+      .nav-cta { padding-inline: 13px !important; font-size: .8rem !important; }
+      .hero { padding-top: 58px; }
+      h1 { font-size: clamp(2.8rem, 14.2vw, 4.6rem); }
+      .actions .button { width: 100%; }
+      .identity-card, .offer-shell { border-radius: 22px; }
+      .offer { padding: 68px 0; }
+      .offer-copy, .brief-card { padding: 25px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .form-actions .button { width: 100%; }
+      .footer-grid { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 520px) {
+      .brand > span:last-child { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .js .reveal { opacity: 1; transform: none; }
+    }
+
+    @media (forced-colors: active) {
+      .gradient { color: LinkText; background: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <svg class="symbol-defs" width="0" height="0" aria-hidden="true">
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m3 7 9 6 9-6" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  </svg>
+
+  <header class="site-header" data-header>
+    <div class="shell nav">
+      <a class="brand" href="#top" aria-label="Ariel Williams, home">
+        <span class="mark" aria-hidden="true">AW</span>
+        <span>Ariel Williams <small>@FromAriel</small></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#about">About</a>
+        <a href="#practice">Practice</a>
+        <a href="#offer">AI readiness</a>
+        <a href="#work">Work</a>
+        <button class="theme-toggle" type="button" id="themeToggle" aria-pressed="false">Light mode</button>
+        <a class="nav-cta" href="#brief">Request session</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="shell hero-grid">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">Vibe coder · AI consultant · technology &amp; culture writer</p>
+          <h1>I turn confusing technology into <span class="gradient">working tools and clear decisions.</span></h1>
+          <p>
+            I’m Ariel Williams, a writer, artist, developer, and public explainer. I build rapid software prototypes, map practical AI workflows, and make complicated technical and cultural questions understandable to real people.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="#offer">Is your organization ready for AI? <svg aria-hidden="true"><use href="#arrow"/></svg></a>
+            <a class="button" href="mailto:fromariel@gmail.com">Contact me</a>
+          </div>
+        </div>
+
+        <aside class="identity-card reveal" id="about" aria-label="About Ariel Williams">
+          <div class="signal" aria-hidden="true">AW</div>
+          <div>
+            <h2>Writer. Builder. Explainer.</h2>
+            <p>Known online as <strong>@FromAriel</strong>. My work spans AI, software, science, games, speculative culture, visual art, public policy, and LGBTQ life.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="proof" aria-label="Selected accomplishments">
+      <div class="shell proof-grid reveal">
+        <div class="proof-item"><strong>28M+</strong><span>views on explanatory writing</span></div>
+        <div class="proof-item"><strong>6×</strong><span>Quora Top Writer</span></div>
+        <div class="proof-item"><strong>Major outlets</strong><span>Forbes, Gizmodo, Newsweek, Nerdist, BBC, Slate, and HuffPost</span></div>
+      </div>
+    </section>
+
+    <section class="signal-showcase" id="practice" aria-labelledby="signalTitle">
+      <div class="shell">
+        <article class="signal-field reveal" data-codex-field>
+          <header class="signal-field__header">
+            <div>
+              <p class="signal-field__eyebrow">Proof of practice · Codex activity</p>
+              <h2 class="signal-field__title" id="signalTitle"><strong data-signal-total>29.9B</strong> tokens of hands-on AI building</h2>
+              <p class="signal-field__subhead">
+                A day-by-day record of software, prototypes, research, and edutainment work.
+                Each living cluster is one day; stronger fields mean heavier Codex use.
+                <span data-signal-range>August 30, 2025 through July 12, 2026.</span>
+              </p>
+            </div>
+            <button class="signal-field__motion" type="button" data-signal-motion aria-pressed="true">Animate field</button>
+          </header>
+
+          <section class="signal-field__metrics" aria-label="Codex activity summary">
+            <div class="signal-field__metric">
+              <span class="signal-field__metric-value"><span data-signal-peak>532.3M</span><span class="signal-field__metric-unit"> tokens</span></span>
+              <span class="signal-field__metric-label">Peak day</span>
+            </div>
+            <div class="signal-field__metric">
+              <span class="signal-field__metric-value"><span data-signal-average>94.3M</span><span class="signal-field__metric-unit"> tokens</span></span>
+              <span class="signal-field__metric-label">Daily average</span>
+            </div>
+            <div class="signal-field__metric">
+              <span class="signal-field__metric-value" data-signal-active>305</span>
+              <span class="signal-field__metric-label">Active days</span>
+            </div>
+            <div class="signal-field__metric">
+              <span class="signal-field__metric-value" data-signal-days>317</span>
+              <span class="signal-field__metric-label">Days tracked</span>
+            </div>
+          </section>
+
+          <figure class="signal-field__visual" data-signal-visual>
+            <canvas
+              class="signal-field__canvas"
+              data-signal-canvas
+              tabindex="0"
+              role="application"
+              aria-roledescription="interactive activity calendar"
+              aria-describedby="signalDescription signalKeyboardHelp"
+              aria-label="Interactive calendar of daily Codex token usage. Focus the field and use arrow keys to explore dates."
+            >Daily Codex activity visualization.</canvas>
+            <div class="signal-field__tooltip" data-signal-tooltip aria-hidden="true">
+              <div class="signal-field__tooltip-date" data-signal-tooltip-date></div>
+              <div class="signal-field__tooltip-value" data-signal-tooltip-value></div>
+              <div class="signal-field__tooltip-note" data-signal-tooltip-note></div>
+            </div>
+            <p class="signal-field__sr-only" id="signalKeyboardHelp">Use Left and Right Arrow to move by week, Up and Down Arrow to move by day, Home for the first date, End for the latest date, and Escape to clear the selection.</p>
+            <p class="signal-field__sr-only" data-signal-live role="status" aria-live="polite"></p>
+            <figcaption class="signal-field__sr-only" id="signalDescription">
+              Seven rows represent Monday through Sunday and each column represents one week.
+              Violet, blue, and cyan particle clusters grow stronger with recorded token use.
+            </figcaption>
+          </figure>
+
+          <details class="signal-field__data">
+            <summary>View the daily data</summary>
+            <div class="signal-field__table-wrap">
+              <table class="signal-field__table" data-signal-table>
+                <caption>Daily recorded Codex token usage</caption>
+                <thead><tr><th scope="col">Date</th><th scope="col">Tokens</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </details>
+
+          <div class="signal-field__footer">
+            <div class="signal-field__legend" role="img" aria-label="Usage intensity from zero to 500 million or more tokens">
+              <span>0</span>
+              <span class="signal-field__legend-scale" aria-hidden="true"></span>
+              <span>500M+</span>
+            </div>
+            <div class="signal-field__interaction-hint">Hover or tap for exact values · focus and use arrow keys · daily table above</div>
+          </div>
+
+          <noscript><p class="signal-field__noscript">The interactive field requires JavaScript. The recorded summary is 29.9 billion tokens across 317 days.</p></noscript>
+        </article>
+      </div>
+    </section>
+
+    <section class="offer" id="offer">
+      <div class="shell offer-shell reveal">
+        <div class="offer-grid">
+          <div class="offer-copy">
+            <p class="eyebrow">A focused first engagement</p>
+            <h2>Is your organization ready for AI?</h2>
+            <p class="offer-lead">
+              Answer a few questions and I’ll prepare a private, organization-specific presentation focused on your industry, location, relevant rules and laws, realistic opportunities, and actual risks.
+            </p>
+
+            <div class="price-row">
+              <span class="price">$500</span>
+              <span class="price-note">Flat fee for a tailored 60-minute presentation plus live Q&amp;A, typically 75–90 minutes total.</span>
+            </div>
+
+            <ul class="deliverables">
+              <li><svg aria-hidden="true"><use href="#check"/></svg><span>Research tailored to your organization, industry, state, and local environment</span></li>
+              <li><svg aria-hidden="true"><use href="#check"/></svg><span>A practical map of what AI can do now, what it should not do, and where humans must stay in control</span></li>
+              <li><svg aria-hidden="true"><use href="#check"/></svg><span>Live examples, direct questions, and a candid discussion of the next sensible step</span></li>
+            </ul>
+
+            <p class="fine-print">Educational and strategic guidance only; discussion of laws or regulations is not legal advice.</p>
+          </div>
+
+          <div class="brief-card" id="brief">
+            <h3>Start the brief</h3>
+            <p>Submit sends your answers directly to Ariel through Formspree. No email app is required.</p>
+
+            <form id="readinessForm" action="https://formspree.io/f/meeyovgj" method="POST">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="name">Your name</label>
+                  <input id="name" name="name" type="text" autocomplete="name" required>
+                </div>
+                <div class="field">
+                  <label for="email">Email</label>
+                  <input id="email" name="email" type="email" autocomplete="email" required>
+                </div>
+                <div class="field">
+                  <label for="company">Company / organization</label>
+                  <input id="company" name="company" type="text" autocomplete="organization" required>
+                </div>
+                <div class="field">
+                  <label for="industry">Industry</label>
+                  <input id="industry" name="industry" type="text" placeholder="Legal, healthcare, retail…" required>
+                </div>
+                <div class="field">
+                  <label for="location">State / location</label>
+                  <input id="location" name="location" type="text" placeholder="Pennsylvania, Tucson, remote…" required>
+                </div>
+                <div class="field">
+                  <label for="stage">Current AI use</label>
+                  <select id="stage" name="stage" required>
+                    <option value="">Choose one</option>
+                    <option>We are not using AI yet</option>
+                    <option>A few people use public AI tools</option>
+                    <option>We have experiments or pilots</option>
+                    <option>AI is already in production</option>
+                    <option>We are not sure what counts as AI use</option>
+                  </select>
+                </div>
+                <div class="field full">
+                  <label for="question">What do you most need answered?</label>
+                  <textarea id="question" name="question" placeholder="What should we automate? What is safe? What are competitors doing? Could AI build this internal tool?" required></textarea>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="button primary" type="submit"><svg aria-hidden="true"><use href="#mail"/></svg> Send the brief</button>
+                <button class="button" type="button" id="copyBrief"><svg aria-hidden="true"><use href="#copy"/></svg> Copy answers</button>
+                <a class="button" href="mailto:fromariel@gmail.com"><svg aria-hidden="true"><use href="#mail"/></svg> Questions? Email me: fromariel@gmail.com</a>
+              </div>
+              <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="after" id="work">
+      <div class="shell after-grid">
+        <article class="after-card reveal">
+          <p class="eyebrow">Beyond the hour</p>
+          <h2>Have something more ambitious in mind?</h2>
+          <p>
+            The readiness session is a low-risk way to start. I also accept commissioned consulting, custom presentations, live prototypes, internal tools, coding, creative technology, and larger software engagements at flexible project rates.
+          </p>
+          <ul class="service-list" aria-label="Available services">
+            <li>AI workflow consulting</li><li>Vibe-coded prototypes</li><li>Internal tools</li><li>Training &amp; talks</li><li>Technical writing</li><li>Creative technology</li>
+          </ul>
+          <a class="button" href="mailto:fromariel@gmail.com?subject=An%20ambitious%20project%20for%20Ariel">Pitch me the project <svg aria-hidden="true"><use href="#arrow"/></svg></a>
+        </article>
+
+        <aside class="after-card reveal" aria-labelledby="public-work-title">
+          <p class="eyebrow">Selected public work</p>
+          <h3 id="public-work-title">Evidence, not a résumé wall.</h3>
+          <div class="link-list">
+            <a href="https://gizmodo.com/how-close-are-we-to-a-real-iron-man-suit-1636424816" target="_blank" rel="noreferrer"><span><strong>How Close Are We to a Real Iron Man Suit?</strong><br><small>Gizmodo · explanatory technology writing</small></span><span>↗</span></a>
+            <a href="https://github.com/FromAriel" target="_blank" rel="noreferrer"><span><strong>Open-source software</strong><br><small>Developer tools, utilities, and experiments</small></span><span>↗</span></a>
+            <a href="https://www.amazon.com/stores/author/B0C6C6MW6C" target="_blank" rel="noreferrer"><span><strong>Books as A. M. Williams</strong><br><small>Art, design, and creative publishing</small></span><span>↗</span></a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell footer-grid">
+      <p>© <span id="year">2026</span> Ariel Williams · Tucson, Arizona · Static, private, and fast.</p>
+      <nav class="footer-links" aria-label="Professional profiles">
+        <a href="mailto:fromariel@gmail.com">Email</a>
+        <a href="https://github.com/FromAriel" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://www.linkedin.com/in/ariel-williams-79409231" target="_blank" rel="noreferrer">LinkedIn</a>
+        <a href="https://www.quora.com/profile/Ariel-Williams" target="_blank" rel="noreferrer">Quora</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Copied.</div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const header = document.querySelector("[data-header]");
+      const form = document.getElementById("readinessForm");
+      const status = document.getElementById("formStatus");
+      const submitButton = form.querySelector('button[type="submit"]');
+      const copyButton = document.getElementById("copyBrief");
+      const toast = document.getElementById("toast");
+      const themeToggle = document.getElementById("themeToggle");
+      const themeColor = document.querySelector('meta[name="theme-color"]');
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const snapshotMode = new URLSearchParams(window.location.search).has("snapshot");
+
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      function setTheme(theme) {
+        const light = theme === "light";
+        document.documentElement.dataset.theme = light ? "light" : "dark";
+        themeToggle.setAttribute("aria-pressed", String(light));
+        themeColor.setAttribute("content", light ? "#f4f7fa" : "#0d1117");
+      }
+
+      const requestedTheme = new URLSearchParams(window.location.search).get("theme");
+      setTheme(requestedTheme === "light" ? "light" : "dark");
+      themeToggle.addEventListener("click", () => {
+        setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+      });
+
+      const updateHeader = () => header.classList.toggle("scrolled", window.scrollY > 10);
+      updateHeader();
+      window.addEventListener("scroll", updateHeader, { passive: true });
+
+      const revealItems = [...document.querySelectorAll(".reveal")];
+      if (reducedMotion || snapshotMode || !("IntersectionObserver" in window)) {
+        revealItems.forEach((item) => item.classList.add("visible"));
+      } else {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: .12 });
+        revealItems.forEach((item) => observer.observe(item));
+      }
+
+      function answers() {
+        const data = new FormData(form);
+        return [
+          "AI READINESS SESSION BRIEF",
+          "",
+          `Name: ${data.get("name") || ""}`,
+          `Email: ${data.get("email") || ""}`,
+          `Organization: ${data.get("company") || ""}`,
+          `Industry: ${data.get("industry") || ""}`,
+          `Location: ${data.get("location") || ""}`,
+          `Current AI use: ${data.get("stage") || ""}`,
+          "",
+          "Primary question:",
+          `${data.get("question") || ""}`,
+          "",
+          "I am interested in the $500 tailored AI readiness presentation and Q&A."
+        ].join("\n");
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+      }
+
+      async function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+        const field = document.createElement("textarea");
+        field.value = text;
+        field.setAttribute("readonly", "");
+        field.style.position = "fixed";
+        field.style.opacity = "0";
+        document.body.appendChild(field);
+        field.select();
+        const copied = document.execCommand("copy");
+        field.remove();
+        if (!copied) throw new Error("Copy failed");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+
+        const company = document.getElementById("company").value.trim();
+        const data = new FormData(form);
+        data.set("_subject", `AI readiness session — ${company || "new inquiry"}`);
+        data.set("message", answers());
+        submitButton.disabled = true;
+        submitButton.setAttribute("aria-busy", "true");
+        status.textContent = "Sending your brief…";
+
+        try {
+          const response = await fetch(form.action, {
+            method: "POST",
+            body: data,
+            headers: { Accept: "application/json" }
+          });
+          if (!response.ok) throw new Error(`Formspree returned ${response.status}`);
+
+          form.reset();
+          status.textContent = "Thanks — your brief was sent to Ariel.";
+          showToast("Brief sent");
+        } catch {
+          status.textContent = "The brief could not be sent. Please try again, use Copy answers, or email the address below.";
+        } finally {
+          submitButton.disabled = false;
+          submitButton.removeAttribute("aria-busy");
+        }
+      });
+
+      copyButton.addEventListener("click", async () => {
+        if (!form.reportValidity()) {
+          status.textContent = "Complete the brief first, then copy it.";
+          return;
+        }
+        try {
+          await copyText(answers());
+          status.textContent = "Brief copied. Paste it into any email or message.";
+          showToast("Brief copied");
+        } catch {
+          status.textContent = "Copy failed. Please send your answers to the email address shown above.";
+        }
+      });
+    })();
+  </script>
+  <script src="assets/signal-field.js"></script>
+</body>
+</html>
