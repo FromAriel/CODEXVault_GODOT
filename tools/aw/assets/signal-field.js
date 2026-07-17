@@ -719,6 +719,7 @@
   } else {
     window.addEventListener("resize", scheduleResize, { passive: true });
   }
+  window.addEventListener("codex-field:resize", scheduleResize);
 
   const themeObserver = new MutationObserver(mutations => {
     if (!mutations.some(mutation => mutation.attributeName === "data-theme")) return;

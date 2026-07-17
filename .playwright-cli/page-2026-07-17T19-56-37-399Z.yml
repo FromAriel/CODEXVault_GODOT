@@ -1,0 +1,181 @@
+- generic [active] [ref=f5e1]:
+  - link "Skip to main content" [ref=f5e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=f5e3]:
+    - generic [ref=f5e4]:
+      - link "Ariel Williams, home" [ref=f5e5] [cursor=pointer]:
+        - /url: "#top"
+        - generic [ref=f5e6]: AW
+      - navigation "Primary navigation" [ref=f5e7]:
+        - button "Light mode" [ref=f5e8] [cursor=pointer]
+        - link "Request session" [ref=f5e9] [cursor=pointer]:
+          - /url: "#brief"
+  - main [ref=f5e10]:
+    - generic [ref=f5e12]:
+      - generic [ref=f5e13]:
+        - paragraph [ref=f5e14]: Vibe coder · AI consultant · technology & culture writer
+        - heading "I turn confusing technology into working tools and clear decisions." [level=1] [ref=f5e15]
+        - paragraph [ref=f5e16]: I’m Ariel Williams, a writer, artist, developer, and public explainer. I build rapid software prototypes, map practical AI workflows, and make complicated technical and cultural questions understandable to real people.
+        - generic [ref=f5e17]:
+          - link "Is your organization ready for AI?" [ref=f5e18] [cursor=pointer]:
+            - /url: "#offer"
+          - link "Contact me" [ref=f5e21] [cursor=pointer]:
+            - /url: mailto:fromariel@gmail.com
+      - complementary "About Ariel Williams" [ref=f5e22]:
+        - generic [ref=f5e23]: AW
+        - generic [ref=f5e24]:
+          - heading "Writer. Builder. Explainer." [level=2] [ref=f5e25]
+          - paragraph [ref=f5e26]:
+            - text: Known online as
+            - strong [ref=f5e27]: "@FromAriel"
+            - text: . My work spans AI, software, science, games, speculative culture, visual art, public policy, and LGBTQ life.
+    - generic [ref=f5e30]:
+      - generic [ref=f5e31]:
+        - generic [ref=f5e32]:
+          - article [ref=f5e34]:
+            - generic [ref=f5e36]:
+              - paragraph [ref=f5e37]: Proof of practice · Codex activity
+              - heading [level=2] [ref=f5e38]:
+                - strong [ref=f5e39]: 29.9B
+                - text: tokens of hands-on AI building
+              - paragraph [ref=f5e40]: A day-by-day record of software, prototypes, research, and edutainment work. Each living cluster is one day; stronger fields mean heavier Codex use. August 30, 2025 through July 12, 2026.
+            - region "Codex activity summary" [ref=f5e41]:
+              - generic [ref=f5e42]:
+                - generic [ref=f5e43]: 532.3M tokens
+                - generic [ref=f5e44]: Peak day
+              - generic [ref=f5e45]:
+                - generic [ref=f5e46]: 94.3M tokens
+                - generic [ref=f5e47]: Daily average
+              - generic [ref=f5e48]:
+                - generic [ref=f5e49]: "305"
+                - generic [ref=f5e50]: Active days
+              - generic [ref=f5e51]:
+                - generic [ref=f5e52]: "317"
+                - generic [ref=f5e53]: Days tracked
+            - figure "Seven rows represent Monday through Sunday and each column represents one week. Violet, blue, and cyan particle clusters grow stronger with recorded token use." [ref=f5e54]:
+              - application "Interactive calendar of daily Codex token usage from August 30, 2025 through July 12, 2026. Focus the field and use arrow keys to explore dates." [ref=f5e55]: Daily Codex activity visualization.
+              - paragraph [ref=f5e56]: Use Left and Right Arrow to move by week, Up and Down Arrow to move by day, Home for the first date, End for the latest date, and Escape to clear the selection.
+              - status [ref=f5e57]
+            - group [ref=f5e59]:
+              - generic "View the daily data" [ref=f5e60] [cursor=pointer]
+            - generic [ref=f5e61]:
+              - img "Usage intensity from zero to 500 million or more tokens" [ref=f5e62]:
+                - generic [ref=f5e63]: "0"
+                - generic [ref=f5e65]: 500M+
+              - generic [ref=f5e66]: Hover or tap for exact values · focus and use arrow keys · daily table above
+          - button "Open full activity" [ref=f5e67]
+        - paragraph [ref=f5e69]: A focused first engagement
+        - heading "Is your organization ready for AI?" [level=2] [ref=f5e70]
+        - paragraph [ref=f5e71]: Answer a few questions and I’ll prepare a private, organization-specific presentation focused on your industry, location, relevant rules and laws, realistic opportunities, and actual risks.
+        - generic [ref=f5e72]:
+          - generic [ref=f5e73]: $500
+          - generic [ref=f5e74]: Flat fee for a tailored 60-minute presentation plus live Q&A, typically 75–90 minutes total.
+        - list [ref=f5e75]:
+          - listitem [ref=f5e76]:
+            - generic [ref=f5e79]: Research tailored to your organization, industry, state, and local environment
+          - listitem [ref=f5e80]:
+            - generic [ref=f5e83]: A practical map of what AI can do now, what it should not do, and where humans must stay in control
+          - listitem [ref=f5e84]:
+            - generic [ref=f5e87]: Live examples, direct questions, and a candid discussion of the next sensible step
+        - paragraph [ref=f5e88]: Educational and strategic guidance only; discussion of laws or regulations is not legal advice.
+      - generic [ref=f5e89]:
+        - heading "Start the brief" [level=3] [ref=f5e90]
+        - paragraph [ref=f5e91]: Submit sends your answers directly to Ariel through Formspree. No email app is required.
+        - generic [ref=f5e92]:
+          - generic [ref=f5e93]:
+            - generic [ref=f5e94]:
+              - generic [ref=f5e95]: Your name
+              - textbox "Your name" [ref=f5e96]
+            - generic [ref=f5e97]:
+              - generic [ref=f5e98]: Email
+              - textbox "Email" [ref=f5e99]
+            - generic [ref=f5e100]:
+              - generic [ref=f5e101]: Company / organization
+              - textbox "Company / organization" [ref=f5e102]
+            - generic [ref=f5e103]:
+              - generic [ref=f5e104]: Industry
+              - textbox "Industry" [ref=f5e105]:
+                - /placeholder: Legal, healthcare, retail…
+            - generic [ref=f5e106]:
+              - generic [ref=f5e107]: State / location
+              - textbox "State / location" [ref=f5e108]:
+                - /placeholder: Pennsylvania, Tucson, remote…
+            - generic [ref=f5e109]:
+              - generic [ref=f5e110]: Current AI use
+              - combobox "Current AI use" [ref=f5e111]:
+                - option "Choose one" [selected]
+                - option "We are not using AI yet"
+                - option "A few people use public AI tools"
+                - option "We have experiments or pilots"
+                - option "AI is already in production"
+                - option "We are not sure what counts as AI use"
+            - generic [ref=f5e112]:
+              - generic [ref=f5e113]: What do you most need answered?
+              - textbox "What do you most need answered?" [ref=f5e114]:
+                - /placeholder: What should we automate? What is safe? What are competitors doing? Could AI build this internal tool?
+          - generic [ref=f5e115]:
+            - button "Send the brief" [ref=f5e116] [cursor=pointer]
+            - button "Copy answers" [ref=f5e119] [cursor=pointer]
+            - 'link "Questions? Email me: fromariel@gmail.com" [ref=f5e122] [cursor=pointer]':
+              - /url: mailto:fromariel@gmail.com
+          - status [ref=f5e125]
+    - region "Selected accomplishments" [ref=f5e126]:
+      - generic [ref=f5e127]:
+        - generic [ref=f5e128]:
+          - strong [ref=f5e129]: 28M+
+          - text: views on explanatory writing
+        - generic [ref=f5e130]:
+          - strong [ref=f5e131]: 6×
+          - text: Quora Top Writer
+        - generic [ref=f5e132]:
+          - strong [ref=f5e133]: Major outlets
+          - text: Forbes, Gizmodo, Newsweek, Nerdist, BBC, Slate, and HuffPost
+    - generic [ref=f5e135]:
+      - article [ref=f5e136]:
+        - paragraph [ref=f5e137]: Beyond the hour
+        - heading "Have something more ambitious in mind?" [level=2] [ref=f5e138]
+        - paragraph [ref=f5e139]: The readiness session is a low-risk way to start. I also accept commissioned consulting, custom presentations, live prototypes, internal tools, coding, creative technology, and larger software engagements at flexible project rates.
+        - list "Available services" [ref=f5e140]:
+          - listitem [ref=f5e141]: AI workflow consulting
+          - listitem [ref=f5e142]: Vibe-coded prototypes
+          - listitem [ref=f5e143]: Internal tools
+          - listitem [ref=f5e144]: Training & talks
+          - listitem [ref=f5e145]: Technical writing
+          - listitem [ref=f5e146]: Creative technology
+        - link "Pitch me the project" [ref=f5e147] [cursor=pointer]:
+          - /url: mailto:fromariel@gmail.com?subject=An%20ambitious%20project%20for%20Ariel
+      - complementary [ref=f5e150]:
+        - paragraph [ref=f5e151]: Selected public work
+        - heading "Evidence, not a résumé wall." [level=3] [ref=f5e152]
+        - generic [ref=f5e153]:
+          - link "How Close Are We to a Real Iron Man Suit? Gizmodo · explanatory technology writing ↗" [ref=f5e154] [cursor=pointer]:
+            - /url: https://gizmodo.com/how-close-are-we-to-a-real-iron-man-suit-1636424816
+            - generic [ref=f5e155]:
+              - strong [ref=f5e156]: How Close Are We to a Real Iron Man Suit?
+              - text: Gizmodo · explanatory technology writing
+            - generic [ref=f5e157]: ↗
+          - link "Open-source software Developer tools, utilities, and experiments ↗" [ref=f5e158] [cursor=pointer]:
+            - /url: https://github.com/FromAriel
+            - generic [ref=f5e159]:
+              - strong [ref=f5e160]: Open-source software
+              - text: Developer tools, utilities, and experiments
+            - generic [ref=f5e161]: ↗
+          - link "Books as A. M. Williams Art, design, and creative publishing ↗" [ref=f5e162] [cursor=pointer]:
+            - /url: https://www.amazon.com/stores/author/B0C6C6MW6C
+            - generic [ref=f5e163]:
+              - strong [ref=f5e164]: Books as A. M. Williams
+              - text: Art, design, and creative publishing
+            - generic [ref=f5e165]: ↗
+  - contentinfo [ref=f5e166]:
+    - generic [ref=f5e167]:
+      - paragraph [ref=f5e168]: © 2026 Ariel Williams · Tucson, Arizona · Static, private, and fast.
+      - navigation "Professional profiles" [ref=f5e169]:
+        - link "Email" [ref=f5e170] [cursor=pointer]:
+          - /url: mailto:fromariel@gmail.com
+        - link "GitHub" [ref=f5e171] [cursor=pointer]:
+          - /url: https://github.com/FromAriel
+        - link "LinkedIn" [ref=f5e172] [cursor=pointer]:
+          - /url: https://www.linkedin.com/in/ariel-williams-79409231
+        - link "Quora" [ref=f5e173] [cursor=pointer]:
+          - /url: https://www.quora.com/profile/Ariel-Williams
+  - status: Copied.

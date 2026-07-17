@@ -1,0 +1,27 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic:
+      - banner
+    - generic [ref=e5]:
+      - generic:
+        - generic:
+          - generic:
+            - button "Skip to main content"
+          - generic:
+            - button "Skip to navigation"
+      - generic [ref=e8]:
+        - banner:
+          - link "Ariel Williams" [ref=e12] [cursor=pointer]:
+            - /url: /test
+        - iframe [ref=e51]:
+          - iframe [ref=f1e2]:
+            
+        - generic [ref=e52]:
+          - button [ref=e53] [cursor=pointer]
+          - generic:
+            - generic [ref=e59]:
+              - text: Page updated
+              - contentinfo
+            - button "Google Sites" [ref=e61] [cursor=pointer]
+            - button "Report abuse" [ref=e63] [cursor=pointer]
+  - region [ref=e64]

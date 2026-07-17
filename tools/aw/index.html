@@ -126,6 +126,7 @@
 
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
+    #about, #practice, #offer, #brief, #work { scroll-margin-top: 92px; }
     body {
       margin: 0;
       overflow-x: hidden;
@@ -247,11 +248,11 @@
     .theme-toggle:hover { color: var(--text); border-color: var(--accent-border); background: var(--surface-hover); }
     .theme-toggle[aria-pressed="true"] { color: var(--text); border-color: var(--accent-border); background: var(--accent-soft); }
 
-    .hero { padding: clamp(68px, 9vw, 118px) 0 64px; }
+    .hero { padding: clamp(46px, 5.5vw, 72px) 0 48px; }
     .hero-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
-      gap: clamp(36px, 6vw, 82px);
+      gap: clamp(32px, 4.5vw, 62px);
       align-items: center;
     }
     .eyebrow {
@@ -264,11 +265,11 @@
     }
     h1, h2, h3, p { margin-top: 0; }
     h1 {
-      max-width: 840px;
-      margin-bottom: 24px;
-      font-size: clamp(3.1rem, 7.2vw, 7.1rem);
-      line-height: .93;
-      letter-spacing: -.068em;
+      max-width: 760px;
+      margin-bottom: 20px;
+      font-size: clamp(2.9rem, 4.25vw, 4.05rem);
+      line-height: .96;
+      letter-spacing: -.058em;
     }
     .gradient { color: var(--accent); }
     @supports (background-clip: text) or (-webkit-background-clip: text) {
@@ -281,7 +282,7 @@
     }
     .hero-copy > p:not(.eyebrow) {
       max-width: 720px;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
       color: var(--text-soft);
       font-size: clamp(1.05rem, 1.8vw, 1.28rem);
     }
@@ -370,7 +371,7 @@
     .proof-item strong { display: block; margin-bottom: 4px; font-size: 1.5rem; letter-spacing: -.035em; }
     .proof-item span { color: var(--muted); font-size: .93rem; }
 
-    .offer { padding: 92px 0; }
+    .offer { padding: 18px 0 72px; }
     .offer-shell {
       position: relative;
       overflow: hidden;
@@ -391,12 +392,19 @@
       animation: scan 8s ease-in-out infinite;
     }
     @keyframes scan { 0%, 50% { transform: translateX(-100%); } 75%, 100% { transform: translateX(100%); } }
-    .offer-grid { display: grid; grid-template-columns: 1fr 1fr; }
-    .offer-copy { padding: clamp(32px, 6vw, 68px); }
+    .offer-grid { display: block; }
+    .offer-copy {
+      padding: clamp(36px, 5vw, 58px);
+    }
+    .offer-copy::after {
+      content: "";
+      display: block;
+      clear: both;
+    }
     .offer-copy h2 {
-      max-width: 680px;
+      max-width: 620px;
       margin-bottom: 20px;
-      font-size: clamp(2.6rem, 5.2vw, 5.4rem);
+      font-size: clamp(2.5rem, 4vw, 4rem);
       line-height: .96;
       letter-spacing: -.06em;
     }
@@ -409,10 +417,108 @@
     .deliverables svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 2px; color: var(--accent); }
     .fine-print { margin-top: 20px; color: var(--faint); font-size: .76rem; }
 
+    .codex-float {
+      --codex-scale: .5;
+      position: relative;
+      float: right;
+      width: 580px;
+      height: 478px;
+      margin: 0 0 30px clamp(30px, 4vw, 48px);
+      border-radius: 16px;
+      isolation: isolate;
+    }
+    .codex-float__scale {
+      width: 1160px;
+      transform: scale(var(--codex-scale));
+      transform-origin: top left;
+    }
+    .codex-float__scale .signal-field { width: 100%; }
+    .codex-float__open {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 14px;
+      border: 0;
+      border-radius: inherit;
+      color: var(--text);
+      background: transparent;
+      cursor: zoom-in;
+    }
+    .js .codex-float__open { display: flex; }
+    .codex-float__open span {
+      padding: 8px 11px;
+      border: 1px solid var(--accent-border);
+      border-radius: 999px;
+      background: var(--header-solid);
+      box-shadow: 0 8px 26px rgba(0, 0, 0, .28);
+      font-size: .72rem;
+      font-weight: 820;
+      letter-spacing: .04em;
+      transition: color .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .codex-float__open:hover span {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--panel);
+    }
+    .codex-float__open:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 4px;
+    }
+
+    .codex-dialog {
+      width: min(1220px, calc(100% - 24px));
+      max-height: calc(100dvh - 24px);
+      padding: 0;
+      overflow: auto;
+      border: 1px solid var(--accent-border);
+      border-radius: 28px;
+      color: var(--text);
+      background: var(--bg);
+      box-shadow: 0 34px 110px rgba(0, 0, 0, .7);
+    }
+    .codex-dialog::backdrop {
+      background: rgba(4, 8, 13, .82);
+      backdrop-filter: blur(10px);
+    }
+    .codex-dialog__toolbar {
+      position: sticky;
+      z-index: 8;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--header-solid);
+      backdrop-filter: blur(16px);
+    }
+    .codex-dialog__toolbar strong { font-size: .9rem; }
+    .codex-dialog__content { padding: 14px; }
+    .codex-dialog__content .signal-field { width: 100%; }
+    .codex-dialog__close {
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid var(--control-border);
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--surface-soft);
+      cursor: pointer;
+      font: inherit;
+      font-size: .78rem;
+      font-weight: 780;
+    }
+    .codex-dialog__close:hover { border-color: var(--accent-border); background: var(--surface-hover); }
+    .codex-dialog__close:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
     .brief-card {
       position: relative;
       padding: clamp(28px, 4vw, 48px);
-      border-left: 1px solid var(--line);
+      border-top: 1px solid var(--line);
       background: var(--brief-bg);
     }
     .brief-card h3 { margin-bottom: 8px; font-size: 1.35rem; letter-spacing: -.025em; }
@@ -506,13 +612,31 @@
     @media (max-width: 900px) {
       .nav { gap: 12px; }
       .nav-links { gap: 6px; }
-      .hero-grid, .offer-grid, .after-grid { grid-template-columns: 1fr; }
+      .hero-grid, .after-grid { grid-template-columns: 1fr; }
       .identity-card { min-height: 280px; }
-      .brief-card { border-top: 1px solid var(--line); border-left: 0; }
       .nav-links a:not(.nav-cta) { display: none; }
       .proof-grid { grid-template-columns: 1fr; }
       .proof-item { padding: 19px 0; }
       .proof-item + .proof-item { padding-left: 0; border-top: 1px solid var(--line); border-left: 0; }
+    }
+
+    @media (max-width: 1050px) {
+      .offer-copy {
+        display: flex;
+        flex-direction: column;
+      }
+      .codex-float {
+        order: 1;
+        float: none;
+        width: min(100%, 580px);
+        height: auto;
+        margin: 30px 0 0;
+        align-self: center;
+      }
+      .codex-float__scale {
+        width: 1160px;
+        transform: scale(var(--codex-scale));
+      }
     }
 
     @media (max-width: 620px) {
@@ -521,12 +645,25 @@
       .brand small { display: none; }
       .theme-toggle { min-height: 36px; padding-inline: 10px; font-size: .74rem; }
       .nav-cta { padding-inline: 13px !important; font-size: .8rem !important; }
-      .hero { padding-top: 58px; }
-      h1 { font-size: clamp(2.8rem, 14.2vw, 4.6rem); }
+      .hero { padding-top: 44px; padding-bottom: 24px; }
+      h1 { font-size: clamp(2.45rem, 11.5vw, 3.45rem); }
       .actions .button { width: 100%; }
+      .identity-card {
+        min-height: 0;
+        padding: 20px;
+        flex-direction: row;
+        align-items: center;
+        gap: 18px;
+      }
+      .identity-card .signal { flex: 0 0 76px; width: 76px; border-radius: 19px; font-size: 1.45rem; }
+      .identity-card .signal::after { inset: 8px; border-radius: 13px; }
+      .identity-card h2 { margin-bottom: 6px; font-size: 1.25rem; }
+      .identity-card p { font-size: .84rem; }
       .identity-card, .offer-shell { border-radius: 22px; }
-      .offer { padding: 68px 0; }
+      .offer { padding: 10px 0 58px; }
       .offer-copy, .brief-card { padding: 25px; }
+      .codex-dialog { width: calc(100% - 12px); max-height: calc(100dvh - 12px); border-radius: 20px; }
+      .codex-dialog__content { padding: 8px; }
       .form-grid { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
       .form-actions .button { width: 100%; }
@@ -600,101 +737,96 @@
       </div>
     </section>
 
-    <section class="proof" aria-label="Selected accomplishments">
-      <div class="shell proof-grid reveal">
-        <div class="proof-item"><strong>28M+</strong><span>views on explanatory writing</span></div>
-        <div class="proof-item"><strong>6×</strong><span>Quora Top Writer</span></div>
-        <div class="proof-item"><strong>Major outlets</strong><span>Forbes, Gizmodo, Newsweek, Nerdist, BBC, Slate, and HuffPost</span></div>
-      </div>
-    </section>
-
-    <section class="signal-showcase" id="practice" aria-labelledby="signalTitle">
-      <div class="shell">
-        <article class="signal-field reveal" data-codex-field>
-          <header class="signal-field__header">
-            <div>
-              <p class="signal-field__eyebrow">Proof of practice · Codex activity</p>
-              <h2 class="signal-field__title" id="signalTitle"><strong data-signal-total>29.9B</strong> tokens of hands-on AI building</h2>
-              <p class="signal-field__subhead">
-                A day-by-day record of software, prototypes, research, and edutainment work.
-                Each living cluster is one day; stronger fields mean heavier Codex use.
-                <span data-signal-range>August 30, 2025 through July 12, 2026.</span>
-              </p>
-            </div>
-            <button class="signal-field__motion" type="button" data-signal-motion aria-pressed="true">Animate field</button>
-          </header>
-
-          <section class="signal-field__metrics" aria-label="Codex activity summary">
-            <div class="signal-field__metric">
-              <span class="signal-field__metric-value"><span data-signal-peak>532.3M</span><span class="signal-field__metric-unit"> tokens</span></span>
-              <span class="signal-field__metric-label">Peak day</span>
-            </div>
-            <div class="signal-field__metric">
-              <span class="signal-field__metric-value"><span data-signal-average>94.3M</span><span class="signal-field__metric-unit"> tokens</span></span>
-              <span class="signal-field__metric-label">Daily average</span>
-            </div>
-            <div class="signal-field__metric">
-              <span class="signal-field__metric-value" data-signal-active>305</span>
-              <span class="signal-field__metric-label">Active days</span>
-            </div>
-            <div class="signal-field__metric">
-              <span class="signal-field__metric-value" data-signal-days>317</span>
-              <span class="signal-field__metric-label">Days tracked</span>
-            </div>
-          </section>
-
-          <figure class="signal-field__visual" data-signal-visual>
-            <canvas
-              class="signal-field__canvas"
-              data-signal-canvas
-              tabindex="0"
-              role="application"
-              aria-roledescription="interactive activity calendar"
-              aria-describedby="signalDescription signalKeyboardHelp"
-              aria-label="Interactive calendar of daily Codex token usage. Focus the field and use arrow keys to explore dates."
-            >Daily Codex activity visualization.</canvas>
-            <div class="signal-field__tooltip" data-signal-tooltip aria-hidden="true">
-              <div class="signal-field__tooltip-date" data-signal-tooltip-date></div>
-              <div class="signal-field__tooltip-value" data-signal-tooltip-value></div>
-              <div class="signal-field__tooltip-note" data-signal-tooltip-note></div>
-            </div>
-            <p class="signal-field__sr-only" id="signalKeyboardHelp">Use Left and Right Arrow to move by week, Up and Down Arrow to move by day, Home for the first date, End for the latest date, and Escape to clear the selection.</p>
-            <p class="signal-field__sr-only" data-signal-live role="status" aria-live="polite"></p>
-            <figcaption class="signal-field__sr-only" id="signalDescription">
-              Seven rows represent Monday through Sunday and each column represents one week.
-              Violet, blue, and cyan particle clusters grow stronger with recorded token use.
-            </figcaption>
-          </figure>
-
-          <details class="signal-field__data">
-            <summary>View the daily data</summary>
-            <div class="signal-field__table-wrap">
-              <table class="signal-field__table" data-signal-table>
-                <caption>Daily recorded Codex token usage</caption>
-                <thead><tr><th scope="col">Date</th><th scope="col">Tokens</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </details>
-
-          <div class="signal-field__footer">
-            <div class="signal-field__legend" role="img" aria-label="Usage intensity from zero to 500 million or more tokens">
-              <span>0</span>
-              <span class="signal-field__legend-scale" aria-hidden="true"></span>
-              <span>500M+</span>
-            </div>
-            <div class="signal-field__interaction-hint">Hover or tap for exact values · focus and use arrow keys · daily table above</div>
-          </div>
-
-          <noscript><p class="signal-field__noscript">The interactive field requires JavaScript. The recorded summary is 29.9 billion tokens across 317 days.</p></noscript>
-        </article>
-      </div>
-    </section>
-
     <section class="offer" id="offer">
       <div class="shell offer-shell reveal">
         <div class="offer-grid">
           <div class="offer-copy">
+            <div class="codex-float" id="practice" data-codex-preview>
+              <div class="codex-float__scale" data-codex-preview-scale>
+                <article class="signal-field" data-codex-field>
+                  <header class="signal-field__header">
+                    <div>
+                      <p class="signal-field__eyebrow">Proof of practice · Codex activity</p>
+                      <h2 class="signal-field__title" id="signalTitle"><strong data-signal-total>29.9B</strong> tokens of hands-on AI building</h2>
+                      <p class="signal-field__subhead">
+                        A day-by-day record of software, prototypes, research, and edutainment work.
+                        Each living cluster is one day; stronger fields mean heavier Codex use.
+                        <span data-signal-range>August 30, 2025 through July 12, 2026.</span>
+                      </p>
+                    </div>
+                    <button class="signal-field__motion" type="button" data-signal-motion aria-pressed="true">Animate field</button>
+                  </header>
+
+                  <section class="signal-field__metrics" aria-label="Codex activity summary">
+                    <div class="signal-field__metric">
+                      <span class="signal-field__metric-value"><span data-signal-peak>532.3M</span><span class="signal-field__metric-unit"> tokens</span></span>
+                      <span class="signal-field__metric-label">Peak day</span>
+                    </div>
+                    <div class="signal-field__metric">
+                      <span class="signal-field__metric-value"><span data-signal-average>94.3M</span><span class="signal-field__metric-unit"> tokens</span></span>
+                      <span class="signal-field__metric-label">Daily average</span>
+                    </div>
+                    <div class="signal-field__metric">
+                      <span class="signal-field__metric-value" data-signal-active>305</span>
+                      <span class="signal-field__metric-label">Active days</span>
+                    </div>
+                    <div class="signal-field__metric">
+                      <span class="signal-field__metric-value" data-signal-days>317</span>
+                      <span class="signal-field__metric-label">Days tracked</span>
+                    </div>
+                  </section>
+
+                  <figure class="signal-field__visual" data-signal-visual>
+                    <canvas
+                      class="signal-field__canvas"
+                      data-signal-canvas
+                      tabindex="0"
+                      role="application"
+                      aria-roledescription="interactive activity calendar"
+                      aria-describedby="signalDescription signalKeyboardHelp"
+                      aria-label="Interactive calendar of daily Codex token usage. Focus the field and use arrow keys to explore dates."
+                    >Daily Codex activity visualization.</canvas>
+                    <div class="signal-field__tooltip" data-signal-tooltip aria-hidden="true">
+                      <div class="signal-field__tooltip-date" data-signal-tooltip-date></div>
+                      <div class="signal-field__tooltip-value" data-signal-tooltip-value></div>
+                      <div class="signal-field__tooltip-note" data-signal-tooltip-note></div>
+                    </div>
+                    <p class="signal-field__sr-only" id="signalKeyboardHelp">Use Left and Right Arrow to move by week, Up and Down Arrow to move by day, Home for the first date, End for the latest date, and Escape to clear the selection.</p>
+                    <p class="signal-field__sr-only" data-signal-live role="status" aria-live="polite"></p>
+                    <figcaption class="signal-field__sr-only" id="signalDescription">
+                      Seven rows represent Monday through Sunday and each column represents one week.
+                      Violet, blue, and cyan particle clusters grow stronger with recorded token use.
+                    </figcaption>
+                  </figure>
+
+                  <details class="signal-field__data">
+                    <summary>View the daily data</summary>
+                    <div class="signal-field__table-wrap">
+                      <table class="signal-field__table" data-signal-table>
+                        <caption>Daily recorded Codex token usage</caption>
+                        <thead><tr><th scope="col">Date</th><th scope="col">Tokens</th></tr></thead>
+                        <tbody></tbody>
+                      </table>
+                    </div>
+                  </details>
+
+                  <div class="signal-field__footer">
+                    <div class="signal-field__legend" role="img" aria-label="Usage intensity from zero to 500 million or more tokens">
+                      <span>0</span>
+                      <span class="signal-field__legend-scale" aria-hidden="true"></span>
+                      <span>500M+</span>
+                    </div>
+                    <div class="signal-field__interaction-hint">Hover or tap for exact values · focus and use arrow keys · daily table above</div>
+                  </div>
+
+                  <noscript><p class="signal-field__noscript">The interactive field requires JavaScript. The recorded summary is 29.9 billion tokens across 317 days.</p></noscript>
+                </article>
+              </div>
+              <button class="codex-float__open" type="button" data-codex-preview-open aria-describedby="signalTitle">
+                <span>Open full activity</span>
+              </button>
+            </div>
+
             <p class="eyebrow">A focused first engagement</p>
             <h2>Is your organization ready for AI?</h2>
             <p class="offer-lead">
@@ -767,6 +899,22 @@
             </form>
           </div>
         </div>
+
+        <dialog class="codex-dialog" data-codex-dialog aria-label="Full Codex activity">
+          <div class="codex-dialog__toolbar">
+            <strong>Proof of practice · Codex activity</strong>
+            <button class="codex-dialog__close" type="button" data-codex-dialog-close>Close</button>
+          </div>
+          <div class="codex-dialog__content" data-codex-dialog-content></div>
+        </dialog>
+      </div>
+    </section>
+
+    <section class="proof" aria-label="Selected accomplishments">
+      <div class="shell proof-grid reveal">
+        <div class="proof-item"><strong>28M+</strong><span>views on explanatory writing</span></div>
+        <div class="proof-item"><strong>6×</strong><span>Quora Top Writer</span></div>
+        <div class="proof-item"><strong>Major outlets</strong><span>Forbes, Gizmodo, Newsweek, Nerdist, BBC, Slate, and HuffPost</span></div>
       </div>
     </section>
 
@@ -823,6 +971,13 @@
       const toast = document.getElementById("toast");
       const themeToggle = document.getElementById("themeToggle");
       const themeColor = document.querySelector('meta[name="theme-color"]');
+      const codexPreview = document.querySelector("[data-codex-preview]");
+      const codexPreviewScale = document.querySelector("[data-codex-preview-scale]");
+      const codexPreviewOpen = document.querySelector("[data-codex-preview-open]");
+      const codexField = document.querySelector("[data-codex-field]");
+      const codexDialog = document.querySelector("[data-codex-dialog]");
+      const codexDialogContent = document.querySelector("[data-codex-dialog-content]");
+      const codexDialogClose = document.querySelector("[data-codex-dialog-close]");
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const snapshotMode = new URLSearchParams(window.location.search).has("snapshot");
 
@@ -858,6 +1013,55 @@
           });
         }, { threshold: .12 });
         revealItems.forEach((item) => observer.observe(item));
+      }
+
+      function syncCodexPreviewSize() {
+        if (!codexField || codexField.parentElement !== codexPreviewScale) return;
+        const desktopScale = .5;
+        const sourceWidth = 1160;
+        const scale = window.matchMedia("(max-width: 1050px)").matches
+          ? Math.min(desktopScale, codexPreview.clientWidth / sourceWidth)
+          : desktopScale;
+        codexPreview.style.setProperty("--codex-scale", String(scale));
+        codexPreview.style.height = `${Math.ceil(codexField.offsetHeight * scale)}px`;
+      }
+
+      function requestCodexResize() {
+        window.dispatchEvent(new Event("codex-field:resize"));
+      }
+
+      function restoreCodexPreview() {
+        codexField.inert = true;
+        codexPreviewScale.appendChild(codexField);
+        syncCodexPreviewSize();
+        requestAnimationFrame(requestCodexResize);
+      }
+
+      if (codexPreview && codexPreviewScale && codexPreviewOpen && codexField && codexDialog && codexDialogContent && codexDialogClose) {
+        codexField.inert = true;
+        requestAnimationFrame(syncCodexPreviewSize);
+        window.addEventListener("resize", syncCodexPreviewSize, { passive: true });
+
+        if ("ResizeObserver" in window) {
+          const previewResizeObserver = new ResizeObserver(syncCodexPreviewSize);
+          previewResizeObserver.observe(codexField);
+        }
+
+        codexPreviewOpen.addEventListener("click", () => {
+          codexField.inert = false;
+          codexDialogContent.appendChild(codexField);
+          codexDialog.showModal();
+          requestAnimationFrame(() => {
+            requestCodexResize();
+            codexDialogClose.focus();
+          });
+        });
+
+        codexDialogClose.addEventListener("click", () => codexDialog.close());
+        codexDialog.addEventListener("click", (event) => {
+          if (event.target === codexDialog) codexDialog.close();
+        });
+        codexDialog.addEventListener("close", restoreCodexPreview);
       }
 
       function answers() {
