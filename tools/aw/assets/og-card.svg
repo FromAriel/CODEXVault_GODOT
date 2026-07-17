@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="g1" cx="0" cy="0" r="1" gradientTransform="translate(1010 80) rotate(130) scale(520)"><stop stop-color="#a78bfa" stop-opacity=".42"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g2" cx="0" cy="0" r="1" gradientTransform="translate(130 470) rotate(-35) scale(500)"><stop stop-color="#67d6e8" stop-opacity=".28"/><stop offset="1" stop-color="#67d6e8" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect width="1200" height="630" fill="url(#g1)"/>
+  <rect width="1200" height="630" fill="url(#g2)"/>
+  <g opacity=".18" stroke="#c4d7e8"><path d="M0 90h1200M0 180h1200M0 270h1200M0 360h1200M0 450h1200M0 540h1200"/><path d="M100 0v630M200 0v630M300 0v630M400 0v630M500 0v630M600 0v630M700 0v630M800 0v630M900 0v630M1000 0v630M1100 0v630"/></g>
+  <rect x="76" y="76" width="76" height="76" rx="20" fill="#67d6e8"/>
+  <text x="114" y="124" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="900" fill="#071116">AW</text>
+  <text x="76" y="245" font-family="Arial, sans-serif" font-size="31" font-weight="800" fill="#67d6e8" letter-spacing="3">ARIEL WILLIAMS</text>
+  <text x="76" y="345" font-family="Arial, sans-serif" font-size="67" font-weight="800" fill="#f2f5f7">AI consultant. Vibe coder.</text>
+  <text x="76" y="425" font-family="Arial, sans-serif" font-size="67" font-weight="800" fill="#f2f5f7">Writer. Builder. Explainer.</text>
+  <text x="76" y="514" font-family="Arial, sans-serif" font-size="30" fill="#a9b2bf">Tailored AI readiness presentation + Q&amp;A · $500</text>
+</svg>
