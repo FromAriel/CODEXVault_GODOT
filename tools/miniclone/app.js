@@ -3,177 +3,71 @@
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
-    initTerminalSandbox();
+    initProductDemo();
     initPaymentModal();
 });
 
 /**
- * Terminal Sandbox Simulation
+ * Same-origin product demo controls.
  */
-function initTerminalSandbox() {
-    const runBtn = document.getElementById('run-sandbox-btn');
-    const termOutput = document.getElementById('terminal-output');
-    
-    if (!runBtn || !termOutput) return;
+function initProductDemo() {
+    const frame = document.getElementById('miniclone-demo-frame');
+    const fullscreenButton = document.getElementById('fullscreen-demo-btn');
 
-    // Keep references to original lines so we can restore on reset
-    const originalLinesHTML = Array.from(termOutput.children)
-        .filter(child => !child.classList.contains('interactive-area'))
-        .map(child => child.outerHTML)
-        .join('\n');
+    if (!frame || !fullscreenButton) return;
 
-    let isRunning = false;
+    initDemoWheelBridge(frame);
 
-    runBtn.addEventListener('click', async () => {
-        if (isRunning) return;
-        isRunning = true;
-        
-        // Update Button state
-        runBtn.disabled = true;
-        runBtn.textContent = 'Simulating...';
+    if (!document.fullscreenEnabled || typeof frame.requestFullscreen !== 'function') {
+        fullscreenButton.disabled = true;
+        fullscreenButton.textContent = 'Fullscreen Unavailable';
+        fullscreenButton.title = 'Open Full Demo is still available in this browser.';
+        return;
+    }
 
-        // Clear previous runs and restore initial setup
-        termOutput.innerHTML = originalLinesHTML;
-        
-        // Helper to append a line
-        const appendLine = (text, className = '') => {
-            const p = document.createElement('p');
-            p.className = `term-line ${className}`;
-            p.textContent = text;
-            termOutput.appendChild(p);
-            termOutput.scrollTop = termOutput.scrollHeight;
-        };
+    const syncFullscreenButton = () => {
+        const active = document.fullscreenElement === frame;
+        fullscreenButton.textContent = active ? 'Exit Fullscreen' : 'View Fullscreen';
+        fullscreenButton.setAttribute('aria-pressed', String(active));
+    };
 
-        // Helper to sleep
-        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-        // Create the interactive area container inside terminal body
-        const interactiveContainer = document.createElement('div');
-        interactiveContainer.className = 'term-line';
-        termOutput.appendChild(interactiveContainer);
-
+    fullscreenButton.setAttribute('aria-pressed', 'false');
+    fullscreenButton.addEventListener('click', async () => {
         try {
-            await delay(600);
-            appendLine('[00:00:05] [STAGE] Initializing VSS Shadow Copy requester...', 'color-muted');
-            await delay(800);
-            appendLine('[00:00:06] [INFO] Shadow copy created successfully: \\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy1', 'color-info');
-            
-            await delay(700);
-            appendLine('[00:00:07] [STAGE] Locking destination volumes on Disk 0...', 'color-muted');
-            await delay(500);
-            appendLine('[00:00:07] [INFO] Lock acquired for volumes: None (Empty Disk)', 'color-info');
-            
-            await delay(600);
-            appendLine('[00:00:08] [STAGE] Applying MBR partition layout matching source disk...', 'color-muted');
-            await delay(800);
-            appendLine('[00:00:09] [INFO] Layout initialized: Partition 1 (Active, NTFS), Partition 2 (System Reserved)', 'color-info');
-            
-            await delay(600);
-            appendLine('[00:00:10] [STAGE] Mounting temporary target mapping...', 'color-muted');
-            await delay(500);
-            appendLine('[00:00:10] [INFO] Temp target assigned to mount point: \\\\?\\Volume{miniclone-temp-target}', 'color-info');
-            
-            await delay(700);
-            appendLine('[00:00:11] [STAGE] Beginning block-by-block volume range transfer...', 'color-muted');
-            await delay(400);
-
-            // Progress simulation
-            const totalBytes = 251271778304; // ~234 GB
-            let copiedBytes = 0;
-            const progressWrapper = document.createElement('div');
-            progressWrapper.className = 'interactive-area';
-            progressWrapper.style.marginTop = '10px';
-            progressWrapper.style.paddingTop = '10px';
-            interactiveContainer.appendChild(progressWrapper);
-
-            // Progress bar DOM elements
-            const progressBarContainer = document.createElement('div');
-            progressBarContainer.className = 'progress-bar-container';
-            
-            const progressBarFill = document.createElement('div');
-            progressBarFill.className = 'progress-bar-fill';
-            
-            const progressBarText = document.createElement('span');
-            progressBarText.className = 'progress-bar-text';
-            progressBarText.textContent = '0%';
-
-            progressBarContainer.appendChild(progressBarFill);
-            progressBarContainer.appendChild(progressBarText);
-            progressWrapper.appendChild(progressBarContainer);
-
-            // Update loop
-            const steps = 30;
-            const stepIncrement = totalBytes / steps;
-            const durationPerStep = 60; // ms
-
-            for (let i = 1; i <= steps; i++) {
-                copiedBytes += stepIncrement;
-                if (copiedBytes > totalBytes) copiedBytes = totalBytes;
-                
-                const percent = Math.round((copiedBytes / totalBytes) * 100);
-                progressBarFill.style.width = `${percent}%`;
-                progressBarText.textContent = `${percent}% (${(copiedBytes / 1024 / 1024 / 1024).toFixed(1)} GB / 234.0 GB)`;
-                
-                await delay(durationPerStep);
+            if (document.fullscreenElement === frame) {
+                await document.exitFullscreen();
+            } else {
+                await frame.requestFullscreen();
             }
-
-            await delay(500);
-            appendLine('[00:00:13] [INFO] Block transfer complete. Hash verification matching (SHA-256): PASS', 'color-success');
-            
-            await delay(600);
-            appendLine('[00:00:14] [STAGE] Initializing target boot-sector preflight...', 'color-muted');
-            await delay(500);
-            appendLine('[00:00:14] [INFO] Target firmware config environment: BIOS/MBR', 'color-info');
-            
-            await delay(700);
-            appendLine('[00:00:15] [STAGE] Executing target boot configuration tools (BCDBoot)...', 'color-muted');
-            await delay(900);
-            appendLine('[00:00:16] [INFO] BCDBoot target output: Boot files successfully created.', 'color-success');
-            
-            await delay(600);
-            appendLine('[00:00:17] [STAGE] Finalizing metadata, resetting Disk 0 MountedDevices registry entries...', 'color-muted');
-            await delay(700);
-            appendLine('[00:00:18] [INFO] DosDevices clear completed. 8 keys stabilized.', 'color-info');
-            
-            await delay(600);
-            appendLine('[00:00:19] [STAGE] Dismounting VSS Shadow Copy and target handles...', 'color-muted');
-            await delay(500);
-            appendLine('[00:00:19] [INFO] Cleanup success. Devices detached.', 'color-success');
-
-            await delay(800);
-            appendLine('========================================================================', 'color-success');
-            appendLine('[STATUS] MiniClone clone process completed successfully!', 'color-success');
-            appendLine('  - Host status: STABLE', 'color-success');
-            appendLine('  - Target: Disk 0 (Netac SSD) [PREPARED TO BOOT]', 'color-success');
-            appendLine('========================================================================', 'color-success');
-
-        } catch (err) {
-            console.error(err);
-            appendLine('[ERROR] Simulation interrupted.', 'color-error');
-        } finally {
-            // Restore run button
-            await delay(1000);
-            
-            // Re-append the button container at the end of output
-            const newBtnContainer = document.createElement('div');
-            newBtnContainer.className = 'interactive-area';
-            
-            const resetBtn = document.createElement('button');
-            resetBtn.className = 'btn btn-accent btn-sm';
-            resetBtn.textContent = 'Simulate Again';
-            resetBtn.addEventListener('click', () => {
-                // Trigger simulate again
-                runBtn.click();
-            });
-            
-            newBtnContainer.appendChild(resetBtn);
-            termOutput.appendChild(newBtnContainer);
-            termOutput.scrollTop = termOutput.scrollHeight;
-
-            isRunning = false;
-            runBtn.disabled = false;
-            runBtn.textContent = 'Simulate Copy Process';
+        } catch (error) {
+            console.warn('MiniClone demo fullscreen request was refused.', error);
+            fullscreenButton.disabled = true;
+            fullscreenButton.textContent = 'Fullscreen Unavailable';
         }
+    });
+    document.addEventListener('fullscreenchange', syncFullscreenButton);
+}
+
+/**
+ * Continue the marketing-page scroll when the pointer is over the embedded demo.
+ */
+function initDemoWheelBridge(frame) {
+    const messageType = 'miniclone-demo-wheel';
+    const clampDelta = (value) => Math.max(-1600, Math.min(1600, value));
+
+    window.addEventListener('message', (event) => {
+        if (event.source !== frame.contentWindow || event.origin !== window.location.origin) return;
+        if (event.data?.type !== messageType) return;
+
+        const deltaX = Number(event.data.deltaX);
+        const deltaY = Number(event.data.deltaY);
+        if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+
+        window.scrollBy({
+            left: clampDelta(deltaX),
+            top: clampDelta(deltaY),
+            behavior: 'auto',
+        });
     });
 }
 

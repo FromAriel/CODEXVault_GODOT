@@ -504,125 +504,79 @@ a:hover {
     color: var(--color-text-bright);
 }
 
-/* --- Interactive Console Sandbox --- */
+/* --- Embedded Product Demo --- */
 .sandbox-section {
     position: relative;
 }
 
-.terminal {
-    max-width: 800px;
-    margin: 0 auto;
-    background: #050709;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.demo-safety-notice {
+    max-width: 1180px;
+    margin: 0 auto 18px;
+    padding: 14px 18px;
+    border: 1px solid rgba(102, 252, 241, 0.24);
     border-radius: var(--border-radius-md);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-    overflow: hidden;
+    background: rgba(69, 162, 158, 0.08);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
 }
 
-.terminal-header {
+.demo-safety-notice strong {
+    color: var(--color-neon-blue);
+}
+
+.product-demo-toolbar {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 0;
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
     background: #0f1319;
-    padding: 12px 18px;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.terminal-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-}
-
-.terminal-dot.red { background-color: #ff5f56; }
-.terminal-dot.yellow { background-color: #ffbd2e; }
-.terminal-dot.green { background-color: #27c93f; }
-
-.terminal-title {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    justify-self: center;
-    margin-left: -50px; /* offset the dots for alignment */
-}
-
-.terminal-body {
-    padding: 24px;
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: #e0e0e0;
-    min-height: 320px;
-    max-height: 500px;
-    overflow-y: auto;
-}
-
-.term-line {
-    margin-bottom: 8px;
-    word-break: break-all;
-}
-
-.term-line.color-muted {
-    color: var(--color-text-muted);
-}
-
-.term-line.color-info {
-    color: #66FCF1;
-}
-
-.term-line.color-warn {
-    color: #F1C40F;
-}
-
-.term-line.color-error {
-    color: var(--color-toxic-orange);
-}
-
-.term-line.color-success {
-    color: var(--color-green-success);
-}
-
-.interactive-area {
-    margin-top: 24px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.1);
-    padding-top: 18px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
 }
 
-/* Custom Progress Bar in Console */
-.progress-bar-container {
-    width: 100%;
-    max-width: 400px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-sm);
-    overflow: hidden;
-    position: relative;
-    display: inline-flex;
+.product-demo-actions {
+    display: flex;
+    flex: 0 0 auto;
     align-items: center;
+    gap: 10px;
 }
 
-.progress-bar-fill {
-    height: 100%;
-    background-color: var(--color-neon-blue);
-    width: 0%;
-    transition: width 0.1s linear;
-    box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+.product-demo-actions .btn {
+    white-space: nowrap;
 }
 
-.progress-bar-text {
-    position: absolute;
+.product-demo-frame-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid rgba(102, 252, 241, 0.24);
+    border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+    background: #03070c;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.58), 0 0 30px rgba(102, 252, 241, 0.07);
+}
+
+.product-demo-frame {
+    display: block;
     width: 100%;
-    text-align: center;
-    font-size: 0.75rem;
-    font-weight: bold;
-    color: var(--color-text-bright);
-    mix-blend-mode: difference;
+    height: 1040px;
+    border: 0;
+    border-radius: var(--border-radius-sm);
+    background: #03070c;
+}
+
+.product-demo-frame:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
 }
 
 /* --- How It Works Stepper --- */
@@ -858,6 +812,15 @@ a:hover {
     .step-item {
         text-align: center;
     }
+
+    .product-demo-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .product-demo-frame {
+        height: 920px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -880,6 +843,28 @@ a:hover {
     .btn-sm {
         display: none; /* Hide button in nav on small mobile screen sizes */
     }
+
+    .product-demo-actions .btn-sm {
+        display: inline-flex;
+    }
+
+    .demo-safety-notice,
+    .product-demo-toolbar {
+        font-size: 0.82rem;
+    }
+
+    .product-demo-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .product-demo-frame-shell {
+        padding: 4px;
+    }
+
+    .product-demo-frame {
+        height: 860px;
+    }
     
     .hero-title {
         font-size: 2.5rem;
@@ -898,5 +883,20 @@ a:hover {
     .footer-container {
         flex-direction: column;
         text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-demo-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .product-demo-actions .btn {
+        width: 100%;
+    }
+
+    .product-demo-frame {
+        height: 820px;
     }
 }

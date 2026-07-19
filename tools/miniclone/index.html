@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MiniClone HD | The $5 Windows Boot-Disk Cloner</title>
     <meta name="description" content="No bait-and-switch. No $60 surprise bills. Just an honest, raw-sector Windows volume cloner that copies your boot disk for exactly five dollars.">
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     
     <!-- Premium Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +23,7 @@
             <nav class="nav">
                 <a href="#rants" class="nav-link">The Real Truth</a>
                 <a href="#how-it-works" class="nav-link">How it Works</a>
-                <a href="#sandbox" class="nav-link">Live Console Demo</a>
+                <a href="#sandbox" class="nav-link">Interactive Demo</a>
                 <a href="#download" class="btn btn-secondary btn-sm">Get It</a>
             </nav>
         </div>
@@ -104,29 +105,33 @@
             </div>
         </section>
 
-        <!-- Live Demo Sandbox -->
+        <!-- Real Product UI Demo -->
         <section id="sandbox" class="section sandbox-section">
             <div class="container">
-                <h2 class="section-title text-center">Interactive Console Sandbox</h2>
-                <p class="section-desc text-center">Experience exactly how our CLI worker reports chunk copies and validation progress in real time.</p>
-                
-                <div class="terminal">
-                    <div class="terminal-header">
-                        <span class="terminal-dot red"></span>
-                        <span class="terminal-dot yellow"></span>
-                        <span class="terminal-dot green"></span>
-                        <span class="terminal-title">miniclone-cli.exe --elevated</span>
+                <h2 class="section-title text-center">Try the Actual MiniClone Interface</h2>
+                <p class="section-desc text-center">This is the same interface used by the Windows application, running here with fictional disks and simulated safety evidence.</p>
+
+                <div class="demo-safety-notice" role="note">
+                    <strong>Interactive simulation — no disk access.</strong>
+                    <span>The 30-second copy sequence is accelerated for the web. The native Windows application replaces this fictional bridge with MiniClone's storage engine.</span>
+                </div>
+
+                <div class="product-demo-toolbar" aria-label="Interactive demo controls">
+                    <span>Complete the real destination-selection and confirmation flow, or inspect Nerd and Expert views.</span>
+                    <div class="product-demo-actions">
+                        <button id="fullscreen-demo-btn" class="btn btn-accent btn-sm" type="button" aria-controls="miniclone-demo-frame">View Fullscreen</button>
+                        <a class="btn btn-outline btn-sm" href="./demo/index.html" target="_blank" rel="noopener">Open Full Demo</a>
                     </div>
-                    <div class="terminal-body" id="terminal-output">
-                        <p class="term-line color-muted">[00:00:01] [STAGE] Initializing host discovery...</p>
-                        <p class="term-line">[00:00:02] [INFO] Firmware type: UEFI</p>
-                        <p class="term-line">[00:00:03] [INFO] Running source detected: Disk 2 (Intel SSD 512GB) -> Volume C:\</p>
-                        <p class="term-line">[00:00:04] [INFO] Eligible target selected: Disk 0 (Netac SSD 256GB)</p>
-                        <!-- Interactive Progress -->
-                        <div id="interactive-progress" class="interactive-area">
-                            <button id="run-sandbox-btn" class="btn btn-accent btn-sm">Simulate Copy Process</button>
-                        </div>
-                    </div>
+                </div>
+
+                <div class="product-demo-frame-shell" id="product-demo-shell">
+                    <iframe
+                        id="miniclone-demo-frame"
+                        class="product-demo-frame"
+                        src="./demo/index.html"
+                        title="Interactive MiniClone product demonstration"
+                        allow="fullscreen"
+                    ></iframe>
                 </div>
             </div>
         </section>
