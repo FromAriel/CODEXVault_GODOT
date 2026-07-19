@@ -208,7 +208,7 @@ function phaseForState(status) {
 
 function projectProgress(state, activitySnapshot) {
   const direct = record(state?.cloneStatus?.progress);
-  const metrics = direct ?? correlatedActivityProgress(state, activitySnapshot) ?? {};
+  const metrics = record(direct?.metrics) ?? direct ?? correlatedActivityProgress(state, activitySnapshot) ?? {};
   const completed = finiteNonnegative(metrics.bytes_completed ?? metrics.bytesCompleted);
   const planned = finiteNonnegative(metrics.bytes_planned ?? metrics.bytesPlanned);
   const rate = finiteNonnegative(metrics.bytes_per_second ?? metrics.bytesPerSecond);
