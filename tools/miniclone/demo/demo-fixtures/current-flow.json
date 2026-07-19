@@ -1,0 +1,571 @@
+{
+  "confirmation_policy": {
+    "phrase_prefix": "ERASE DISK ",
+    "session_only": true,
+    "authorizes_execution": false,
+    "writes_performed": false
+  },
+  "scenario_catalog": [
+    { "id": "blank", "label": "Blank internal target", "outcome": "ready_blank" },
+    { "id": "used", "label": "Used internal target", "outcome": "requires_erase" },
+    { "id": "inactive_windows", "label": "Inactive Windows clone", "outcome": "requires_erase" },
+    { "id": "protected_source", "label": "Protected running source", "outcome": "refused" },
+    { "id": "split_boot", "label": "Split active boot dependency", "outcome": "refused" },
+    { "id": "dynamic", "label": "Dynamic disk", "outcome": "refused" },
+    { "id": "ambiguous_scsi", "label": "Ambiguous generic SCSI", "outcome": "refused" },
+    { "id": "identity_change", "label": "Identity changed after discovery", "outcome": "refused" },
+    { "id": "unsupported_topology", "label": "Storage Spaces target", "outcome": "refused" }
+  ],
+  "execution_timelines": {
+    "success": [
+      "preflight",
+      "vss",
+      "layout",
+      {"phase":"copying","bytes_completed":0,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":30},
+      {"phase":"copying","bytes_completed":8333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":29},
+      {"phase":"copying","bytes_completed":12500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":29},
+      {"phase":"copying","bytes_completed":16666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":28},
+      {"phase":"copying","bytes_completed":20833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":28},
+      {"phase":"copying","bytes_completed":25000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":27},
+      {"phase":"copying","bytes_completed":29166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":27},
+      {"phase":"copying","bytes_completed":33333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":26},
+      {"phase":"copying","bytes_completed":37500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":26},
+      {"phase":"copying","bytes_completed":41666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":25},
+      {"phase":"copying","bytes_completed":45833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":25},
+      {"phase":"copying","bytes_completed":50000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":24},
+      {"phase":"copying","bytes_completed":54166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":24},
+      {"phase":"copying","bytes_completed":58333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":23},
+      {"phase":"copying","bytes_completed":62500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":23},
+      {"phase":"copying","bytes_completed":66666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":22},
+      {"phase":"copying","bytes_completed":70833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":22},
+      {"phase":"copying","bytes_completed":75000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":21},
+      {"phase":"copying","bytes_completed":79166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":21},
+      {"phase":"copying","bytes_completed":83333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":20},
+      {"phase":"copying","bytes_completed":87500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":20},
+      {"phase":"copying","bytes_completed":91666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":19},
+      {"phase":"copying","bytes_completed":95833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":19},
+      {"phase":"copying","bytes_completed":100000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":18},
+      {"phase":"copying","bytes_completed":104166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":18},
+      {"phase":"copying","bytes_completed":108333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":17},
+      {"phase":"copying","bytes_completed":112500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":17},
+      {"phase":"copying","bytes_completed":116666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":16},
+      {"phase":"copying","bytes_completed":120833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":16},
+      {"phase":"copying","bytes_completed":125000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":15},
+      {"phase":"copying","bytes_completed":129166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":15},
+      {"phase":"copying","bytes_completed":133333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":14},
+      {"phase":"copying","bytes_completed":137500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":14},
+      {"phase":"copying","bytes_completed":141666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":13},
+      {"phase":"copying","bytes_completed":145833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":13},
+      {"phase":"copying","bytes_completed":150000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":12},
+      {"phase":"copying","bytes_completed":154166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":12},
+      {"phase":"copying","bytes_completed":158333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":11},
+      {"phase":"copying","bytes_completed":162500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":11},
+      {"phase":"copying","bytes_completed":166666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":10},
+      {"phase":"copying","bytes_completed":170833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":10},
+      {"phase":"copying","bytes_completed":175000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":9},
+      {"phase":"copying","bytes_completed":179166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":9},
+      {"phase":"copying","bytes_completed":183333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":8},
+      {"phase":"copying","bytes_completed":187500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":8},
+      {"phase":"copying","bytes_completed":191666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":7},
+      {"phase":"copying","bytes_completed":195833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":7},
+      {"phase":"copying","bytes_completed":200000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":6},
+      {"phase":"copying","bytes_completed":204166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":6},
+      {"phase":"copying","bytes_completed":208333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":5},
+      {"phase":"copying","bytes_completed":212500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":5},
+      {"phase":"copying","bytes_completed":216666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":4},
+      {"phase":"copying","bytes_completed":220833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":4},
+      {"phase":"copying","bytes_completed":225000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":3},
+      {"phase":"copying","bytes_completed":229166666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":3},
+      {"phase":"copying","bytes_completed":233333333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":2},
+      {"phase":"copying","bytes_completed":237500000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":2},
+      {"phase":"copying","bytes_completed":241666666666,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":1},
+      {"phase":"copying","bytes_completed":245833333333,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":1},
+      {"phase":"copying","bytes_completed":250000000000,"bytes_planned":250000000000,"bytes_per_second":0,"eta_seconds":0},
+      "verification",
+      "boot_prep",
+      "cleanup",
+      "prepared_to_boot"
+    ],
+    "cancelled": ["preflight", "vss", "layout", "copy_partial", "cancel", "cleanup", "target_offline"],
+    "cleanup_failure": ["preflight", "vss", "layout", "copy", "verification", "cleanup_failed", "partial_failure"],
+    "partial_failure": ["preflight", "vss", "layout", "copy_partial", "readback_failed", "cleanup", "target_offline"],
+    "stale_evidence": ["preflight", "certificate_expired", "refused_before_write"],
+    "target_replacement": ["preflight", "confirmation", "identity_changed", "refused_before_write"],
+    "severe_storage_event": ["preflight", "vss", "layout", "copy_partial", "event_51", "cleanup", "partial_failure"],
+    "event_153_warning": ["preflight", "vss", "layout", "copy", "event_153_recovered", "verification", "boot_prep", "cleanup", "prepared_to_boot"],
+    "copy_mismatch": ["preflight", "vss", "layout", "copy_partial", "hash_mismatch", "cleanup", "partial_failure"],
+    "post_boot_verification": ["prepared_to_boot", "manual_boot", "provenance_match", "boot_tested"]
+  },
+  "inspection": {
+    "mode": "demo",
+    "simulated": true,
+    "ui_elevated": false,
+    "worker": {
+      "executable": "none",
+      "version": "demo-fixture-1",
+      "exit_code": 0,
+      "duration_ms": 720
+    },
+    "report": {
+      "schema_version": 1,
+      "command": "inspect",
+      "status": "ok",
+      "source_confidence": "uefi_gpt_disk_0_demo",
+      "source_disk": {
+        "id": "demo-source-disk",
+        "number": 0,
+        "model": "MiniClone Demo NVMe Source",
+        "serial": "DEMO-SOURCE-0001",
+        "unique_id": "demo.source.0001",
+        "size_bytes": 512110190592,
+        "logical_sector_size": 512,
+        "physical_sector_size": 4096,
+        "partition_style": "gpt",
+        "bus_type": "NVMe",
+        "health": "healthy",
+        "is_online": true,
+        "is_read_only": false,
+        "partition_count": 1,
+        "partitions": [
+          {
+            "id": "demo-source-windows",
+            "number": 3,
+            "size_bytes": 321912832000,
+            "offset_bytes": 227540992,
+            "partition_type": "basic_data",
+            "filesystem": "NTFS",
+            "access_paths": ["C:\\"],
+            "is_system": false,
+            "is_boot": true,
+            "is_active": false,
+            "is_recovery": false
+          }
+        ]
+      },
+      "target_candidates": [
+        {
+          "disk": {
+            "id": "demo-source-disk",
+            "number": 0,
+            "model": "MiniClone Demo NVMe Source",
+            "serial": "DEMO-SOURCE-0001",
+            "unique_id": "demo.source.0001",
+            "size_bytes": 512110190592,
+            "logical_sector_size": 512,
+            "physical_sector_size": 4096,
+            "partition_style": "gpt",
+            "bus_type": "NVMe",
+            "health": "healthy",
+            "is_online": true,
+            "is_read_only": false,
+            "partition_count": 1,
+            "partitions": []
+          },
+          "eligible": false,
+          "safety_status": "refused",
+          "disposition": "refused",
+          "refusal_reasons": ["source_disk", "system_disk", "boot_disk"],
+          "warnings": []
+        },
+        {
+          "disk": {
+            "id": "demo-blank-target",
+            "number": 1,
+            "model": "MiniClone Demo Blank SATA SSD",
+            "serial": "DEMO-BLANK-0001",
+            "unique_id": "demo.blank.0001",
+            "size_bytes": 1024209543168,
+            "logical_sector_size": 512,
+            "physical_sector_size": 4096,
+            "partition_style": "raw",
+            "bus_type": "SATA",
+            "health": "healthy",
+            "is_online": true,
+            "is_read_only": false,
+            "partition_count": 0,
+            "partitions": []
+          },
+          "eligible": true,
+          "safety_status": "eligible",
+          "disposition": "ready_blank",
+          "refusal_reasons": [],
+          "warnings": []
+        },
+        {
+          "disk": {
+            "id": "demo-used-target",
+            "number": 2,
+            "model": "MiniClone Demo Used NVMe SSD",
+            "serial": "DEMO-USED-0002",
+            "unique_id": "demo.used.0002",
+            "size_bytes": 512110190592,
+            "logical_sector_size": 512,
+            "physical_sector_size": 4096,
+            "partition_style": "gpt",
+            "bus_type": "NVMe",
+            "health": "healthy",
+            "is_online": true,
+            "is_read_only": false,
+            "partition_count": 1,
+            "partitions": [
+              {
+                "id": "demo-used-data",
+                "number": 1,
+                "size_bytes": 500000000000,
+                "offset_bytes": 1048576,
+                "partition_type": "basic_data",
+                "filesystem": "NTFS",
+                "access_paths": ["R:\\"],
+                "is_system": false,
+                "is_boot": false,
+                "is_active": false,
+                "is_recovery": false
+              }
+            ]
+          },
+          "eligible": true,
+          "safety_status": "eligible",
+          "disposition": "requires_erase",
+          "refusal_reasons": [],
+          "warnings": ["Demo: a later clone would require explicit erasure confirmation for existing data."]
+        },
+        {
+          "disk": {
+            "id": "demo-usb-refused",
+            "number": 3,
+            "model": "MiniClone Demo USB Archive",
+            "serial": "DEMO-USB-0003",
+            "unique_id": "demo.usb.0003",
+            "size_bytes": 2000398934016,
+            "logical_sector_size": 512,
+            "physical_sector_size": 4096,
+            "partition_style": "gpt",
+            "bus_type": "USB",
+            "health": "healthy",
+            "is_online": true,
+            "is_read_only": false,
+            "partition_count": 1,
+            "partitions": []
+          },
+          "eligible": false,
+          "safety_status": "refused",
+          "disposition": "refused",
+          "refusal_reasons": ["unsupported_target_bus"],
+          "warnings": []
+        }
+      ],
+      "refusals": [],
+      "warnings": ["All displayed hardware and evidence are fictional demo data."],
+      "windows_host": {
+        "product_name": "MiniClone Demo Windows",
+        "edition_id": "Demo",
+        "display_version": "DEMO",
+        "installation_type": "Client",
+        "major_version": 10,
+        "minor_version": 0,
+        "build_number": 19045,
+        "revision": 9999,
+        "os_architecture": "x64",
+        "process_architecture": "x64",
+        "evidence_sources": ["bundled_demo_fixture"],
+        "evidence_consistent": true,
+        "compatibility_tier": "tested_supported",
+        "destructive_eligible": false,
+        "capabilities": [
+          {
+            "name": "demo_storage_boundary",
+            "status": "available",
+            "provider": "bundled_demo_fixture",
+            "detail": "Simulated only; no Windows capability was queried."
+          }
+        ]
+      },
+      "native_storage_evidence": {
+        "backend": "bundled_demo_fixture",
+        "enumeration_complete": true,
+        "volumes": [
+          {
+            "volume_guid": "DEMO-VOLUME-SOURCE",
+            "query_status": "queried",
+            "extents": [
+              {
+                "disk_number": 0,
+                "starting_offset_bytes": 227540992,
+                "extent_length_bytes": 321912832000
+              }
+            ]
+          },
+          {
+            "volume_guid": "DEMO-VOLUME-USED-TARGET",
+            "query_status": "queried",
+            "extents": [
+              {
+                "disk_number": 2,
+                "starting_offset_bytes": 1048576,
+                "extent_length_bytes": 500000000000
+              }
+            ]
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "volume_extents",
+            "status": "available",
+            "provider": "bundled_demo_fixture",
+            "detail": "Fictional extent evidence for UI demonstration only."
+          }
+        ]
+      }
+    }
+  },
+  "preflights": {
+    "1": {
+      "mode": "demo",
+      "simulated": true,
+      "ui_elevated": false,
+      "worker": {
+        "executable": "none",
+        "version": "demo-fixture-1",
+        "exit_code": 0,
+        "duration_ms": 640
+      },
+      "report": {
+        "schema_version": 1,
+        "command": "preflight",
+        "status": "ok",
+        "source_disk": {
+          "id": "demo-source-disk",
+          "number": 0,
+          "model": "MiniClone Demo NVMe Source",
+          "serial": "DEMO-SOURCE-0001",
+          "unique_id": "demo.source.0001",
+          "size_bytes": 512110190592,
+          "logical_sector_size": 512,
+          "physical_sector_size": 4096,
+          "partition_style": "gpt",
+          "bus_type": "NVMe",
+          "health": "healthy",
+          "is_online": true,
+          "is_read_only": false,
+          "partition_count": 1,
+          "partitions": [
+              {
+                "id": "demo-source-windows",
+                "number": 3,
+                "size_bytes": 321912832000,
+                "offset_bytes": 227540992,
+                "partition_type": "basic_data",
+                "filesystem": "NTFS",
+                "access_paths": ["C:\\"],
+                "is_system": false,
+                "is_boot": true,
+                "is_active": false,
+                "is_recovery": false
+              }
+            ]
+        },
+        "target_candidates": [],
+        "refusals": [],
+        "warnings": ["Simulated preflight; no target was opened or queried."],
+        "clone_preflight": {
+          "source_disk": {
+            "id": "demo-source-disk",
+            "number": 0,
+            "model": "MiniClone Demo NVMe Source",
+            "serial": "DEMO-SOURCE-0001",
+            "unique_id": "demo.source.0001",
+            "size_bytes": 512110190592,
+            "logical_sector_size": 512,
+            "physical_sector_size": 4096,
+            "partition_style": "gpt",
+            "bus_type": "NVMe",
+            "health": "healthy",
+            "is_online": true,
+            "is_read_only": false,
+            "partition_count": 1,
+            "partitions": [
+              {
+                "id": "demo-source-windows",
+                "number": 3,
+                "size_bytes": 321912832000,
+                "offset_bytes": 227540992,
+                "partition_type": "basic_data",
+                "filesystem": "NTFS",
+                "access_paths": ["C:\\"],
+                "is_system": false,
+                "is_boot": true,
+                "is_active": false,
+                "is_recovery": false
+              }
+            ]
+          },
+          "target_disk": {
+            "id": "demo-blank-target",
+            "number": 1,
+            "model": "MiniClone Demo Blank SATA SSD",
+            "serial": "DEMO-BLANK-0001",
+            "unique_id": "demo.blank.0001",
+            "size_bytes": 1024209543168,
+            "logical_sector_size": 512,
+            "physical_sector_size": 4096,
+            "partition_style": "raw",
+            "bus_type": "SATA",
+            "health": "healthy",
+            "is_online": true,
+            "is_read_only": false,
+            "partition_count": 0,
+            "partitions": []
+          },
+          "boot_style": "uefi_gpt",
+          "target_disposition": "ready_blank",
+          "native_target_evidence": {
+            "backend": "bundled_demo_fixture",
+            "queried": true,
+            "offline": false,
+            "read_only": false,
+            "native_volume_extent_count": 0
+          },
+          "current_target_contents": [],
+          "proposed_layout": [
+            {"partition_number": 1, "role": "efi_system", "partition_style": "gpt", "partition_type": "efi_system", "filesystem": "FAT32", "size_bytes": 209715200, "active": false, "boot": false, "system": true},
+            {"partition_number": 2, "role": "microsoft_reserved", "partition_style": "gpt", "partition_type": "microsoft_reserved", "filesystem": "Unformatted", "size_bytes": 16777216, "active": false, "boot": false, "system": false},
+            {"partition_number": 3, "role": "windows", "partition_style": "gpt", "partition_type": "basic_data", "filesystem": "NTFS", "size_bytes": 321912832000, "source_partition_id": "demo-source-windows", "active": false, "boot": true, "system": false}
+          ],
+          "safety_gates": [
+            {"name": "demo_source_protected", "enforced": true, "detail": "Fictional source remains excluded from selection."},
+            {"name": "demo_no_storage_access", "enforced": true, "detail": "DemoBridge cannot invoke the MiniClone engine."}
+          ],
+          "required_size_bytes": 322141421568,
+          "remaining_unallocated_bytes": 702068121600,
+          "requires_erase_confirmation": false,
+          "ready": true,
+          "dry_run": true,
+          "writes_performed": false,
+          "source_writes_performed": false,
+          "physical_disk_destructive": false,
+          "vss_snapshot_created": false
+        }
+      }
+    },
+    "2": {
+      "mode": "demo",
+      "simulated": true,
+      "ui_elevated": false,
+      "worker": {
+        "executable": "none",
+        "version": "demo-fixture-1",
+        "exit_code": 0,
+        "duration_ms": 680
+      },
+      "report": {
+        "schema_version": 1,
+        "command": "preflight",
+        "status": "ok",
+        "source_disk": {
+          "id": "demo-source-disk", "number": 0, "model": "MiniClone Demo NVMe Source", "serial": "DEMO-SOURCE-0001", "unique_id": "demo.source.0001", "size_bytes": 512110190592, "logical_sector_size": 512, "physical_sector_size": 4096, "partition_style": "gpt", "bus_type": "NVMe", "health": "healthy", "is_online": true, "is_read_only": false, "partition_count": 1, "partitions": [{"id": "demo-source-windows", "number": 3, "size_bytes": 321912832000, "offset_bytes": 227540992, "partition_type": "basic_data", "filesystem": "NTFS", "access_paths": ["C:\\"], "is_system": false, "is_boot": true, "is_active": false, "is_recovery": false}]
+        },
+        "target_candidates": [],
+        "refusals": [],
+        "warnings": ["Simulated preflight: existing fictional data would require erasure confirmation in a later product stage."],
+        "clone_preflight": {
+          "source_disk": {
+            "id": "demo-source-disk", "number": 0, "model": "MiniClone Demo NVMe Source", "serial": "DEMO-SOURCE-0001", "unique_id": "demo.source.0001", "size_bytes": 512110190592, "logical_sector_size": 512, "physical_sector_size": 4096, "partition_style": "gpt", "bus_type": "NVMe", "health": "healthy", "is_online": true, "is_read_only": false, "partition_count": 1, "partitions": [{"id": "demo-source-windows", "number": 3, "size_bytes": 321912832000, "offset_bytes": 227540992, "partition_type": "basic_data", "filesystem": "NTFS", "access_paths": ["C:\\"], "is_system": false, "is_boot": true, "is_active": false, "is_recovery": false}]
+          },
+          "target_disk": {
+            "id": "demo-used-target", "number": 2, "model": "MiniClone Demo Used NVMe SSD", "serial": "DEMO-USED-0002", "unique_id": "demo.used.0002", "size_bytes": 512110190592, "logical_sector_size": 512, "physical_sector_size": 4096, "partition_style": "gpt", "bus_type": "NVMe", "health": "healthy", "is_online": true, "is_read_only": false, "partition_count": 1, "partitions": []
+          },
+          "boot_style": "uefi_gpt",
+          "target_disposition": "requires_erase",
+          "native_target_evidence": {"backend": "bundled_demo_fixture", "queried": true, "offline": false, "read_only": false, "native_volume_extent_count": 1},
+          "current_target_contents": [
+            {"partition_number": 1, "size_bytes": 500000000000, "offset_bytes": 1048576, "partition_type": "basic_data", "filesystem": "NTFS", "access_paths": ["R:\\"], "volume_label": "Demo Archive", "volume_size_bytes": 500000000000, "volume_used_bytes": 180000000000, "would_be_erased": true}
+          ],
+          "proposed_layout": [
+            {"partition_number": 1, "role": "efi_system", "partition_style": "gpt", "partition_type": "efi_system", "filesystem": "FAT32", "size_bytes": 209715200, "active": false, "boot": false, "system": true},
+            {"partition_number": 2, "role": "microsoft_reserved", "partition_style": "gpt", "partition_type": "microsoft_reserved", "filesystem": "Unformatted", "size_bytes": 16777216, "active": false, "boot": false, "system": false},
+            {"partition_number": 3, "role": "windows", "partition_style": "gpt", "partition_type": "basic_data", "filesystem": "NTFS", "size_bytes": 321912832000, "source_partition_id": "demo-source-windows", "active": false, "boot": true, "system": false}
+          ],
+          "safety_gates": [
+            {"name": "demo_source_protected", "enforced": true, "detail": "Fictional source remains excluded from selection."},
+            {"name": "demo_erasure_disclosed", "enforced": true, "detail": "Existing fictional data is displayed but cannot be erased in demo mode."},
+            {"name": "demo_no_storage_access", "enforced": true, "detail": "DemoBridge cannot invoke the MiniClone engine."}
+          ],
+          "required_size_bytes": 322141421568,
+          "remaining_unallocated_bytes": 189968769024,
+          "requires_erase_confirmation": true,
+          "ready": true,
+          "dry_run": true,
+          "writes_performed": false,
+          "source_writes_performed": false,
+          "physical_disk_destructive": false,
+          "vss_snapshot_created": false
+        }
+      }
+    }
+  },
+  "diagnostic": {
+    "mode": "demo",
+    "simulated": true,
+    "ui_elevated": false,
+    "worker": {
+      "executable": "none",
+      "version": "demo-fixture-1",
+      "exit_code": 0,
+      "duration_ms": 1250
+    },
+    "report": {
+      "schema_version": 1,
+      "command": "diagnose-source",
+      "status": "ok",
+      "source_disk": {
+            "id": "demo-source-disk", "number": 0, "model": "MiniClone Demo NVMe Source", "serial": "DEMO-SOURCE-0001", "unique_id": "demo.source.0001", "size_bytes": 512110190592, "logical_sector_size": 512, "physical_sector_size": 4096, "partition_style": "gpt", "bus_type": "NVMe", "health": "healthy", "is_online": true, "is_read_only": false, "partition_count": 1, "partitions": [{"id": "demo-source-windows", "number": 3, "size_bytes": 321912832000, "offset_bytes": 227540992, "partition_type": "basic_data", "filesystem": "NTFS", "access_paths": ["C:\\"], "is_system": false, "is_boot": true, "is_active": false, "is_recovery": false}]
+      },
+      "target_candidates": [],
+      "refusals": [],
+      "warnings": ["Simulated diagnostic: no VSS snapshot or source read occurred."],
+      "source_diagnostic": {
+        "source_disk": {
+          "id": "demo-source-disk", "number": 0, "model": "MiniClone Demo NVMe Source", "serial": "DEMO-SOURCE-0001", "unique_id": "demo.source.0001", "size_bytes": 512110190592, "logical_sector_size": 512, "physical_sector_size": 4096, "partition_style": "gpt", "bus_type": "NVMe", "health": "healthy", "is_online": true, "is_read_only": false, "partition_count": 1, "partitions": [{"id": "demo-source-windows", "number": 3, "size_bytes": 321912832000, "offset_bytes": 227540992, "partition_type": "basic_data", "filesystem": "NTFS", "access_paths": ["C:\\"], "is_system": false, "is_boot": true, "is_active": false, "is_recovery": false}]
+        },
+        "boot_style": "uefi_gpt",
+        "windows_volume": "C:\\",
+        "provider": "demo_simulated_native_vss",
+        "snapshot_id": "DEMO-SNAPSHOT-0001",
+        "snapshot_device_object_present": true,
+        "sample_reads": [
+          {"relative_path": "Windows\\System32\\config\\SYSTEM", "required": true, "exists": true, "bytes_attempted": 4096, "bytes_read": 4096, "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "read_mode": "first_bytes"},
+          {"relative_path": "Windows\\win.ini", "required": false, "exists": true, "bytes_attempted": 65536, "bytes_read": 512, "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "read_mode": "bounded_prefix"},
+          {"relative_path": "Windows\\System32\\drivers\\etc\\hosts", "required": false, "exists": false, "bytes_attempted": 1048576, "bytes_read": 0, "sha256": null, "read_mode": "bounded_prefix"}
+        ],
+        "ranges": [
+          {"offset_bytes": 0, "bytes_attempted": 4096, "bytes_read": 4096, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "read_mode": "snapshot_volume_range"},
+          {"offset_bytes": 4096, "bytes_attempted": 4096, "bytes_read": 4096, "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "read_mode": "snapshot_volume_range"},
+          {"offset_bytes": 1048576, "bytes_attempted": 4096, "bytes_read": 4096, "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "read_mode": "snapshot_volume_range"}
+        ],
+        "cleanup_status": "deleted",
+        "vss_lifecycle": {
+          "lifecycle_stage": "complete",
+          "operation_hresult": "0x00000000",
+          "snapshot_id": "DEMO-SNAPSHOT-0001",
+          "cancellation_attempted": false,
+          "deletion_attempted": true,
+          "deletion_hresult": "0x00000000",
+          "deleted_snapshot_count": 1,
+          "backup_components_release_status": "released",
+          "cleanup_status": "deleted",
+          "cleanup_proved_absent": true
+        },
+        "duration_ms": 1250,
+        "safety_gates": [
+          {"name": "demo_fixture_only", "enforced": true, "detail": "No Windows source, VSS provider, or disk was contacted."},
+          {"name": "demo_no_target_writes", "enforced": true, "detail": "No target command exists in the demo Tauri boundary."}
+        ],
+        "snapshot_lifecycle_performed": true,
+        "target_writes_performed": false,
+        "source_writes_performed": false,
+        "physical_disk_destructive": false,
+        "destructive": false
+      }
+    }
+  }
+}
