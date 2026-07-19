@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>MiniClone</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./browser-bootstrap.js"></script>
+  </head>
+  <body>
+    <div class="app-window">
+      <div class="demo-banner" id="demoBanner" hidden>DEMO MODE · SIMULATED DATA · NO DISK ACCESS · COPY TIMING ACCELERATED</div>
+      <header class="title-bar" id="normalTitleRegion">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5v-13Zm3 1.25h10M8 17h.01M12 17h5" /></svg>
+          </span>
+          <span>MiniClone</span>
+          <span class="version" id="runtimeTag">READ-ONLY DISCOVERY</span>
+        </div>
+        <div class="title-actions">
+          <span class="normal-status-text" id="normalStatusText">Starting safely</span>
+          <button class="theme-toggle" id="themeToggle" type="button">Light theme</button>
+          <span id="nerdControlSlot">
+            <button class="nerd-toggle" id="nerdToggle" type="button" aria-pressed="false" aria-expanded="false" aria-controls="normalNerdTrustContent">Nerd mode</button>
+          </span>
+          <div class="admin-pill" id="adminPill" data-state="checking">
+            <span class="status-dot"></span>
+            <span id="adminLabel">Checking administrator session</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="content" id="normalShell">
+        <div class="normal-workflow-scroll" id="normalWorkflowContent">
+          <section class="discovery-panel" id="normalTrustRegion" aria-labelledby="discoveryTitle">
+          <div class="drive-hologram normal-trust-content" id="normalTrustVisual" aria-hidden="true">
+            <div class="beam beam-one"></div>
+            <div class="beam beam-two"></div>
+            <div class="disk-glyph">
+              <svg viewBox="0 0 64 64"><rect x="8" y="12" width="48" height="40" rx="7" /><path d="M16 22h32M17 43h30M20 47h.01M38 47h9" /></svg>
+            </div>
+            <div class="shield-badge">
+              <svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.8 2.9 8.1 7 10 4.1-1.9 7-5.2 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-5" /></svg>
+            </div>
+          </div>
+
+          <div class="discovery-copy normal-trust-content" id="normalTrustCopy">
+            <div class="section-kicker">MINICLONE SAFETY CHECK</div>
+            <h1 id="discoveryTitle">Reading this PC safely</h1>
+            <p id="discoverySummary">MiniClone is finding Windows and checking which disks can be used safely.</p>
+
+            <div class="check-grid" id="normalTrustChecks">
+              <div class="check-row" data-check="source"><span class="check-icon" aria-hidden="true">01</span><span>Windows source found</span><strong>PENDING</strong></div>
+              <div class="check-row" data-check="target"><span class="check-icon" aria-hidden="true">02</span><span>Destination selected</span><strong>PENDING</strong></div>
+              <div class="check-row" data-check="safety"><span class="check-icon" aria-hidden="true">03</span><span>Safety checks complete</span><strong>PENDING</strong></div>
+              <div class="check-row" data-check="ready"><span class="check-icon" aria-hidden="true">04</span><span>Ready for confirmation</span><strong>PENDING</strong></div>
+            </div>
+
+            <div class="action-row">
+              <button class="button ghost" id="refreshButton" type="button" disabled>
+                <svg viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5" /><path d="M18.5 9A7 7 0 0 0 6 6.5L4 9m2 6a7 7 0 0 0 12 2.5L20 15" /></svg>
+                Refresh system scan
+              </button>
+            </div>
+          </div>
+
+          <div class="nerd-trust-content" id="normalNerdTrustContent" hidden>
+            <div class="section-kicker">TECHNICAL ACTIVITY</div>
+            <h1 id="nerdTrustTitle">MiniClone engine activity</h1>
+            <p>Human-readable technical detail from the same safety workflow.</p>
+            <div class="nerd-current-activity" id="nerdCurrentActivity">
+              <span>CURRENT</span>
+              <strong>MiniClone is starting safely.</strong>
+            </div>
+            <ol class="nerd-activity-list" id="nerdActivityList" aria-label="Recent technical activity"></ol>
+            <label class="expert-evidence-control" for="expertEvidenceToggle">
+              <input id="expertEvidenceToggle" type="checkbox" aria-controls="expertEvidencePanel" aria-expanded="false">
+              <span>
+                <strong>Show Expert evidence</strong>
+                <small>Shows engineering evidence for troubleshooting. It does not unlock features or weaken safety.</small>
+              </span>
+            </label>
+          </div>
+          </section>
+
+          <section class="drive-stage" id="normalDriveRegion" aria-label="Source and destination">
+          <article class="drive-card source-card" id="sourceCard">
+            <div class="card-label">PROTECTED SOURCE</div>
+            <div class="card-main">
+              <div class="card-icon">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M6 15h.01M10 15h8M7 9h10" /></svg>
+              </div>
+              <div>
+                <h2 id="sourceName">Scanning…</h2>
+                <p id="sourceIdentity">Waiting for the engine</p>
+              </div>
+            </div>
+            <dl class="fact-grid" id="normalSourceFacts">
+              <div><dt>Capacity</dt><dd>—</dd></div>
+              <div><dt>Boot style</dt><dd>—</dd></div>
+              <div><dt>Protection</dt><dd>Protected source</dd></div>
+            </dl>
+            <div class="policy-note" id="sourcePolicyNote"><span class="mini-shield" aria-hidden="true">✓</span> MiniClone never offers this disk as a destination.</div>
+          </article>
+
+          <div class="direction-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+
+          <article class="drive-card target-card">
+            <div class="card-label" id="targetCardLabel">AVAILABLE DISKS</div>
+            <div class="target-heading">
+              <div>
+                <h2 id="targetHeadingTitle">Select a destination</h2>
+                <p id="targetHeadingSummary">Choose where the Windows copy should go.</p>
+              </div>
+              <span class="read-only-chip" id="targetCapabilityChip">NO WRITES</span>
+            </div>
+            <div class="target-list" id="normalEligibleTargets">
+              <div class="target-placeholder">
+                <div class="spinner"></div>
+                <span>Classifying disks with the engine…</span>
+              </div>
+            </div>
+            <details class="refused-targets" id="normalRefusedTargets" hidden>
+              <summary>Other disks MiniClone cannot use (0)</summary>
+            </details>
+          </article>
+          </section>
+        </div>
+
+        <section class="normal-action-region" id="normalActionRegion" aria-labelledby="normalActionTitle">
+          <div class="normal-action-copy" id="selectionBanner">
+            <span class="selection-kicker">NEXT STEP</span>
+            <strong id="normalActionTitle" tabindex="-1"><span id="selectionName">Choose a destination</span></strong>
+            <p id="selectionDetail">MiniClone will check the selected disk before asking for confirmation.</p>
+          </div>
+          <button class="button primary normal-primary-action" id="normalPrimaryAction" type="button" disabled>Choose a destination</button>
+
+          <div class="normal-execution-notice" id="normalExecutionNotice" hidden></div>
+          <div class="normal-execution-warning" id="normalExecutionWarning" hidden></div>
+          <div class="normal-communication-error" id="normalCommunicationError" hidden></div>
+
+          <div class="normal-progress" id="normalProgress" hidden>
+            <div class="normal-progress-heading"><strong>Copy progress</strong><span id="normalProgressText">Waiting for a verified byte plan</span></div>
+            <div class="execution-progress" id="normalProgressTrack" role="progressbar" aria-label="Windows copy progress" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Waiting for a verified byte plan"><span id="normalProgressBar"></span></div>
+          </div>
+
+          <div class="normal-result" id="normalResult" hidden></div>
+          <div class="normal-cancel-prompt" id="normalCancelPrompt" hidden></div>
+          <div class="normal-blocking-error" id="normalBlockingError" role="alert" hidden></div>
+        </section>
+
+        <div class="visually-hidden" id="normalAnnouncement" role="status" aria-live="polite" aria-atomic="true"></div>
+
+        <section class="target-confirmation modal-panel" id="targetConfirmationPanel" data-modal="target_confirmation" role="dialog" aria-modal="true" aria-labelledby="targetConfirmationTitle" hidden>
+          <div class="modal-panel-head">
+            <div>
+              <span class="section-kicker">FINAL CONFIRMATION</span>
+              <h2 id="targetConfirmationTitle">Erase this destination and start cloning?</h2>
+            </div>
+            <div class="modal-panel-actions">
+              <button class="button ghost" id="targetConfirmationCloseButton" type="button">Cancel</button>
+            </div>
+          </div>
+          <div class="confirmation-identities">
+            <article>
+              <span>PROTECTED SOURCE</span>
+              <strong id="confirmationSourceName">—</strong>
+              <p id="confirmationSourceIdentity">—</p>
+            </article>
+            <article class="target-identity">
+              <span>DESTINATION TO ERASE</span>
+              <strong id="confirmationTargetName">—</strong>
+              <p id="confirmationTargetFacts">—</p>
+            </article>
+          </div>
+          <div class="erasure-warning" id="erasureWarning" role="alert">Everything currently on this destination will be permanently erased. Your Windows source will not be erased.</div>
+          <div class="confirmation-form" id="confirmationForm">
+            <label><input id="acknowledgeDataLoss" type="checkbox"> <span>I understand that everything on this destination will be permanently erased.</span></label>
+            <label><input id="acknowledgeTargetIdentity" type="checkbox"> <span>I confirmed that the destination shown above is the disk I intend to erase and is not the protected source.</span></label>
+            <label class="confirmation-phrase" for="confirmationPhrase">Type <code id="expectedConfirmationPhrase">ERASE DISK —</code> exactly:</label>
+            <input id="confirmationPhrase" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="confirmationPhraseHelp">
+            <p id="confirmationPhraseHelp">Only surrounding spaces are ignored. Capitalization and the disk number must match.</p>
+            <div class="confirmation-submit-row">
+              <button class="button danger" id="recordConfirmationButton" type="button" disabled>Erase destination and start clone</button>
+            </div>
+            <div class="confirmation-error" id="confirmationError" role="alert" hidden></div>
+          </div>
+        </section>
+
+        <section class="expert-evidence-panel modal-panel" id="expertEvidencePanel" data-modal="expert_evidence" role="dialog" aria-modal="true" aria-labelledby="expertEvidenceTitle" aria-hidden="true" inert hidden>
+          <div class="expert-evidence-head">
+            <div>
+              <span class="section-kicker">OPTIONAL TROUBLESHOOTING</span>
+              <h2 id="expertEvidenceTitle">Expert evidence</h2>
+              <p>Cached evidence from MiniClone's existing safety workflow. Viewing it cannot change or rerun the workflow.</p>
+            </div>
+            <button class="button ghost" id="expertEvidenceCloseButton" type="button">Close</button>
+          </div>
+          <div class="expert-tab-list" id="expertTabList" role="tablist" aria-label="Expert evidence categories">
+            <button id="expertTabSystem" type="button" role="tab" aria-selected="true" aria-controls="expertTabPanelSystem" data-expert-tab="system">System</button>
+            <button id="expertTabPreparation" type="button" role="tab" aria-selected="false" aria-controls="expertTabPanelPreparation" data-expert-tab="preparation" tabindex="-1">Preparation</button>
+            <button id="expertTabRun" type="button" role="tab" aria-selected="false" aria-controls="expertTabPanelRun" data-expert-tab="run" tabindex="-1">Run</button>
+            <button id="expertTabBoot" type="button" role="tab" aria-selected="false" aria-controls="expertTabPanelBoot" data-expert-tab="boot" tabindex="-1">Boot</button>
+          </div>
+          <div class="expert-tab-panel" id="expertTabPanelSystem" role="tabpanel" aria-labelledby="expertTabSystem" data-expert-panel="system"></div>
+          <div class="expert-tab-panel" id="expertTabPanelPreparation" role="tabpanel" aria-labelledby="expertTabPreparation" data-expert-panel="preparation" hidden></div>
+          <div class="expert-tab-panel" id="expertTabPanelRun" role="tabpanel" aria-labelledby="expertTabRun" data-expert-panel="run" hidden></div>
+          <div class="expert-tab-panel" id="expertTabPanelBoot" role="tabpanel" aria-labelledby="expertTabBoot" data-expert-panel="boot" hidden></div>
+        </section>
+
+      </main>
+
+      <footer class="footer" id="normalFooterRegion">
+        <span id="footerBoundary"><span class="footer-dot"></span> Default engine build: physical writes disabled</span>
+        <span id="footerStatus">Starting read-only discovery…</span>
+      </footer>
+    </div>
+  </body>
+</html>
