@@ -48,24 +48,50 @@
                     <div class="disk-canvas">
                         <div class="svg-container">
                             <svg viewBox="0 0 400 400" width="100%" height="100%" class="disk-svg">
+                                <defs>
+                                    <linearGradient id="gold-spark-gradient" x1="0%" y1="50%" x2="100%" y2="50%">
+                                        <stop offset="0%" stop-color="#ffebaf" stop-opacity="0.0" />
+                                        <stop offset="35%" stop-color="#ffcf69" stop-opacity="0.95" />
+                                        <stop offset="100%" stop-color="#ffebaf" stop-opacity="0.0" />
+                                    </linearGradient>
+                                </defs>
                                 <!-- Source Drive -->
                                 <g transform="translate(100, 140)">
-                                    <rect x="-60" y="-80" width="120" height="160" rx="10" fill="#1b1d24" stroke="#45A29E" stroke-width="2" />
-                                    <circle cx="-2" cy="-20" r="35" fill="none" stroke="#66FCF1" stroke-width="2" stroke-dasharray="8,4" class="spin" />
-                                    <path d="M -2,-20 L 23,10" stroke="#66FCF1" stroke-width="3" stroke-linecap="round" class="arm" />
-                                    <text x="0" y="55" text-anchor="middle" fill="#45A29E" font-family="'Space Grotesk', sans-serif" font-size="12">SOURCE (C:)</text>
+                                    <g class="drive-shell drive-left">
+                                        <rect x="-60" y="-80" width="120" height="160" rx="10" fill="#1b1d24" stroke="#45A29E" stroke-width="2" />
+                                        <circle cx="-2" cy="-20" r="35" fill="none" stroke="#66FCF1" stroke-width="2" stroke-dasharray="8,4" class="spin" />
+                                        <path d="M -2,-20 L 23,10" stroke="#66FCF1" stroke-width="3" stroke-linecap="round" class="arm" />
+                                        <text x="0" y="55" text-anchor="middle" fill="#45A29E" font-family="'Space Grotesk', sans-serif" font-size="12">SOURCE (C:)</text>
+                                    </g>
                                 </g>
-                                <!-- Flowing Laser Line -->
-                                <path d="M 160,140 Q 200,80 240,140" fill="none" stroke="#66FCF1" stroke-width="3" stroke-dasharray="10, 5" class="laser-flow" />
+                                <!-- Curved transfer arcs -->
+                                <path d="M 160,136 Q 200,80 240,136" fill="none" class="transfer-arc transfer-arc-1" />
+                                <path d="M 160,144 Q 200,88 240,144" fill="none" class="transfer-arc transfer-arc-2" />
+                                <path d="M 160,130 Q 200,76 240,130" fill="none" class="transfer-arc transfer-arc-3" />
+                                <path d="M 160,148 Q 200,90 240,148" fill="none" class="transfer-arc transfer-arc-4" />
+                                <path d="M 160,124 Q 200,70 240,124" fill="none" class="transfer-arc transfer-arc-5" />
+                                <!-- Golden sparks -->
+                                <path d="M 160,128 Q 200,80 240,128" fill="none" class="gold-spark gold-spark-1" />
+                                <path d="M 160,140 Q 200,82 240,140" fill="none" class="gold-spark gold-spark-2" />
+                                <path d="M 160,136 Q 200,86 240,136" fill="none" class="gold-spark gold-spark-3" />
+                                <path d="M 160,132 Q 200,84 240,132" fill="none" class="gold-spark gold-spark-4" />
+                                <path d="M 160,146 Q 200,88 240,146" fill="none" class="gold-spark gold-spark-5" />
                                 <!-- Target Drive -->
                                 <g transform="translate(300, 140)">
-                                    <rect x="-60" y="-80" width="120" height="160" rx="10" fill="#1b1d24" stroke="#FF4D00" stroke-width="2" class="glow-target" />
-                                    <circle cx="-2" cy="-20" r="35" fill="none" stroke="#FF4D00" stroke-width="2" stroke-dasharray="8,4" class="spin-reverse" />
-                                    <path d="M -2,-20 L 23,10" stroke="#FF4D00" stroke-width="3" stroke-linecap="round" class="arm-target" />
-                                    <text x="0" y="55" text-anchor="middle" fill="#FF4D00" font-family="'Space Grotesk', sans-serif" font-size="12">TARGET</text>
+                                    <g class="drive-shell drive-right">
+                                        <rect x="-60" y="-80" width="120" height="160" rx="10" fill="#1b1d24" stroke="#FF4D00" stroke-width="2" class="glow-target" />
+                                        <circle cx="-2" cy="-20" r="35" fill="none" stroke="#FF4D00" stroke-width="2" stroke-dasharray="8,4" class="spin-reverse" />
+                                        <path d="M -2,-20 L 23,10" stroke="#FF4D00" stroke-width="3" stroke-linecap="round" class="arm-target" />
+                                        <text x="0" y="55" text-anchor="middle" fill="#FF4D00" font-family="'Space Grotesk', sans-serif" font-size="12">TARGET</text>
+                                    </g>
                                 </g>
                             </svg>
                         </div>
+                        <p class="hero-safety-cycle" aria-live="polite">
+                            <span>MiniClone works while Windows runs, copying your data with safety checks enabled.</span>
+                            <span>MiniClone transfers your data safely, all while your Windows session stays active.</span>
+                            <span>Safe, secure disk migration while you continue using Windows.</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -174,7 +200,7 @@
                 <div class="warning-content">
                     <h3>The Disk Restore Guarantee: Zero.</h3>
                     <p>
-                        Disk restoration is one of the most volatile operations you can execute in Windows. We do not offer warranties of fitness or merchantability. We don't guarantee it will save your drive. The only guarantee we offer is that for $5 you are getting the absolute best cloner we know how to build. We even test write boundaries and recovery margins on a failing Intel SSD with 0% SMART health to ensure our chunked error-recovery windows stand up to the challenge.
+                        Disk migration always depends on the source drive, destination hardware, Windows configuration, and firmware. MiniClone protects the source during transfer, verifies copied data, prepares the destination boot files, and keeps the destination offline while the copy is in progress. No software can guarantee that every damaged drive or unusual Windows configuration will boot successfully. We do not offer warranties of fitness or merchantability, and we do not guarantee it will save your drive. We will, however, refund your $5 if it does not work for you.
                     </p>
                 </div>
             </div>
@@ -185,9 +211,30 @@
             <div class="container">
                 <h2>Get MiniClone HD</h2>
                 <p class="download-pricing">Exactly <strong>$5.00</strong>. Pay once, use for life.</p>
-                <div class="payment-box">
-                    <div class="stripe-badge">Stripe Secure Checkout</div>
-                    <a href="#" class="btn btn-accent btn-lg" onclick="alert('Checkout is in placeholder/sandbox mode.'); return false;">Secure Payment & Download</a>
+                <div class="payment-box" aria-labelledby="paypal-checkout-heading">
+                    <h3 id="paypal-checkout-heading" class="payment-heading">Secure checkout powered by PayPal</h3>
+                    <div class="purchase-options">
+                        <div class="paypal-checkout">
+                            <div id="paypal-container-6T72YME8CGZCN" aria-live="polite"></div>
+                            <noscript>
+                                <p class="payment-fallback">JavaScript is required to load PayPal checkout. Email <a href="mailto:support@miniclonehd.com">support@miniclonehd.com</a> for help.</p>
+                            </noscript>
+                            <p class="payment-fallback">If PayPal does not appear, email <a href="mailto:support@miniclonehd.com">support@miniclonehd.com</a>.</p>
+                        </div>
+                        <aside class="purchase-demo" aria-label="Free MiniClone demo">
+                            <span class="purchase-demo-label">Try it first</span>
+                            <div class="miniapp-hero-card miniapp-hero-card--small">
+                                <img src="../.bak/app.webp" alt="MiniClone application interface preview card" class="miniapp-hero-card__image" loading="lazy" />
+                                <p class="miniapp-hero-card__caption">MiniClone desktop UI preview</p>
+                            </div>
+                            <p>Explore the safe, diskless Windows demo before purchasing.</p>
+                            <a
+                                href="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/demo/MiniClone-Demo.exe"
+                                class="btn btn-outline purchase-demo-link"
+                                download="MiniClone-Demo.exe"
+                            >Download the Free Demo</a>
+                        </aside>
+                    </div>
                     <p class="download-clause">Come back in 20 years. If this site is still here, you can download it again for free.</p>
                 </div>
             </div>
@@ -200,10 +247,28 @@
             <div class="footer-links">
                 <a href="#rants" class="footer-link">Rant</a>
                 <a href="https://github.com/Ariel/MiniClone" class="footer-link">Source GitHub</a>
+                <a href="./downloads/" class="footer-link">Downloads</a>
+                <a href="mailto:support@miniclonehd.com" class="footer-link">Product Support</a>
+                <a href="mailto:support@foxjammin.com" class="footer-link">Publisher Contact</a>
             </div>
         </div>
     </footer>
 
     <script src="app.js"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=BAA3X0UIMqAlzwV-3OM4554YnFfTxD8_w0CGXKeG03qHDgTxRfhY0Zzf3uvvjR-hukMm8jFnAKiB5I-BFc&amp;components=hosted-buttons&amp;enable-funding=venmo&amp;currency=USD"></script>
+    <script>
+        const paypalContainer = document.getElementById('paypal-container-6T72YME8CGZCN');
+
+        if (window.paypal?.HostedButtons) {
+            window.paypal.HostedButtons({
+                hostedButtonId: '6T72YME8CGZCN',
+            }).render('#paypal-container-6T72YME8CGZCN').catch((error) => {
+                paypalContainer.dataset.checkoutState = 'unavailable';
+                console.warn('PayPal checkout could not be rendered.', error);
+            });
+        } else {
+            paypalContainer.dataset.checkoutState = 'unavailable';
+        }
+    </script>
 </body>
 </html>

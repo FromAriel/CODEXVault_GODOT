@@ -342,6 +342,44 @@ a:hover {
     box-shadow: 
         inset 0 0 30px rgba(102, 252, 241, 0.03),
         0 20px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+
+.hero-safety-cycle {
+    position: absolute;
+    left: 50%;
+    bottom: 22%;
+    transform: translateX(-50%);
+    width: min(72%, 320px);
+    padding: 0 12px;
+    min-height: 2.8rem;
+    line-height: 1.2;
+    color: var(--color-text-muted);
+    font-family: var(--font-headers);
+    font-size: 0.86rem;
+    letter-spacing: 0.01em;
+    text-align: center;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.hero-safety-cycle span {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    animation: hero-safety-cycle 18s infinite;
+}
+
+.hero-safety-cycle span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.hero-safety-cycle span:nth-child(2) {
+    animation-delay: 6s;
+}
+
+.hero-safety-cycle span:nth-child(3) {
+    animation-delay: 12s;
 }
 
 .svg-container {
@@ -349,18 +387,68 @@ a:hover {
     height: 100%;
 }
 
+.miniapp-hero-card {
+    width: min(260px, 100%);
+    margin: 0 auto 18px auto;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(13, 18, 24, 0.65);
+    border: 1px solid rgba(102, 252, 241, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+}
+
+.miniapp-hero-card--small {
+    width: min(190px, 80%);
+    margin-top: 8px;
+    margin-bottom: 12px;
+    padding: 8px;
+}
+
+.miniapp-hero-card__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid rgba(102, 252, 241, 0.15);
+    object-fit: cover;
+}
+
+.miniapp-hero-card__caption {
+    margin-top: 8px;
+    margin-bottom: 0;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    font-family: var(--font-headers);
+}
+
 /* SVG Disk Animation Styles */
 .disk-svg {
     filter: drop-shadow(0px 0px 10px rgba(0,0,0,0.5));
 }
 
+.drive-shell {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.drive-left {
+    animation: drive-bob-left 3.6s ease-in-out infinite;
+}
+
+.drive-right {
+    animation: drive-bob-right 3.95s ease-in-out infinite;
+}
+
 .spin {
-    animation: rotate-clockwise 10s linear infinite;
+    animation: rotate-counter 10s linear infinite;
     transform-origin: -2px -20px;
 }
 
 .spin-reverse {
-    animation: rotate-counter 12s linear infinite;
+    animation: rotate-clockwise 10s linear infinite;
     transform-origin: -2px -20px;
 }
 
@@ -378,11 +466,50 @@ a:hover {
     animation: pulse-orange-glow 3s ease-in-out infinite;
 }
 
-.laser-flow {
-    stroke-dasharray: 12, 6;
-    animation: laser-dash 1.5s linear infinite;
-    filter: drop-shadow(0px 0px 4px var(--color-neon-blue));
+.transfer-arc {
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 14 9;
+    stroke-dashoffset: 0;
+    fill: none;
+    filter: drop-shadow(0px 0px 4px rgba(102, 252, 241, 0.25));
+    animation: transfer-arc-flow var(--arc-duration) linear infinite;
+    animation-delay: var(--arc-delay);
+    opacity: var(--arc-opacity);
 }
+
+.transfer-arc-1 { --arc-duration: 2.2s; --arc-delay: 0s; --arc-opacity: 0.55; }
+.transfer-arc-2 { --arc-duration: 2.27s; --arc-delay: -0.2s; --arc-opacity: 0.42; }
+.transfer-arc-3 { --arc-duration: 2.35s; --arc-delay: -0.45s; --arc-opacity: 0.36; }
+.transfer-arc-4 { --arc-duration: 2.42s; --arc-delay: -0.33s; --arc-opacity: 0.44; }
+.transfer-arc-5 { --arc-duration: 2.5s; --arc-delay: -0.58s; --arc-opacity: 0.32; }
+
+.transfer-arc-1, .transfer-arc-2, .transfer-arc-3, .transfer-arc-4, .transfer-arc-5 {
+    stroke: var(--color-neon-blue);
+}
+
+.transfer-arc-1, .transfer-arc-2, .transfer-arc-3, .transfer-arc-4, .transfer-arc-5 {
+    stroke-dashoffset: 16;
+}
+
+.gold-spark {
+    fill: none;
+    stroke: url(#gold-spark-gradient);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-dasharray: 18 220;
+    stroke-dashoffset: 220;
+    opacity: 0;
+    filter: drop-shadow(0 0 6px rgba(255, 218, 128, 0.45));
+    animation: transfer-spark var(--spark-duration) linear infinite;
+    animation-delay: var(--spark-delay);
+}
+
+.gold-spark-1 { --spark-duration: 1.8s; --spark-delay: -0.15s; }
+.gold-spark-2 { --spark-duration: 2.1s; --spark-delay: -0.6s; }
+.gold-spark-3 { --spark-duration: 1.6s; --spark-delay: -1.2s; }
+.gold-spark-4 { --spark-duration: 2.3s; --spark-delay: -0.95s; }
+.gold-spark-5 { --spark-duration: 1.9s; --spark-delay: -0.4s; }
 
 @keyframes rotate-clockwise {
     from { transform: rotate(0deg); }
@@ -419,9 +546,101 @@ a:hover {
     }
 }
 
-@keyframes laser-dash {
+@keyframes transfer-arc-flow {
     to {
-        stroke-dashoffset: -36;
+        stroke-dashoffset: -24;
+    }
+}
+
+@keyframes transfer-spark {
+    0% {
+        stroke-dashoffset: 220;
+        opacity: 0;
+    }
+    5% {
+        opacity: 0.7;
+    }
+    28% {
+        opacity: 0.2;
+    }
+    70% {
+        opacity: 0;
+    }
+    100% {
+        stroke-dashoffset: -45;
+        opacity: 0;
+    }
+}
+
+@keyframes hero-safety-cycle {
+    0%, 5% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    12%, 28% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    35%, 100% {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+@keyframes drive-bob-left {
+    0%, 100% {
+        transform: translateY(1px);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+    78% {
+        transform: translateY(0.5px);
+    }
+}
+
+@keyframes drive-bob-right {
+    0%, 100% {
+        transform: translateY(-1px);
+    }
+    45% {
+        transform: translateY(2.5px);
+    }
+    72% {
+        transform: translateY(-0.5px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .drive-left,
+    .drive-right,
+    .spin,
+    .spin-reverse,
+    .arm,
+    .arm-target,
+    .glow-target,
+    .transfer-arc,
+    .gold-spark {
+        animation: none;
+    }
+    
+    .transfer-arc {
+        stroke-dashoffset: 0;
+        opacity: 0.35;
+    }
+    
+    .gold-spark {
+        opacity: 0.18;
+    }
+
+    .hero-safety-cycle span {
+        animation: none;
+        position: static;
+        opacity: 0;
+    }
+
+    .hero-safety-cycle span:nth-child(1) {
+        opacity: 1;
     }
 }
 
@@ -722,7 +941,7 @@ a:hover {
 }
 
 .payment-box {
-    max-width: 500px;
+    max-width: 880px;
     margin: 0 auto;
     background: var(--color-surface);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -731,26 +950,81 @@ a:hover {
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
 }
 
-.stripe-badge {
+.payment-heading {
     font-family: var(--font-headers);
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--color-text-muted);
     margin-bottom: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
 }
 
-.stripe-badge::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: var(--color-green-success);
-    display: inline-block;
+.purchase-options {
+    display: grid;
+    grid-template-columns: minmax(280px, 1.35fr) minmax(230px, 0.85fr);
+    gap: 28px;
+    align-items: stretch;
+    text-align: left;
+}
+
+.paypal-checkout,
+.purchase-demo {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-md);
+    background: rgba(0, 0, 0, 0.18);
+}
+
+#paypal-container-6T72YME8CGZCN {
+    width: 100%;
+    min-height: 145px;
+}
+
+#paypal-container-6T72YME8CGZCN[data-checkout-state="unavailable"] {
+    min-height: 0;
+}
+
+.payment-fallback {
+    margin-top: 14px;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.payment-fallback a,
+.footer-link {
+    overflow-wrap: anywhere;
+}
+
+.purchase-demo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.purchase-demo-label {
+    font-family: var(--font-headers);
+    color: var(--color-neon-blue);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.purchase-demo p {
+    margin: 12px 0 20px;
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+.purchase-demo-link {
+    width: 100%;
+    text-align: center;
 }
 
 .download-clause {
@@ -899,6 +1173,14 @@ a:hover {
     .warning-icon {
         font-size: 2.5rem;
     }
+
+    .payment-box {
+        padding: 28px 20px;
+    }
+
+    .purchase-options {
+        grid-template-columns: 1fr;
+    }
     
     .footer-container {
         flex-direction: column;
@@ -924,5 +1206,10 @@ a:hover {
 
     .product-demo-frame {
         height: 820px;
+    }
+
+    .paypal-checkout,
+    .purchase-demo {
+        padding: 20px 16px;
     }
 }
