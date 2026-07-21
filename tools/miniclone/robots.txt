@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://miniclonehd.com/sitemap.xml

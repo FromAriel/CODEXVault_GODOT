@@ -495,21 +495,26 @@ a:hover {
 .gold-spark {
     fill: none;
     stroke: url(#gold-spark-gradient);
-    stroke-width: 2.2;
+    stroke-width: 1.2;
     stroke-linecap: round;
-    stroke-dasharray: 18 220;
-    stroke-dashoffset: 220;
+    stroke-dasharray: 10 220;
+    stroke-dashoffset: 230;
     opacity: 0;
-    filter: drop-shadow(0 0 6px rgba(255, 218, 128, 0.45));
+    filter: drop-shadow(0 0 4px rgba(255, 218, 128, 0.5));
     animation: transfer-spark var(--spark-duration) linear infinite;
     animation-delay: var(--spark-delay);
 }
 
-.gold-spark-1 { --spark-duration: 1.8s; --spark-delay: -0.15s; }
-.gold-spark-2 { --spark-duration: 2.1s; --spark-delay: -0.6s; }
-.gold-spark-3 { --spark-duration: 1.6s; --spark-delay: -1.2s; }
-.gold-spark-4 { --spark-duration: 2.3s; --spark-delay: -0.95s; }
-.gold-spark-5 { --spark-duration: 1.9s; --spark-delay: -0.4s; }
+.gold-spark-1 { --spark-duration: 1.42s; --spark-delay: -0.12s; }
+.gold-spark-2 { --spark-duration: 1.96s; --spark-delay: -0.48s; }
+.gold-spark-3 { --spark-duration: 1.68s; --spark-delay: -0.8s; }
+.gold-spark-4 { --spark-duration: 2.21s; --spark-delay: -1.15s; }
+.gold-spark-5 { --spark-duration: 1.89s; --spark-delay: -0.31s; }
+.gold-spark-6 { --spark-duration: 1.55s; --spark-delay: -0.95s; }
+.gold-spark-7 { --spark-duration: 2.12s; --spark-delay: -1.34s; }
+.gold-spark-8 { --spark-duration: 1.74s; --spark-delay: -0.61s; }
+.gold-spark-9 { --spark-duration: 2.26s; --spark-delay: -1.02s; }
+.gold-spark-10 { --spark-duration: 1.99s; --spark-delay: -1.48s; }
 
 @keyframes rotate-clockwise {
     from { transform: rotate(0deg); }
@@ -554,16 +559,16 @@ a:hover {
 
 @keyframes transfer-spark {
     0% {
-        stroke-dashoffset: 220;
+        stroke-dashoffset: 230;
         opacity: 0;
     }
     5% {
-        opacity: 0.7;
+        opacity: 0.8;
     }
-    28% {
-        opacity: 0.2;
+    25% {
+        opacity: 0.35;
     }
-    70% {
+    60% {
         opacity: 0;
     }
     100% {
@@ -904,6 +909,60 @@ a:hover {
     align-items: center;
 }
 
+.faq-section {
+    background: rgba(18, 22, 26, 0.45);
+}
+
+.faq-lead {
+    margin-bottom: 28px;
+}
+
+.faq-list {
+    display: grid;
+    gap: 14px;
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--border-radius-md);
+    background: rgba(18, 22, 26, 0.4);
+    padding: 14px 16px;
+    transition: border-color var(--transition-normal), background var(--transition-normal);
+}
+
+.faq-item:hover,
+.faq-item:focus-within {
+    border-color: rgba(102, 252, 241, 0.35);
+}
+
+.faq-item summary {
+    font-family: var(--font-headers);
+    color: var(--color-text-bright);
+    font-size: 1.02rem;
+    list-style: none;
+    cursor: pointer;
+}
+
+.faq-item summary::marker {
+    display: none;
+}
+
+.faq-item p {
+    margin-top: 10px;
+    color: var(--color-text-muted);
+    line-height: 1.65;
+    font-size: 0.96rem;
+}
+
+.warning-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
 .warning-content h3 {
     font-size: 1.6rem;
     color: #FF7733;
@@ -957,6 +1016,58 @@ a:hover {
     letter-spacing: 0.1em;
     color: var(--color-text-muted);
     margin-bottom: 24px;
+}
+
+.checkout-consent {
+    margin-bottom: 14px;
+}
+
+.checkout-consent-label {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.checkout-consent-label a {
+    color: var(--color-neon-blue);
+}
+
+.checkout-consent-label input[type="checkbox"] {
+    margin-top: 0.15rem;
+    accent-color: var(--color-neon-blue);
+}
+
+.paypal-checkout-state[data-state="locked"] .paypal-lock-message {
+    display: block;
+}
+
+.paypal-checkout-state[data-state="ready"] .paypal-lock-message,
+.paypal-checkout-state[data-state="unavailable"] .paypal-lock-message {
+    display: none;
+}
+
+.paypal-checkout-state[data-state="ready"] .payment-fallback {
+    display: none;
+}
+
+.paypal-lock-message {
+    display: none;
+    margin-top: 0;
+    margin-bottom: 14px;
+    text-align: center;
+    color: var(--color-text-main);
+}
+
+.paypal-checkout-state[data-state="locked"] #paypal-container-6T72YME8CGZCN,
+.paypal-checkout-state[data-state="locked"] .payment-fallback {
+    display: none;
+}
+
+.paypal-checkout-state[data-state="unavailable"] .payment-fallback {
+    display: block;
 }
 
 .purchase-options {
@@ -1032,6 +1143,50 @@ a:hover {
     color: var(--color-text-muted);
     margin-top: 24px;
     line-height: 1.5;
+}
+
+.terms-shell {
+    padding-top: 90px;
+}
+
+.terms-shell-container {
+    max-width: 900px;
+}
+
+.terms-updated {
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+}
+
+.terms-title {
+    font-family: var(--font-headers);
+    margin: 0;
+    margin-bottom: 12px;
+}
+
+.terms-section {
+    margin-top: 24px;
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-md);
+    background: var(--color-surface);
+}
+
+.terms-section + .terms-section {
+    margin-top: 20px;
+}
+
+.terms-section p,
+.terms-section ul {
+    color: var(--color-text-muted);
+    margin-top: 12px;
+    line-height: 1.65;
+}
+
+.terms-section ul {
+    padding-left: 22px;
 }
 
 /* --- Footer --- */
@@ -1180,6 +1335,10 @@ a:hover {
 
     .purchase-options {
         grid-template-columns: 1fr;
+    }
+
+    .warning-cta {
+        justify-content: center;
     }
     
     .footer-container {
