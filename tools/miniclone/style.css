@@ -158,6 +158,7 @@ a:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    padding: 12px 20px;
     font-family: var(--font-headers);
     font-weight: 600;
     text-transform: uppercase;
@@ -355,22 +356,22 @@ a:hover {
 
 .spin {
     animation: rotate-clockwise 10s linear infinite;
-    transform-origin: 0px -20px;
+    transform-origin: -2px -20px;
 }
 
 .spin-reverse {
     animation: rotate-counter 12s linear infinite;
-    transform-origin: 0px -20px;
+    transform-origin: -2px -20px;
 }
 
 .arm {
     animation: arm-wobble 4s ease-in-out infinite alternate;
-    transform-origin: 0px -20px;
+    transform-origin: -2px -20px;
 }
 
 .arm-target {
     animation: arm-wobble-target 5s ease-in-out infinite alternate;
-    transform-origin: 0px -20px;
+    transform-origin: -2px -20px;
 }
 
 .glow-target {
@@ -552,6 +553,25 @@ a:hover {
 
 .product-demo-actions .btn {
     white-space: nowrap;
+}
+
+.demo-download-link {
+    padding: 7px 4px;
+    color: var(--color-neon-blue);
+    border-bottom: 1px solid rgba(102, 252, 241, 0.42);
+    font-family: var(--font-headers);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.demo-download-link:hover,
+.demo-download-link:focus-visible {
+    color: var(--color-text-bright);
+    border-bottom-color: var(--color-text-bright);
 }
 
 .product-demo-frame-shell {
@@ -894,6 +914,12 @@ a:hover {
 
     .product-demo-actions .btn {
         width: 100%;
+    }
+
+    .demo-download-link {
+        width: 100%;
+        padding: 9px 4px;
+        text-align: center;
     }
 
     .product-demo-frame {
