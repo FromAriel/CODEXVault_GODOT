@@ -243,11 +243,49 @@ function validateDemoEnvelope(envelope, command) {
 }
 
 async function loadBundledScenario() {
-  const response = await fetch(DEMO_FIXTURE_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw bridgeError("demo_fixture_unavailable", `Could not load bundled demo fixture (${response.status}).`);
+  const parseResponse = async (response, fallbackReason = "Could not load bundled demo fixture.") => {
+    try {
+      return await response.json();
+    } catch (error) {
+      throw bridgeError("demo_fixture_invalid", `Could not parse the bundled demo fixture payload (${fallbackReason}).`);
+    }
+  };
+  try {
+    const response = await fetch(DEMO_FIXTURE_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw bridgeError("demo_fixture_unavailable", `Could not load bundled demo fixture (${response.status}).`);
+    }
+    return await parseResponse(response);
+  } catch (error) {
+    if (window.location.protocol === "file:") {
+      try {
+        const fallback = await new Promise((resolve, reject) => {
+          const request = new XMLHttpRequest();
+          request.open("GET", DEMO_FIXTURE_URL.href, true);
+          request.onload = () => {
+            const status = request.status;
+            const ok = status === 0 || (status >= 200 && status < 400);
+            if (!ok) {
+              reject(bridgeError("demo_fixture_unavailable", `Could not load bundled demo fixture from fallback (${status}).`));
+              return;
+            }
+            try {
+              resolve(JSON.parse(request.responseText));
+            } catch {
+              reject(bridgeError("demo_fixture_invalid", "Could not parse the bundled demo fixture fallback payload."));
+            }
+          };
+          request.onerror = () => reject(bridgeError("demo_fixture_unavailable", "Demo fixture fallback request failed."));
+          request.send();
+        });
+        return fallback;
+      } catch {
+        // Fall through to throw the original/normalized error.
+      }
+    }
+    if (error && error.kind) throw error;
+    throw bridgeError("demo_fixture_unavailable", "Could not load bundled demo fixture.");
   }
-  return response.json();
 }
 
 function wait(milliseconds) {

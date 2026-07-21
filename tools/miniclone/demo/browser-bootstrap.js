@@ -21,6 +21,12 @@ Object.defineProperty(window, "__TAURI__", {
 });
 
 const wheelMessageType = "miniclone-demo-wheel";
+// Route wheel input to the host page by default so the embedded frame stays visually
+// static while the outer site owns vertical scroll.
+
+function parentPostOrigin() {
+  return "*";
+}
 
 function embeddedDemoIsFullscreen() {
   if (window.parent === window) return false;
@@ -31,36 +37,40 @@ function embeddedDemoIsFullscreen() {
   }
 }
 
-function scrollableAncestorCanConsume(target, deltaY) {
-  for (let element = target instanceof Element ? target : null;
-    element && element !== document.body && element !== document.documentElement;
-    element = element.parentElement) {
-    const overflowY = getComputedStyle(element).overflowY;
-    if (!/(auto|scroll|overlay)/u.test(overflowY) || element.scrollHeight <= element.clientHeight + 1) {
-      continue;
-    }
-    if (deltaY < 0 && element.scrollTop > 0) return true;
-    if (deltaY > 0 && element.scrollTop + element.clientHeight < element.scrollHeight - 1) return true;
-  }
-  return false;
-}
-
 function wheelDeltaInPixels(event) {
+  const deltaX = Number.isFinite(event.deltaX) ? event.deltaX : 0;
+  const deltaY = Number.isFinite(event.deltaY) ? event.deltaY : 0;
   const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE
     ? 16
     : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? window.innerHeight : 1;
-  return { deltaX: event.deltaX * scale, deltaY: event.deltaY * scale };
+  return { deltaX: deltaX * scale, deltaY: deltaY * scale };
 }
 
-window.addEventListener("wheel", (event) => {
+function forwardWheelToHost(deltaX, deltaY) {
+  if (window.parent === window) return;
+  window.parent.postMessage(
+    {
+      type: wheelMessageType,
+      deltaX,
+      deltaY,
+    },
+    parentPostOrigin(),
+  );
+}
+
+function handleWheel(event) {
   if (event.ctrlKey || window.parent === window || embeddedDemoIsFullscreen()) return;
 
   const delta = wheelDeltaInPixels(event);
   if (delta.deltaX === 0 && delta.deltaY === 0) return;
-  if (scrollableAncestorCanConsume(event.target, delta.deltaY)) return;
 
   event.preventDefault();
-  window.parent.postMessage({ type: wheelMessageType, ...delta }, window.location.origin);
-}, { passive: false });
+  event.stopImmediatePropagation();
+  event.stopPropagation();
+
+  forwardWheelToHost(delta.deltaX, delta.deltaY);
+}
+
+window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
 
 await import("./main.js");
