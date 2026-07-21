@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
 
@@ -13,15 +13,35 @@ async function text(url) {
   return readFile(url, "utf8");
 }
 
+async function assertLocalReferencesResolve(pageUrl) {
+  const markup = await text(pageUrl);
+  const references = [...markup.matchAll(/\b(?:href|src)="([^"]+)"/gu)]
+    .map((match) => match[1]);
+
+  for (const reference of references) {
+    const target = new URL(reference, pageUrl);
+    if (target.protocol !== "file:") continue;
+    target.hash = "";
+    target.search = "";
+    const fileTarget = target.pathname.endsWith("/") ? new URL("index.html", target) : target;
+    assert.ok(
+      fileTarget.pathname.startsWith(websiteRoot.pathname),
+      `${reference} escapes the website root from ${pageUrl.pathname}`,
+    );
+    await assert.doesNotReject(
+      stat(fileTarget),
+      `${reference} does not resolve from ${pageUrl.pathname}`,
+    );
+  }
+}
+
 test("website demo preserves the application JavaScript modules byte for byte", async () => {
   const sourceNames = (await readdir(appSourceRoot))
     .filter((name) => name.endsWith(".js"))
     .sort();
-  const websitePatchedModules = new Set(["execution-view-model.js"]);
 
   assert.ok(sourceNames.includes("main.js"));
   for (const name of sourceNames) {
-    if (websitePatchedModules.has(name)) continue;
     assert.equal(
       await text(new URL(name, demoRoot)),
       await text(new URL(name, appSourceRoot)),
@@ -37,13 +57,8 @@ test("website demo preserves the application JavaScript modules byte for byte", 
 test("website progress projection unwraps the Demo worker progress event", async () => {
   const source = await text(new URL("execution-view-model.js", appSourceRoot));
   const website = await text(new URL("execution-view-model.js", demoRoot));
-  const expectedWebsite = source.replace(
-    "const metrics = direct ?? correlatedActivityProgress(state, activitySnapshot) ?? {};",
-    "const metrics = record(direct?.metrics) ?? direct ?? correlatedActivityProgress(state, activitySnapshot) ?? {};",
-  );
-
-  assert.notEqual(expectedWebsite, source, "expected application projection line was not found");
-  assert.equal(website, expectedWebsite, "website projection contains an undocumented divergence");
+  assert.match(source, /const metrics = record\(direct\?\.metrics\) \?\? direct/u);
+  assert.equal(website, source, "website progress projection drifted from the application source");
 
   const [{ createExecutionViewModel }, { WORKFLOW_STATES }] = await Promise.all([
     import(new URL("execution-view-model.js", demoRoot)),
@@ -89,6 +104,14 @@ test("website entry embeds the real demo through relative GitHub Pages-safe path
   assert.match(homepage, /Interactive simulation — no disk access\./u);
   assert.match(homepage, /id="fullscreen-demo-btn"/u);
   assert.doesNotMatch(homepage, /Interactive Console Sandbox/u);
+  assert.doesNotMatch(homepage, /\.bak|app\.webp/u);
+
+  await Promise.all([
+    assertLocalReferencesResolve(new URL("index.html", websiteRoot)),
+    assertLocalReferencesResolve(new URL("terms.html", websiteRoot)),
+    assertLocalReferencesResolve(new URL("downloads/index.html", websiteRoot)),
+    assertLocalReferencesResolve(new URL("demo/index.html", websiteRoot)),
+  ]);
 });
 
 test("website offers the published diskless Demo beside the embedded interface", async () => {
@@ -97,9 +120,9 @@ test("website offers the published diskless Demo beside the embedded interface",
 
   assert.match(
     homepage,
-    /href="https:\/\/fromariel\.github\.io\/CODEXVault_GODOT\/tools\/miniclone\/demo\/MiniClone-Demo\.exe"/u,
+    /href="\.\/downloads\/MiniCloneHD-Demo\.exe"/u,
   );
-  assert.match(homepage, /download="MiniClone-Demo\.exe"/u);
+  assert.match(homepage, /download="MiniCloneHD-Demo\.exe"/u);
   assert.match(homepage, />Download the free demo<\/a>/u);
   assert.match(stylesheet, /\.btn\s*\{[^}]*padding:\s*12px 20px;/su);
   assert.match(stylesheet, /\.demo-download-link\s*\{/u);
@@ -216,61 +239,86 @@ test("successful website copy phase contains sixty monotonic half-second frames"
   assert.match(controller, /const CLONE_POLL_INTERVAL_MS = 500;/u);
 });
 
-test("website uses the live PayPal hosted checkout exactly once", async () => {
-    const homepage = await text(new URL("index.html", websiteRoot));
+test("website explicitly pauses purchasing and omits live checkout", async () => {
+  const homepage = await text(new URL("index.html", websiteRoot));
 
-  assert.equal((homepage.match(/www\.paypal\.com\/sdk\/js\?/gu) ?? []).length, 1);
-  assert.equal((homepage.match(/id="paypal-container-6T72YME8CGZCN"/gu) ?? []).length, 1);
-  assert.match(
-    homepage,
-    /client-id=BAA3X0UIMqAlzwV-3OM4554YnFfTxD8_w0CGXKeG03qHDgTxRfhY0Zzf3uvvjR-hukMm8jFnAKiB5I-BFc/u,
-  );
-  assert.match(homepage, /components=hosted-buttons/u);
-  assert.match(homepage, /enable-funding=venmo/u);
-  assert.match(homepage, /currency=USD/u);
-    assert.match(homepage, /hostedButtonId:\s*["']6T72YME8CGZCN["']/u);
-    assert.match(homepage, /Secure checkout powered by PayPal/u);
+  assert.match(homepage, /Purchasing temporarily paused during pre-release; use the free Demo\./u);
+  assert.match(homepage, /Checkout and paid-download fulfillment are disabled\./u);
+  assert.match(homepage, /No payment will be accepted from this page/u);
+  assert.doesNotMatch(homepage, /paypal|HostedButtons|hostedButtonId|client-id/iu);
+  assert.doesNotMatch(homepage, /id="terms-consent"|id="paypal-container-/u);
+  assert.doesNotMatch(homepage, /<script[^>]+src="https:\/\//iu);
 });
 
-test("purchase card offers the free demo and both support contacts", async () => {
-    const homepage = await text(new URL("index.html", websiteRoot));
+test("purchase card offers the free demo and the publisher support contact", async () => {
+  const homepage = await text(new URL("index.html", websiteRoot));
   const stylesheet = await text(new URL("style.css", websiteRoot));
+  const screenshot = await readFile(new URL("assets/miniclone-demo-ui.png", websiteRoot));
 
   assert.match(
     homepage,
-    /href="https:\/\/fromariel\.github\.io\/CODEXVault_GODOT\/tools\/miniclone\/demo\/MiniClone-Demo\.exe"/u,
+    /href="\.\/downloads\/MiniCloneHD-Demo\.exe"/u,
   );
   assert.match(homepage, />Download the Free Demo<\/a>/u);
-    assert.match(homepage, /mailto:support@miniclone\.com/u);
-    assert.match(homepage, /mailto:support@foxjammin\.com/u);
-    assert.match(homepage, /If PayPal does not appear/u);
-    assert.match(stylesheet, /\.purchase-options\s*\{[^}]*display:\s*grid;/su);
-    assert.match(stylesheet, /@media \(max-width: 768px\)[\s\S]*?\.purchase-options\s*\{[^}]*grid-template-columns:\s*1fr;/u);
+  assert.match(homepage, /src="\.\/assets\/miniclone-demo-ui\.png"/u);
+  assert.match(homepage, /alt="MiniClone browser Demo showing a protected fictional source/u);
+  assert.doesNotMatch(homepage, /src="\.\/favicon\.svg"/u);
+  assert.match(homepage, /mailto:support@foxjammin\.com/u);
+  assert.doesNotMatch(homepage, /support@miniclone(?:hd)?\.com/u);
+  assert.equal(screenshot.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.equal(screenshot.readUInt32BE(16), 1000);
+  assert.equal(screenshot.readUInt32BE(20), 936);
+  assert.ok(screenshot.length >= 50_000 && screenshot.length <= 250_000);
+  assert.match(stylesheet, /\.miniapp-hero-card__image\s*\{[^}]*height:\s*auto;/su);
+  assert.match(stylesheet, /\.purchase-options\s*\{[^}]*display:\s*grid;/su);
+  assert.match(stylesheet, /@media \(max-width: 768px\)[\s\S]*?\.purchase-options\s*\{[^}]*grid-template-columns:\s*1fr;/u);
 });
 
 test("terms page, footer, and checkout trust routing are linked", async () => {
-    const homepage = await text(new URL("index.html", websiteRoot));
-    const terms = await text(new URL("terms.html", websiteRoot));
-    const downloadsPage = await text(new URL("downloads/index.html", websiteRoot));
-    const stylesheet = await text(new URL("style.css", websiteRoot));
-    const sitemap = await text(new URL("sitemap.xml", websiteRoot));
+  const homepage = await text(new URL("index.html", websiteRoot));
+  const terms = await text(new URL("terms.html", websiteRoot));
+  const downloadsPage = await text(new URL("downloads/index.html", websiteRoot));
+  const stylesheet = await text(new URL("style.css", websiteRoot));
+  const robots = await text(new URL("robots.txt", websiteRoot));
+  const sitemap = await text(new URL("sitemap.xml", websiteRoot));
+  const pagesBase = "https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/";
 
-    assert.match(homepage, /href="\/terms\.html"/u);
-    assert.match(homepage, /href="\/terms\.html#refund-policy"/u);
-    assert.match(homepage, /href="\/terms\.html#limitations"/u);
-    assert.match(downloadsPage, /href="\.\.\/terms\.html"/u);
-    assert.match(terms, /id="agreement"/u);
-    assert.match(terms, /id="what-miniclone-is"/u);
-    assert.match(terms, /id="refund-policy"/u);
-    assert.match(terms, /id="limitations"/u);
-    assert.match(terms, /id="warranty"/u);
-    assert.match(terms, /id="contact"/u);
-    assert.match(terms, /support@miniclone\.com/u);
-    assert.match(terms, /Fox Jammin/u);
-    assert.match(terms, /Ariel Williams/u);
-    assert.match(sitemap, /https:\/\/miniclonehd\.com\/terms\.html/u);
-    assert.match(stylesheet, /\.checkout-consent/u);
-    assert.match(stylesheet, /\.paypal-checkout-state/u);
+  assert.match(homepage, /href="\.\/terms\.html"/u);
+  assert.match(homepage, /href="\.\/terms\.html#agreement"/u);
+  assert.match(homepage, /href="\.\/terms\.html#refund-policy"/u);
+  assert.match(homepage, /href="\.\/terms\.html#limitations"/u);
+  assert.doesNotMatch(homepage, /href="\/terms\.html/u);
+  assert.match(downloadsPage, /href="\.\.\/terms\.html"/u);
+
+  const projectPage = new URL(`${pagesBase}#faq`);
+  assert.equal(
+    new URL("./terms.html#refund-policy", projectPage).href,
+    `${pagesBase}terms.html#refund-policy`,
+  );
+  assert.match(terms, /id="agreement"/u);
+  assert.match(terms, /id="what-miniclone-is"/u);
+  assert.match(terms, /id="refund-policy"/u);
+  assert.match(terms, /id="limitations"/u);
+  assert.match(terms, /id="warranty"/u);
+  assert.match(terms, /id="contact"/u);
+  assert.match(terms, /support@foxjammin\.com/u);
+  assert.doesNotMatch(`${homepage}\n${terms}\n${downloadsPage}`, /support@miniclone(?:hd)?\.com/u);
+  assert.match(terms, /Fox Jammin/u);
+  assert.match(terms, /Ariel Williams/u);
+  assert.match(homepage, new RegExp(`rel="canonical" href="${pagesBase}"`, "u"));
+  assert.match(homepage, new RegExp(`property="og:url" content="${pagesBase}"`, "u"));
+  assert.match(terms, new RegExp(`rel="canonical" href="${pagesBase}terms\\.html"`, "u"));
+  assert.match(downloadsPage, new RegExp(`rel="canonical" href="${pagesBase}downloads/"`, "u"));
+  assert.match(robots, new RegExp(`Sitemap: ${pagesBase}sitemap\\.xml`, "u"));
+  assert.match(sitemap, new RegExp(`${pagesBase}terms\\.html`, "u"));
+  assert.doesNotMatch(`${homepage}\n${terms}\n${robots}\n${sitemap}`, /https:\/\/miniclonehd\.com/u);
+  assert.match(homepage, /href="https:\/\/github\.com\/FromAriel\/MiniClone"/u);
+  assert.doesNotMatch(homepage, /github\.com\/FromAriel\/CODEXVault_GODOT/u);
+  assert.match(stylesheet, /main \[id\]\s*\{[^}]*scroll-margin-top:/su);
+  assert.match(stylesheet, /\.mobile-nav\s*\{/u);
+  assert.match(homepage, /class="mobile-nav"/u);
+  assert.match(stylesheet, /\.purchase-paused/u);
+  assert.doesNotMatch(stylesheet, /paypal|checkout-consent/iu);
 });
 
 test("website no longer exposes the simulated Stripe purchase flow", async () => {
@@ -284,22 +332,25 @@ test("website no longer exposes the simulated Stripe purchase flow", async () =>
   assert.doesNotMatch(combined, /fromariel@gmail\.com/iu);
 });
 
-test("downloads route uses relative assets and exposes both bounded artifacts", async () => {
+test("downloads route exposes only the public portable Demo", async () => {
   const homepage = await text(new URL("index.html", websiteRoot));
   const downloadsRoot = new URL("downloads/", websiteRoot);
   const downloadsPage = await text(new URL("index.html", downloadsRoot));
-  const downloadsScript = await text(new URL("downloads.js", downloadsRoot));
 
   assert.match(homepage, /href="\.\/downloads\/"/u);
+  assert.equal((homepage.match(/href="\.\/downloads\/MiniCloneHD-Demo\.exe"/gu) ?? []).length, 2);
   assert.match(downloadsPage, /href="\.\/MiniCloneHD-Demo\.exe"/u);
-  assert.match(
-    downloadsPage,
-    /href="\.\/MiniCloneHD-Release-Candidate-0\.1\.0-x64-setup\.exe"/u,
-  );
   assert.match(downloadsPage, /href="\.\/SHA256SUMS\.txt"/u);
-  assert.match(downloadsPage, /Destructive pre-release software\./u);
-  assert.match(downloadsScript, /purchase.*=== 'complete'/u);
-  assert.match(downloadsScript, /purchasedDownload\.click\(\)/u);
+  assert.doesNotMatch(downloadsPage, /Release Candidate|Purchased Build|purchase=complete/u);
+  assert.doesNotMatch(downloadsPage, /downloads\.js/u);
+  await assert.rejects(
+    stat(new URL("downloads.js", downloadsRoot)),
+    (error) => error?.code === "ENOENT",
+  );
+  await assert.rejects(
+    stat(new URL("MiniCloneHD-Release-Candidate-0.1.0-x64-setup.exe", downloadsRoot)),
+    (error) => error?.code === "ENOENT",
+  );
 });
 
 test("downloaded executables match the published SHA-256 manifest", async () => {
@@ -312,10 +363,7 @@ test("downloaded executables match the published SHA-256 manifest", async () => 
     }),
   );
 
-  assert.deepEqual([...entries.keys()].sort(), [
-    "MiniCloneHD-Demo.exe",
-    "MiniCloneHD-Release-Candidate-0.1.0-x64-setup.exe",
-  ]);
+  assert.deepEqual([...entries.keys()], ["MiniCloneHD-Demo.exe"]);
 
   for (const [name, expectedHash] of entries) {
     const bytes = await readFile(new URL(name, downloadsRoot));

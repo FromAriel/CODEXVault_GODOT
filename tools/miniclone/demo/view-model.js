@@ -391,6 +391,7 @@ function actionDescription(action, selectedTarget) {
     case "open_cancel_prompt": return "Stop at a safe checkpoint and let MiniClone complete cleanup.";
     case "verify_boot": return "Verify that this Windows boot matches the completed clone record.";
     case "refresh_inspection": return "Refresh the disk list before trying again.";
+    case "close_application": return "Close MiniClone without changing either disk.";
     default: return selectedTarget
       ? "MiniClone is checking the selected destination."
       : "Choose one supported destination to continue.";
@@ -422,7 +423,15 @@ function actionModel(state, nowMs, destinationSelected, execution) {
   }
   if ([WORKFLOW_STATES.CANCELLING, WORKFLOW_STATES.CLEANING_UP].includes(state?.status)) return null;
   if ((state?.blockingError !== null || state?.status === WORKFLOW_STATES.PARTIAL_FAILURE)
-      && !execution.canRefresh) return null;
+      && !execution.canRefresh) {
+    return Object.freeze({
+      id: "close_application",
+      label: "Close MiniClone",
+      enabled: true,
+      busy: false,
+      tone: "primary",
+    });
+  }
   if (state?.inFlight !== null) {
     return Object.freeze({ id: "busy", label: inFlightLabel(state), enabled: false, busy: true, tone: "primary" });
   }
@@ -468,13 +477,13 @@ function actionModel(state, nowMs, destinationSelected, execution) {
       return Object.freeze({ id: "confirmation_open", label: "Confirmation open", enabled: false, busy: false, tone: "danger" });
     case WORKFLOW_STATES.COMPLETED: {
       if (execution.canRefresh) return Object.freeze({ id: "refresh_inspection", label: "Check disks again", enabled: true, busy: false, tone: "primary" });
-      return null;
+      return Object.freeze({ id: "close_application", label: "Close MiniClone", enabled: true, busy: false, tone: "primary" });
     }
     case WORKFLOW_STATES.CANCELLED:
     case WORKFLOW_STATES.PARTIAL_FAILURE:
       return execution.canRefresh
         ? Object.freeze({ id: "refresh_inspection", label: "Check disks again", enabled: true, busy: false, tone: "primary" })
-        : null;
+        : Object.freeze({ id: "close_application", label: "Close MiniClone", enabled: true, busy: false, tone: "primary" });
     default:
       return null;
   }

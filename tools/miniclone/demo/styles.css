@@ -86,6 +86,7 @@ svg {
 }
 
 .app-window {
+  position: relative;
   width: min(1000px, 100%);
   height: min(936px, calc(100dvh - clamp(20px, 4.8vh, 48px)));
   min-height: 0;
@@ -376,7 +377,27 @@ body.modal-open .demo-banner, body.modal-open .title-bar, body.modal-open .foote
 .normal-progress-track { height: 10px; overflow: hidden; border: 1px solid rgba(51, 216, 237, 0.25); border-radius: 999px; background: rgba(0, 0, 0, 0.28); }
 .normal-progress-bar { display: block; width: 0%; height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); box-shadow: 0 0 14px rgba(51, 216, 237, 0.4); transition: width 220ms ease; }
 .normal-progress-text { margin: 7px 0 0; color: var(--text-muted); font: 10px/1.45 var(--font-mono); }
-.normal-result { color: var(--text-soft); font-size: 11px; line-height: 1.5; }
+.normal-result {
+  position: absolute;
+  z-index: 14;
+  right: 24px;
+  bottom: 150px;
+  left: 24px;
+  max-height: min(520px, calc(100% - 245px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+  padding: 15px 16px;
+  background: linear-gradient(155deg, rgba(9, 18, 29, 0.995), rgba(4, 8, 14, 0.998));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.62), 0 0 34px rgba(51, 216, 237, 0.08);
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.normal-result[data-tone="success"] { border-color: rgba(54, 215, 154, 0.38); }
+.normal-result[data-tone="error"] { border-color: rgba(241, 107, 120, 0.42); }
 .normal-result-title { margin: 0 0 5px; color: var(--text-main); font-size: 15px; }
 .normal-result-message, .normal-next-step { margin: 0; }
 .normal-result-note { margin: 6px 0 0; color: var(--text-muted); }
@@ -392,6 +413,8 @@ body.modal-open .demo-banner, body.modal-open .title-bar, body.modal-open .foote
 .normal-instructions { margin: 0; padding-left: 22px; color: var(--text-soft); }
 .normal-instructions li + li { margin-top: 3px; }
 .normal-next-step { margin-top: 10px; color: var(--text-muted); }
+.normal-result-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.normal-result-primary-action { min-width: 168px; }
 .normal-cancel-prompt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 11px 12px; border: 1px solid rgba(239, 184, 87, 0.34); border-radius: 8px; background: rgba(239, 184, 87, 0.065); }
 .normal-cancel-title { margin: 0; color: var(--text-main); font-size: 13px; }
 .normal-cancel-message { margin: 4px 0 0; color: var(--text-soft); font-size: 10px; line-height: 1.45; }

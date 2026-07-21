@@ -443,7 +443,7 @@ export function canVerifyBoot(state) {
 }
 
 export function createExecutionPresentationState() {
-  return Object.freeze({ cancelPromptOpen: false, sequence: 0 });
+  return Object.freeze({ cancelPromptOpen: false, resultDismissed: false, sequence: 0 });
 }
 
 export function reduceExecutionPresentation(state, action) {
@@ -452,12 +452,19 @@ export function reduceExecutionPresentation(state, action) {
   switch (type) {
     case "open_cancel_prompt":
       if (current.cancelPromptOpen === true) return current;
-      return Object.freeze({ cancelPromptOpen: true, sequence: current.sequence + 1 });
+      return Object.freeze({ ...current, cancelPromptOpen: true, sequence: current.sequence + 1 });
     case "dismiss_cancel_prompt":
       if (current.cancelPromptOpen !== true) return current;
-      return Object.freeze({ cancelPromptOpen: false, sequence: current.sequence + 1 });
+      return Object.freeze({ ...current, cancelPromptOpen: false, sequence: current.sequence + 1 });
+    case "dismiss_terminal_result":
+      if (current.resultDismissed === true) return current;
+      return Object.freeze({ ...current, resultDismissed: true, sequence: current.sequence + 1 });
     case "reset":
-      return Object.freeze({ cancelPromptOpen: false, sequence: current.sequence + 1 });
+      return Object.freeze({
+        cancelPromptOpen: false,
+        resultDismissed: false,
+        sequence: current.sequence + 1,
+      });
     default:
       return current;
   }
@@ -475,7 +482,8 @@ export function createExecutionViewModel({
     && state.blockingError === null
     && isVerifiedCompletedTerminal(record(state?.cloneStatus?.terminal));
   const progress = projectProgress(state, activitySnapshot);
-  const result = resultForState(state, truth, completedEvidenceValid);
+  const terminalResult = resultForState(state, truth, completedEvidenceValid);
+  const result = presentation.resultDismissed === true ? null : terminalResult;
   const cancellationAvailable = canOfferCancellation(state);
   const cancelPrompt = presentation.cancelPromptOpen === true && cancellationAvailable
     ? Object.freeze({

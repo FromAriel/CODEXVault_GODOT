@@ -39,6 +39,7 @@ const TRUST_CHECK_LABELS = Object.freeze([
 ]);
 
 const TRUST_STATES = new Set(["pending", "active", "complete", "blocked"]);
+const RESULT_OWNED_ACTIONS = new Set(["refresh_inspection", "verify_boot", "close_application"]);
 
 function boundedText(value, limit = 512) {
   if (typeof value !== "string" && typeof value !== "number") return "";
@@ -73,6 +74,14 @@ function requireRegions(root) {
 
 function asArray(value, limit) {
   return Array.isArray(value) ? value.slice(0, limit) : [];
+}
+
+function resultOwnedAction(viewModel) {
+  if (!viewModel?.result || viewModel.result.visible === false) return null;
+  const action = viewModel?.primaryAction ?? viewModel?.action;
+  if (!action || !RESULT_OWNED_ACTIONS.has(action.id)) return null;
+  const result = viewModel?.result;
+  return result && result.visible !== false ? action : null;
 }
 
 function normalizeCheck(check, index) {
@@ -401,7 +410,7 @@ export function createNormalShellRenderer({
     const region = regions.normalPrimaryAction;
     const buttonRegion = region.tagName === "BUTTON";
     if (!buttonRegion) region.replaceChildren();
-    if (!action || Array.isArray(action) || action.visible === false) {
+    if (!action || Array.isArray(action) || action.visible === false || resultOwnedAction(viewModel)) {
       if (buttonRegion) {
         region.hidden = true;
         region.disabled = true;
@@ -551,7 +560,7 @@ export function createNormalShellRenderer({
       .map((instruction) => boundedText(instruction, 256))
       .filter(Boolean);
     const nextStep = resultText(execution.nextStep ?? result?.nextStep);
-    const visible = Boolean(result?.visible !== false && (
+    const visible = Boolean(result && result.visible !== false && (
       title || message || note || asArray(facts, 5).length > 0 || instructions.length > 0 || nextStep
     ));
     region.hidden = !visible;
@@ -572,6 +581,35 @@ export function createNormalShellRenderer({
       region.append(heading, list);
     }
     if (nextStep) region.append(createTextNode(document, "p", "normal-next-step", nextStep));
+
+    const action = resultOwnedAction(viewModel);
+    const actionLabel = boundedText(action?.label, 96);
+    const actions = document.createElement("div");
+    actions.className = "normal-result-actions";
+    const backButton = document.createElement("button");
+    backButton.id = "normalResultBackButton";
+    backButton.type = "button";
+    backButton.className = "button secondary normal-result-back-action";
+    backButton.textContent = "Back to main";
+    backButton.dataset.action = "back_to_main";
+    listen(backButton, "click", () => {
+      if (!disposed) onPrimaryAction("back_to_main");
+    });
+    actions.append(backButton);
+    if (action && actionLabel) {
+      const button = document.createElement("button");
+      button.id = "normalResultPrimaryAction";
+      button.type = "button";
+      button.className = "button primary normal-result-primary-action";
+      button.textContent = actionLabel;
+      button.disabled = action.enabled !== true;
+      button.dataset.action = boundedText(action.id, 64);
+      listen(button, "click", () => {
+        if (!disposed && !button.disabled) onPrimaryAction(button.dataset.action || null);
+      });
+      actions.append(button);
+    }
+    region.append(actions);
   }
 
   function renderCancelPrompt(viewModel) {

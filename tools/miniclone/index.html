@@ -7,19 +7,19 @@
     <meta name="description" content="Clone your active Windows boot disk for exactly $5. Keep using Windows while MiniClone performs safety checks and prepares your destination boot files.">
     <meta name="robots" content="index,follow">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://miniclonehd.com/">
+    <meta property="og:url" content="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/">
     <meta property="og:site_name" content="MiniClone HD">
     <meta property="og:title" content="MiniClone HD | Safe Windows Disk Cloner While You Use Windows">
     <meta property="og:description" content="Clone your active Windows boot disk for exactly $5. Keep using Windows while MiniClone performs safety checks and prepares your destination boot files.">
-    <meta property="og:image" content="https://miniclonehd.com/favicon.svg">
+    <meta property="og:image" content="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/favicon.svg">
     <meta property="og:image:alt" content="MiniClone HD logo and disk transfer illustration">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="MiniClone HD | Safe Windows Disk Cloner While You Use Windows">
     <meta name="twitter:description" content="Clone your active Windows boot disk for exactly $5. Keep using Windows while MiniClone performs safety checks and prepares your destination boot files.">
-    <meta name="twitter:image" content="https://miniclonehd.com/favicon.svg">
+    <meta name="twitter:image" content="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/favicon.svg">
     <meta name="twitter:image:alt" content="MiniClone HD logo and disk transfer illustration">
-    <link rel="canonical" href="https://miniclonehd.com/">
-    <link rel="alternate" href="https://miniclonehd.com/" hreflang="en">
+    <link rel="canonical" href="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/">
+    <link rel="alternate" href="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/" hreflang="en">
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     
     <!-- Premium Google Fonts -->
@@ -35,13 +35,23 @@
             <div class="logo">
                 <span class="logo-accent">MiniClone</span><span class="logo-bold">HD</span>
             </div>
-            <nav class="nav">
+            <nav class="nav" aria-label="Primary navigation">
                 <a href="#rants" class="nav-link">The Real Truth</a>
                 <a href="#how-it-works" class="nav-link">How it Works</a>
                 <a href="#faq" class="nav-link">FAQ</a>
                 <a href="#sandbox" class="nav-link">Interactive Demo</a>
                 <a href="#download" class="btn btn-secondary btn-sm">Get It</a>
             </nav>
+            <details class="mobile-nav">
+                <summary>Menu</summary>
+                <nav class="mobile-nav-links" aria-label="Mobile navigation">
+                    <a href="#rants">The Real Truth</a>
+                    <a href="#how-it-works">How it Works</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="#sandbox">Interactive Demo</a>
+                    <a href="#download">Get It</a>
+                </nav>
+            </details>
         </div>
     </header>
 
@@ -50,13 +60,13 @@
         <section class="hero">
             <div class="container hero-grid">
                 <div class="hero-content">
-                    <div class="badge">Version 0.1.0 (Elevated Physical Restore Stable)</div>
+                    <div class="badge">Version 0.1.0 release candidate — free Demo available</div>
                     <h1 class="hero-title">The <span class="text-glow">$5</span> Windows Disk Cloner.</h1>
                     <p class="hero-subtitle">
                         No dynamic subscriptions. No bait-and-switch pricing. No locked restore features at 99%. Just an honest utility that copies your active Windows boot disk for a single fiver.
                     </p>
                     <div class="hero-actions">
-                        <a href="#download" class="btn btn-primary">Buy MiniClone for $5</a>
+                        <a href="#download" class="btn btn-primary">Try the free Demo</a>
                         <a href="#faq" class="btn btn-outline">How it works</a>
                     </div>
                 </div>
@@ -140,11 +150,11 @@
                     <div class="card miniclone-card">
                         <div class="card-badge badge-success">MiniClone HD</div>
                         <h3>Aggressive Honesty</h3>
-                        <p class="card-intro">We charge you $5 upfront before download. That fiver buys you a lifetime license. No hidden bills. No dynamic scaling.</p>
+                        <p class="card-intro">MiniClone is planned as a $5 one-time utility. Sales are paused during pre-release review, while the full fictional Demo remains free.</p>
                         <ul class="comparison-list">
-                            <li>✅ Exactly $5 once. Lifetime downloads.</li>
+                            <li>✅ Planned one-time $5 license; no subscription</li>
                             <li>✅ Dead-simple auto-detection of your boot drive</li>
-                            <li>✅ Zero telemetry, offline native executions</li>
+                            <li>✅ No usage telemetry; cloning runs locally on Windows</li>
                             <li>✅ Transparency: run logs & plans are plain JSON</li>
                         </ul>
                     </div>
@@ -168,10 +178,8 @@
                     <div class="product-demo-actions" aria-label="Demo links and controls">
                         <a
                             class="demo-download-link"
-                            href="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/demo/MiniClone-Demo.exe"
-                            download="MiniClone-Demo.exe"
-                            target="_blank"
-                            rel="noopener"
+                            href="./downloads/MiniCloneHD-Demo.exe"
+                            download="MiniCloneHD-Demo.exe"
                         >Download the free demo</a>
                         <button id="fullscreen-demo-btn" class="btn btn-accent btn-sm" type="button" aria-controls="miniclone-demo-frame">View Fullscreen</button>
                         <a class="btn btn-outline btn-sm" href="./demo/index.html" target="_blank" rel="noopener">Open Full Demo</a>
@@ -199,7 +207,7 @@
                     <div class="step-item">
                         <div class="step-num">1</div>
                         <h3>Plug in Target</h3>
-                        <p>Connect your new SSD/HDD. It must be empty and equal to or larger than your source volume size.</p>
+                        <p>Connect an eligible SSD/HDD equal to or larger than the source volume. MiniClone warns you before erasing any existing destination data.</p>
                     </div>
                     <div class="step-item">
                         <div class="step-num">2</div>
@@ -231,7 +239,7 @@
                     </details>
                     <details class="faq-item">
                         <summary>What drives can I use as the target?</summary>
-                        <p>The target must be empty and the same size or larger than the source boot volume. We validate target readiness before the main copy begins.</p>
+                        <p>The target must be an eligible internal disk at least as large as the source boot volume. Existing destination data may be present, but it will be permanently erased only after explicit confirmation.</p>
                     </details>
                     <details class="faq-item">
                         <summary>Will every migrated disk boot every time?</summary>
@@ -272,7 +280,7 @@
       "name": "What drives can I use as the target?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The target must be empty and the same size or larger than the source boot volume. We validate target readiness before the main copy begins."
+        "text": "The target must be an eligible internal disk at least as large as the source boot volume. Existing destination data may be present, but it will be permanently erased only after explicit confirmation."
       }
     },
     {
@@ -312,7 +320,7 @@
                 <div class="warning-content">
                     <h3>The Disk Restore Guarantee: Zero.</h3>
                     <p>
-                        Disk migration always depends on the source drive, destination hardware, Windows configuration, and firmware. MiniClone protects the source during transfer, verifies copied data, prepares the destination boot files, and keeps the destination offline while the copy is in progress. No software can guarantee that every damaged drive or unusual Windows configuration will boot successfully. We do not offer warranties of fitness or merchantability, and we do not guarantee it will save your drive. We will, however, refund your $5 if it does not work for you.
+                        Disk migration always depends on the source drive, destination hardware, Windows configuration, and firmware. MiniClone protects the source during transfer, verifies copied data, prepares destination boot files, cleans up temporary state, and requires the destination to be offline before reporting success. No software can guarantee that every damaged drive or unusual Windows configuration will boot successfully. We do not offer warranties of fitness or merchantability, and we do not guarantee it will save your drive. If purchasing opens, the voluntary refund policy below applies to supported configurations.
                     </p>
                     <div class="warning-cta">
                         <a href="./terms.html#refund-policy" class="btn btn-outline btn-sm">View refund policy</a>
@@ -326,57 +334,42 @@
         <section id="download" class="section download-section text-center">
             <div class="container">
                 <h2>Get MiniClone HD</h2>
-                <p class="download-pricing">Exactly <strong>$5.00</strong>. Pay once, use for life.</p>
-                <div class="payment-box" aria-labelledby="paypal-checkout-heading">
-                    <h3 id="paypal-checkout-heading" class="payment-heading">Secure checkout powered by PayPal</h3>
+                <p class="download-pricing">Planned launch price: exactly <strong>$5.00</strong>, paid once.</p>
+                <div class="payment-box" aria-labelledby="purchase-status-heading">
+                    <h3 id="purchase-status-heading" class="payment-heading">Purchasing temporarily paused during pre-release; use the free Demo.</h3>
                     <div class="purchase-options">
-                        <div class="paypal-checkout">
-                            <div class="checkout-consent">
-                                <label class="checkout-consent-label">
-                                    <input
-                                        type="checkbox"
-                                        id="terms-consent"
-                                        aria-describedby="terms-consent-copy"
-                                    />
-                                    <span id="terms-consent-copy">
-                                        I agree to the
-                                        <a href="./terms.html#agreement">Terms and Refund Policy</a>
-                                        and confirm I understand the destination drive will be erased.
-                                    </span>
-                                </label>
-                            </div>
-                            <div class="paypal-checkout-state" id="paypal-checkout-state" data-state="locked">
-                                <p class="paypal-lock-message">Unlock checkout after agreeing to the terms.</p>
-                                <div id="paypal-container-6T72YME8CGZCN" aria-live="polite"></div>
-                                <noscript>
-                                    <p class="payment-fallback">JavaScript is required to load PayPal checkout. Email <a href="mailto:support@miniclone.com">support@miniclone.com</a> for help.</p>
-                                </noscript>
-                                <p class="payment-fallback">If PayPal does not appear, email <a href="mailto:support@miniclone.com">support@miniclone.com</a>.</p>
-                            </div>
+                        <div class="purchase-paused" role="status">
+                            <span class="purchase-demo-label">Pre-release lock</span>
+                            <h4>Checkout and paid-download fulfillment are disabled.</h4>
+                            <p>No payment will be accepted from this page while the release path is being validated.</p>
+                            <p>
+                                You can still review the <a href="./terms.html#agreement">Terms and Refund Policy</a>
+                                or email <a href="mailto:support@foxjammin.com">support@foxjammin.com</a>.
+                            </p>
                         </div>
                         <aside class="purchase-demo" aria-label="Free MiniClone demo">
                             <span class="purchase-demo-label">Try it first</span>
                             <div class="miniapp-hero-card miniapp-hero-card--small">
                                 <img
-                                    src="../.bak/app.webp"
-                                    alt="MiniClone desktop UI preview card"
+                                    src="./assets/miniclone-demo-ui.png"
+                                    alt="MiniClone browser Demo showing a protected fictional source and simulated destination choices"
                                     class="miniapp-hero-card__image"
-                                    width="190"
-                                    height="107"
+                                    width="1000"
+                                    height="936"
                                     loading="lazy"
                                     decoding="async"
                                 />
-                                <p class="miniapp-hero-card__caption">MiniClone desktop UI preview</p>
+                                <p class="miniapp-hero-card__caption">MiniClone browser Demo preview</p>
                             </div>
                             <p>Explore the safe, diskless Windows demo before purchasing.</p>
                             <a
-                                href="https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/demo/MiniClone-Demo.exe"
+                                href="./downloads/MiniCloneHD-Demo.exe"
                                 class="btn btn-outline purchase-demo-link"
-                                download="MiniClone-Demo.exe"
+                                download="MiniCloneHD-Demo.exe"
                             >Download the Free Demo</a>
                         </aside>
                     </div>
-                    <p class="download-clause">Come back in 20 years. If this site is still here, you can download it again for free.</p>
+                    <p class="download-clause">The diskless Demo remains free while purchasing is paused.</p>
                 </div>
             </div>
         </section>
@@ -387,69 +380,14 @@
             <p>&copy; 2026 MiniClone HD. All rights reserved.</p>
             <div class="footer-links">
                 <a href="#rants" class="footer-link">Rant</a>
-                <a href="https://github.com/Ariel/MiniClone" class="footer-link">Source GitHub</a>
+                <a href="https://github.com/FromAriel/MiniClone" class="footer-link">Source GitHub</a>
                 <a href="./downloads/" class="footer-link">Downloads</a>
                 <a href="./terms.html" class="footer-link">Terms and Refund Policy</a>
-                <a href="mailto:support@miniclone.com" class="footer-link">Product Support</a>
-                <a href="mailto:support@foxjammin.com" class="footer-link">Publisher Contact</a>
+                <a href="mailto:support@foxjammin.com" class="footer-link">Support</a>
             </div>
         </div>
     </footer>
 
     <script src="app.js"></script>
-    <script src="https://www.paypal.com/sdk/js?client-id=BAA3X0UIMqAlzwV-3OM4554YnFfTxD8_w0CGXKeG03qHDgTxRfhY0Zzf3uvvjR-hukMm8jFnAKiB5I-BFc&amp;components=hosted-buttons&amp;enable-funding=venmo&amp;currency=USD"></script>
-    <script>
-        const termsConsent = document.getElementById("terms-consent");
-        const paypalCheckoutState = document.getElementById("paypal-checkout-state");
-        const paypalContainer = document.getElementById("paypal-container-6T72YME8CGZCN");
-        let paypalRendered = false;
-
-        function lockPayPalCheckout() {
-            if (paypalCheckoutState) {
-                paypalCheckoutState.dataset.state = "locked";
-            }
-        }
-
-        function renderPayPalCheckout() {
-            if (paypalRendered) return;
-            if (!window.paypal?.HostedButtons) {
-                paypalCheckoutState.dataset.state = "unavailable";
-                paypalContainer.dataset.checkoutState = "unavailable";
-                return;
-            }
-
-            paypalRendered = true;
-            window.paypal.HostedButtons({
-                hostedButtonId: "6T72YME8CGZCN",
-            }).render("#paypal-container-6T72YME8CGZCN").catch((error) => {
-                paypalCheckoutState.dataset.state = "unavailable";
-                paypalContainer.dataset.checkoutState = "unavailable";
-                console.warn("PayPal checkout could not be rendered.", error);
-            });
-        }
-
-        function unlockPayPalCheckout() {
-            if (!paypalCheckoutState) return;
-            if (paypalCheckoutState.dataset.state === "ready") return;
-            paypalCheckoutState.dataset.state = "ready";
-            renderPayPalCheckout();
-        }
-
-        if (termsConsent) {
-            termsConsent.addEventListener("change", () => {
-                if (termsConsent.checked) {
-                    unlockPayPalCheckout();
-                } else {
-                    lockPayPalCheckout();
-                }
-            });
-        }
-
-        if (termsConsent?.checked) {
-            unlockPayPalCheckout();
-        } else {
-            lockPayPalCheckout();
-        }
-    </script>
 </body>
 </html>

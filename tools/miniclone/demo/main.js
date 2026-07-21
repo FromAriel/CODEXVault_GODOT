@@ -146,10 +146,15 @@ function toggleNormalTheme(theme) {
 
 function handleNormalPrimaryAction(actionId) {
   switch (actionId) {
+    case "back_to_main":
+      updateExecutionPresentation({ type: "dismiss_terminal_result" });
+      document.querySelector("#normalPrimaryAction:not([hidden])")?.focus({ preventScroll: true });
+      return undefined;
     case "open_confirmation": return openTargetConfirmation();
     case "open_cancel_prompt": return openSafeStopPrompt();
     case "verify_boot": return void verifyCurrentBoot();
     case "refresh_inspection": return runInspection();
+    case "close_application": return void invoke?.("close_application");
     default: return undefined;
   }
 }

@@ -3,8 +3,21 @@
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
+    initMobileNavigation();
     initProductDemo();
 });
+
+/**
+ * Keep the compact navigation out of the way after a mobile anchor is chosen.
+ */
+function initMobileNavigation() {
+    const menu = document.querySelector('.mobile-nav');
+    if (!menu) return;
+
+    menu.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => menu.removeAttribute('open'));
+    });
+}
 
 /**
  * Same-origin product demo controls.

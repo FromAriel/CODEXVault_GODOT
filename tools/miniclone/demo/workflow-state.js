@@ -184,6 +184,23 @@ export function hasVerifiedBootEvidence(state) {
     && report.run_id === state?.cloneStatus?.run_id;
 }
 
+export function hasProvedTerminalContainment(state) {
+  const status = state?.cloneStatus;
+  const terminal = status?.terminal;
+  const cleanup = status?.expert_evidence?.cleanup_evidence
+    ?? status?.expert_evidence?.cleanup;
+  const vssStatus = cleanup?.vss_cleanup_status;
+  return status?.active !== true
+    && terminal?.target_offline === true
+    && cleanup?.snapshot_deleted === true
+    && ["deleted", "already_absent", "not_created"].includes(vssStatus)
+    && cleanup?.temporary_mounts_remaining_count === 0
+    && cleanup?.target_offline === true
+    && cleanup?.offline_proof?.verified === true
+    && cleanup?.final_target_state === "offline"
+    && cleanup?.final_target_state_proof?.verified === true;
+}
+
 export function canDismissTerminalResult(state) {
   if (!state || state.inFlight !== null || state.cloneStatus?.active === true) return false;
   if (isNonDismissibleSafetyBlocker(state.blockingError)) return false;
@@ -194,8 +211,8 @@ export function canDismissTerminalResult(state) {
     WORKFLOW_STATES.PARTIAL_FAILURE,
   ].includes(state.status)
     && ["completed", "cancelled", "partial_failure"].includes(terminal?.final_state)
-    && terminal?.cleanup_complete === true
-    && terminal?.target_offline === true;
+    && terminal?.target_offline === true
+    && (terminal?.cleanup_complete === true || hasProvedTerminalContainment(state));
   return containedTerminal || hasVerifiedBootEvidence(state);
 }
 

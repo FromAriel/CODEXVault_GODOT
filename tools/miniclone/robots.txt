@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://miniclonehd.com/sitemap.xml
+Sitemap: https://fromariel.github.io/CODEXVault_GODOT/tools/miniclone/sitemap.xml
