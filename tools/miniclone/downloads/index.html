@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Official MiniCloneHD downloads and SHA-256 checksums.">
+    <title>MiniCloneHD Downloads</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./downloads.css">
+</head>
+<body>
+    <header class="downloads-header">
+        <a class="brand" href="../index.html">MiniClone<span>HD</span></a>
+        <a class="back-link" href="../index.html">Back to the website</a>
+    </header>
+
+    <main class="downloads-main">
+        <section class="downloads-intro" aria-labelledby="downloads-title">
+            <p class="eyebrow">Official downloads</p>
+            <h1 id="downloads-title">Choose the MiniCloneHD build you need.</h1>
+            <p>Both Windows executables are served directly from this site. Verify the SHA-256 checksum before running a downloaded file.</p>
+        </section>
+
+        <p id="automatic-download-status" class="automatic-download-status" role="status" aria-live="polite" hidden></p>
+
+        <section class="download-grid" aria-label="MiniCloneHD download choices">
+            <article class="download-card download-card-primary">
+                <div class="download-card-heading">
+                    <span class="download-kind">Purchased build</span>
+                    <span class="version-pill">0.1.0 RC</span>
+                </div>
+                <h2>MiniCloneHD Release Candidate</h2>
+                <p>The current full-function Windows installer with the guarded physical cloning workflow.</p>
+                <div class="danger-notice">
+                    <strong>Destructive pre-release software.</strong>
+                    It can erase the selected destination disk after confirmation. Read every disk identity and warning before continuing.
+                </div>
+                <a
+                    id="purchased-download"
+                    class="download-button download-button-primary"
+                    href="./MiniCloneHD-Release-Candidate-0.1.0-x64-setup.exe"
+                    download="MiniCloneHD-Release-Candidate-0.1.0-x64-setup.exe"
+                >Download the Purchased Build</a>
+                <p class="file-meta">Windows 10/11 x64 · NSIS installer</p>
+            </article>
+
+            <article class="download-card">
+                <div class="download-card-heading">
+                    <span class="download-kind">Free demo</span>
+                    <span class="safe-pill">No disk access</span>
+                </div>
+                <h2>MiniCloneHD Demo</h2>
+                <p>Explore the complete interface and fictional cloning workflow without elevation, VSS, or storage access.</p>
+                <a
+                    class="download-button download-button-secondary"
+                    href="./MiniCloneHD-Demo.exe"
+                    download="MiniCloneHD-Demo.exe"
+                >Download the Free Demo</a>
+                <p class="file-meta">Windows 10/11 x64 · Portable executable</p>
+            </article>
+        </section>
+
+        <section class="download-details" aria-labelledby="verify-title">
+            <div>
+                <p class="eyebrow">Verify your download</p>
+                <h2 id="verify-title">SHA-256 checksums</h2>
+                <p>Compare the downloaded file with the official hashes before launching it.</p>
+            </div>
+            <a class="text-link" href="./SHA256SUMS.txt">View SHA256SUMS.txt</a>
+        </section>
+
+        <section class="support-panel" aria-labelledby="support-title">
+            <h2 id="support-title">Need help?</h2>
+            <p>Product support: <a href="mailto:support@miniclone.com">support@miniclone.com</a></p>
+            <p>Publisher contact: <a href="mailto:support@foxjammin.com">support@foxjammin.com</a></p>
+            <p><a href="../terms.html">Terms and Refund Policy</a></p>
+        </section>
+    </main>
+
+    <footer class="downloads-footer">
+        <p>© 2026 MiniClone HD. Pay once, use for life.</p>
+    </footer>
+
+    <script src="./downloads.js"></script>
+</body>
+</html>
