@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# setup_script.sh — reproducible CI setup for Godot-mono + .NET + GDToolkit
+# setup.sh — reproducible CI setup for Godot-mono + .NET + GDToolkit
 # The goal is to spin up “just enough” tooling, warm Godot’s import cache,
-# and then get out of the way.  All heavy-hitters can be toggled off.
+# and then get out of the way. All heavy-hitters can be toggled off.
 
 set -euo pipefail
 
 ################################################################################
 # User-tweakable switches (export before running to override)               ####
 ################################################################################
-: "${INSTALL_DOTNET:=1}"        # 1 → install the .NET SDK/runtime, 0 → skip
+: "${INSTALL_DOTNET:=1}"        # 1 → install the .NET SDK, 0 → skip
 : "${INSTALL_GODOT:=1}"         # 1 → download & cache Godot-mono, 0 → skip
 : "${VERBOSE_IMPORT:=1}"        # 1 → echo “warming cache…” messages
 : "${GODOT_REPO:=godotengine/godot}" # GitHub repo hosting release assets
-: "${GODOT_TAG:=}"              # e.g., "4.6-stable" (overrides GODOT_VERSION/GODOT_CHANNEL)
-: "${GODOT_VERSION:=4.6}"       # base version (e.g., 4.6 or 4.6.1) when GODOT_TAG unset
+: "${GODOT_TAG:=}"              # e.g., "4.7.2-stable" (overrides GODOT_VERSION/GODOT_CHANNEL)
+: "${GODOT_VERSION:=4.7.2}"     # base version (e.g., 4.7.2) when GODOT_TAG unset
 : "${GODOT_CHANNEL:=stable}"    # “stable”, “rc1”, etc.
 : "${GODOT_ARCH:=auto}"         # auto | x86_64 | x86_32 | arm64 | arm32
-: "${DOTNET_SDK_MAJOR:=8.0}"    # .NET major version (used only if enabled)
+: "${DOTNET_SDK_MAJOR:=8.0}"    # .NET major version used by Godot C# projects
 
 ################################################################################
 # Package lists (trim or append as you wish)                               ####
@@ -73,7 +73,7 @@ detect_godot_arch() {           # echo x86_64|x86_32|arm64|arm32
   esac
 }
 
-fetch_latest_godot_tag() {      # echo tag_name (e.g., 4.6-stable)
+fetch_latest_godot_tag() {      # echo tag_name (e.g., 4.7.2-stable)
   local api="https://api.github.com/repos/${GODOT_REPO}/releases/latest"
   local json
   json="$(retry 5 curl -fsSL "$api")"
@@ -97,7 +97,7 @@ resolve_godot_release() {
     if [[ "$GODOT_VERSION" == "latest" ]]; then
       GODOT_TAG="$(fetch_latest_godot_tag)"
     elif [[ "$GODOT_VERSION" == *-* ]]; then
-      # Back-compat: allow "GODOT_VERSION=4.6-stable" with no GODOT_TAG.
+      # Back-compat: allow "GODOT_VERSION=4.7.2-stable" with no GODOT_TAG.
       GODOT_TAG="$GODOT_VERSION"
     else
       GODOT_TAG="${GODOT_VERSION}-${GODOT_CHANNEL}"
@@ -120,15 +120,42 @@ resolve_godot_release() {
   GODOT_BIN="${GODOT_DIR}/${GODOT_ZIP_BIN}"
 }
 
-# Warm the .import cache – NEW: doesn’t fail if no Godot project present
+install_dotnet_feed() {
+  # Microsoft publishes distribution-specific bootstrap packages. Derive the
+  # correct feed from /etc/os-release instead of hard-coding Debian 12.
+  if [[ ! -r /etc/os-release ]]; then
+    echo '❌  /etc/os-release is required to configure the Microsoft .NET feed.' >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  local os_id="${ID:-}"
+  local os_version="${VERSION_ID:-}"
+
+  if [[ -z "$os_id" || -z "$os_version" ]]; then
+    echo '❌  Could not determine ID/VERSION_ID from /etc/os-release.' >&2
+    exit 1
+  fi
+
+  local pkg="packages-microsoft-prod.deb"
+  local url="https://packages.microsoft.com/config/${os_id}/${os_version}/${pkg}"
+  local tmp
+  tmp="$(mktemp -d)"
+
+  echo "⬇️  Configuring Microsoft package feed for ${os_id} ${os_version} …"
+  retry 3 wget -q -O "${tmp}/${pkg}" "$url"
+  dpkg -i "${tmp}/${pkg}" >/dev/null
+  rm -rf "$tmp"
+}
+
+# Warm the .import cache – doesn’t fail if no Godot project is present
 godot_import_pass() {
-  [[ "$INSTALL_GODOT" == 0 ]] && return            # nothing to do
-  # --- NEW -------------------------------------------------------------------
+  [[ "$INSTALL_GODOT" == 0 ]] && return
   if [[ ! -f project.godot && ! -f engine.cfg ]]; then
     (( VERBOSE_IMPORT )) && echo '⚠️  No Godot project found – skipping cache warm-up.'
     return 0
   fi
-  # ---------------------------------------------------------------------------
   (( VERBOSE_IMPORT )) && echo '🔄  Warming Godot import cache (headless)…'
   if ! retry 3 godot --headless --editor --import --quiet --quit --path .; then
     echo '⚠️  Godot import failed; continuing anyway.' >&2
@@ -166,15 +193,16 @@ fi
 ################################################################################
 if [[ "$INSTALL_DOTNET" == 1 ]] && ! command -v dotnet >/dev/null 2>&1; then
   echo "⬇️  Installing .NET SDK ${DOTNET_SDK_MAJOR} …"
-  install -d /etc/apt/keyrings
-  retry 3 bash -c \
-    'curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg'
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
-https://packages.microsoft.com/debian/12/prod bookworm main" \
-  > /etc/apt/sources.list.d/microsoft.list
-  retry 5 apt-get update -y -qq
+
+  if ! apt-cache show "dotnet-sdk-${DOTNET_SDK_MAJOR}" >/dev/null 2>&1; then
+    install_dotnet_feed
+    retry 5 apt-get update -y -qq
+  fi
+
+  # The SDK already includes the matching runtime; installing both duplicates
+  # package work and downloads.
   retry 5 apt-get install -y --no-install-recommends \
-          "dotnet-sdk-${DOTNET_SDK_MAJOR}" "dotnet-runtime-${DOTNET_SDK_MAJOR}"
+          "dotnet-sdk-${DOTNET_SDK_MAJOR}"
 fi
 
 ################################################################################
@@ -192,7 +220,7 @@ if [[ "$INSTALL_GODOT" == 1 && ! -x "$GODOT_BIN" ]]; then
   install -d "$GODOT_DIR"
   mv "${tmp}/${GODOT_ZIP_DIR}"/{GodotSharp,"${GODOT_ZIP_BIN}"} "$GODOT_DIR"
   ln -sf "$GODOT_BIN" /usr/local/bin/godot
-  chmod +x /usr/local/bin/godot
+  chmod +x "$GODOT_BIN" /usr/local/bin/godot
   rm -rf "$tmp"
   echo "✔️  Godot-mono installed → /usr/local/bin/godot"
 fi
@@ -235,7 +263,7 @@ printf "♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥♥
 printf "♥ 💙💙💙💙💙💙💙💙 ♥\n"
 printf "♥ 💗💗💗💗💗💗💗💗 ♥\n"
 printf "♥ 🤍🤍🤍🤍🤍🤍🤍🤍 ♥\n"
-printf "♥  Protect Trans Kids  ♥\n"
+printf "♥  Protect Trans Kids  ♥\n"
 printf "♥ 🤍🤍🤍🤍🤍🤍🤍🤍 ♥\n"
 printf "♥ 💗💗💗💗💗💗💗💗 ♥\n"
 printf "♥ 💙💙💙💙💙💙💙💙 ♥\n"
@@ -245,5 +273,5 @@ set -x
 [[ "$INSTALL_DOTNET" == 1 ]] && echo " • .NET SDK:    $(command -v dotnet)"
 echo " • Docs:        ${ONLINE_DOCS_URL} (offline fetch disabled)"
 
-godot_import_pass   # no-op when INSTALL_GODOT=0 or no project found
+godot_import_pass
 echo '✅💗💝💕💖💓💜  Done.'

@@ -14,7 +14,7 @@
 #          and multi-language environments (usable beyond Godot).
 ###############################################################################
 
-👋 Welcome to your one-stop setup ecosystem for **Godot 4.6 (Mono)**, modern .NET SDKs, and a rich polyglot development stack.
+👋 Welcome to your one-stop setup ecosystem for **Godot 4.7.2 (Mono)**, modern .NET SDKs, and a rich polyglot development stack.
 
 These scripts are designed to:
 
@@ -36,8 +36,13 @@ https://fromariel.github.io/CODEXVault_GODOT/tools/glyph.html Glyph mapping prog
 ===============
 
 ✔ `.codex/setup.sh`
-  - Master installer for everything needed to work with Godot, Mono, .NET, and GDToolkit.
+  - Master installer for everything needed to work with Godot Mono, .NET, and GDToolkit.
   - Also installs essential CLI tools, retries broken installs, and validates your toolchain.
+
+✔ `.chatgpt/setup.sh`
+  - Lean bootstrap for ChatGPT-style Linux sandboxes.
+  - Uses standard Godot by default, stores tools under `/mnt/data`, reuses staged/cached ZIPs,
+    and avoids .NET, Mono, GDToolkit, pre-commit, and system-wide package work unless separately needed.
 
 ✔ `.codex/fix_indent.sh`
   - Fast and safe GDScript auto-formatter for pre-commit.
@@ -70,13 +75,13 @@ From `.codex/TOOLS.md`, `.codex/setup.sh`, and env logic:
 🎮 Godot Engine (Mono)
 ----------------------
 - Installs from official GitHub zip release
-- Installs to `/opt/godot-mono/<tag>` (example: `/opt/godot-mono/4.6-stable`)
+- Installs to `/opt/godot-mono/<tag>` (example: `/opt/godot-mono/4.7.2-stable`)
 - Symlinked to `/usr/local/bin/godot` for easy CLI use
 
 🌐 .NET SDK (via Microsoft apt repo)
 ------------------------------------
-- Installs .NET 8 SDK and runtime
-- Uses Microsoft’s official signed keyring
+- Installs .NET 8 SDK (the SDK already includes its matching runtime)
+- Selects Microsoft’s official distribution-specific feed from `/etc/os-release`
 - Integrates with Mono builds inside Godot
 
 🐍 Python / GDToolkit
@@ -112,14 +117,36 @@ From `.codex/TOOLS.md`, `.codex/setup.sh`, and env logic:
 🎛 SELECTING GODOT VERSION (CLOUD-FRIENDLY)
 =========================================
 
-`Godot-mono` defaults to `4.6-stable` and auto-detects CPU arch.
+`Godot-mono` defaults to `4.7.2-stable` and auto-detects CPU arch.
 Override by exporting env vars before running:
 
-- Pin a release tag (recommended): `GODOT_TAG=4.6-stable`
+- Pin a release tag (recommended): `GODOT_TAG=4.7.2-stable`
 - Track latest stable: `GODOT_TAG=latest-stable` (uses GitHub API)
-- Separate fields: `GODOT_VERSION=4.6` + `GODOT_CHANNEL=rc1`
+- Separate fields: `GODOT_VERSION=4.7.2` + `GODOT_CHANNEL=stable`
 - Force arch: `GODOT_ARCH=arm64` (or `x86_64`, `x86_32`, `arm32`)
 - Override source repo: `GODOT_REPO=godotengine/godot`
+
+▶ `.chatgpt/setup.sh` – LEAN SANDBOX INSTALLER
+
+1. Defaults to standard (non-Mono) Godot 4.7.2 for GDScript/headless verification
+2. Reuses a matching system Godot if one already exists
+3. Otherwise reuses an extracted cache under `/mnt/data/.chatgpt-tools`
+4. Otherwise looks for a pre-staged official ZIP in `/mnt/data` or `/mnt/data/.cache/godot`
+5. Only attempts a direct network download if shell egress actually works
+6. Verifies the official SHA-256 for the default 4.7.2 Linux x86_64 ZIP
+7. Never modifies `/opt`, `/etc`, or `/usr/local/bin`
+
+Current ChatGPT sandboxes may block shell DNS while still allowing the host to stage a verified external file. In that case, stage:
+
+`Godot_v4.7.2-stable_linux.x86_64.zip`
+
+at:
+
+`/mnt/data/Godot_v4.7.2-stable_linux.x86_64.zip`
+
+then run:
+
+`bash .chatgpt/setup.sh`
 
 ▶ `.codex/fix_indent.sh` – SAFE FORMATTER
 
@@ -149,10 +176,12 @@ Override by exporting env vars before running:
 🧹 TRIMMING DOWN – LEAN MODE
 ============================
 
-Want a smaller, faster install? Here’s how to strip it to essentials:
+For a Godot/GDScript-only sandbox, use `.chatgpt/setup.sh` rather than trimming the full Codex bootstrap by hand.
+
+For the full Codex image, the original lean-mode ideas still apply:
 
 1. **For Godot-only users (no Mono/.NET):**
-   - Remove `.NET SDK` section from `.codex/setup.sh`
+   - Set `INSTALL_DOTNET=0` in `.codex/setup.sh`
    - Skip `dotnet` build steps and `dotnet format` in validation
 
 2. **For CLI-only environments:**
